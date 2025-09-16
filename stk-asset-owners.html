@@ -1,14 +1,13 @@
 <!doctype html><html lang='en'><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Asset Owners – Stakeholders</title><link rel="icon" href="assets/favicon.png">
-
+<title>Stakeholders — Asset Owners</title><link rel="icon" href="assets/favicon.png">
 <style>
 :root{--bg:#0b1220;--panel:#0f172a;--ink:#e6eaf2;--muted:#9aa5b1;--line:rgba(255,255,255,.08);--p:#38bdf8;--s:#a78bfa}
-*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;background:radial-gradient(1200px 600px at 0% 0%,rgba(56,189,248,.15),transparent 60%),radial-gradient(900px 500px at 100% 0%,rgba(167,139,250,.12),transparent 60%),var(--bg);color:var(--ink)}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;background:radial-gradient(1200px 600px at 0% 0%,rgba(56,189,248,.10),transparent 60%),radial-gradient(900px 500px at 100% 0%,rgba(167,139,250,.10),transparent 60%),var(--bg);color:var(--ink)}
 a{color:inherit;text-decoration:none}
 .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
-/* nav */
-.nav{position:sticky;top:0;z-index:60;background:rgba(11,18,32,.65);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+/* nav + mega */
+.nav{position:sticky;top:0;background:rgba(11,18,32,.65);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);z-index:60}
 .nav .in{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
 .brand{display:flex;align-items:center;gap:10px}.brand img{height:58px}
 .menu{display:flex;gap:14px;align-items:center}
@@ -16,21 +15,32 @@ a{color:inherit;text-decoration:none}
 .menu > .item > button{background:transparent;border:none;color:var(--ink);padding:8px 10px;border-radius:10px;cursor:pointer;font:inherit}
 .menu > .item > button:hover{background:rgba(255,255,255,.06)}
 .cta{background:linear-gradient(135deg,var(--p),var(--s));color:#0b1220;padding:10px 16px;border-radius:999px;font-weight:700}
-/* mega */
-.mega{display:none;position:absolute;left:0;right:auto;top:100%;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:780px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.mega{display:none;position:absolute;left:0;top:100%;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:840px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .mega .cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
-.mega h4{margin:4px 0 8px;font-size:14px;color:#bcd}
-.link{display:block;padding:6px 0;color:var(--ink)}
-.link:hover{text-decoration:underline}
+.mega h4{margin:4px 0 8px;font-size:14px;color:#bcd}.link{display:flex;gap:8px;align-items:center;padding:6px 0}
+.link img{width:20px;height:20px;object-fit:cover;border-radius:4px;border:1px solid var(--line)}
 .item:hover .mega{display:block}
 /* hero */
-.hero{position:relative}.hero img{width:100%;display:block;filter:brightness(.9) saturate(1.05)}.overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(11,18,32,.9) 70%)}
-.copy{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);width:min(92%,1080px)}.badge{display:inline-block;background:rgba(56,189,248,.18);border:1px solid var(--line);padding:6px 10px;border-radius:999px}
-h1{font-size:clamp(28px,5vw,54px);margin:8px 0}.lead{color:var(--muted);max-width:760px}
+.hero{position:relative;height:58vh;min-height:440px;border-bottom:1px solid var(--line);overflow:hidden}
+.hero .bg{position:absolute;inset:0;background:url('assets/images/hero.jpg') center/cover no-repeat;filter:brightness(.72) saturate(1.05)}
+.overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,18,32,.20),rgba(11,18,32,.9) 75%)}
+.hero .copy{position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);width:min(92%,1080px);text-align:center}
+.badge{display:inline-block;background:rgba(56,189,248,.20);border:1px solid var(--line);padding:6px 12px;border-radius:999px}
+h1{font-size:clamp(28px,5vw,52px);margin:12px 0}.lead{color:var(--muted);max-width:860px;margin:0 auto}
+.pills{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:18px auto 0}
+.pills .pill{border:1px solid var(--line);padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.03)}
+/* sections */
 .section{padding:56px 0;border-top:1px solid var(--line)}.sub{color:var(--muted);margin:0 0 20px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
-.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
 .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+.img-card{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--panel)}
+.img-card img{width:100%;height:180px;object-fit:cover;display:block;border-bottom:1px solid var(--line)}
+.img-card .cap{padding:12px 14px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}.kpi b{font-size:22px;display:block}
+/* forms */
 .form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.form .full{grid-column:1/-1}
 input,textarea,select{width:100%;background:#0c1428;border:1px solid var(--line);color:var(--ink);padding:12px;border-radius:10px}
 label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
@@ -42,24 +52,16 @@ footer{border-top:1px solid var(--line);padding:28px 0}
 .ft a{display:block;color:var(--muted);padding:6px 0}
 .ft a:hover{color:var(--ink)}
 /* mobile */
-@media(max-width:980px){
-  .mega{position:static;min-width:0;box-shadow:none}
-  .menu{flex-wrap:wrap;gap:8px}
-  .item:hover .mega{display:none}
-  .item.open .mega{display:block}
-  .brand img{height:50px}
-  .grid-3{grid-template-columns:1fr}.grid-2{grid-template-columns:1fr}
-  .ft{grid-template-columns:1fr 1fr}
-}
+@media(max-width:980px){.brand img{height:50px}.grid-4,.grid-3,.grid-2{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.hero{height:52vh}}
 </style>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // mobile mega toggle
+document.addEventListener('DOMContentLoaded',function(){
   document.querySelectorAll('.item > button').forEach(function(btn){
-    btn.addEventListener('click', function(e){
-      var it = e.currentTarget.parentElement;
-      if (window.matchMedia('(max-width: 980px)').matches) {
-        it.classList.toggle('open');
+    btn.addEventListener('click',function(e){
+      if (window.matchMedia('(max-width:980px)').matches) {
+        e.currentTarget.parentElement.classList.toggle('open');
+        var mega=e.currentTarget.parentElement.querySelector('.mega');
+        if(mega) mega.style.display = mega.style.display==='block'?'none':'block';
       }
     });
   });
@@ -71,55 +73,49 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="menu">
     <div class="item">
       <button>Products ▾</button>
-      <div class="mega">
-        <div class="cols">
-          <div>
-            <h4>Software</h4>
-            <a class="link" href="product-survey-suite.html">SkyTerra Survey Suite</a>
-            <a class="link" href="product-solar-therm.html">SkyTerra Solar Thermography</a>
-            <a class="link" href="product-lidar-mapper.html">SkyTerra LiDAR Mapper</a>
-            <a class="link" href="product-drone-analytics.html">SkyTerra Drone Analytics</a>
-            <a class="link" href="product-forms.html">SkyTerra Forms</a>
-          </div>
-          <div>
-            <h4>Solar — For Teams</h4>
-            <a class="link" href="sol-project-management.html">Project Management</a>
-            <a class="link" href="sol-field-teams.html">Field Teams</a>
-            <a class="link" href="sol-contractors.html">Contractors</a>
-            <a class="link" href="sol-independent-engineers.html">Independent Engineers</a>
-            <a class="link" href="sol-om.html">Operations & Maintenance</a>
-          </div>
-          <div>
-            <h4>Construction — Lifecycle</h4>
-            <a class="link" href="con-preconstruction.html">Preconstruction</a>
-            <a class="link" href="con-construction.html">Construction</a>
-            <a class="link" href="con-commissioning.html">Commissioning</a>
-            <a class="link" href="con-om.html">Operations & Maintenance</a>
-          </div>
-          <div>
-            <h4>Stakeholders</h4>
-            <a class="link" href="stk-asset-owners.html">Asset Owners</a>
-            <a class="link" href="stk-epcs.html">EPCs</a>
-            <a class="link" href="stk-contractors.html">Contractors</a>
-            <a class="link" href="stk-engineers.html">Engineers</a>
-          </div>
+      <div class="mega"><div class="cols">
+        <div><h4>Software</h4>
+          <a class="link" href="product-survey-suite.html"><img src="assets/images/infrastructure.jpg" alt=""> Survey Suite</a>
+          <a class="link" href="product-solar-therm.html"><img src="assets/images/solar.jpg" alt=""> Solar Thermography</a>
+          <a class="link" href="product-lidar-mapper.html"><img src="assets/images/lidar.jpg" alt=""> LiDAR Mapper</a>
+          <a class="link" href="product-drone-analytics.html"><img src="assets/images/construction.jpg" alt=""> Drone Analytics</a>
+          <a class="link" href="product-forms.html"><img src="assets/images/hero.jpg" alt=""> Forms</a>
         </div>
-      </div>
+        <div><h4>Solar — Teams</h4>
+          <a class="link" href="sol-project-management.html"><img src="assets/images/solar.jpg"> Project Management</a>
+          <a class="link" href="sol-field-teams.html"><img src="assets/images/solar.jpg"> Field Teams</a>
+          <a class="link" href="sol-contractors.html"><img src="assets/images/solar.jpg"> Contractors</a>
+          <a class="link" href="sol-independent-engineers.html"><img src="assets/images/solar.jpg"> Independent Engineers</a>
+          <a class="link" href="sol-om.html"><img src="assets/images/solar.jpg"> O&M</a>
+        </div>
+        <div><h4>Construction — Lifecycle</h4>
+          <a class="link" href="con-preconstruction.html"><img src="assets/images/construction.jpg"> Preconstruction</a>
+          <a class="link" href="con-construction.html"><img src="assets/images/construction.jpg"> Construction</a>
+          <a class="link" href="con-commissioning.html"><img src="assets/images/construction.jpg"> Commissioning</a>
+          <a class="link" href="con-om.html"><img src="assets/images/construction.jpg"> O&M</a>
+        </div>
+        <div><h4>Stakeholders</h4>
+          <a class="link" href="stk-asset-owners.html"><img src="assets/images/infrastructure.jpg"> Asset Owners</a>
+          <a class="link" href="stk-epcs.html"><img src="assets/images/infrastructure.jpg"> EPCs</a>
+          <a class="link" href="stk-contractors.html"><img src="assets/images/infrastructure.jpg"> Contractors</a>
+          <a class="link" href="stk-engineers.html"><img src="assets/images/infrastructure.jpg"> Engineers</a>
+        </div>
+      </div></div>
     </div>
     <a class="item" href="platform.html"><button>Platform</button></a>
-    <a class="item" href="#contact"><button>Contact</button></a>
     <a class="cta" href="#contact">Book a Demo</a>
   </div>
 </div></nav>
+<header class="hero" style="min-height:360px;height:44vh">
+  <div class="bg" style="background-image:url('assets/images/infrastructure.jpg')"></div><div class="overlay"></div>
+  <div class="copy"><span class="badge">Stakeholders </span><h1>Stakeholders — Asset Owners</h1></div>
+</header>
 <section class="section"><div class="wrap grid-2">
-  <article class="card">
-    <h1>Asset Owners – Stakeholders</h1>
-    <ul><li>Portfolio dashboards</li><li>Issue prioritization</li><li>Performance KPIs</li></ul>
-  </article>
+  <article class="card"><ul><li>Portfolio dashboards and performance KPIs</li><li>Budgeting support with prioritized issues</li><li>Executive reports and web viewers</li></ul></article>
   <aside class="card">
     <h3>Request Info</h3>
     <form class="form" action="https://formspree.io/f/mldwkqwd" method="POST">
-      <input type="hidden" name="page" value="Asset Owners – Stakeholders">
+      <input type="hidden" name="page" value="Stakeholders — Asset Owners">
       <div><label>Name</label><input name="name" required></div>
       <div><label>Email</label><input type="email" name="email" required></div>
       <div><label>Company</label><input name="company"></div>
