@@ -1,10 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://skyterraeye.com/</loc></url>
-  <url><loc>https://skyterraeye.com/topographic.html</loc></url>
-  <url><loc>https://skyterraeye.com/solar.html</loc></url>
-  <url><loc>https://skyterraeye.com/construction.html</loc></url>
-  <url><loc>https://skyterraeye.com/lidar.html</loc></url>
-  <url><loc>https://skyterraeye.com/quantities.html</loc></url>
-  <url><loc>https://skyterraeye.com/utilities.html</loc></url>
+  <url><loc>https://skyterraeye.com/platform.html</loc></url>
+  <url><loc>https://skyterraeye.com/con-commissioning.html</loc></url>
+  <url><loc>https://skyterraeye.com/con-construction.html</loc></url>
+  <url><loc>https://skyterraeye.com/con-om.html</loc></url>
+  <url><loc>https://skyterraeye.com/con-preconstruction.html</loc></url>
+  <url><loc>https://skyterraeye.com/product-drone-analytics.html</loc></url>
+  <url><loc>https://skyterraeye.com/product-forms.html</loc></url>
+  <url><loc>https://skyterraeye.com/product-lidar-mapper.html</loc></url>
+  <url><loc>https://skyterraeye.com/product-solar-therm.html</loc></url>
+  <url><loc>https://skyterraeye.com/product-survey-suite.html</loc></url>
+  <url><loc>https://skyterraeye.com/sol-contractors.html</loc></url>
+  <url><loc>https://skyterraeye.com/sol-field-teams.html</loc></url>
+  <url><loc>https://skyterraeye.com/sol-independent-engineers.html</loc></url>
+  <url><loc>https://skyterraeye.com/sol-om.html</loc></url>
+  <url><loc>https://skyterraeye.com/sol-project-management.html</loc></url>
+  <url><loc>https://skyterraeye.com/stk-asset-owners.html</loc></url>
+  <url><loc>https://skyterraeye.com/stk-contractors.html</loc></url>
+  <url><loc>https://skyterraeye.com/stk-engineers.html</loc></url>
+  <url><loc>https://skyterraeye.com/stk-epcs.html</loc></url>
 </urlset>
