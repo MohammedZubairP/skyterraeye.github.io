@@ -1,251 +1,96 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SkyTerraEye — Surveying & Geospatial Platform</title>
-<meta name="description" content="SkyTerraEye delivers end-to-end surveying workflows: UAV, LiDAR, Total Station, GIS analytics and digital reporting.">
-<link rel="icon" href="assets/favicon.png">
-<link rel="preload" href="assets/images/hero.jpg" as="image">
-<style>:root{
-  --bg:#0a1020; --panel:#0f172a; --ink:#e5e7eb; --muted:#9ca3af;
-  --primary:#38bdf8; --secondary:#a78bfa; --line:rgba(255,255,255,.08);
-}
-*{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color:var(--ink);
-  background:radial-gradient(1600px 800px at 10% 0%, rgba(56,189,248,.15), transparent 60%),
-             radial-gradient(1200px 600px at 90% 10%, rgba(167,139,250,.12), transparent 60%), var(--bg)}
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkyTerraEye — Survey, Mapping & GIS</title>
+<meta name="description" content="UAV mapping, LiDAR, Total Station surveys, GIS analytics, solar thermography, construction monitoring.">
+<link rel="icon" href="assets/favicon.png"><style>
+:root{--bg:#0b1220;--panel:#0f172a;--ink:#e6eaf2;--muted:#9aa5b1;--line:rgba(255,255,255,.08);--p:#38bdf8;--s:#a78bfa}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;background:radial-gradient(1200px 600px at 0% 0%,rgba(56,189,248,.15),transparent 60%),radial-gradient(900px 500px at 100% 10%,rgba(167,139,250,.12),transparent 60%),var(--bg);color:var(--ink)}
 .container{max-width:1180px;margin:0 auto;padding:0 20px}
-a{color:inherit}
-.nav{position:sticky;top:0;z-index:50;background:rgba(10,16,32,.7);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
-.nav .inner{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
-.brand{display:flex;gap:12px;align-items:center}
-.brand img{height:64px}
-.menu{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
-.menu a{color:var(--ink);text-decoration:none;padding:8px 10px;border-radius:10px}
-.menu a:hover{background:rgba(255,255,255,.06)}
-.cta{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#0b1220;border-radius:999px;padding:10px 16px;font-weight:700;text-decoration:none}
-.hero{position:relative}
-.hero img{width:100%;height:auto;display:block;filter:contrast(1.05) saturate(1.05) brightness(.9)}
-.hero .overlay{position:absolute;inset:0;background:linear-gradient(180deg, rgba(10,16,32,.3), rgba(10,16,32,.85) 70%)}
-.hero .copy{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);width:min(92%,1080px);text-align:left}
-.h-badge{display:inline-block;background:rgba(56,189,248,.18);border:1px solid var(--line);padding:6px 10px;border-radius:999px;margin-bottom:10px}
-h1{font-size:clamp(28px,5vw,54px);margin:6px 0 8px}
-.lead{color:var(--muted);max-width:720px}
-.buttons{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap}
-.btn{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#0b1220;padding:12px 18px;border-radius:999px;font-weight:800;text-decoration:none}
-.btn-ghost{border:1px solid var(--line);padding:12px 18px;border-radius:999px;text-decoration:none}
-.section{padding:56px 0;border-top:1px solid var(--line)}
-.section h2{font-size:clamp(22px,3.5vw,32px);margin:0 0 8px}
-.sub{color:var(--muted);margin:0 0 22px}
-.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
-.card h3{margin:8px 0}
-.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:18px}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
-.kpi b{font-size:22px;display:block}
-.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
-.img-card{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line)}
-.img-card img{width:100%;height:auto;display:block}
-.img-card .cap{position:absolute;left:0;bottom:0;right:0;padding:12px 14px;background:linear-gradient(180deg,transparent, rgba(10,16,32,.92));font-weight:700}
-.job{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
-.job h3{margin:0 0 6px}
-.badge{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);font-size:12px;margin-right:8px}
-.contact-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
-footer{border-top:1px solid var(--line);padding:24px 0;color:var(--muted);text-align:center}
-@media(max-width:900px){
-  .grid-3{grid-template-columns:1fr}
-  .kpis{grid-template-columns:repeat(2,1fr)}
-  .grid-2{grid-template-columns:1fr}
-  .brand img{height:56px}
-}
-</style>
-</head>
+a{color:inherit;text-decoration:none}
+.nav{position:sticky;top:0;background:rgba(11,18,32,.6);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);z-index:50}
+.nav .in{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
+.brand{display:flex;align-items:center;gap:10px}.brand img{height:60px}
+.menu{display:flex;gap:14px;flex-wrap:wrap}.menu a{padding:8px 10px;border-radius:10px}.menu a:hover{background:rgba(255,255,255,.06)}
+.cta{background:linear-gradient(135deg,var(--p),var(--s));color:#0b1220;padding:10px 16px;border-radius:999px;font-weight:700}
+.hero{position:relative}.hero img{width:100%;display:block;filter:brightness(.9) saturate(1.05)}.overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(11,18,32,.88) 70%)}
+.copy{position:absolute;left:50%;bottom:7%;transform:translateX(-50%);width:min(92%,1080px)}.badge{display:inline-block;background:rgba(56,189,248,.18);border:1px solid var(--line);padding:6px 10px;border-radius:999px}
+h1{font-size:clamp(28px,5vw,54px);margin:8px 0}.lead{color:var(--muted);max-width:760px}
+.section{padding:56px 0;border-top:1px solid var(--line)}.sub{color:var(--muted);margin:0 0 20px}
+.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+.img-card{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line)}.img-card img{width:100%}.img-card .cap{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,transparent,rgba(11,18,32,.95));padding:12px 14px;font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:18px}.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}.kpi b{font-size:22px;display:block}
+/* Form */
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.form .full{grid-column:1/-1}
+input,textarea,select{width:100%;background:#0c1428;border:1px solid var(--line);color:var(--ink);padding:12px;border-radius:10px}
+label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+.btn{background:linear-gradient(135deg,var(--p),var(--s));color:#0b1220;padding:12px 18px;border-radius:999px;font-weight:800;display:inline-block;border:none;cursor:pointer}
+footer{border-top:1px solid var(--line);color:var(--muted);text-align:center;padding:24px 0}
+@media(max-width:900px){.grid-3{grid-template-columns:1fr}.grid-2{grid-template-columns:1fr}.form{grid-template-columns:1fr}.brand img{height:54px}}
+</style></head>
 <body>
-  <nav class="nav">
-    <div class="container inner">
-      <div class="brand">
-        <img src="assets/logo.png" alt="SkyTerraEye">
-        <strong>SkyTerraEye</strong>
-      </div>
-      <div class="menu">
-        <a href="#intro">About</a>
-        <a href="#solutions">Solutions</a>
-        <a href="#platform">Platform</a>
-        <a href="#industries">Industries</a>
-        <a href="#results">Results</a>
-        <a href="#careers">Careers</a>
-        <a href="#contact" class="cta">Contact</a>
-      </div>
-    </div>
-  </nav>
+<nav class="nav"><div class="container in">
+  <div class="brand"><img src="assets/logo.png" alt=""><strong>SkyTerraEye</strong></div>
+  <div class="menu">
+    <a href="#solutions">Solutions</a><a href="#industries">Industries</a><a href="#contact">Contact</a>
+  </div></div></nav>
+<div class="hero"><img src="assets/images/hero.jpg" alt=""><div class="overlay"></div>
+  <div class="copy"><div class="container">
+    <span class="badge">Survey • Map • Analyze</span>
+    <h1>End‑to‑End Surveying: UAV, LiDAR, Total Station & GIS</h1>
+    <p class="lead">Practical workflows from acquisition to delivery. Accurate, fast, and built for decisions.</p>
+    <div style="margin-top:14px"><a class="cta" href="#contact">Get a Quote</a></div>
+  </div></div>
+</div>
 
-  <section class="hero">
-    <img src="assets/images/hero.jpg" alt="Surveying hero">
-    <div class="overlay"></div>
-    <div class="copy container">
-      <span class="h-badge">Survey • Map • Analyze</span>
-      <h1>One platform for <em>precision</em> surveying — UAV, LiDAR & Total Station</h1>
-      <p class="lead">From data capture to delivery-ready analytics, SkyTerraEye unifies aerial mapping, GNSS/Total Station control, and GIS‑first reporting into a single fast workflow.</p>
-      <div class="buttons">
-        <a class="btn" href="mailto:info@skyterraeye.com">Get a Quote</a>
-        <a class="btn-ghost" href="#platform">See the Platform</a>
+<section id="solutions" class="section"><div class="container">
+  <h2>Core Services</h2><p class="sub">Expanded from your Crafzen PDF and tailored for SkyTerraEye.</p>
+  <div class="grid-3">
+    <a class="card" href="topographic.html"><h3>Topographical Survey</h3><p>GNSS & Total Station control and detail survey with CAD outputs.</p></a>
+    <a class="card" href="solar.html"><h3>Solar & O&M Thermography</h3><p>Thermal inspections with anomaly tickets and maintenance dashboards.</p></a>
+    <a class="card" href="construction.html"><h3>Construction Monitoring</h3><p>Progress, plan vs actual, and quantities with weekly updates.</p></a>
+    <a class="card" href="lidar.html"><h3>LiDAR & Terrain</h3><p>Classified point clouds, DTM/DSM, contours and volumes.</p></a>
+    <a class="card" href="quantities.html"><h3>Volume & Quantities</h3><p>Stockpiles, cut/fill, and reconciliation with design.</p></a>
+    <a class="card" href="utilities.html"><h3>Asset / Utility Mapping</h3><p>GIS layers, attributes, and condition photos for field assets.</p></a>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><b>10k+ ha</b><span>mapped</span></div>
+    <div class="kpi"><b>2–5 cm</b><span>typical accuracy</span></div>
+    <div class="kpi"><b>24–72 h</b><span>turnaround</span></div>
+    <div class="kpi"><b>QA</b><span>field & office checks</span></div>
+  </div>
+</div></section>
+
+<section id="industries" class="section"><div class="container">
+  <h2>Industries</h2><p class="sub">Click to view details</p>
+  <div class="grid-2">
+    <a class="img-card" href="solar.html"><img src="assets/images/solar.jpg"><div class="cap">Solar & O&M</div></a>
+    <a class="img-card" href="construction.html"><img src="assets/images/construction.jpg"><div class="cap">Construction</div></a>
+    <a class="img-card" href="infrastructure.html"><img src="assets/images/infrastructure.jpg"><div class="cap">Infrastructure & Roads</div></a>
+    <a class="img-card" href="lidar.html"><img src="assets/images/lidar.jpg"><div class="cap">LiDAR & Terrain</div></a>
+  </div>
+</div></section>
+
+<section id="contact" class="section"><div class="container">
+  <h2>Contact</h2><p class="sub">Marina Square, Al Reem Island, Abu Dhabi • <a href="tel:+971503091162">+971 50 3091162</a> • <a href="mailto:zubair@skyterraeye.com">zubair@skyterraeye.com</a></p>
+  <div class="card">
+    <form class="form" action="https://formspree.io/f/mldwkqwd" method="POST">
+      <div><label>Name</label><input name="name" required></div>
+      <div><label>Email</label><input type="email" name="email" required></div>
+      <div><label>Phone</label><input name="phone"></div>
+      <div><label>Company</label><input name="company"></div>
+      <div class="full"><label>Service Interest</label>
+        <select name="service">
+          <option>Topographical Survey</option><option>Solar & O&M</option><option>Construction Monitoring</option>
+          <option>LiDAR & Terrain</option><option>Volume & Quantities</option><option>Asset / Utility Mapping</option><option>Other</option>
+        </select>
       </div>
-    </div>
-  </section>
+      <div class="full"><label>Message</label><textarea name="message" rows="6" placeholder="Tell us about the site, area, drawings, timelines…"></textarea></div>
+      <div class="full"><button class="btn" type="submit">Send Message</button></div>
+    </form>
+  </div>
+</div></section>
 
-  <section id="intro" class="section">
-    <div class="container">
-      <h2>About SkyTerraEye</h2>
-      <p class="sub">Accuracy, speed, and clarity for modern projects.</p>
-      <div class="card">
-        <h3>Founder’s Note</h3>
-        <p>Hi, I’m <strong>Zubair</strong>, founder of SkyTerraEye. I build practical, end-to-end surveying workflows that combine UAV, LiDAR, Total Station, and GIS so decision makers get results they can trust. My focus is simple: safe field ops, clean data, and clear deliverables—on time.</p>
-      </div>
-    </div>
-  </section>
-
-  <section id="solutions" class="section">
-    <div class="container">
-      <h2>End‑to‑End Solutions</h2>
-      <p class="sub">Everything you need to go from site to insight — rapidly and reliably.</p>
-      <div class="grid-3">
-        <div class="card"><h3>Topographical Survey</h3><p>High‑accuracy contours and features using GNSS & Total Station, fused with drone photogrammetry.</p></div>
-        <div class="card"><h3>LiDAR Mapping</h3><p>Dense point clouds, DTMs, and volume calculations validated with ground control to engineering tolerances.</p></div>
-        <div class="card"><h3>Solar Thermography</h3><p>Thermal inspections at scale with geo‑tagged defect maps and actionable maintenance reports.</p></div>
-        <div class="card"><h3>Construction Monitoring</h3><p>Progress, deviations, and quantities tracked via orthomosaics, 3D models, and plan comparisons.</p></div>
-        <div class="card"><h3>GIS & Analytics</h3><p>Dashboards and spatial analysis to support planning, QA/QC, and decision‑making.</p></div>
-        <div class="card"><h3>Custom Workflows</h3><p>Tailored capture‑to‑delivery pipelines for solar, infrastructure, mining, and complex sites.</p></div>
-      </div>
-
-      <div class="kpis">
-        <div class="kpi"><b>10k+ ha</b><span>mapped projects</span></div>
-        <div class="kpi"><b>2–5 cm</b><span>typical accuracy</span></div>
-        <div class="kpi"><b>3× faster</b><span>capture‑to‑report</span></div>
-        <div class="kpi"><b>24–72 h</b><span>turnaround</span></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="platform" class="section">
-    <div class="container">
-      <h2>Platform Modules</h2>
-      <p class="sub">Pick the pieces you need — or run the full stack.</p>
-      <div class="grid-3">
-        <div class="card"><h3>Capture</h3><p>UAV (RGB/LiDAR/Thermal), GNSS, and Total Station plans and checklists.</p></div>
-        <div class="card"><h3>Process</h3><p>Photogrammetry/LiDAR pipelines with automated QA and GCP integration.</p></div>
-        <div class="card"><h3>Map</h3><p>Clean orthos, contours, CAD exports, and GIS layers prepared for design.</p></div>
-        <div class="card"><h3>Inspect</h3><p>Defect detection, change maps, and ticketing for field teams.</p></div>
-        <div class="card"><h3>Analyze</h3><p>Volumes, as‑built vs. design, alignment checks, and KPIs.</p></div>
-        <div class="card"><h3>Deliver</h3><p>Branded reports, dashboards, and data rooms for stakeholders.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="industries" class="section">
-    <div class="container">
-      <h2>Built for Your Industry</h2>
-      <p class="sub">Flexible, field‑tested workflows across sectors. Click a card to learn more.</p>
-      <div class="grid-2">
-        <div class="img-card"><a href="solar.html"><img src="assets/images/solar.jpg" alt="Solar"><div class="cap">Solar &amp; O&amp;M</div></a></div>
-        <div class="img-card"><a href="construction.html"><img src="assets/images/construction.jpg" alt="Construction"><div class="cap">Construction</div></a></div>
-        <div class="img-card"><a href="infrastructure.html"><img src="assets/images/infrastructure.jpg" alt="Infrastructure"><div class="cap">Infrastructure & Roads</div></a></div>
-        <div class="img-card"><a href="lidar.html"><img src="assets/images/lidar.jpg" alt="LiDAR"><div class="cap">LiDAR & Terrain</div></a></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="results" class="section">
-    <div class="container">
-      <h2>Proven Results</h2>
-      <p class="sub">Real projects. Real timelines. Real accuracy.</p>
-      <div class="grid-3">
-        <div class="card"><h3>Utility‑scale Solar</h3><p>Thermal audit across 200+ MW with actionable defect layers and O&M prioritization.</p></div>
-        <div class="card"><h3>Highway Corridor</h3><p>LiDAR corridor mapping for design & earthworks — 2–5 cm accuracy achieved.</p></div>
-        <div class="card"><h3>Urban Topo</h3><p>Dense city‑block mapping with clash checks and fast CAD/GIS deliverables.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="careers" class="section">
-    <div class="container">
-      <h2>Careers</h2>
-      <p class="sub">Join a fast, field‑first team building real-world surveying workflows.</p>
-      <div class="grid-3">
-        <div class="job">
-          <h3>Survey Engineer</h3>
-          <span class="badge">Full-time</span><span class="badge">Dubai</span>
-          <p>GNSS/Total Station fieldwork, control networks, QA of topo & as-built data, CAD/GIS exports.</p>
-          <p><a class="btn" href="mailto:zubair@skyterraeye.com?subject=Application%20-%20Survey%20Engineer">Apply now</a></p>
-        </div>
-        <div class="job">
-          <h3>UAV / Drone Pilot</h3>
-          <span class="badge">Full-time</span><span class="badge">UAE</span>
-          <p>RGB/LiDAR/Thermal missions, flight planning, safety compliance, data hand-off for processing.</p>
-          <p><a class="btn" href="mailto:zubair@skyterraeye.com?subject=Application%20-%20UAV%20Pilot">Apply now</a></p>
-        </div>
-        <div class="job">
-          <h3>GIS / Data Analyst</h3>
-          <span class="badge">Full-time</span><span class="badge">Hybrid</span>
-          <p>Orthos, contours, terrain models, analytics & dashboards; Python/QC a plus.</p>
-          <p><a class="btn" href="mailto:zubair@skyterraeye.com?subject=Application%20-%20GIS%20Analyst">Apply now</a></p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="contact" class="section">
-    <div class="container">
-      <h2>Contact</h2>
-      <p class="sub">Tell us about your site, drawings, and timelines — we’ll send a scope and quote.</p>
-      <div class="grid-3">
-        <div class="contact-card">
-          <h3>Address</h3>
-          <p>Marina Square, Al Reem Island, Abu Dhabi</p>
-        </div>
-        <div class="contact-card">
-          <h3>Phone</h3>
-          <p><a href="tel:+971503091162">+971 50 309 1162</a></p>
-        </div>
-        <div class="contact-card">
-          <h3>Email</h3>
-          <p><a href="mailto:info@skyterraeye.com">info@skyterraeye.com</a><br>
-             <a href="mailto:zubair@skyterraeye.com">zubair@skyterraeye.com</a></p>
-        </div>
-      </div>
-
-      <div class="card" style="margin-top:18px">
-        <h3>Send us a Message</h3>
-        <form action="https://formspree.io/f/mldwkqwd" method="POST">
-          <label>Name</label><input name="name" required>
-          <label>Email</label><input type="email" name="email" required>
-          <label>Service Interest</label>
-          <select name="service">
-            <option>Solar & O&M</option>
-            <option>Construction</option>
-            <option>Infrastructure & Roads</option>
-            <option>LiDAR & Terrain</option>
-            <option>Other</option>
-          </select>
-          <label>Message</label><textarea name="message" rows="5" placeholder="Tell us about your project…"></textarea>
-          <button class="btn" type="submit" style="margin-top:12px">Send Message</button>
-        </form>
-      </div>
-    </div>
-  </section>
-
-  <footer>© 2025 SkyTerraEye — All rights reserved.</footer>
-
-  <script>
-  // Smooth scroll
-  document.querySelectorAll('a[href^="#"]').forEach(function(a){
-    a.addEventListener('click', function(e){
-      var id = a.getAttribute('href').slice(1);
-      var el = document.getElementById(id);
-      if(el){ e.preventDefault(); el.scrollIntoView({behavior:'smooth'}); }
-    });
-  });
-  </script>
-</body>
-</html>
+<footer>© 2025 SkyTerraEye</footer>
+</body></html>

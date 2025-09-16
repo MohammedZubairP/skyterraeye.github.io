@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://skyterraeye.com/</loc></url>
+  <url><loc>https://skyterraeye.com/topographic.html</loc></url>
   <url><loc>https://skyterraeye.com/solar.html</loc></url>
   <url><loc>https://skyterraeye.com/construction.html</loc></url>
-  <url><loc>https://skyterraeye.com/infrastructure.html</loc></url>
   <url><loc>https://skyterraeye.com/lidar.html</loc></url>
+  <url><loc>https://skyterraeye.com/quantities.html</loc></url>
+  <url><loc>https://skyterraeye.com/utilities.html</loc></url>
 </urlset>
