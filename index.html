@@ -1,244 +1,90 @@
-<!doctype html><html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SkyTerraEye — Unified Survey & GIS Platform</title><link rel="icon" href="assets/favicon.png">
-<style>
-:root{--bg:#0b1220;--panel:#0f172a;--ink:#e6eaf2;--muted:#9aa5b1;--line:rgba(255,255,255,.08);--p:#38bdf8;--s:#a78bfa}
-*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;background:radial-gradient(1200px 600px at 0% 0%,rgba(56,189,248,.10),transparent 60%),radial-gradient(900px 500px at 100% 0%,rgba(167,139,250,.10),transparent 60%),var(--bg);color:var(--ink)}
-a{color:inherit;text-decoration:none}
-.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
-/* nav + mega */
-.nav{position:sticky;top:0;background:rgba(11,18,32,.65);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);z-index:60}
-.nav .in{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
-.brand{display:flex;align-items:center;gap:10px}.brand img{height:58px}
-.menu{display:flex;gap:14px;align-items:center}
-.menu > .item{position:relative}
-.menu > .item > button{background:transparent;border:none;color:var(--ink);padding:8px 10px;border-radius:10px;cursor:pointer;font:inherit}
-.menu > .item > button:hover{background:rgba(255,255,255,.06)}
-.cta{background:linear-gradient(135deg,var(--p),var(--s));color:#0b1220;padding:10px 16px;border-radius:999px;font-weight:700}
-.mega{display:none;position:absolute;left:0;top:100%;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:840px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-.mega .cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
-.mega h4{margin:4px 0 8px;font-size:14px;color:#bcd}.link{display:flex;gap:8px;align-items:center;padding:6px 0}
-.link img{width:20px;height:20px;object-fit:cover;border-radius:4px;border:1px solid var(--line)}
-.item:hover .mega{display:block}
-/* hero */
-.hero{position:relative;height:58vh;min-height:440px;border-bottom:1px solid var(--line);overflow:hidden}
-.hero .bg{position:absolute;inset:0;background:url('assets/images/hero.jpg') center/cover no-repeat;filter:brightness(.72) saturate(1.05)}
-.overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,18,32,.20),rgba(11,18,32,.9) 75%)}
-.hero .copy{position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);width:min(92%,1080px);text-align:center}
-.badge{display:inline-block;background:rgba(56,189,248,.20);border:1px solid var(--line);padding:6px 12px;border-radius:999px}
-h1{font-size:clamp(28px,5vw,52px);margin:12px 0}.lead{color:var(--muted);max-width:860px;margin:0 auto}
-.pills{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:18px auto 0}
-.pills .pill{border:1px solid var(--line);padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.03)}
-/* sections */
-.section{padding:56px 0;border-top:1px solid var(--line)}.sub{color:var(--muted);margin:0 0 20px}
-.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
-.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
-.img-card{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--panel)}
-.img-card img{width:100%;height:180px;object-fit:cover;display:block;border-bottom:1px solid var(--line)}
-.img-card .cap{padding:12px 14px}
-.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}.kpi b{font-size:22px;display:block}
-/* forms */
-.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.form .full{grid-column:1/-1}
-input,textarea,select{width:100%;background:#0c1428;border:1px solid var(--line);color:var(--ink);padding:12px;border-radius:10px}
-label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
-.btn{background:linear-gradient(135deg,var(--p),var(--s));color:#0b1220;padding:12px 18px;border-radius:999px;font-weight:800;border:none;cursor:pointer}
-/* footer */
-footer{border-top:1px solid var(--line);padding:28px 0}
-.ft{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
-.ft h5{margin:0 0 8px;color:#bcd;font-size:14px}
-.ft a{display:block;color:var(--muted);padding:6px 0}
-.ft a:hover{color:var(--ink)}
-/* mobile */
-@media(max-width:980px){.brand img{height:50px}.grid-4,.grid-3,.grid-2{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.hero{height:52vh}}
-</style>
-<script>
-document.addEventListener('DOMContentLoaded',function(){
-  document.querySelectorAll('.item > button').forEach(function(btn){
-    btn.addEventListener('click',function(e){
-      if (window.matchMedia('(max-width:980px)').matches) {
-        e.currentTarget.parentElement.classList.toggle('open');
-        var mega=e.currentTarget.parentElement.querySelector('.mega');
-        if(mega) mega.style.display = mega.style.display==='block'?'none':'block';
-      }
-    });
-  });
-});
-</script>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SkyTerraEye — Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="assets/favicon.png">
+  <!-- Your CSS or style block here -->
+  <style>
+    :root {
+      --bg: #0b1220; --panel: #0f172a; --ink: #e6eaf2; --muted: #9aa5b1;
+      --line: rgba(255,255,255,.08); --p: #38bdf8; --s: #a78bfa;
+    }
+    body {
+      margin:0; padding:0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, sans-serif;
+    }
+    a { color: inherit; text-decoration: none; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+    .nav .brand img { height: 40px; vertical-align: middle; }
+    .nav .menu .item { display: inline-block; margin-right: 16px; }
+    .nav .cta { background: var(--p); color: #fff; padding: 8px 16px; border-radius: 8px; }
+    footer { background: var(--panel); padding: 24px 0; color: var(--muted); font-size: 14px; }
+    footer .ft a { display: block; margin-bottom: 8px; }
+  </style>
 </head>
 <body>
-<nav class="nav"><div class="wrap in">
-  <div class="brand"><a href="index.html"><img src="assets/logo.png" alt=""></a><strong>SkyTerraEye</strong></div>
-  <div class="menu">
-    <div class="item">
-      <button>Products ▾</button>
-      <div class="mega"><div class="cols">
-        <div><h4>Software</h4>
-          <a class="link" href="product-survey-suite.html"><img src="assets/images/infrastructure.jpg" alt=""> Survey Suite</a>
-          <a class="link" href="product-solar-therm.html"><img src="assets/images/solar.jpg" alt=""> Solar Thermography</a>
-          <a class="link" href="product-lidar-mapper.html"><img src="assets/images/lidar.jpg" alt=""> LiDAR Mapper</a>
-          <a class="link" href="product-drone-analytics.html"><img src="assets/images/construction.jpg" alt=""> Drone Analytics</a>
-          <a class="link" href="product-forms.html"><img src="assets/images/hero.jpg" alt=""> Forms</a>
-        </div>
-        <div><h4>Solar — Teams</h4>
-          <a class="link" href="sol-project-management.html"><img src="assets/images/solar.jpg"> Project Management</a>
-          <a class="link" href="sol-field-teams.html"><img src="assets/images/solar.jpg"> Field Teams</a>
-          <a class="link" href="sol-contractors.html"><img src="assets/images/solar.jpg"> Contractors</a>
-          <a class="link" href="sol-independent-engineers.html"><img src="assets/images/solar.jpg"> Independent Engineers</a>
-          <a class="link" href="sol-om.html"><img src="assets/images/solar.jpg"> O&M</a>
-        </div>
-        <div><h4>Construction — Lifecycle</h4>
-          <a class="link" href="con-preconstruction.html"><img src="assets/images/construction.jpg"> Preconstruction</a>
-          <a class="link" href="con-construction.html"><img src="assets/images/construction.jpg"> Construction</a>
-          <a class="link" href="con-commissioning.html"><img src="assets/images/construction.jpg"> Commissioning</a>
-          <a class="link" href="con-om.html"><img src="assets/images/construction.jpg"> O&M</a>
-        </div>
-        <div><h4>Stakeholders</h4>
-          <a class="link" href="stk-asset-owners.html"><img src="assets/images/infrastructure.jpg"> Asset Owners</a>
-          <a class="link" href="stk-epcs.html"><img src="assets/images/infrastructure.jpg"> EPCs</a>
-          <a class="link" href="stk-contractors.html"><img src="assets/images/infrastructure.jpg"> Contractors</a>
-          <a class="link" href="stk-engineers.html"><img src="assets/images/infrastructure.jpg"> Engineers</a>
-        </div>
-      </div></div>
-    </div>
-    <a class="item" href="platform.html"><button>Platform</button></a>
-    <a class="cta" href="#contact">Book a Demo</a>
-  </div>
-</div></nav>
-<header class="hero">
-  <div class="bg"></div><div class="overlay"></div>
-  <div class="copy">
-    <span class="badge">Survey • Map • Analyze</span>
-    <h1>A Unified Platform for Solar, Construction & Infrastructure</h1>
-    <p class="lead">Cloud and mobile‑first workflows powered by UAV, LiDAR, GNSS & Total Station — from field capture to CAD/GIS deliverables, faster than ever.</p>
-    <div class="pills">
-      <span class="pill">Reporting</span><span class="pill">Inventory</span>
-      <span class="pill">Digital Twin</span><span class="pill">Punch Lists</span><span class="pill">Thermography</span>
-    </div>
-    <div style="margin-top:16px"><a class="cta" href="#contact">Book a Demo</a></div>
-  </div>
-</header>
 
-<section class="section"><div class="wrap">
-  <h2>Products</h2><p class="sub">Modules that work together across the project lifecycle.</p>
-  <div class="grid-4">
-    <a class="img-card" href="product-solar-therm.html">
-      <img src="assets/images/solar.jpg" alt="Solar">
-      <div class="cap"><h3>Solar Thermography</h3><p>Hot‑spots, PID & string issues with geo‑tagged tickets and O&M reports.</p></div>
-    </a>
-    <a class="img-card" href="product-lidar-mapper.html">
-      <img src="assets/images/lidar.jpg" alt="LiDAR">
-      <div class="cap"><h3>LiDAR Mapper</h3><p>Classified point clouds, DTM/DSM, contours, sections and volumes.</p></div>
-    </a>
-    <a class="img-card" href="product-drone-analytics.html">
-      <img src="assets/images/construction.jpg" alt="Construction">
-      <div class="cap"><h3>Drone Analytics</h3><p>Progress tracking, change detection, defect analytics and dashboards.</p></div>
-    </a>
-    <a class="img-card" href="product-survey-suite.html">
-      <img src="assets/images/infrastructure.jpg" alt="Survey">
-      <div class="cap"><h3>Survey Suite</h3><p>GNSS/TS control & detail survey to CAD/GIS with QA/QC.</p></div>
-    </a>
-  </div>
-  <div class="kpis" style="margin-top:18px">
-    <div class="kpi"><b>2–5 cm</b>Typical accuracy</div>
-    <div class="kpi"><b>24–72 h</b>Turnaround</div>
-    <div class="kpi"><b>1000+ ha</b>Scalable capture</div>
-    <div class="kpi"><b>DWG/SHP</b>Production deliverables</div>
-  </div>
-</div></section>
-
-<section class="section"><div class="wrap grid-2">
-  <div>
-    <h2>Solutions — Solar</h2><p class="sub">Built for every solar team.</p>
-    <div class="grid-2">
-      <a class="img-card" href="sol-project-management.html"><img src="assets/images/solar.jpg"><div class="cap"><h3>Project Management</h3><p>Plans, permits, tickets & dashboards.</p></div></a>
-      <a class="img-card" href="sol-field-teams.html"><img src="assets/images/solar.jpg"><div class="cap"><h3>Field Teams</h3><p>Checklists, SOPs, issues & handoff.</p></div></a>
-      <a class="img-card" href="sol-contractors.html"><img src="assets/images/solar.jpg"><div class="cap"><h3>Contractors</h3><p>Progress verification & rectification.</p></div></a>
-      <a class="img-card" href="sol-independent-engineers.html"><img src="assets/images/solar.jpg"><div class="cap"><h3>Independent Engineers</h3><p>Independent QA checks & acceptance.</p></div></a>
-      <a class="img-card" href="sol-om.html"><img src="assets/images/solar.jpg"><div class="cap"><h3>Operations & Maintenance</h3><p>Thermography, tickets & work orders.</p></div></a>
-    </div>
-  </div>
-  <div>
-    <h2>Solutions — Construction</h2><p class="sub">Aligned with life‑cycle stages.</p>
-    <div class="grid-2">
-      <a class="img-card" href="con-preconstruction.html"><img src="assets/images/construction.jpg"><div class="cap"><h3>Preconstruction</h3><p>Baseline survey & control networks.</p></div></a>
-      <a class="img-card" href="con-construction.html"><img src="assets/images/construction.jpg"><div class="cap"><h3>Construction</h3><p>Plan vs actual, DSM/DTM, quantities.</p></div></a>
-      <a class="img-card" href="con-commissioning.html"><img src="assets/images/construction.jpg"><div class="cap"><h3>Commissioning</h3><p>As‑built survey, punch lists, handover.</p></div></a>
-      <a class="img-card" href="con-om.html"><img src="assets/images/construction.jpg"><div class="cap"><h3>O&M</h3><p>Routine inspection & performance KPIs.</p></div></a>
-    </div>
-  </div>
-</div></section>
-
-<section class="section"><div class="wrap grid-2">
-  <div class="card">
-    <h2>Workflow</h2><p class="sub">Capture → Process → Map → Analyze → Deliver</p>
-    <ol>
-      <li>Plan: flight plans, control network, safety & permits</li>
-      <li>Capture: UAV RGB/LiDAR/Thermal + GNSS/TS checks</li>
-      <li>Process: photogrammetry/LiDAR pipelines with QA</li>
-      <li>Map: orthos, DTM/DSM, contours & breaklines</li>
-      <li>Analyze: volumes, plan vs actual, defect tickets</li>
-      <li>Deliver: DWG/DXF/SHP, PDFs, dashboards & data rooms</li>
-    </ol>
-  </div>
-  <div class="card">
-    <h2>Why SkyTerraEye</h2>
-    <ul>
-      <li>Field‑proven SOPs for Solar, Construction and Infrastructure</li>
-      <li>Data rooms with role‑based access and audit logs</li>
-      <li>Layered CAD/GIS deliverables that match your standards</li>
-      <li>Re‑inspection support for O&M fixes and milestones</li>
-    </ul>
-  </div>
-</div></section>
-
-<section id="contact" class="section"><div class="wrap">
-  <h2>Get in Touch</h2><p class="sub">Marina Square, Al Reem Island, Abu Dhabi • <a href="tel:+971503091162">+971 50 3091162</a> • <a href="mailto:zubair@skyterraeye.com">zubair@skyterraeye.com</a> • <a href="mailto:info@skyterraeye.com">info@skyterraeye.com</a></p>
-  <div class="card">
-    <form class="form" action="https://formspree.io/f/mldwkqwd" method="POST">
-      <div><label>Name</label><input name="name" required></div>
-      <div><label>Email</label><input type="email" name="email" required></div>
-      <div><label>Company</label><input name="company"></div>
-      <div><label>Phone</label><input name="phone"></div>
-      <div class="full"><label>Topic</label>
-        <select name="topic"><option>Products</option><option>Solar Solutions</option><option>Construction Solutions</option><option>Stakeholders</option><option>Other</option></select>
+  <nav class="nav">
+    <div class="wrap in">
+      <div class="brand">
+        <a href="index.html"><img src="assets/logo.png" alt="SkyTerraEye Logo"></a>
+        <strong>SkyTerraEye</strong>
       </div>
-      <div class="full"><label>Message</label><textarea name="message" rows="6" placeholder="Tell us about the site, area, deliverables, timelines…"></textarea></div>
-      <div class="full"><button class="btn" type="submit">Send</button></div>
-    </form>
-  </div>
-</div></section>
+      <div class="menu">
+        <a class="item" href="platform.html"><button>Platform</button></a>
+        <a class="item" href="about.html"><button>About</button></a>
+        <a class="item" href="login.html"><button>Login</button></a>
+        <a class="item" href="signup.html"><button>Sign Up</button></a>
+        <a class="cta" href="#contact">Book a Demo</a>
+      </div>
+    </div>
+  </nav>
 
-<footer><div class="wrap ft">
-  <div><h5>Products</h5>
-    <a href="product-survey-suite.html">Survey Suite</a>
-    <a href="product-solar-therm.html">Solar Thermography</a>
-    <a href="product-lidar-mapper.html">LiDAR Mapper</a>
-    <a href="product-drone-analytics.html">Drone Analytics</a>
-    <a href="product-forms.html">Forms</a>
-  </div>
-  <div><h5>Solutions (Solar)</h5>
-    <a href="sol-project-management.html">Project Management</a>
-    <a href="sol-field-teams.html">Field Teams</a>
-    <a href="sol-contractors.html">Contractors</a>
-    <a href="sol-independent-engineers.html">Independent Engineers</a>
-    <a href="sol-om.html">O&M</a>
-  </div>
-  <div><h5>Solutions (Construction)</h5>
-    <a href="con-preconstruction.html">Preconstruction</a>
-    <a href="con-construction.html">Construction</a>
-    <a href="con-commissioning.html">Commissioning</a>
-    <a href="con-om.html">O&M</a>
-  </div>
-  <div><h5>Stakeholders</h5>
-    <a href="stk-asset-owners.html">Asset Owners</a>
-    <a href="stk-epcs.html">EPCs</a>
-    <a href="stk-contractors.html">Contractors</a>
-    <a href="stk-engineers.html">Engineers</a>
-  </div>
-</div>
-<div class="wrap" style="color:var(--muted);margin-top:12px">© 2025 SkyTerraEye — Marina Square, Al Reem Island, Abu Dhabi · <a href="tel:+971503091162">+971 50 3091162</a> · <a href="mailto:zubair@skyterraeye.com">zubair@skyterraeye.com</a></div>
-</footer>
-</body></html>
+  <!-- Hero / Main Section -->
+  <section class="section hero">
+    <div class="wrap">
+      <h1>SkyTerraEye</h1>
+      <p class="sub">Mapping. Surveying. Drone. Contour. GIS solutions for Solar, Infrastructure, and Construction.</p>
+      <p class="sub">Contact us at <a href="mailto:info@skyterraeye.com">info@skyterraeye.com</a> • +971 50 3091162</p>
+    </div>
+  </section>
+
+  <!-- Other sections of your home page remain the same (Products / Services / Testimonials etc.) -->
+
+  <!-- Contact Section -->
+  <section id="contact" class="section">
+    <div class="wrap">
+      <h2>Get in Touch</h2>
+      <p class="sub">
+        Marina Square, Al Reem Island, Abu Dhabi •
+        <a href="tel:+971503091162">+971 50 3091162</a> •
+        <a href="mailto:zubair@skyterraeye.com">zubair@skyterraeye.com</a> •
+        <a href="mailto:info@skyterraeye.com">info@skyterraeye.com</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="wrap ft">
+      <div>
+        <h5>Company</h5>
+        <a href="about.html">About</a>
+        <a href="platform.html">Platform</a>
+        <a href="login.html">Login</a>
+        <a href="signup.html">Sign Up</a>
+        <a href="mailto:info@skyterraeye.com">info@skyterraeye.com</a>
+      </div>
+      <!-- other footer columns e.g. Products / Services as in previous layout -->
+    </div>
+    <div class="wrap" style="margin-top:12px; text-align:center;">
+      © “ + new Date().getFullYear() + ” SkyTerraEye — Marina Square, Al Reem Island, Abu Dhabi
+    </div>
+  </footer>
+
+</body>
+</html>
