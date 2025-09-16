@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkyTerraEye — Coming Soon</title>
+  <meta name="description" content="SkyTerraEye — Smart Surveying & Geospatial Solutions. Website coming soon.">
+  <link rel="icon" href="assets/favicon.png">
+  <style>
+    :root{--bg:#0b1220;--card:#0f172a;--text:#e5e7eb;--muted:#9ca3af;--accent:#38bdf8;--accent2:#a78bfa;}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial;
+      color:var(--text);
+      background: radial-gradient(1200px 600px at 10% 0%, rgba(56,189,248,.18), transparent 60%),
+                  radial-gradient(900px 500px at 90% 20%, rgba(167,139,250,.18), transparent 60%),
+                  var(--bg);
+      display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .wrap{width:100%; max-width:900px; background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08); border-radius:24px; padding:32px;
+      box-shadow:0 20px 60px rgba(0,0,0,.35); backdrop-filter: blur(6px); text-align:center;}
+    img.logo{width:min(520px, 85%); height:auto; display:block; margin:0 auto 8px auto;}
+    h1{margin:8px 0 4px; font-size:clamp(26px,5vw,40px)}
+    .tag{color:var(--muted); margin:0 0 18px}
+    .card{display:grid; gap:16px; grid-template-columns: repeat(3, minmax(0,1fr)); margin:18px 0}
+    .kpi{background:var(--card); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:16px 12px}
+    .kpi b{display:block; margin-bottom:4px}
+    .cta{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:6px}
+    a.btn{text-decoration:none; color:#0b1220; background:linear-gradient(135deg,var(--accent),var(--accent2));
+      padding:12px 18px; border-radius:999px; font-weight:700;}
+    a.link{color:var(--text); border:1px solid rgba(255,255,255,.18); padding:12px 18px; border-radius:999px; text-decoration:none;}
+    .divider{height:1px; background:rgba(255,255,255,.1); margin:20px 0}
+    .emails{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+    .mail{color:var(--accent); text-decoration:none; font-weight:600}
+    footer{margin-top:14px; color:var(--muted); font-size:13px}
+    @media (max-width:700px){.card{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <img class="logo" src="assets/logo.png" alt="SkyTerraEye logo" />
+    <h1>Website Coming Soon</h1>
+    <p class="tag">Smart Surveying &amp; Geospatial Solutions</p>
+
+    <section class="card" aria-label="Highlights">
+      <div class="kpi"><b>Reliable</b><span> UAV, LiDAR &amp; Total Station workflows</span></div>
+      <div class="kpi"><b>Precise</b><span> Mapping, contours &amp; volumetrics</span></div>
+      <div class="kpi"><b>Responsive</b><span> Quick quotes &amp; fast turnaround</span></div>
+    </section>
+
+    <div class="cta">
+      <a class="btn" href="mailto:info@skyterraeye.com">info@skyterraeye.com</a>
+      <a class="link" href="mailto:zubair@skyterraeye.com">zubair@skyterraeye.com</a>
+    </div>
+
+    <div class="divider"></div>
+    <div class="emails">
+      <a class="mail" href="mailto:info@skyterraeye.com">info@skyterraeye.com</a>
+      <span>•</span>
+      <a class="mail" href="mailto:zubair@skyterraeye.com">zubair@skyterraeye.com</a>
+    </div>
+
+    <footer>© 2025 SkyTerraEye. All rights reserved.</footer>
+  </main>
+</body>
+</html>
