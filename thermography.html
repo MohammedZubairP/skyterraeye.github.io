@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Thermography — SkyTerraEye</title>
+<link rel="icon" href="assets/favicon.png">
+<style>
+:root{--bg:#0b1220;--panel:#0f172a;--ink:#e6eaf2;--muted:#9aa5b1;--line:rgba(255,255,255,.08);--p:#38bdf8;--s:#a78bfa}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui;background:var(--bg);color:var(--ink)}
+a{color:inherit;text-decoration:none}.wrap{max-width:1480px;margin:0 auto;padding:0 16px}
+.nav{position:sticky;top:0;z-index:50;background:rgba(11,18,32,.75);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.nav .in{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
+.brand{display:flex;align-items:center;gap:10px}.brand img{height:80px;width:auto;display:block}
+.menu{display:flex;gap:14px;align-items:center}.menu a.button{background:linear-gradient(135deg,var(--p),var(--s));color:#0b1220;padding:10px 16px;border-radius:999px;font-weight:800}
+.page{display:grid;grid-template-columns:320px 1fr 360px;gap:14px;padding:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.panel h3{margin:0;padding:14px 16px;border-bottom:1px solid var(--line);font-size:16px}
+.panel .body{padding:14px 16px}
+.small{font-size:13px;color:var(--muted)}hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
+.class-item{display:grid;grid-template-columns:1fr 84px 28px;gap:8px;align-items:center;margin-bottom:8px}
+.class-item input[type="color"]{width:84px;height:34px;border:none;background:transparent}
+.class-item button{background:#1b2438;border:1px solid var(--line);color:var(--ink);border-radius:8px;height:34px;cursor:pointer}
+.add-row{display:grid;grid-template-columns:1fr 84px auto;gap:8px;margin-top:10px}
+.add-row input[type="text"]{height:34px}.btn{background:linear-gradient(135deg,var(--p),var(--s));color:#0b1220;border:none;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}
+.btn.ghost{background:#121a2f;border:1px solid var(--line);color:var(--ink)}
+.kv{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--line)}.kv:last-child{border-bottom:0}
+.viewer{position:relative;height:78vh;min-height:560px;overflow:hidden}
+.bg{position:absolute;inset:0;background:#0a0f1e url('assets/images/solar.jpg') center/cover no-repeat;transition:transform .15s}
+.overlay{position:absolute;inset:0}svg{width:100%;height:100%;display:block}
+.tools{position:absolute;left:12px;top:12px;display:flex;gap:8px;z-index:5}
+.tools .tool{background:#121a2f;border:1px solid var(--line);color:var(--ink);padding:8px 10px;border-radius:10px;cursor:pointer}
+.tools .tool.active{outline:2px solid var(--p)}.zoom{position:absolute;left:12px;top:56px;display:flex;flex-direction:column;gap:6px;z-index:5}
+.zoom button{background:#121a2f;border:1px solid var(--line);color:var(--ink);width:38px;height:34px;border-radius:10px;cursor:pointer}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.gallery img{width:100%;height:74px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}@media(max-width:1080px){.page{grid-template-columns:280px 1fr}.viewer{height:70vh}}@media(max-width:900px){.page{grid-template-columns:1fr}.viewer{height:60vh}}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="wrap in">
+  <div class="brand"><a href="index.html"><img src="assets/logo.png" alt="SkyTerraEye"></a></div>
+  <div class="menu">
+    <a href="platform.html">Platform</a><a href="about.html">About</a><a href="login.html">Login</a><a href="signup.html">Sign Up</a>
+    <a class="button" href="index.html#contact">Book a Demo</a>
+  </div>
+</div></nav>
+<div class="wrap" style="padding-top:10px"><div class="small">Thermography workspace — manage classes, upload raster & vectors, draw, classify and export.</div></div>
+<div class="wrap page">
+  <aside class="panel">
+    <h3>Data & Classes</h3>
+    <div class="body">
+      <div class="small">Raster background (JPG/PNG)</div>
+      <div style="display:flex;gap:8px;margin:6px 0 10px">
+        <input id="rasterInput" type="file" accept="image/*">
+        <button id="btnResetView" class="btn ghost">Reset View</button>
+      </div>
+      <div class="small">Vector (GeoJSON)</div>
+      <div style="display:flex;gap:8px;margin:6px 0">
+        <input id="geojsonInput" type="file" accept=".geojson,.json,application/geo+json">
+        <button id="btnExport" class="btn">Export GeoJSON</button>
+      </div>
+      <hr class="sep">
+      <div class="small" style="margin-bottom:6px">Classes (feature types)</div>
+      <div id="classList"></div>
+      <div class="add-row">
+        <input id="newClassName" type="text" placeholder="New class name (e.g., Hotspot)">
+        <input id="newClassColor" type="color" value="#ef4444">
+        <button id="btnAddClass" class="btn">Add</button>
+      </div>
+      <hr class="sep">
+      <div>
+        <div class="small">Classify by property (from GeoJSON)</div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <select id="propSelect" style="flex:1"></select>
+          <button id="btnClassify" class="btn">Classify</button>
+        </div>
+        <div class="small" style="margin-top:6px">Auto-creates/updates classes using unique values, with colors.</div>
+      </div>
+    </div>
+  </aside>
+  <main class="panel">
+    <h3>Viewer</h3>
+    <div class="viewer" id="viewer">
+      <div class="tools">
+        <button class="tool active" data-mode="pan">Pan</button>
+        <button class="tool" data-mode="point">Point</button>
+        <button class="tool" data-mode="polygon">Polygon</button>
+        <select id="activeClass" class="tool" title="Active class for drawing"></select>
+      </div>
+      <div class="zoom"><button id="zoomIn">+</button><button id="zoomOut">−</button></div>
+      <div id="bg" class="bg"></div>
+      <svg id="svg" class="overlay"></svg>
+    </div>
+  </main>
+  <aside class="panel">
+    <h3>Feature details</h3>
+    <div class="body" id="detail">
+      <div class="kv"><span>Type</span><span id="d_type">—</span></div>
+      <div class="kv"><span>Class color</span><span id="d_color">—</span></div>
+      <div class="kv"><span>Vertices</span><span id="d_verts">—</span></div>
+      <div class="kv"><span>Properties</span><span id="d_props">—</span></div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button id="btnDelete" class="btn ghost">Delete</button>
+        <button id="btnDuplicate" class="btn ghost">Duplicate</button>
+      </div>
+      <div style="margin-top:14px" class="small">Attachments</div>
+      <div class="gallery" id="gallery"></div>
+    </div>
+  </aside>
+</div>
+<script>
+const $=id=>document.getElementById(id), svg=$('svg'), bg=$('bg'), viewer=$('viewer');
+let mode='pan', scale=1, offsetX=0, offsetY=0, isPanning=false, panStart=null;
+let classes=[{name:'Hotspot',color:'#ef4444'},{name:'String Hot',color:'#22d3ee'},{name:'To Investigate',color:'#a3e635'},{name:'Tracker Malfunction',color:'#f59e0b'}];
+let features=[], selectedId=null, drawing=null;
+const uid=()=>'f'+Math.random().toString(36).slice(2,9);
+function refreshClassList(){
+  const list=$('classList'), sel=$('activeClass'); list.innerHTML=''; sel.innerHTML='';
+  classes.forEach((c,i)=>{
+    const row=document.createElement('div'); row.className='class-item';
+    row.innerHTML=`<input data-idx="${i}" class="name" type="text" value="${c.name}">
+                   <input data-idx="${i}" class="color" type="color" value="${c.color}">
+                   <button data-idx="${i}" class="del">×</button>`;
+    row.querySelector('.name').oninput=e=>{classes[e.target.dataset.idx].name=e.target.value; refreshActive(); render();};
+    row.querySelector('.color').oninput=e=>{classes[e.target.dataset.idx].color=e.target.value; render();};
+    row.querySelector('.del').onclick=e=>{const idx=+e.target.dataset.idx; const name=classes[idx].name; features.forEach(f=>{if(f.className===name&&classes[0]) f.className=classes[0].name;}); classes.splice(idx,1); refreshClassList(); render();};
+    list.appendChild(row);
+    const opt=document.createElement('option'); opt.value=c.name; opt.textContent=c.name; sel.appendChild(opt);
+  });
+}
+function refreshActive(){const sel=$('activeClass'), v=sel.value; sel.innerHTML=''; classes.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=c.name; sel.appendChild(o);}); if([...sel.options].some(o=>o.value===v)) sel.value=v;}
+function applyView(){ bg.style.transform=`translate(${offsetX}px,${offsetY}px) scale(${scale})`; svg.style.transform=`translate(${offsetX}px,${offsetY}px) scale(${scale})`; }
+$('zoomIn').onclick=()=>{scale=Math.min(scale+0.1,3);applyView();}; $('zoomOut').onclick=()=>{scale=Math.max(scale-0.1,0.5);applyView();}; $('btnResetView').onclick=()=>{scale=1;offsetX=0;offsetY=0;applyView();};
+$('rasterInput').addEventListener('change', e=>{const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=ev=>{ bg.style.backgroundImage=`url('${ev.target.result}')`; }; rd.readAsDataURL(f); });
+document.querySelectorAll('.tool').forEach(btn=>{btn.onclick=()=>{ if(btn.dataset.mode){ mode=btn.dataset.mode; document.querySelectorAll('.tool').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); drawing=null; }}});
+viewer.addEventListener('mousedown', e=>{ if(mode==='pan'){isPanning=true; panStart={x:e.clientX-offsetX, y:e.clientY-offsetY};} else if(mode==='point'){ addPoint(e);} else if(mode==='polygon'){ addPoly(e);} });
+viewer.addEventListener('mousemove', e=>{ if(isPanning){offsetX=e.clientX-panStart.x; offsetY=e.clientY-panStart.y; applyView();} });
+window.addEventListener('mouseup', ()=>{isPanning=false;});
+function viewerToLocal(e){const r=svg.getBoundingClientRect(); const x=(e.clientX-r.left-offsetX)/scale, y=(e.clientY-r.top-offsetY)/scale; return [x,y];}
+function addPoint(e){const [x,y]=viewerToLocal(e); const f={id:uid(), type:'Point', coords:[x,y], className:$('activeClass').value, props:{}}; features.push(f); select(f.id); render();}
+function addPoly(e){const [x,y]=viewerToLocal(e); if(!drawing){drawing={id:uid(), type:'Polygon', coords:[[x,y]], className:$('activeClass').value, props:{}}; features.push(drawing);} else {drawing.coords.push([x,y]);} render();}
+viewer.addEventListener('dblclick', ()=>{ if(mode==='polygon' && drawing && drawing.coords.length>2){ drawing=null; } });
+function getColor(name){const hit=classes.find(c=>c.name===name); return hit?hit.color:'#ffffff';}
+function render(){ svg.innerHTML=''; for(const f of features){ if(f.type==='Point'){const c=document.createElementNS('http://www.w3.org/2000/svg','circle'); c.setAttribute('cx',f.coords[0]); c.setAttribute('cy',f.coords[1]); c.setAttribute('r',6); c.setAttribute('fill',getColor(f.className)); c.setAttribute('stroke','#fff'); c.setAttribute('stroke-width','1.5'); c.style.cursor='pointer'; c.onclick=()=>select(f.id); svg.appendChild(c);} else if(f.type==='Polygon'){const p=document.createElementNS('http://www.w3.org/2000/svg','polygon'); p.setAttribute('points', f.coords.map(a=>a.join(',')).join(' ')); p.setAttribute('fill', getColor(f.className)+'66'); p.setAttribute('stroke', getColor(f.className)); p.setAttribute('stroke-width','2'); p.style.cursor='pointer'; p.onclick=()=>select(f.id); svg.appendChild(p);} } applyView(); }
+function select(id){ selectedId=id; const f=features.find(x=>x.id===id); if(!f) return; $('d_type').textContent=f.type+' / '+f.className; $('d_color').textContent=getColor(f.className); $('d_verts').textContent=(f.type==='Point')?'1':f.coords.length; $('d_props').textContent=Object.keys(f.props||{}).length? JSON.stringify(f.props):'—'; }
+$('btnDelete').onclick=()=>{ if(!selectedId) return; features=features.filter(f=>f.id!==selectedId); selectedId=null; $('d_type').textContent=$('d_color').textContent=$('d_verts').textContent=$('d_props').textContent='—'; render(); };
+$('btnDuplicate').onclick=()=>{ if(!selectedId) return; const f=features.find(x=>x.id===selectedId); if(!f) return; const d=JSON.parse(JSON.stringify(f)); d.id=uid(); if(d.type==='Point'){d.coords[0]+=12; d.coords[1]+=8;} if(d.type==='Polygon'){d.coords=d.coords.map(([x,y])=>[x+8,y+6]);} features.push(d); select(d.id); render(); };
+$('geojsonInput').addEventListener('change', e=>{const file=e.target.files[0]; if(!file) return; const rd=new FileReader(); rd.onload=ev=>{ try{ loadGeoJSON(JSON.parse(ev.target.result)); }catch(_){ alert('Invalid GeoJSON'); } }; rd.readAsText(file); });
+function loadGeoJSON(gj){ features=[]; (gj.features||[]).forEach(ft=>{ const g=ft.geometry, p=ft.properties||{}; if(!g) return; if(g.type==='Point'){const [x,y]=g.coordinates; features.push({id:uid(), type:'Point', coords:[x,y], className:(p.class||classes[0]?.name), props:p});} else if(g.type==='Polygon'){const ring=g.coordinates[0].map(([x,y])=>[x,y]); features.push({id:uid(), type:'Polygon', coords:ring, className:(p.class||classes[0]?.name), props:p});} }); const propSel=$('propSelect'); propSel.innerHTML=''; const props=new Set(); (gj.features||[]).forEach(ft=>Object.keys(ft.properties||{}).forEach(k=>props.add(k))); [...props].forEach(k=>{const o=document.createElement('option'); o.value=k; o.textContent=k; propSel.appendChild(o);}); render(); }
+$('btnExport').onclick=()=>{ const gj={type:'FeatureCollection', features:features.map(f=>{let geom=null; if(f.type==='Point') geom={type:'Point',coordinates:[f.coords[0],f.coords[1]]}; if(f.type==='Polygon') geom={type:'Polygon',coordinates:[f.coords.map(([x,y])=>[x,y])]}; return {type:'Feature', geometry:geom, properties:{...(f.props||{}), class:f.className}};})}; const blob=new Blob([JSON.stringify(gj,null,2)], {type:'application/geo+json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='thermo_vectors.geojson'; a.click(); };
+$('btnClassify').onclick=()=>{ const key=$('propSelect').value; if(!key){ alert('No property selected'); return; } const vals=[...new Set(features.map(f=>(f.props||{})[key]).filter(v=>v!==undefined))]; const palette=['#ef4444','#22c55e','#22d3ee','#f59e0b','#a78bfa','#38bdf8','#f472b6','#f97316','#84cc16','#eab308']; vals.forEach((v,i)=>{const name=String(v); if(!classes.find(c=>c.name===name)){ classes.push({name,color:palette[i%palette.length]}); }}); features.forEach(f=>{const v=(f.props||{})[key]; if(v!==undefined) f.className=String(v); }); refreshClassList(); render(); };
+refreshClassList(); render();
+</script>
+</body>
+</html>
