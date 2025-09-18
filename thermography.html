@@ -7,7 +7,8 @@
 <link rel="icon" href="assets/favicon.png" />
 <style>
 :root{
-  --bg:#0b1220; --panel:#0f172a; --ink:#e6eaf2; --muted:#9aa5b1; --line:rgba(255,255,255,.08); --p:#38bdf8; --s:#a78bfa;
+  --bg:#0b1220; --panel:#0f172a; --ink:#e6eaf2; --muted:#9aa5b1; --line:rgba(255,255,255,.08);
+  --p:#38bdf8; --s:#a78bfa;
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,ui-sans-serif,system-ui;background:var(--bg);color:var(--ink)}
@@ -46,9 +47,10 @@ input[type="color"]{height:34px}
 .tools .tool{background:#121a2f;border:1px solid var(--line);color:#e6eaf2;padding:8px 10px;border-radius:10px;cursor:pointer}
 .tools .tool.active{outline:2px solid var(--p)}
 .viewer{position:relative;height:70vh;min-height:540px;overflow:hidden}
+/* Keep backgrounds under overlay so vectors are always visible */
 .bgRaster{position:absolute;inset:0;background:#0a0f1e center/contain no-repeat;transition:transform .15s; z-index:1}
 .bgMap{position:absolute;inset:0;border:0;width:100%;height:100%;display:none; z-index:1}
-.overlay{position:absolute;inset:0; z-index:3} /* keep vectors above backgrounds */
+.overlay{position:absolute;inset:0; z-index:3}
 svg{width:100%;height:100%;display:block}
 
 /* ZOOM */
@@ -78,10 +80,6 @@ svg{width:100%;height:100%;display:block}
     </div>
   </div>
 </nav>
-
-<div class="wrap" style="padding-top:10px">
-  <div class="small">Thermography workspace — projects, classes, raster & vectors, draw, classify, auto-zoom.</div>
-</div>
 
 <div class="wrap page">
   <!-- LEFT -->
@@ -120,12 +118,30 @@ svg{width:100%;height:100%;display:block}
 
       <hr class="sep">
 
+      <!-- NEW: Layer tools -->
+      <div class="small">Layer tools</div>
+      <div class="row" style="margin-top:6px">
+        <select id="layerSelect" style="flex:1"></select>
+        <button id="btnZoomLayer" class="btn">Zoom layer</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <label class="small" style="display:flex;align-items:center;gap:8px">
+          <input id="chkOnlyLayer" type="checkbox"> Show only selected layer
+        </label>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <label class="small" style="display:flex;align-items:center;gap:8px">
+          <input id="chkShowVectors" type="checkbox" checked> Show vectors (on Raster or Map)
+        </label>
+      </div>
+
+      <hr class="sep">
+
       <div class="small">Classify by property (from GeoJSON)</div>
       <div class="row" style="margin-top:6px">
         <select id="propSelect" style="flex:1"></select>
         <button id="btnClassify" class="btn">Classify</button>
       </div>
-
     </div>
   </aside>
 
@@ -151,10 +167,11 @@ svg{width:100%;height:100%;display:block}
 
     <div class="viewer" id="viewer">
       <div class="zoom"><button id="zoomIn">+</button><button id="zoomOut">−</button></div>
-      <!-- backgrounds -->
       <div id="bgRaster" class="bgRaster"></div>
-      <iframe id="bgMap" class="bgMap" loading="lazy" src="https://www.google.com/maps?q=Abu%20Dhabi&output=embed" referrerpolicy="no-referrer-when-downgrade"></iframe>
-      <!-- overlay -->
+      <iframe id="bgMap" class="bgMap" loading="lazy"
+        src="https://www.google.com/maps?q=Abu%20Dhabi&output=embed"
+        referrerpolicy="no-referrer-when-downgrade"></iframe>
+
       <svg id="svg" class="overlay">
         <defs>
           <filter id="drop" x="-50%" y="-50%" width="200%" height="200%">
@@ -198,17 +215,17 @@ let classes=[{name:'Hotspot',color:'#ef4444'},{name:'String Hot',color:'#22d3ee'
 let features=[], selectedId=null, drawing=null;
 let projects = {}; // {name: {raster, classes, features}}
 let projectName = null;
+let filterLayer = null;          // NEW: only show this class if set
+let showVectors = true;          // NEW: toggle overlay on/off
 const uid=()=>'f'+Math.random().toString(36).slice(2,9);
-const LS_KEY='ste_projects_v3'; // bumped key so your browser picks up new schema
+const LS_KEY='ste_projects_v3';
 
 /* ---------- Projects ---------- */
 function loadProjects(){
   try{ projects = JSON.parse(localStorage.getItem(LS_KEY)||'{}'); }catch{ projects = {}; }
   const sel=$('projectSelect'); sel.innerHTML='';
   Object.keys(projects).forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
-  if(!Object.keys(projects).length){ // create default
-    projects['Demo Project']={raster:null, classes:classes, features:[]};
-  }
+  if(!Object.keys(projects).length){ projects['Demo Project']={raster:null, classes:classes, features:[]}; }
   if(!projectName) projectName=Object.keys(projects)[0];
   sel.value=projectName;
   loadProject(projectName);
@@ -223,11 +240,7 @@ function loadProject(name){
 }
 function saveProject(){
   if(!projectName) return;
-  projects[projectName]={
-    raster: getRaster(),
-    classes: JSON.parse(JSON.stringify(classes)),
-    features: JSON.parse(JSON.stringify(features))
-  };
+  projects[projectName]={raster:getRaster(), classes:JSON.parse(JSON.stringify(classes)), features:JSON.parse(JSON.stringify(features))};
   localStorage.setItem(LS_KEY, JSON.stringify(projects));
 }
 function newProject(defaultName){
@@ -270,9 +283,10 @@ $('btnDeleteProject').onclick=deleteProject;
 
 /* ---------- Classes UI ---------- */
 function refreshClassList(){
-  const list=$('classList'), sel=$('activeClass'), sel2=$('selReclass');
-  list.innerHTML=''; sel.innerHTML=''; sel2.innerHTML='';
+  const list=$('classList'), selDraw=$('activeClass'), selRe=$('selReclass'), selLayer=$('layerSelect');
+  list.innerHTML=''; selDraw.innerHTML=''; selRe.innerHTML=''; selLayer.innerHTML='';
   classes.forEach((c,i)=>{
+    const count = features.filter(f=>f.className===c.name).length;
     const row=document.createElement('div'); row.className='class-item';
     row.innerHTML=`<input data-idx="${i}" class="name" type="text" value="${c.name}">
                    <input data-idx="${i}" class="color" type="color" value="${c.color}">
@@ -285,9 +299,14 @@ function refreshClassList(){
       classes.splice(idx,1); refreshClassList(); render(); saveProject();
     };
     list.appendChild(row);
-    const o=document.createElement('option'); o.value=c.name; o.textContent=c.name; sel.appendChild(o);
-    const o2=document.createElement('option'); o2.value=c.name; o2.textContent=c.name; sel2.appendChild(o2);
+
+    const o=document.createElement('option'); o.value=c.name; o.textContent=c.name; selDraw.appendChild(o);
+    const o2=document.createElement('option'); o2.value=c.name; o2.textContent=c.name; selRe.appendChild(o2);
+    const o3=document.createElement('option'); o3.value=c.name; o3.textContent=`${c.name} (${count})`; selLayer.appendChild(o3);
   });
+  // keep current filter if possible
+  if(filterLayer && !classes.find(c=>c.name===filterLayer)) filterLayer=null;
+  if(filterLayer) $('layerSelect').value=filterLayer;
 }
 $('btnAddClass').onclick=()=>{
   const name=$('newClassName').value.trim()||'Class '+(classes.length+1);
@@ -306,12 +325,10 @@ $('rasterInput').addEventListener('change', e=>{
 
 $('geojsonInput').addEventListener('change', e=>{
   const f=e.target.files[0]; if(!f) return;
-
-  // ask where to import if user wants another project
   if(!projectName){
     newProject(f.name.replace(/\.(geo)?json$/i,'') + ' Project');
-  }else{
-    const ans=confirm(`Import into project "${projectName}"?\nOK = current project, Cancel = choose/create another`);
+  } else {
+    const ans = confirm('Import vectors into "'+projectName+'"?\nOK = current project, Cancel = choose/create another.');
     if(!ans){
       const choice = prompt('Type existing project name to import into, or a NEW name:', projectName);
       if(choice){
@@ -319,7 +336,6 @@ $('geojsonInput').addEventListener('change', e=>{
       }
     }
   }
-
   const rd=new FileReader();
   rd.onload=ev=>{ try{ importGeoJSON(JSON.parse(ev.target.result)); saveProject(); } catch{ alert('Invalid GeoJSON'); } };
   rd.readAsText(f);
@@ -328,10 +344,8 @@ $('geojsonInput').addEventListener('change', e=>{
 function importGeoJSON(gj){
   const palette=['#ef4444','#22c55e','#22d3ee','#f59e0b','#a78bfa','#38bdf8','#f472b6','#f97316','#84cc16','#eab308'];
   let colorIx=0, added=0;
-
   (gj.features||[]).forEach(ft=>{
     const g=ft.geometry, p=ft.properties||{}; if(!g) return;
-    // auto name/class
     let cls = p.class || p.Class || p.category || p.type || ft.id || g.type;
     cls = String(cls);
     if(!classes.find(c=>c.name===cls)){ classes.push({name:cls,color:palette[colorIx++%palette.length]}); }
@@ -341,8 +355,7 @@ function importGeoJSON(gj){
       const ring=(g.coordinates[0]||[]).map(([x,y])=>[x,y]); features.push({id:uid(), type:'Polygon', coords:ring, className:cls, props:p}); added++;
     }
   });
-
-  // fill property dropdown
+  // properties list
   const propSel=$('propSelect');
   const allProps=new Set();
   (gj.features||[]).forEach(f=>{ Object.keys(f.properties||{}).forEach(k=>allProps.add(k)); });
@@ -396,9 +409,17 @@ function finishPolygon(){
 
 /* ---------- Render & details ---------- */
 function getColor(name){ const c=classes.find(x=>x.name===name); return c?c.color:'#fff'; }
+$('chkOnlyLayer').onchange = ()=>{ filterLayer = $('chkOnlyLayer').checked ? $('layerSelect').value : null; render(); };
+$('layerSelect').onchange = ()=>{ if($('chkOnlyLayer').checked) filterLayer = $('layerSelect').value; };
+$('chkShowVectors').onchange = ()=>{ showVectors = $('chkShowVectors').checked; render(); };
+
 function render(){
   svg.innerHTML='';
-  for(const f of features){
+  if(!showVectors) return; // hide overlay entirely if toggled off
+
+  const drawList = filterLayer ? features.filter(f=>f.className===filterLayer) : features;
+
+  for(const f of drawList){
     if(f.type==='Point'){
       const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
       c.setAttribute('cx',f.coords[0]); c.setAttribute('cy',f.coords[1]); c.setAttribute('r',7);
@@ -422,34 +443,35 @@ function select(id){
   $('d_verts').textContent=(f.type==='Point')? '1' : f.coords.length;
   $('d_props').textContent=Object.keys(f.props||{}).length? JSON.stringify(f.props) : '—';
   $('selReclass').value=f.className;
+  $('layerSelect').value=f.className; // sync layer selector to selection
 }
 $('btnApplyReclass').onclick=()=>{
   if(!selectedId) return; const f=features.find(x=>x.id===selectedId); if(!f) return;
-  f.className=$('selReclass').value; select(f.id); render(); saveProject();
+  f.className=$('selReclass').value; select(f.id); refreshClassList(); render(); saveProject();
 };
-$('btnDelete').onclick=()=>{ if(!selectedId) return; features=features.filter(f=>f.id!==selectedId); selectedId=null; render(); saveProject(); };
+$('btnDelete').onclick=()=>{ if(!selectedId) return; features=features.filter(f=>f.id!==selectedId); selectedId=null; refreshClassList(); render(); saveProject(); };
 $('btnDuplicate').onclick=()=>{
   if(!selectedId) return; const f=features.find(x=>x.id===selectedId); if(!f) return;
   const d=JSON.parse(JSON.stringify(f)); d.id=uid();
   if(d.type==='Point'){ d.coords[0]+=12; d.coords[1]+=8; }
   if(d.type==='Polygon'){ d.coords=d.coords.map(([x,y])=>[x+8,y+6]); }
-  features.push(d); select(d.id); render(); saveProject();
+  features.push(d); select(d.id); refreshClassList(); render(); saveProject();
 };
 
 /* ---------- Zoom helpers ---------- */
-function bboxAll(){
+function bboxOf(list){
   const xs=[], ys=[];
-  features.forEach(f=>{
+  list.forEach(f=>{
     if(f.type==='Point'){ xs.push(f.coords[0]); ys.push(f.coords[1]); }
     if(f.type==='Polygon'){ f.coords.forEach(([x,y])=>{xs.push(x); ys.push(y);}); }
   });
   if(!xs.length) return null;
   return {minX:Math.min(...xs), maxX:Math.max(...xs), minY:Math.min(...ys), maxY:Math.max(...ys)};
 }
+function bboxAll(){ return bboxOf(features); }
 function bboxFeature(f){
   if(f.type==='Point') return {minX:f.coords[0]-20,maxX:f.coords[0]+20,minY:f.coords[1]-20,maxY:f.coords[1]+20};
-  const xs=f.coords.map(p=>p[0]), ys=f.coords.map(p=>p[1]);
-  return {minX:Math.min(...xs), maxX:Math.max(...xs), minY:Math.min(...ys), maxY:Math.max(...ys)};
+  return bboxOf([f]);
 }
 function fitBBox(bb, pad=20){
   const r=svg.getBoundingClientRect();
@@ -462,9 +484,18 @@ function fitBBox(bb, pad=20){
   applyView();
 }
 function zoomAll(){ const bb=bboxAll(); if(bb) fitBBox(bb); }
-function zoomSelected(){ const f=features.find(x=>x.id===selectedId); if(!f) return; fitBBox(bboxFeature(f)); }
+function zoomSelected(){ const f=features.find(x=>x.id===selectedId); if(!f) return; const bb=bboxFeature(f); if(bb) fitBBox(bb); }
 $('btnZoomAll').onclick=zoomAll;
 $('btnZoomSel').onclick=zoomSelected;
+
+/* NEW: Zoom to Layer */
+$('btnZoomLayer').onclick=()=>{
+  const layer = $('layerSelect').value;
+  const list = features.filter(f=>f.className===layer);
+  if(!list.length){ alert('No features in this layer yet.'); return; }
+  const bb = bboxOf(list);
+  if(bb) fitBBox(bb);
+};
 
 /* ---------- Classify by property ---------- */
 $('btnClassify').onclick=()=>{
