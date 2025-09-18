@@ -46,9 +46,9 @@ input[type="color"]{height:34px}
 .tools .tool{background:#121a2f;border:1px solid var(--line);color:#e6eaf2;padding:8px 10px;border-radius:10px;cursor:pointer}
 .tools .tool.active{outline:2px solid var(--p)}
 .viewer{position:relative;height:70vh;min-height:540px;overflow:hidden}
-.bgRaster{position:absolute;inset:0;background:#0a0f1e center/contain no-repeat;transition:transform .15s}
-.bgMap{position:absolute;inset:0;border:0;width:100%;height:100%;display:none}
-.overlay{position:absolute;inset:0}
+.bgRaster{position:absolute;inset:0;background:#0a0f1e center/contain no-repeat;transition:transform .15s; z-index:1}
+.bgMap{position:absolute;inset:0;border:0;width:100%;height:100%;display:none; z-index:1}
+.overlay{position:absolute;inset:0; z-index:3} /* keep vectors above backgrounds */
 svg{width:100%;height:100%;display:block}
 
 /* ZOOM */
@@ -80,7 +80,7 @@ svg{width:100%;height:100%;display:block}
 </nav>
 
 <div class="wrap" style="padding-top:10px">
-  <div class="small">Thermography workspace — projects, classes, raster & vectors, draw, classify, zoom-to.</div>
+  <div class="small">Thermography workspace — projects, classes, raster & vectors, draw, classify, auto-zoom.</div>
 </div>
 
 <div class="wrap page">
@@ -151,9 +151,17 @@ svg{width:100%;height:100%;display:block}
 
     <div class="viewer" id="viewer">
       <div class="zoom"><button id="zoomIn">+</button><button id="zoomOut">−</button></div>
+      <!-- backgrounds -->
       <div id="bgRaster" class="bgRaster"></div>
       <iframe id="bgMap" class="bgMap" loading="lazy" src="https://www.google.com/maps?q=Abu%20Dhabi&output=embed" referrerpolicy="no-referrer-when-downgrade"></iframe>
-      <svg id="svg" class="overlay"></svg>
+      <!-- overlay -->
+      <svg id="svg" class="overlay">
+        <defs>
+          <filter id="drop" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="black" flood-opacity="0.5" />
+          </filter>
+        </defs>
+      </svg>
     </div>
   </main>
 
@@ -191,7 +199,7 @@ let features=[], selectedId=null, drawing=null;
 let projects = {}; // {name: {raster, classes, features}}
 let projectName = null;
 const uid=()=>'f'+Math.random().toString(36).slice(2,9);
-const LS_KEY='ste_projects_v2';
+const LS_KEY='ste_projects_v3'; // bumped key so your browser picks up new schema
 
 /* ---------- Projects ---------- */
 function loadProjects(){
@@ -211,7 +219,7 @@ function loadProject(name){
   classes = JSON.parse(JSON.stringify(p.classes||classes));
   features = JSON.parse(JSON.stringify(p.features||[]));
   if(p.raster){ $('bgRaster').style.backgroundImage=`url('${p.raster}')`; } else { $('bgRaster').style.backgroundImage='none'; }
-  refreshAll();
+  refreshAll(); zoomAll();
 }
 function saveProject(){
   if(!projectName) return;
@@ -221,10 +229,9 @@ function saveProject(){
     features: JSON.parse(JSON.stringify(features))
   };
   localStorage.setItem(LS_KEY, JSON.stringify(projects));
-  alert('Project saved.');
 }
-function newProject(){
-  const name=prompt('New project name?','Project '+(Object.keys(projects).length+1));
+function newProject(defaultName){
+  const name=prompt('New project name?', defaultName || 'Project '+(Object.keys(projects).length+1));
   if(!name) return;
   projects[name]={raster:null, classes:[...classes], features:[]};
   localStorage.setItem(LS_KEY, JSON.stringify(projects));
@@ -242,7 +249,7 @@ function deleteProject(){
 function getRaster(){
   const bg=$('bgRaster').style.backgroundImage;
   if(!bg || bg==='none') return null;
-  const m=/url\("?(.*?)"?\)/.exec(bg);
+  const m=/url\(\"?(.*?)\"?\)/.exec(bg);
   return m?m[1]:null;
 }
 
@@ -257,7 +264,7 @@ $('btnShowMap').onclick=()=>{ $('bgRaster').style.display='none'; $('bgMap').sty
 $('mapGo').onclick=()=>{ const q=$('mapQuery').value.trim(); if(!q) return; $('bgMap').src='https://www.google.com/maps?q='+encodeURIComponent(q)+'&output=embed'; };
 
 $('projectSelect').onchange=e=>loadProject(e.target.value);
-$('btnNewProject').onclick=newProject;
+$('btnNewProject').onclick=()=>newProject();
 $('btnSaveProject').onclick=saveProject;
 $('btnDeleteProject').onclick=deleteProject;
 
@@ -270,12 +277,12 @@ function refreshClassList(){
     row.innerHTML=`<input data-idx="${i}" class="name" type="text" value="${c.name}">
                    <input data-idx="${i}" class="color" type="color" value="${c.color}">
                    <button data-idx="${i}" title="Delete">×</button>`;
-    row.querySelector('.name').oninput=e=>{classes[e.target.dataset.idx].name=e.target.value; refreshClassList(); render();};
-    row.querySelector('.color').oninput=e=>{classes[e.target.dataset.idx].color=e.target.value; render();};
+    row.querySelector('.name').oninput=e=>{classes[e.target.dataset.idx].name=e.target.value; refreshClassList(); render(); saveProject();};
+    row.querySelector('.color').oninput=e=>{classes[e.target.dataset.idx].color=e.target.value; render(); saveProject();};
     row.querySelector('button').onclick=e=>{
       const idx=+e.target.dataset.idx, name=classes[idx].name;
       features.forEach(f=>{ if(f.className===name&&classes[0]) f.className=classes[0].name;});
-      classes.splice(idx,1); refreshClassList(); render();
+      classes.splice(idx,1); refreshClassList(); render(); saveProject();
     };
     list.appendChild(row);
     const o=document.createElement('option'); o.value=c.name; o.textContent=c.name; sel.appendChild(o);
@@ -286,25 +293,42 @@ $('btnAddClass').onclick=()=>{
   const name=$('newClassName').value.trim()||'Class '+(classes.length+1);
   const color=$('newClassColor').value||'#ffffff';
   classes.push({name,color}); $('newClassName').value='';
-  refreshClassList();
+  refreshClassList(); saveProject();
 };
 
 /* ---------- File I/O ---------- */
 $('rasterInput').addEventListener('change', e=>{
   const f=e.target.files[0]; if(!f) return;
   const rd=new FileReader();
-  rd.onload=ev=>{ $('bgRaster').style.backgroundImage=`url('${ev.target.result}')`; $('btnShowRaster').click(); };
+  rd.onload=ev=>{ $('bgRaster').style.backgroundImage=`url('${ev.target.result}')`; $('btnShowRaster').click(); saveProject(); };
   rd.readAsDataURL(f);
 });
+
 $('geojsonInput').addEventListener('change', e=>{
   const f=e.target.files[0]; if(!f) return;
+
+  // ask where to import if user wants another project
+  if(!projectName){
+    newProject(f.name.replace(/\.(geo)?json$/i,'') + ' Project');
+  }else{
+    const ans=confirm(`Import into project "${projectName}"?\nOK = current project, Cancel = choose/create another`);
+    if(!ans){
+      const choice = prompt('Type existing project name to import into, or a NEW name:', projectName);
+      if(choice){
+        if(!projects[choice]) newProject(choice); else loadProject(choice);
+      }
+    }
+  }
+
   const rd=new FileReader();
-  rd.onload=ev=>{ try{ importGeoJSON(JSON.parse(ev.target.result)); } catch{ alert('Invalid GeoJSON'); } };
+  rd.onload=ev=>{ try{ importGeoJSON(JSON.parse(ev.target.result)); saveProject(); } catch{ alert('Invalid GeoJSON'); } };
   rd.readAsText(f);
 });
+
 function importGeoJSON(gj){
   const palette=['#ef4444','#22c55e','#22d3ee','#f59e0b','#a78bfa','#38bdf8','#f472b6','#f97316','#84cc16','#eab308'];
-  let colorIx=0;
+  let colorIx=0, added=0;
+
   (gj.features||[]).forEach(ft=>{
     const g=ft.geometry, p=ft.properties||{}; if(!g) return;
     // auto name/class
@@ -312,25 +336,21 @@ function importGeoJSON(gj){
     cls = String(cls);
     if(!classes.find(c=>c.name===cls)){ classes.push({name:cls,color:palette[colorIx++%palette.length]}); }
     if(g.type==='Point'){
-      const [x,y]=g.coordinates; features.push({id:uid(), type:'Point', coords:[x,y], className:cls, props:p});
+      const [x,y]=g.coordinates; features.push({id:uid(), type:'Point', coords:[x,y], className:cls, props:p}); added++;
     }else if(g.type==='Polygon'){
-      const ring=(g.coordinates[0]||[]).map(([x,y])=>[x,y]); features.push({id:uid(), type:'Polygon', coords:ring, className:cls, props:p});
+      const ring=(g.coordinates[0]||[]).map(([x,y])=>[x,y]); features.push({id:uid(), type:'Polygon', coords:ring, className:cls, props:p}); added++;
     }
   });
-  // populate property dropdown
+
+  // fill property dropdown
   const propSel=$('propSelect');
   const allProps=new Set();
   (gj.features||[]).forEach(f=>{ Object.keys(f.properties||{}).forEach(k=>allProps.add(k)); });
   propSel.innerHTML=''; [...allProps].forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; propSel.appendChild(o); });
-  refreshClassList(); render(); zoomAll();
+
+  refreshClassList(); render();
+  if(added>0) zoomAll();
 }
-$('btnExport').onclick=()=>{
-  const gj={type:'FeatureCollection',features:features.map(f=>{
-    const geom = f.type==='Point' ? {type:'Point',coordinates:f.coords} : {type:'Polygon',coordinates:[f.coords]};
-    return {type:'Feature',geometry:geom,properties:{...(f.props||{}),class:f.className}};
-  })};
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(gj,null,2)],{type:'application/geo+json'})); a.download=(projectName||'project')+'.geojson'; a.click();
-};
 
 /* ---------- Draw / select ---------- */
 document.querySelectorAll('.tool[data-mode]').forEach(btn=>{
@@ -355,7 +375,7 @@ function viewerToLocal(e){
 function addPoint(e){
   const [x,y]=viewerToLocal(e);
   const f={id:uid(), type:'Point', coords:[x,y], className:$('activeClass').value, props:{}};
-  features.push(f); select(f.id); render();
+  features.push(f); select(f.id); render(); zoomSelected(); saveProject();
 }
 function addPoly(e){
   const [x,y]=viewerToLocal(e);
@@ -368,7 +388,10 @@ function addPoly(e){
   render();
 }
 function finishPolygon(){
-  if(mode==='polygon' && drawing && drawing.coords.length>2){ drawing=null; render(); }
+  if(mode==='polygon' && drawing && drawing.coords.length>2){
+    const id=drawing.id; drawing=null; render();
+    selectedId=id; zoomSelected(); saveProject();
+  }
 }
 
 /* ---------- Render & details ---------- */
@@ -378,13 +401,15 @@ function render(){
   for(const f of features){
     if(f.type==='Point'){
       const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
-      c.setAttribute('cx',f.coords[0]); c.setAttribute('cy',f.coords[1]); c.setAttribute('r',6);
-      c.setAttribute('fill',getColor(f.className)); c.setAttribute('stroke','#fff'); c.setAttribute('stroke-width','1.5');
+      c.setAttribute('cx',f.coords[0]); c.setAttribute('cy',f.coords[1]); c.setAttribute('r',7);
+      c.setAttribute('fill',getColor(f.className)); c.setAttribute('stroke','#0b1220'); c.setAttribute('stroke-width','2');
+      c.setAttribute('filter','url(#drop)');
       c.style.cursor='pointer'; c.onclick=()=>select(f.id); svg.appendChild(c);
     }else if(f.type==='Polygon'){
       const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
       p.setAttribute('points',f.coords.map(([x,y])=>`${x},${y}`).join(' '));
-      p.setAttribute('fill',getColor(f.className)+'55'); p.setAttribute('stroke',getColor(f.className)); p.setAttribute('stroke-width','2');
+      p.setAttribute('fill',getColor(f.className)+'55'); p.setAttribute('stroke',getColor(f.className)); p.setAttribute('stroke-width','3');
+      p.setAttribute('filter','url(#drop)');
       p.style.cursor='pointer'; p.onclick=()=>select(f.id); svg.appendChild(p);
     }
   }
@@ -400,15 +425,15 @@ function select(id){
 }
 $('btnApplyReclass').onclick=()=>{
   if(!selectedId) return; const f=features.find(x=>x.id===selectedId); if(!f) return;
-  f.className=$('selReclass').value; select(f.id); render();
+  f.className=$('selReclass').value; select(f.id); render(); saveProject();
 };
-$('btnDelete').onclick=()=>{ if(!selectedId) return; features=features.filter(f=>f.id!==selectedId); selectedId=null; render(); };
+$('btnDelete').onclick=()=>{ if(!selectedId) return; features=features.filter(f=>f.id!==selectedId); selectedId=null; render(); saveProject(); };
 $('btnDuplicate').onclick=()=>{
   if(!selectedId) return; const f=features.find(x=>x.id===selectedId); if(!f) return;
   const d=JSON.parse(JSON.stringify(f)); d.id=uid();
   if(d.type==='Point'){ d.coords[0]+=12; d.coords[1]+=8; }
   if(d.type==='Polygon'){ d.coords=d.coords.map(([x,y])=>[x+8,y+6]); }
-  features.push(d); select(d.id); render();
+  features.push(d); select(d.id); render(); saveProject();
 };
 
 /* ---------- Zoom helpers ---------- */
@@ -448,7 +473,7 @@ $('btnClassify').onclick=()=>{
   const palette=['#ef4444','#22c55e','#22d3ee','#f59e0b','#a78bfa','#38bdf8','#f472b6','#f97316','#84cc16','#eab308'];
   vals.forEach((v,i)=>{ const name=String(v); if(!classes.find(c=>c.name===name)){ classes.push({name,color:palette[i%palette.length]}); }});
   features.forEach(f=>{ const v=(f.props||{})[key]; if(v!==undefined) f.className=String(v); });
-  refreshClassList(); render();
+  refreshClassList(); render(); saveProject();
 };
 
 /* ---------- Init ---------- */
