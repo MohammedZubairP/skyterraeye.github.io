@@ -917,20 +917,6 @@ h2.dk{color:#0A1929}
     });
   }
 
-  function coords(){
-    // HUD overlay
-    cx.fillStyle='rgba(3,13,24,.7)'; cx.strokeStyle='rgba(31,168,217,.28)'; cx.lineWidth=1;
-    cx.beginPath(); cx.roundRect(12,12,200,90,8); cx.fill(); cx.stroke();
-    cx.fillStyle='#1FA8D9'; cx.font='bold 10px monospace';
-    cx.fillText('● TOTAL STATION — LIVE SCAN',18,30);
-    cx.fillStyle='rgba(208,232,245,.7)'; cx.font='10px monospace';
-    const ang2 = (-Math.PI/4 + Math.sin(t*0.016)*Math.PI*0.55)*(180/Math.PI)+45;
-    cx.fillText(`HZ: ${(ang2%360+360).toFixed(4)}°`,18,50);
-    cx.fillText(`V:  89.${((t*0.3)%100).toFixed(4)}°`,18,65);
-    cx.fillText(`SD: ${(14.${String(Math.floor((t*0.7)%1000)).padStart(3,'0')}m`).replace('${','').slice(0,-2) + (14+(t*.002%4)).toFixed(3)}m`,18,80);
-    cx.fillText(`PTS: ${pts.length}`,18,95);
-  }
-
   function loop(){
     t++;
     bg();
@@ -1087,7 +1073,9 @@ h2.dk{color:#0A1929}
       // Signal line to receiver
       const dist=Math.sqrt((sx2-cx0-28)**2+(sy2-cy0-28)**2);
       const sig = 0.4+0.2*Math.sin(t*0.05+i);
-      cx.strokeStyle=`${s.color.replace('#','rgba(').replace(/(..)(..)(..)/, (m,r2,g2,b3)=>`rgba(${parseInt(r2,16)},${parseInt(g2,16)},${parseInt(b3,16)}`)}`,${sig*0.4})`;
+      const hex = s.color.replace('#','');
+      const sr=parseInt(hex.slice(0,2),16), sg=parseInt(hex.slice(2,4),16), sb=parseInt(hex.slice(4,6),16);
+      cx.strokeStyle='rgba('+sr+','+sg+','+sb+','+(sig*0.4)+')';
       cx.setLineDash([3,5]); cx.lineWidth=.8;
       cx.beginPath(); cx.moveTo(sx2,sy2); cx.lineTo(cx0+28,cy0+28); cx.stroke();
       cx.setLineDash([]);
