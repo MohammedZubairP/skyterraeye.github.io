@@ -69,8 +69,8 @@ img{display:block;max-width:100%;height:auto}
 .nav{position:sticky;top:0;z-index:300;background:rgba(4,13,22,.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid rgba(31,168,217,.1)}
 .nw{max-width:1280px;margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:74px}
 .logo{display:flex;align-items:center;gap:12px}
-.logo img{height:42px;width:auto}
-.logt{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--W)}
+.logo img{height:32px;width:auto}
+.logt{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--W)}
 .logt b{color:var(--B)}
 .nl{display:flex;align-items:center;gap:2px}
 .nl a{font-size:14px;font-weight:600;color:var(--M);padding:8px 14px;border-radius:var(--r);transition:var(--e)}
@@ -93,12 +93,12 @@ img{display:block;max-width:100%;height:auto}
 .ddi-d{font-size:12px;color:var(--M);margin-top:2px}
 
 /* ═══════════════════════════════════════
-   HERO — Static image, no broken video
+   HERO — Animated canvas background
 ═══════════════════════════════════════ */
 .hero{position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden}
-.hbg{position:absolute;inset:0;background:url('assets/img/coverpage.jpg') center/cover no-repeat;animation:hpan 20s ease-in-out infinite alternate;transform-origin:center}
-@keyframes hpan{from{transform:scale(1.04) translate(0,0)}to{transform:scale(1.08) translate(-1.5%,-.5%)}}
-.hov1{position:absolute;inset:0;background:linear-gradient(115deg,rgba(4,13,22,.97) 0%,rgba(4,13,22,.82) 48%,rgba(4,13,22,.38) 100%)}
+.hbg{position:absolute;inset:0;background:#071220}
+#cvHero{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hov1{position:absolute;inset:0;background:linear-gradient(115deg,rgba(4,13,22,.88) 0%,rgba(4,13,22,.65) 48%,rgba(4,13,22,.22) 100%)}
 .hov2{position:absolute;inset:0;background:linear-gradient(to top,rgba(7,18,32,1) 0%,transparent 42%)}
 .huae{position:absolute;top:0;right:0;bottom:0;width:6px;background:linear-gradient(180deg,#00732F 33%,#fff 33% 66%,#CE1126 66%);opacity:.5}
 
@@ -189,17 +189,18 @@ h2.dk{color:#0A1929}
 .scard::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--B),transparent);opacity:0;transition:opacity .3s;z-index:2}
 .scard:hover{border-color:rgba(31,168,217,.28);transform:translateY(-7px);box-shadow:var(--s)}
 .scard:hover::after{opacity:1}
-.simg{height:200px;overflow:hidden;position:relative}
+.simg{height:190px;overflow:hidden;position:relative;background:#030D18}
 .simg img{width:100%;height:100%;object-fit:cover;transition:transform .55s ease}
 .scard:hover .simg img{transform:scale(1.08)}
-.simgov{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(22,40,60,.98) 100%)}
-.sbody{padding:24px;flex:1;display:flex;flex-direction:column}
-.stag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--B);background:var(--Bdim);padding:4px 10px;border-radius:5px;margin-bottom:11px}
-.scard h3{font-family:'Syne',sans-serif;font-size:17.5px;font-weight:800;color:var(--W);margin-bottom:14px;line-height:1.28}
-.sl2{list-style:none;display:flex;flex-direction:column;gap:9px;flex:1}
-.sl2 li{font-size:13.5px;color:var(--M);display:flex;align-items:flex-start;gap:8px}
+.simg canvas{width:100%;height:100%;display:block}
+.simgov{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(22,40,60,.98) 100%);pointer-events:none}
+.sbody{padding:22px;flex:1;display:flex;flex-direction:column}
+.stag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--B);background:var(--Bdim);padding:4px 10px;border-radius:5px;margin-bottom:10px}
+.scard h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--W);margin-bottom:12px;line-height:1.28}
+.sl2{list-style:none;display:flex;flex-direction:column;gap:8px;flex:1}
+.sl2 li{font-size:13px;color:var(--M);display:flex;align-items:flex-start;gap:8px}
 .sl2 li::before{content:'→';color:var(--B);flex-shrink:0;font-weight:800;font-size:12px;margin-top:2px}
-.slink{margin-top:20px;font-size:13px;font-weight:800;color:var(--B);display:inline-flex;align-items:center;gap:7px;transition:gap .2s}
+.slink{margin-top:18px;font-size:13px;font-weight:800;color:var(--B);display:inline-flex;align-items:center;gap:7px;transition:gap .2s}
 .slink:hover{gap:12px}
 
 /* ═══════════════════════════════════════
@@ -406,7 +407,7 @@ h2.dk{color:#0A1929}
   <div class="tw">
     <div class="tl">
       <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.9 19.9 0 0 1 3.1 5.2 2 2 0 0 1 5 3h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L9 10a16 16 0 0 0 5 5l.6-.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6A2 2 0 0 1 22 16.9Z"/></svg><a href="tel:+971503091162">+971 50 309 1162</a></span>
-      <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><a href="mailto:info@skyterraeye.com">info@skyterraeye.com</a></span>
+      <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><a href="/cdn-cgi/l/email-protection#e1888f878ea1928a989584939380849884cf828e8c"><span class="__cf_email__" data-cfemail="8be2e5ede4cbf8e0f2ffeef9f9eaeef2eea5e8e4e6">[email&#160;protected]</span></a></span>
       <a class="wabtn" href="https://wa.me/971503091162?text=Hello%20Sky%20TerraEye,%20I%20need%20surveying%20services." target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp Us</a>
     </div>
     <div class="tsoc">
@@ -450,7 +451,7 @@ h2.dk{color:#0A1929}
    HERO
 ══════════════════════════ -->
 <header class="hero">
-  <div class="hbg"></div>
+  <div class="hbg"><canvas id="cvHero"></canvas></div>
   <div class="hov1"></div>
   <div class="hov2"></div>
   <div class="huae"></div>
@@ -537,50 +538,50 @@ h2.dk{color:#0A1929}
   <div class="wrap">
     <div class="fi"><div class="lbl">What We Do</div><h2>Core surveying services in Dubai</h2><p class="sub">Professional fieldwork, calibrated instruments, and submission-ready CAD documentation — every time.</p></div>
     <div class="sg">
-      <!-- Total Station — engineer with theodolite -->
+      <!-- Total Station -->
       <a class="scard fi" href="total-station-survey-dubai.html" style="transition-delay:.05s">
         <div class="simg">
-          <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=700&q=80" alt="Surveyor with total station on construction site" loading="lazy">
+          <canvas id="sc1" width="400" height="190"></canvas>
           <div class="simgov"></div>
         </div>
         <div class="sbody"><div class="stag">Most Requested</div><h3>Total Station Surveying</h3><ul class="sl2"><li>Site control, traverse & coordinate transfer</li><li>Construction layout / setting-out</li><li>Verification & as-built measurements</li></ul><span class="slink">Learn more →</span></div>
       </a>
-      <!-- Setting Out — construction concrete pouring/markings -->
+      <!-- Setting Out -->
       <a class="scard fi" href="setting-out-dubai.html" style="transition-delay:.1s">
         <div class="simg">
-          <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=700&q=80" alt="Construction setting out layout site work" loading="lazy">
+          <canvas id="sc2" width="400" height="190"></canvas>
           <div class="simgov"></div>
         </div>
         <div class="sbody"><div class="stag">Construction</div><h3>Setting Out / Layout</h3><ul class="sl2"><li>Grids, columns, foundations, road alignments</li><li>Offsets, benchmarks, re-checks</li><li>Daily & weekly progress support</li></ul><span class="slink">Learn more →</span></div>
       </a>
-      <!-- As-Built — technical blueprint drawing table -->
+      <!-- As-Built -->
       <a class="scard fi" href="as-built-survey-dubai.html" style="transition-delay:.15s">
         <div class="simg">
-          <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=700&q=80" alt="As-built survey CAD engineering blueprints" loading="lazy">
+          <canvas id="sc3" width="400" height="190"></canvas>
           <div class="simgov"></div>
         </div>
         <div class="sbody"><div class="stag">Reports</div><h3>As-Built Survey & CAD</h3><ul class="sl2"><li>As-built drawings (DWG / PDF)</li><li>Coordinate tables & deviations</li><li>Submission-ready documentation</li></ul><span class="slink">Learn more →</span></div>
       </a>
-      <!-- GNSS — satellite / tech data -->
+      <!-- GNSS -->
       <a class="scard fi" href="gnss-gps-survey-dubai.html" style="transition-delay:.2s">
         <div class="simg">
-          <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=700&q=80" alt="GNSS GPS satellite network surveying" loading="lazy">
+          <canvas id="sc4" width="400" height="190"></canvas>
           <div class="simgov"></div>
         </div>
         <div class="sbody"><div class="stag">Control</div><h3>GNSS / GPS Surveying (RTK)</h3><ul class="sl2"><li>Control point establishment</li><li>RTK checks & coordinate validation</li><li>Coordinate transformation support</li></ul><span class="slink">Learn more →</span></div>
       </a>
-      <!-- Level Survey — construction concrete slab floor check -->
+      <!-- Level Survey -->
       <a class="scard fi" href="level-survey-dubai.html" style="transition-delay:.25s">
         <div class="simg">
-          <img src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=700&q=80" alt="Level survey construction floor slab Dubai" loading="lazy">
+          <canvas id="sc5" width="400" height="190"></canvas>
           <div class="simgov"></div>
         </div>
         <div class="sbody"><div class="stag">Levels</div><h3>Level Surveying</h3><ul class="sl2"><li>Benchmarks, profiles & cross-sections</li><li>Cut / fill verification</li><li>Floor level & slab checks</li></ul><span class="slink">Learn more →</span></div>
       </a>
-      <!-- Land / Topo — aerial Dubai construction site -->
+      <!-- Land / Topo -->
       <a class="scard fi" href="land-surveying-dubai.html" style="transition-delay:.3s">
         <div class="simg">
-          <img src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=700&q=80" alt="Topographic land survey Dubai aerial view" loading="lazy">
+          <canvas id="sc6" width="400" height="190"></canvas>
           <div class="simgov"></div>
         </div>
         <div class="sbody"><div class="stag">Land</div><h3>Land / Boundary / Topographic</h3><ul class="sl2"><li>Topographic surveys in Dubai</li><li>Boundary demarcation & site limits</li><li>Base mapping for design & construction</li></ul><span class="slink">Learn more →</span></div>
@@ -818,433 +819,665 @@ h2.dk{color:#0A1929}
       </div>
       <div><div class="fh">Services</div><div class="fls"><a href="total-station-survey-dubai.html">Total Station Surveying</a><a href="setting-out-dubai.html">Setting Out / Layout</a><a href="as-built-survey-dubai.html">As-Built Survey & CAD</a><a href="gnss-gps-survey-dubai.html">GNSS / GPS Surveying</a><a href="level-survey-dubai.html">Level Surveying</a><a href="land-surveying-dubai.html">Land & Boundary Survey</a></div></div>
       <div><div class="fh">Company</div><div class="fls"><a href="services.html">All Services</a><a href="process.html">Our Process</a><a href="about.html">About Us</a><a href="blog.html">Insights</a><a href="contact.html">Contact</a></div></div>
-      <div><div class="fh">Contact</div><div class="fls"><a href="tel:+971503091162">+971 50 309 1162</a><a href="mailto:info@skyterraeye.com">info@skyterraeye.com</a><span style="color:var(--Dm)">Marina Bay, Dubai, UAE</span><a href="https://wa.me/971503091162" target="_blank" rel="noopener" style="color:#4ADE80;font-weight:700">WhatsApp Us</a></div></div>
+      <div><div class="fh">Contact</div><div class="fls"><a href="tel:+971503091162">+971 50 309 1162</a><a href="/cdn-cgi/l/email-protection#452c2b232a05362e3c3120373724203c206b262a28"><span class="__cf_email__" data-cfemail="e28b8c848da291899b9687909083879b87cc818d8f">[email&#160;protected]</span></a><span style="color:var(--Dm)">Marina Bay, Dubai, UAE</span><a href="https://wa.me/971503091162" target="_blank" rel="noopener" style="color:#4ADE80;font-weight:700">WhatsApp Us</a></div></div>
     </div>
     <div class="fbot"><div class="fcp">© 2026 Sky TerraEye. All rights reserved. Surveying Engineering Services in Dubai, UAE.</div><div class="fcp">Marina Bay, Dubai, UAE</div></div>
   </div>
 </footer>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 /* ══════════════════════════════════════════
-   CANVAS 1 — Total Station Laser Scan
+   HERO CANVAS — Full Land Surveying Process
 ══════════════════════════════════════════ */
 (function(){
-  const cv = document.getElementById('cv1');
+  const cv = document.getElementById('cvHero');
   if(!cv) return;
+  function resize(){cv.width=cv.offsetWidth||window.innerWidth;cv.height=cv.offsetHeight||window.innerHeight;}
+  resize(); window.addEventListener('resize',resize);
   const cx = cv.getContext('2d');
-  const W = cv.width, H = cv.height;
   let t = 0;
-  // Ground points accumulated
-  const pts = [];
-  // Instrument position
-  const ix = W * 0.35, iy = H * 0.72;
+  const pts = []; // scanned ground points
+  const scanPts = []; // setting-out markers
+  let cadProgress = 0;
 
-  function bg(){
-    // Dark sky gradient
-    const g = cx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0,'#020B14'); g.addColorStop(1,'#0A1E2E');
-    cx.fillStyle = g; cx.fillRect(0,0,W,H);
-    // Grid lines (ground plane perspective)
-    cx.strokeStyle = 'rgba(31,168,217,.07)'; cx.lineWidth = .7;
-    for(let i=0;i<16;i++){
-      const x = (i/15)*W;
-      cx.beginPath(); cx.moveTo(x,H*0.58); cx.lineTo(ix,iy); cx.stroke();
-    }
-    for(let j=1;j<8;j++){
-      const y = H*0.58 + (j/8)*(H-H*0.58);
-      const f = (y-H*0.58)/(H*0.42);
-      const x0 = ix*(1-f); const x1 = W - W*(1-f)*(1 - ix/W);
-      cx.beginPath(); cx.moveTo(x0,y); cx.lineTo(x1,y); cx.stroke();
-    }
-    // Horizon city silhouette
-    cx.fillStyle = '#0C1E2E';
-    const bldgs = [[0,0.58,0.06,0.22],[0.06,0.58,0.04,0.16],[0.10,0.58,0.07,0.19],[0.17,0.58,0.05,0.28],[0.22,0.58,0.08,0.13],[0.30,0.58,0.06,0.24],[0.56,0.58,0.06,0.20],[0.62,0.58,0.09,0.15],[0.71,0.58,0.05,0.25],[0.76,0.58,0.07,0.18],[0.83,0.58,0.06,0.22],[0.89,0.58,0.11,0.12]];
-    bldgs.forEach(([x,y,w,h2])=>cx.fillRect(x*W,y*H - h2*H,w*W,h2*H));
+  // Scene elements
+  const buildings = [
+    [0.05,0.52,0.06,0.28],[0.12,0.52,0.04,0.18],[0.17,0.52,0.07,0.22],
+    [0.25,0.52,0.05,0.32],[0.31,0.52,0.08,0.14],[0.40,0.52,0.06,0.26],
+    [0.60,0.52,0.07,0.22],[0.68,0.52,0.09,0.16],[0.78,0.52,0.05,0.28],
+    [0.84,0.52,0.07,0.20],[0.92,0.52,0.08,0.12]
+  ];
+
+  function drawScene(){
+    const W=cv.width, H=cv.height;
+    // Sky gradient
+    const sky=cx.createLinearGradient(0,0,0,H*0.55);
+    sky.addColorStop(0,'#020A14'); sky.addColorStop(0.6,'#061828'); sky.addColorStop(1,'#0A2235');
+    cx.fillStyle=sky; cx.fillRect(0,0,W,H);
+    // Ground
+    const gnd=cx.createLinearGradient(0,H*0.52,0,H);
+    gnd.addColorStop(0,'#0A1E2C'); gnd.addColorStop(1,'#050F18');
+    cx.fillStyle=gnd; cx.fillRect(0,H*0.52,W,H);
+
     // Stars
-    if(!cv._stars){cv._stars=Array.from({length:60},()=>({x:Math.random()*W,y:Math.random()*H*0.55,r:Math.random()*1.2,o:Math.random()}))}
-    cv._stars.forEach(s=>{cx.fillStyle=`rgba(180,220,255,${s.o*(0.4+0.3*Math.sin(t*0.04+s.x))})`;cx.beginPath();cx.arc(s.x,s.y,s.r,0,6.28);cx.fill()});
-  }
+    if(!cv._st) cv._st=Array.from({length:120},()=>({x:Math.random(),y:Math.random()*0.48,r:Math.random()*1.5+.3,p:Math.random()*6.28}));
+    cv._st.forEach(s=>{
+      const a=0.3+0.3*Math.sin(t*0.02+s.p);
+      cx.fillStyle='rgba(200,230,255,'+a+')';
+      cx.beginPath();cx.arc(s.x*W,s.y*H,s.r,0,6.28);cx.fill();
+    });
 
-  function instrument(){
-    // Base
-    cx.fillStyle='#1A2D3F'; cx.strokeStyle='rgba(31,168,217,.4)'; cx.lineWidth=1.5;
-    cx.beginPath(); cx.ellipse(ix,iy+8,28,8,0,0,6.28); cx.fill(); cx.stroke();
-    // Tripod legs
-    cx.strokeStyle='rgba(31,168,217,.35)'; cx.lineWidth=2;
-    [[ix-22,iy+38],[ix+22,iy+38],[ix,iy+40]].forEach(([lx,ly])=>{cx.beginPath();cx.moveTo(ix,iy+8);cx.lineTo(lx,ly);cx.stroke()});
-    // Body
-    const bg2=cx.createLinearGradient(ix-16,iy-26,ix+16,iy+8);
-    bg2.addColorStop(0,'#1E3A50'); bg2.addColorStop(1,'#0E2030');
-    cx.fillStyle=bg2; cx.strokeStyle='rgba(31,168,217,.5)'; cx.lineWidth=1.5;
-    cx.beginPath(); cx.roundRect(ix-14,iy-26,28,34,5); cx.fill(); cx.stroke();
-    // Lens eye (rotates with beam angle)
-    const ang = -Math.PI/4 + Math.sin(t*0.016)*Math.PI*0.55;
-    cx.fillStyle='rgba(31,168,217,.9)'; cx.strokeStyle='#1FA8D9'; cx.lineWidth=1;
-    cx.beginPath(); cx.arc(ix,iy-10,5,0,6.28); cx.fill(); cx.stroke();
-    // Rotate symbol on body
-    cx.fillStyle='rgba(31,168,217,.3)'; cx.font='10px monospace';
-    cx.fillText('≡',ix-5,iy+4);
-    return ang;
-  }
+    // City silhouette with lights
+    buildings.forEach(([bx,by,bw,bh])=>{
+      cx.fillStyle='#0D1E2C';
+      cx.fillRect(bx*W,by*H-bh*H,bw*W,bh*H+2);
+      // Windows
+      for(let wy=by*H-bh*H+6;wy<by*H-4;wy+=12){
+        for(let wx=bx*W+4;wx<(bx+bw)*W-4;wx+=10){
+          if(Math.random()<0.01) cv._wnd=cv._wnd||{};
+          const key=Math.round(wx)+','+Math.round(wy);
+          if(!cv._wnd) cv._wnd={};
+          if(cv._wnd[key]===undefined) cv._wnd[key]=Math.random()<0.55;
+          if(cv._wnd[key]){
+            const flicker = Math.random()<0.002 ? !cv._wnd[key] : cv._wnd[key];
+            cx.fillStyle=flicker?'rgba(255,220,120,.7)':'rgba(100,160,220,.5)';
+            cx.fillRect(wx,wy,5,7);
+          }
+        }
+      }
+    });
 
-  function scanBeam(ang){
-    const len = 320;
-    const bx = ix + Math.cos(ang)*len, by = (iy-10) + Math.sin(ang)*len;
-    // Beam glow
-    const g = cx.createLinearGradient(ix,iy-10,bx,by);
-    g.addColorStop(0,'rgba(31,168,217,.9)');
-    g.addColorStop(0.4,'rgba(31,168,217,.35)');
-    g.addColorStop(1,'rgba(31,168,217,0)');
-    cx.strokeStyle=g; cx.lineWidth=1.8; cx.setLineDash([]);
-    cx.shadowBlur=12; cx.shadowColor='#1FA8D9';
-    cx.beginPath(); cx.moveTo(ix,iy-10); cx.lineTo(bx,by); cx.stroke();
-    cx.shadowBlur=0;
-    // Hit point sparkle
-    if(by > H*0.56){
-      pts.push({x:bx,y:by,a:1,age:0});
-      if(pts.length>120) pts.shift();
+    // Ground perspective grid
+    cx.strokeStyle='rgba(31,168,217,.06)'; cx.lineWidth=.8;
+    const hor=H*0.52, vp={x:W*0.5,y:hor};
+    for(let i=0;i<=20;i++){
+      const x=(i/20)*W;
+      cx.beginPath();cx.moveTo(x,H);cx.lineTo(vp.x+(x-vp.x)*0,hor);cx.stroke();
     }
-    return {bx,by};
+    for(let j=1;j<10;j++){
+      const y=hor+(j/10)*(H-hor);
+      cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();
+    }
   }
 
-  function drawPts(){
+  function drawInstrument(){
+    const W=cv.width, H=cv.height;
+    const ix=W*0.48, iy=H*0.64;
+    const ang=-0.6+Math.sin(t*0.01)*0.9;
+
+    // Tripod
+    cx.strokeStyle='rgba(31,168,217,.45)'; cx.lineWidth=2.5;
+    [[ix-30,iy+55],[ix+30,iy+55],[ix,iy+58]].forEach(([lx,ly])=>{
+      cx.beginPath();cx.moveTo(ix,iy+10);cx.lineTo(lx,ly);cx.stroke();
+    });
+    // Base plate
+    cx.fillStyle='#162840'; cx.strokeStyle='rgba(31,168,217,.5)'; cx.lineWidth=1.5;
+    cx.beginPath();cx.ellipse(ix,iy+10,32,9,0,0,6.28);cx.fill();cx.stroke();
+    // Body
+    const bg=cx.createLinearGradient(ix-18,iy-30,ix+18,iy+10);
+    bg.addColorStop(0,'#1E3A52');bg.addColorStop(1,'#0E2030');
+    cx.fillStyle=bg;cx.strokeStyle='rgba(31,168,217,.6)';cx.lineWidth=1.5;
+    cx.beginPath();cx.roundRect(ix-16,iy-30,32,40,6);cx.fill();cx.stroke();
+    // Scope (rotates)
+    cx.save();cx.translate(ix,iy-12);cx.rotate(ang);
+    cx.fillStyle='#243C52';cx.strokeStyle='rgba(31,168,217,.7)';cx.lineWidth=1.5;
+    cx.beginPath();cx.roundRect(-22,-7,44,14,4);cx.fill();cx.stroke();
+    cx.fillStyle='rgba(31,168,217,.9)';cx.beginPath();cx.arc(22,0,5,0,6.28);cx.fill();
+    cx.restore();
+    // Display on body
+    cx.fillStyle='rgba(31,168,217,.15)';cx.fillRect(ix-10,iy-22,20,12);
+    cx.fillStyle='rgba(31,168,217,.7)';cx.font='6px monospace';
+    cx.fillText('HZ:'+(ang*57.3+90).toFixed(1),ix-9,iy-14);
+
+    // Laser beam
+    const beamLen=Math.min(W*0.45,400);
+    const bx=ix+Math.cos(ang-0.1)*beamLen, by=iy-12+Math.sin(ang-0.1)*beamLen;
+    const lg=cx.createLinearGradient(ix,iy-12,bx,by);
+    lg.addColorStop(0,'rgba(31,168,217,.95)');
+    lg.addColorStop(0.5,'rgba(31,168,217,.3)');
+    lg.addColorStop(1,'rgba(31,168,217,0)');
+    cx.strokeStyle=lg;cx.lineWidth=2;cx.shadowBlur=14;cx.shadowColor='#1FA8D9';
+    cx.beginPath();cx.moveTo(ix,iy-12);cx.lineTo(bx,by);cx.stroke();
+    cx.shadowBlur=0;
+
+    // Accumulate hit points on ground
+    if(by>H*0.5 && by<H*0.95 && t%3===0){
+      pts.push({x:bx,y:by,a:1,age:0});
+      if(pts.length>200) pts.shift();
+    }
+    // Draw scanned points
     pts.forEach(p=>{
-      p.age++; p.a = Math.max(0,1-p.age/80);
-      cx.fillStyle=`rgba(31,168,217,${p.a})`;
-      cx.shadowBlur=6; cx.shadowColor='#1FA8D9';
-      cx.beginPath(); cx.arc(p.x,p.y,1.8,0,6.28); cx.fill();
+      p.age++;p.a=Math.max(0,1-p.age/120);
+      cx.fillStyle='rgba(31,168,217,'+p.a+')';
+      cx.shadowBlur=4;cx.shadowColor='#1FA8D9';
+      cx.beginPath();cx.arc(p.x,p.y,1.5,0,6.28);cx.fill();
       cx.shadowBlur=0;
     });
   }
 
+  function drawSettingOut(){
+    const W=cv.width, H=cv.height;
+    // Reveal setting-out markers on ground
+    if(scanPts.length<24 && t%18===0){
+      scanPts.push({
+        x:W*(0.15+Math.random()*0.65),
+        y:H*(0.55+Math.random()*0.38),
+        age:0
+      });
+    }
+    scanPts.forEach(p=>{
+      p.age++;
+      const a=Math.min(1,p.age/25);
+      // Crosshair marker
+      cx.strokeStyle='rgba(245,190,24,'+a*0.85+')';cx.lineWidth=1.5;
+      cx.beginPath();cx.moveTo(p.x-12,p.y);cx.lineTo(p.x+12,p.y);cx.stroke();
+      cx.beginPath();cx.moveTo(p.x,p.y-12);cx.lineTo(p.x,p.y+12);cx.stroke();
+      cx.strokeStyle='rgba(245,190,24,'+a*0.6+')';cx.lineWidth=1;
+      cx.beginPath();cx.arc(p.x,p.y,6,0,6.28);cx.stroke();
+    });
+  }
+
+  function drawCADOverlay(){
+    const W=cv.width, H=cv.height;
+    cadProgress=Math.min(1,(t%600)/400);
+    // Partial building outline drawing itself
+    const bldg=[[0.62,0.22,0.14,0.28]]; // one building outline
+    bldg.forEach(([bx,by,bw,bh])=>{
+      const lines=[
+        [bx,by+bh,bx+bw,by+bh], // bottom
+        [bx,by,bx,by+bh],        // left
+        [bx,by,bx+bw,by],        // top
+        [bx+bw,by,bx+bw,by+bh],  // right
+        [bx+0.03,by,bx+0.03,by+bh], // inner division
+        [bx+0.09,by,bx+0.09,by+bh],
+      ];
+      const totalSegs=lines.length;
+      lines.forEach(([x1,y1,x2,y2],i)=>{
+        const segStart=i/totalSegs, segEnd=(i+1)/totalSegs;
+        if(cadProgress<=segStart) return;
+        const segProgress=Math.min(1,(cadProgress-segStart)/(1/totalSegs));
+        const ex=x1+(x2-x1)*segProgress, ey=y1+(y2-y1)*segProgress;
+        cx.strokeStyle='rgba(245,190,24,.75)';cx.lineWidth=1.2;
+        cx.shadowBlur=4;cx.shadowColor='#F5BE18';
+        cx.beginPath();cx.moveTo(x1*W,y1*H);cx.lineTo(ex*W,ey*H);cx.stroke();
+        cx.shadowBlur=0;
+      });
+      // Corner dots
+      if(cadProgress>0.05){
+        [[bx,by],[bx+bw,by],[bx,by+bh],[bx+bw,by+bh]].forEach(([px,py])=>{
+          cx.fillStyle='rgba(245,190,24,.9)';cx.beginPath();cx.arc(px*W,py*H,3,0,6.28);cx.fill();
+        });
+      }
+    });
+  }
+
+  function drawHUD(){
+    const W=cv.width, H=cv.height;
+    // Top-right HUD panel
+    cx.fillStyle='rgba(3,13,24,.72)';cx.strokeStyle='rgba(31,168,217,.22)';cx.lineWidth=1;
+    cx.beginPath();cx.roundRect(W-230,16,214,100,8);cx.fill();cx.stroke();
+    cx.fillStyle='#1FA8D9';cx.font='bold 10px monospace';
+    cx.fillText('● SKY TERRAEYE — LIVE SURVEY',W-224,34);
+    cx.fillStyle='rgba(208,232,245,.7)';cx.font='10px monospace';
+    cx.fillText('PHASE: '+(t<200?'CONTROL SETUP':t<400?'FIELD SCAN':t<600?'SETTING OUT':'CAD OUTPUT'),W-224,52);
+    cx.fillText('POINTS: '+pts.length+' scanned',W-224,68);
+    cx.fillText('MARKERS: '+scanPts.length+' placed',W-224,84);
+    cx.fillText('CAD: '+(cadProgress*100).toFixed(0)+'% complete',W-224,100);
+  }
+
   function loop(){
     t++;
-    bg();
-    const ang = instrument();
-    scanBeam(ang);
-    drawPts();
-    // Coord HUD
-    cx.fillStyle='rgba(3,13,24,.7)'; cx.strokeStyle='rgba(31,168,217,.28)'; cx.lineWidth=1;
-    cx.beginPath(); cx.roundRect(12,12,210,88,8); cx.fill(); cx.stroke();
-    cx.fillStyle='#1FA8D9'; cx.font='bold 10px monospace';
-    cx.fillText('● TOTAL STATION — LIVE SCAN',18,30);
-    cx.fillStyle='rgba(208,232,245,.75)'; cx.font='10px monospace';
-    const deg = ((-Math.PI/4 + Math.sin(t*0.016)*Math.PI*0.55)*(180/Math.PI)+90+360)%360;
-    cx.fillText(`HZ: ${deg.toFixed(4)}°`,18,48);
-    cx.fillText(`V:  89.${String(Math.floor((t*17)%10000)).padStart(4,'0')}°`,18,64);
-    cx.fillText(`SD: ${(14.1 + Math.sin(t*.01)*0.3).toFixed(3)} m`,18,80);
-    cx.fillText(`POINTS SCANNED: ${pts.length}`,18,96);
+    drawScene();
+    drawCADOverlay();
+    drawSettingOut();
+    drawInstrument();
+    drawHUD();
     requestAnimationFrame(loop);
   }
   loop();
 })();
 
 /* ══════════════════════════════════════════
-   CANVAS 2 — Setting Out Grid
+   SERVICE CARD CANVAS ANIMATIONS
+══════════════════════════════════════════ */
+function makeServiceCanvas(id, drawFn){
+  const cv=document.getElementById(id);
+  if(!cv) return;
+  const cx=cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  let t=0;
+  (function loop(){ t++; drawFn(cx,W,H,t); requestAnimationFrame(loop); })();
+}
+
+// SC1 — Total Station rotating beam
+makeServiceCanvas('sc1',(cx,W,H,t)=>{
+  const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#020B14');g.addColorStop(1,'#081828');
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  // Grid
+  cx.strokeStyle='rgba(31,168,217,.06)';cx.lineWidth=.6;
+  for(let i=0;i<W;i+=20){cx.beginPath();cx.moveTo(i,0);cx.lineTo(i,H);cx.stroke();}
+  for(let j=0;j<H;j+=20){cx.beginPath();cx.moveTo(0,j);cx.lineTo(W,j);cx.stroke();}
+  // Instrument
+  const ix=W/2,iy=H*0.65;
+  const ang=-0.8+Math.sin(t*0.025)*1.1;
+  cx.strokeStyle='rgba(31,168,217,.4)';cx.lineWidth=2;
+  [[ix-18,iy+32],[ix+18,iy+32],[ix,iy+35]].forEach(([lx,ly])=>{cx.beginPath();cx.moveTo(ix,iy+6);cx.lineTo(lx,ly);cx.stroke();});
+  const bg=cx.createLinearGradient(ix-12,iy-22,ix+12,iy+6);
+  bg.addColorStop(0,'#1E3A50');bg.addColorStop(1,'#0E1E30');
+  cx.fillStyle=bg;cx.strokeStyle='rgba(31,168,217,.55)';cx.lineWidth=1.5;
+  cx.beginPath();cx.roundRect(ix-10,iy-22,20,28,4);cx.fill();cx.stroke();
+  cx.fillStyle='rgba(31,168,217,.9)';cx.beginPath();cx.arc(ix,iy-10,4,0,6.28);cx.fill();
+  // Beam
+  const bl=160,bx=ix+Math.cos(ang)*bl,by=iy-10+Math.sin(ang)*bl;
+  const lg=cx.createLinearGradient(ix,iy-10,bx,by);
+  lg.addColorStop(0,'rgba(31,168,217,.9)');lg.addColorStop(1,'rgba(31,168,217,0)');
+  cx.strokeStyle=lg;cx.lineWidth=2;cx.shadowBlur=10;cx.shadowColor='#1FA8D9';
+  cx.beginPath();cx.moveTo(ix,iy-10);cx.lineTo(bx,by);cx.stroke();cx.shadowBlur=0;
+  // Hit sparkle
+  if(by>H*0.5&&by<H){cx.fillStyle='rgba(31,168,217,.8)';cx.shadowBlur=6;cx.shadowColor='#1FA8D9';cx.beginPath();cx.arc(bx,by,2.5,0,6.28);cx.fill();cx.shadowBlur=0;}
+  // Label
+  cx.fillStyle='rgba(31,168,217,.7)';cx.font='bold 8px monospace';
+  cx.fillText('HZ: '+(((ang+0.8)*57.3+90+360)%360).toFixed(2)+'°  SD: '+(12.5+Math.sin(t*.01)*.3).toFixed(3)+'m',8,H-8);
+});
+
+// SC2 — Setting Out coordinate grid
+makeServiceCanvas('sc2',(cx,W,H,t)=>{
+  cx.fillStyle='#030C16';cx.fillRect(0,0,W,H);
+  const cols=7,rows=4,px=28,py=22;
+  const cw=(W-px*2)/cols,ch=(H-py*2)/rows;
+  // Grid
+  const pulse=0.15+0.08*Math.sin(t*0.04);
+  cx.strokeStyle='rgba(31,168,217,'+pulse+')';cx.lineWidth=.7;cx.setLineDash([3,5]);
+  for(let c=0;c<=cols;c++){cx.beginPath();cx.moveTo(px+c*cw,py);cx.lineTo(px+c*cw,H-py);cx.stroke();}
+  for(let r=0;r<=rows;r++){cx.beginPath();cx.moveTo(px,py+r*ch);cx.lineTo(W-px,py+r*ch);cx.stroke();}
+  cx.setLineDash([]);
+  // Markers appear over time
+  const total=(cols+1)*(rows+1);
+  const show=Math.floor((t/3)%total);
+  for(let i=0;i<show;i++){
+    const c=i%(cols+1),r=Math.floor(i/(cols+1));
+    const x=px+c*cw,y=py+r*ch;
+    cx.strokeStyle='rgba(31,168,217,.85)';cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(x-8,y);cx.lineTo(x+8,y);cx.stroke();
+    cx.beginPath();cx.moveTo(x,y-8);cx.lineTo(x,y+8);cx.stroke();
+    cx.strokeStyle='rgba(245,190,24,.7)';cx.lineWidth=1;
+    cx.beginPath();cx.arc(x,y,4,0,6.28);cx.stroke();
+  }
+  // Active scanner
+  const si=show%(cols+1),sj=Math.floor(show/(cols+1))%(rows+1);
+  cx.strokeStyle='rgba(245,190,24,.9)';cx.lineWidth=2;cx.shadowBlur=8;cx.shadowColor='#F5BE18';
+  cx.beginPath();cx.arc(px+si*cw,py+sj*ch,7,0,6.28);cx.stroke();cx.shadowBlur=0;
+  cx.fillStyle='rgba(31,168,217,.65)';cx.font='7px monospace';
+  cx.fillText('GRID '+cols+'x'+rows+' | PLACED: '+show+'/'+total,8,H-7);
+});
+
+// SC3 — CAD drawing itself
+makeServiceCanvas('sc3',(cx,W,H,t)=>{
+  cx.fillStyle='#030D18';cx.fillRect(0,0,W,H);
+  cx.strokeStyle='rgba(31,168,217,.05)';cx.lineWidth=.5;
+  for(let x=0;x<W;x+=16){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke();}
+  for(let y=0;y<H;y+=16){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();}
+  const lines=[[30,30,W-30,30],[W-30,30,W-30,H-30],[W-30,H-30,30,H-30],[30,H-30,30,30],
+    [30,80,W/2,80],[W/2,30,W/2,H-30],[30,130,W/2,130],[W*0.62,30,W*0.62,H-30],
+    [W*0.62,80,W-30,80]];
+  const total=lines.reduce((s,[x1,y1,x2,y2])=>s+Math.sqrt((x2-x1)**2+(y2-y1)**2),0);
+  const drawn=Math.min(total,(t%420)*total/300);
+  let rem=drawn;
+  lines.forEach(([x1,y1,x2,y2],i)=>{
+    const len=Math.sqrt((x2-x1)**2+(y2-y1)**2);
+    if(rem<=0)return;
+    const frac=Math.min(1,rem/len);
+    cx.strokeStyle=i<4?'rgba(31,168,217,.9)':'rgba(31,168,217,.5)';
+    cx.lineWidth=i<4?1.8:.9;cx.shadowBlur=i<4?4:0;cx.shadowColor='#1FA8D9';
+    cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x1+(x2-x1)*frac,y1+(y2-y1)*frac);cx.stroke();
+    cx.shadowBlur=0;rem-=len;
+  });
+  cx.fillStyle='rgba(245,190,24,.8)';cx.font='7px monospace';
+  cx.fillText('DWG | '+(drawn/total*100).toFixed(0)+'% DRAWN',8,H-7);
+});
+
+// SC4 — GNSS satellite orbits
+makeServiceCanvas('sc4',(cx,W,H,t)=>{
+  const g=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.5);
+  g.addColorStop(0,'#061420');g.addColorStop(1,'#020810');
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  if(!cx._st) cx._st=Array.from({length:60},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()+.3,o:Math.random()}));
+  cx._st.forEach(s=>{cx.fillStyle='rgba(200,230,255,'+(s.o*.4+.1)+')',cx.beginPath();cx.arc(s.x,s.y,s.r,0,6.28);cx.fill();});
+  const cx0=W/2,cy0=H/2,R=Math.min(W,H)*0.32;
+  cx.strokeStyle='rgba(31,168,217,.08)';cx.lineWidth=.8;cx.setLineDash([2,5]);
+  [0.55,.75,.95].forEach(f=>{cx.beginPath();cx.arc(cx0,cy0,R*f,0,6.28);cx.stroke();});
+  cx.setLineDash([]);
+  const eg=cx.createRadialGradient(cx0-8,cy0-8,0,cx0,cy0,30);
+  eg.addColorStop(0,'#1A5C8A');eg.addColorStop(1,'#061826');
+  cx.fillStyle=eg;cx.beginPath();cx.arc(cx0,cy0,30,0,6.28);cx.fill();
+  cx.strokeStyle='rgba(31,168,217,.35)';cx.lineWidth=1.2;cx.beginPath();cx.arc(cx0,cy0,30,0,6.28);cx.stroke();
+  [[0.95,0.007,0,'#1FA8D9'],[0.75,0.011,2.1,'#4ADE80'],[0.55,0.015,1.2,'#F5BE18'],[0.85,-0.009,4.2,'#A78BFA']].forEach(([orb,spd,ph,col],i)=>{
+    const ang=ph+t*spd,r=R*orb;
+    const sx=cx0+Math.cos(ang)*r,sy=cy0+Math.sin(ang)*r;
+    const hex=col.replace('#','');
+    const sr=parseInt(hex.slice(0,2),16),sg=parseInt(hex.slice(2,4),16),sb=parseInt(hex.slice(4,6),16);
+    cx.strokeStyle='rgba('+sr+','+sg+','+sb+',.25)';cx.setLineDash([2,4]);cx.lineWidth=.8;
+    cx.beginPath();cx.moveTo(sx,sy);cx.lineTo(cx0+18,cy0+18);cx.stroke();cx.setLineDash([]);
+    cx.fillStyle=col;cx.shadowBlur=6;cx.shadowColor=col;
+    cx.beginPath();cx.arc(sx,sy,4,0,6.28);cx.fill();cx.shadowBlur=0;
+    cx.strokeStyle=col+'88';cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(sx-10,sy);cx.lineTo(sx-5,sy);cx.stroke();
+    cx.beginPath();cx.moveTo(sx+5,sy);cx.lineTo(sx+10,sy);cx.stroke();
+  });
+  cx.fillStyle='rgba(31,168,217,.65)';cx.font='7px monospace';
+  cx.fillText('GNSS | SATS: 4 | HDOP: 0.'+(Math.abs(Math.sin(t*.012))*100).toFixed(0)+'  ±8mm',8,H-7);
+});
+
+// SC5 — Level survey cross-section profile
+makeServiceCanvas('sc5',(cx,W,H,t)=>{
+  cx.fillStyle='#030D18';cx.fillRect(0,0,W,H);
+  cx.strokeStyle='rgba(31,168,217,.06)';cx.lineWidth=.5;
+  for(let x=0;x<W;x+=20){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke();}
+  for(let y=0;y<H;y+=20){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();}
+  // Datum line
+  const datum=H*0.6;
+  cx.strokeStyle='rgba(245,190,24,.5)';cx.lineWidth=1;cx.setLineDash([8,4]);
+  cx.beginPath();cx.moveTo(20,datum);cx.lineTo(W-20,datum);cx.stroke();
+  cx.setLineDash([]);
+  cx.fillStyle='rgba(245,190,24,.5)';cx.font='7px monospace';cx.fillText('DATUM RL=0.000m',24,datum-4);
+  // Ground profile drawing itself
+  const numPts=18;
+  const profPts=Array.from({length:numPts},(_,i)=>{
+    const x=20+(i/(numPts-1))*(W-40);
+    const y=datum-(20+Math.sin(i*0.8)*18+Math.cos(i*0.5)*12);
+    return [x,y];
+  });
+  const show=Math.min(numPts,Math.floor((t%360)/20)+1);
+  cx.strokeStyle='rgba(31,168,217,.8)';cx.lineWidth=1.8;cx.shadowBlur=5;cx.shadowColor='#1FA8D9';
+  cx.beginPath();cx.moveTo(...profPts[0]);
+  for(let i=1;i<show;i++) cx.lineTo(...profPts[i]);
+  cx.stroke();cx.shadowBlur=0;
+  // Level staff at each point
+  for(let i=0;i<show;i++){
+    const [x,y]=profPts[i];
+    cx.strokeStyle='rgba(245,190,24,.6)';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(x,datum);cx.lineTo(x,y);cx.stroke();
+    cx.fillStyle='rgba(245,190,24,.8)';cx.beginPath();cx.arc(x,y,2.5,0,6.28);cx.fill();
+    const rl=(datum-y)*0.02;
+    if(i%3===0){cx.fillStyle='rgba(208,232,245,.55)';cx.font='6.5px monospace';cx.fillText('+'+rl.toFixed(3),x+3,y-4);}
+  }
+  cx.fillStyle='rgba(31,168,217,.65)';cx.font='7px monospace';
+  cx.fillText('LEVEL PROFILE | RL READINGS: '+show+'/'+numPts,8,H-7);
+});
+
+// SC6 — Topographic contour map
+makeServiceCanvas('sc6',(cx,W,H,t)=>{
+  cx.fillStyle='#030E18';cx.fillRect(0,0,W,H);
+  // Contour lines
+  const numC=8;
+  for(let c=0;c<numC;c++){
+    const prog=Math.min(1,(t-c*25)/200);
+    if(prog<=0) continue;
+    const a=0.12+c*0.06;
+    cx.strokeStyle='rgba(31,168,217,'+a+')';cx.lineWidth=c===4?1.5:.8;
+    cx.beginPath();
+    for(let deg=0;deg<=360*prog;deg+=3){
+      const rad=deg*Math.PI/180;
+      const r=(W*0.12)+c*(W*0.055)+(Math.sin(rad*2.5)*W*0.04)+(Math.cos(rad*1.7)*W*0.03);
+      const x=W/2+Math.cos(rad)*r;
+      const y=H/2+Math.sin(rad)*r*0.7;
+      deg===0?cx.moveTo(x,y):cx.lineTo(x,y);
+    }
+    if(prog>=1) cx.closePath();
+    cx.stroke();
+    if(prog>=0.5&&c%2===0){
+      cx.fillStyle='rgba(31,168,217,'+(a+0.2)+')';cx.font='7px monospace';
+      cx.fillText((c*5)+'.00m',W/2+(W*0.12+c*(W*0.055)),H/2+5);
+    }
+  }
+  // Control points
+  [[0.3,0.3],[0.7,0.25],[0.65,0.7],[0.25,0.65],[0.5,0.5]].forEach(([px,py],i)=>{
+    if(t<i*40) return;
+    cx.fillStyle='rgba(245,190,24,.85)';cx.shadowBlur=5;cx.shadowColor='#F5BE18';
+    cx.beginPath();cx.arc(px*W,py*H,3.5,0,6.28);cx.fill();cx.shadowBlur=0;
+    cx.strokeStyle='rgba(245,190,24,.4)';cx.lineWidth=1;
+    cx.beginPath();cx.arc(px*W,py*H,8,0,6.28);cx.stroke();
+  });
+  cx.fillStyle='rgba(31,168,217,.65)';cx.font='7px monospace';
+  cx.fillText('TOPOGRAPHIC | CONTOUR INTERVAL: 5.000m',8,H-7);
+});
+
+/* ══════════════════════════════════════════
+   CANVAS 1 — Total Station Laser Scan (video section)
 ══════════════════════════════════════════ */
 (function(){
-  const cv = document.getElementById('cv2');
+  const cv=document.getElementById('cv1');
   if(!cv) return;
-  const cx = cv.getContext('2d');
-  const W = cv.width, H = cv.height;
-  let t = 0;
-  const revealed = []; // grid intersections revealed over time
-  const gridN = 8, gridM = 5;
-  const pad = 60;
-  const gw = (W-pad*2)/gridN, gh = (H-pad*2)/gridM;
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  let t=0;
+  const pts=[];
+  const ix=W*0.35,iy=H*0.72;
+  function loop(){
+    t++;
+    const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#020B14');g.addColorStop(1,'#0A1E2E');
+    cx.fillStyle=g;cx.fillRect(0,0,W,H);
+    cx.strokeStyle='rgba(31,168,217,.07)';cx.lineWidth=.7;
+    for(let i=0;i<16;i++){const x=(i/15)*W;cx.beginPath();cx.moveTo(x,H*0.58);cx.lineTo(ix,iy);cx.stroke();}
+    for(let j=1;j<8;j++){const y=H*0.58+(j/8)*(H-H*0.58);const f=(y-H*0.58)/(H*0.42);cx.beginPath();cx.moveTo(ix*(1-f),y);cx.lineTo(W-W*(1-f)*(1-ix/W),y);cx.stroke();}
+    cx.fillStyle='#0C1E2E';
+    [[0,.58,.06,.22],[.06,.58,.04,.16],[.10,.58,.07,.19],[.17,.58,.05,.28],[.22,.58,.08,.13],[.30,.58,.06,.24],[.56,.58,.06,.20],[.62,.58,.09,.15],[.71,.58,.05,.25],[.76,.58,.07,.18],[.83,.58,.06,.22],[.89,.58,.11,.12]].forEach(([x,y,w,h2])=>cx.fillRect(x*W,y*H-h2*H,w*W,h2*H));
+    if(!cv._st) cv._st=Array.from({length:60},()=>({x:Math.random()*W,y:Math.random()*H*0.55,r:Math.random()*1.2,o:Math.random()}));
+    cv._st.forEach(s=>{cx.fillStyle='rgba(180,220,255,'+(s.o*(0.4+0.3*Math.sin(t*0.04+s.x)))+')';cx.beginPath();cx.arc(s.x,s.y,s.r,0,6.28);cx.fill();});
+    // Instrument
+    cx.fillStyle='#1A2D3F';cx.strokeStyle='rgba(31,168,217,.4)';cx.lineWidth=1.5;
+    cx.beginPath();cx.ellipse(ix,iy+8,28,8,0,0,6.28);cx.fill();cx.stroke();
+    cx.strokeStyle='rgba(31,168,217,.35)';cx.lineWidth=2;
+    [[ix-22,iy+38],[ix+22,iy+38],[ix,iy+40]].forEach(([lx,ly])=>{cx.beginPath();cx.moveTo(ix,iy+8);cx.lineTo(lx,ly);cx.stroke();});
+    const bg2=cx.createLinearGradient(ix-16,iy-26,ix+16,iy+8);bg2.addColorStop(0,'#1E3A50');bg2.addColorStop(1,'#0E2030');
+    cx.fillStyle=bg2;cx.strokeStyle='rgba(31,168,217,.5)';cx.lineWidth=1.5;
+    cx.beginPath();cx.roundRect(ix-14,iy-26,28,34,5);cx.fill();cx.stroke();
+    const ang=-Math.PI/4+Math.sin(t*0.016)*Math.PI*0.55;
+    cx.fillStyle='rgba(31,168,217,.9)';cx.strokeStyle='#1FA8D9';cx.lineWidth=1;
+    cx.beginPath();cx.arc(ix,iy-10,5,0,6.28);cx.fill();cx.stroke();
+    const bl=320,bx=ix+Math.cos(ang)*bl,by=iy-10+Math.sin(ang)*bl;
+    const lg=cx.createLinearGradient(ix,iy-10,bx,by);
+    lg.addColorStop(0,'rgba(31,168,217,.9)');lg.addColorStop(0.4,'rgba(31,168,217,.35)');lg.addColorStop(1,'rgba(31,168,217,0)');
+    cx.strokeStyle=lg;cx.lineWidth=1.8;cx.shadowBlur=12;cx.shadowColor='#1FA8D9';
+    cx.beginPath();cx.moveTo(ix,iy-10);cx.lineTo(bx,by);cx.stroke();cx.shadowBlur=0;
+    if(by>H*0.56){pts.push({x:bx,y:by,age:0});if(pts.length>120)pts.shift();}
+    pts.forEach(p=>{p.age++;const a=Math.max(0,1-p.age/80);cx.fillStyle='rgba(31,168,217,'+a+')';cx.shadowBlur=6;cx.shadowColor='#1FA8D9';cx.beginPath();cx.arc(p.x,p.y,1.8,0,6.28);cx.fill();cx.shadowBlur=0;});
+    cx.fillStyle='rgba(3,13,24,.7)';cx.strokeStyle='rgba(31,168,217,.28)';cx.lineWidth=1;
+    cx.beginPath();cx.roundRect(12,12,210,88,8);cx.fill();cx.stroke();
+    cx.fillStyle='#1FA8D9';cx.font='bold 10px monospace';cx.fillText('● TOTAL STATION — LIVE SCAN',18,30);
+    cx.fillStyle='rgba(208,232,245,.75)';cx.font='10px monospace';
+    const deg=((-Math.PI/4+Math.sin(t*0.016)*Math.PI*0.55)*(180/Math.PI)+90+360)%360;
+    cx.fillText('HZ: '+deg.toFixed(4)+'°',18,48);
+    cx.fillText('V:  89.'+String(Math.floor((t*17)%10000)).padStart(4,'0')+'°',18,64);
+    cx.fillText('SD: '+(14.1+Math.sin(t*.01)*0.3).toFixed(3)+' m',18,80);
+    cx.fillText('POINTS SCANNED: '+pts.length,18,96);
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
 
+/* ══════════════════════════════════════════
+   CANVAS 2 — Setting Out Grid (video section)
+══════════════════════════════════════════ */
+(function(){
+  const cv=document.getElementById('cv2');
+  if(!cv) return;
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  let t=0;
+  const revealed=[];
+  const gridN=8,gridM=5,pad=60;
+  const gw=(W-pad*2)/gridN,gh=(H-pad*2)/gridM;
   function frame(){
     t++;
-    const g = cx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0,'#020B14'); g.addColorStop(1,'#060F1A');
-    cx.fillStyle=g; cx.fillRect(0,0,W,H);
-
-    // Reveal new grid points gradually
-    const maxPts = (gridN+1)*(gridM+1);
-    if(revealed.length < maxPts && t%4===0){
-      const idx = revealed.length;
-      revealed.push({r:Math.floor(idx/(gridN+1)), c:idx%(gridN+1), age:0});
-    }
-
-    // Draw grid lines (pulse animation)
-    const pulse = 0.4+0.2*Math.sin(t*0.04);
-    cx.strokeStyle=`rgba(31,168,217,${pulse*0.3})`; cx.lineWidth=0.7; cx.setLineDash([4,4]);
-    for(let c=0;c<=gridN;c++){const x=pad+c*gw;cx.beginPath();cx.moveTo(x,pad);cx.lineTo(x,H-pad);cx.stroke();}
-    for(let r=0;r<=gridM;r++){const y=pad+r*gh;cx.beginPath();cx.moveTo(pad,y);cx.lineTo(W-pad,y);cx.stroke();}
+    const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#020B14');g.addColorStop(1,'#060F1A');
+    cx.fillStyle=g;cx.fillRect(0,0,W,H);
+    const maxPts=(gridN+1)*(gridM+1);
+    if(revealed.length<maxPts&&t%4===0){const idx=revealed.length;revealed.push({r:Math.floor(idx/(gridN+1)),c:idx%(gridN+1),age:0});}
+    const pulse=0.4+0.2*Math.sin(t*0.04);
+    cx.strokeStyle='rgba(31,168,217,'+(pulse*0.3)+')';cx.lineWidth=0.7;cx.setLineDash([4,4]);
+    for(let c=0;c<=gridN;c++){cx.beginPath();cx.moveTo(pad+c*gw,pad);cx.lineTo(pad+c*gw,H-pad);cx.stroke();}
+    for(let r=0;r<=gridM;r++){cx.beginPath();cx.moveTo(pad,pad+r*gh);cx.lineTo(W-pad,pad+r*gh);cx.stroke();}
     cx.setLineDash([]);
-
-    // Intersection markers
     revealed.forEach(p=>{
-      p.age++;
-      const x=pad+p.c*gw, y=pad+p.r*gh;
-      const a=Math.min(1,p.age/20);
-      // crosshair
-      cx.strokeStyle=`rgba(31,168,217,${a*0.9})`; cx.lineWidth=1.5;
+      p.age++;const x=pad+p.c*gw,y=pad+p.r*gh;const a=Math.min(1,p.age/20);
+      cx.strokeStyle='rgba(31,168,217,'+(a*0.9)+')';cx.lineWidth=1.5;
       cx.beginPath();cx.moveTo(x-10,y);cx.lineTo(x+10,y);cx.stroke();
       cx.beginPath();cx.moveTo(x,y-10);cx.lineTo(x,y+10);cx.stroke();
-      // circle
-      cx.strokeStyle=`rgba(245,190,24,${a*0.7})`; cx.lineWidth=1;
+      cx.strokeStyle='rgba(245,190,24,'+(a*0.7)+')';cx.lineWidth=1;
       cx.beginPath();cx.arc(x,y,5,0,6.28);cx.stroke();
-      // coord label (some)
-      if((p.r+p.c)%3===0){
-        cx.fillStyle=`rgba(208,232,245,${a*0.6})`; cx.font='7px monospace';
-        cx.fillText(`N${p.r*10}.00 E${p.c*10}.00`,x+8,y-4);
-      }
+      if((p.r+p.c)%3===0){cx.fillStyle='rgba(208,232,245,'+(a*0.6)+')';cx.font='7px monospace';cx.fillText('N'+(p.r*10)+'.00 E'+(p.c*10)+'.00',x+8,y-4);}
     });
-
-    // Active point — scanning cursor
-    const scanI = Math.floor((t/3)%(gridN+1)), scanJ = Math.floor((t/3/(gridN+1))%(gridM+1));
-    const sx=pad+scanI*gw, sy=pad+scanJ*gh;
-    cx.strokeStyle='rgba(245,190,24,.9)'; cx.lineWidth=2;
-    cx.shadowBlur=10; cx.shadowColor='#F5BE18';
-    cx.beginPath();cx.arc(sx,sy,8,0,6.28);cx.stroke();
-    cx.shadowBlur=0;
-
-    // HUD
-    cx.fillStyle='rgba(3,13,24,.75)'; cx.strokeStyle='rgba(31,168,217,.25)'; cx.lineWidth=1;
+    const si=Math.floor((t/3)%(gridN+1)),sj=Math.floor((t/3/(gridN+1))%(gridM+1));
+    cx.strokeStyle='rgba(245,190,24,.9)';cx.lineWidth=2;cx.shadowBlur=10;cx.shadowColor='#F5BE18';
+    cx.beginPath();cx.arc(pad+si*gw,pad+sj*gh,8,0,6.28);cx.stroke();cx.shadowBlur=0;
+    cx.fillStyle='rgba(3,13,24,.75)';cx.strokeStyle='rgba(31,168,217,.25)';cx.lineWidth=1;
     cx.beginPath();cx.roundRect(10,10,175,70,7);cx.fill();cx.stroke();
-    cx.fillStyle='#1FA8D9'; cx.font='bold 9px monospace';
-    cx.fillText('● SETTING OUT — GRID LAYOUT',16,26);
-    cx.fillStyle='rgba(208,232,245,.7)'; cx.font='9px monospace';
-    cx.fillText(`GRID: ${gridN}×${gridM} | TOLERANCE: ±3mm`,16,42);
-    cx.fillText(`POINTS SET: ${revealed.length}/${maxPts}`,16,57);
-    cx.fillText(`STATUS: ${revealed.length<maxPts?'SCANNING...':'COMPLETE ✓'}`,16,72);
-
+    cx.fillStyle='#1FA8D9';cx.font='bold 9px monospace';cx.fillText('● SETTING OUT — GRID LAYOUT',16,26);
+    cx.fillStyle='rgba(208,232,245,.7)';cx.font='9px monospace';
+    cx.fillText('GRID: '+gridN+'x'+gridM+' | TOL: ±3mm',16,42);
+    cx.fillText('POINTS SET: '+revealed.length+'/'+maxPts,16,57);
+    cx.fillText('STATUS: '+(revealed.length<maxPts?'SCANNING...':'COMPLETE ✓'),16,72);
     requestAnimationFrame(frame);
   }
   frame();
 })();
 
 /* ══════════════════════════════════════════
-   CANVAS 3 — GNSS Satellite Tracking
+   CANVAS 3 — GNSS Satellite Tracking (video section)
 ══════════════════════════════════════════ */
 (function(){
-  const cv = document.getElementById('cv3');
+  const cv=document.getElementById('cv3');
   if(!cv) return;
-  const cx = cv.getContext('2d');
-  const W = cv.width, H = cv.height;
-  let t = 0;
-  const cx0=W/2, cy0=H/2;
-  const sats = [
-    {orbit:0.95,speed:0.007,phase:0,color:'#1FA8D9'},
-    {orbit:0.70,speed:0.011,phase:1.2,color:'#4ADE80'},
-    {orbit:0.75,speed:-0.009,phase:2.4,color:'#F5BE18'},
-    {orbit:0.55,speed:0.015,phase:0.6,color:'#1FA8D9'},
-    {orbit:0.80,speed:-0.006,phase:3.8,color:'#A78BFA'},
-    {orbit:0.60,speed:0.013,phase:5.1,color:'#F5BE18'},
-  ];
-
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  let t=0;
+  const cx0=W/2,cy0=H/2,R=Math.min(W,H)*0.38;
+  const sats=[{orbit:.95,speed:.007,phase:0,color:'#1FA8D9'},{orbit:.70,speed:.011,phase:1.2,color:'#4ADE80'},{orbit:.75,speed:-.009,phase:2.4,color:'#F5BE18'},{orbit:.55,speed:.015,phase:0.6,color:'#1FA8D9'},{orbit:.80,speed:-.006,phase:3.8,color:'#A78BFA'},{orbit:.60,speed:.013,phase:5.1,color:'#F5BE18'}];
   function frame(){
     t++;
-    const g=cx.createRadialGradient(cx0,cy0,0,cx0,cy0,Math.max(W,H)*0.6);
-    g.addColorStop(0,'#061826'); g.addColorStop(1,'#020B12');
-    cx.fillStyle=g; cx.fillRect(0,0,W,H);
-
-    // Stars bg
+    const g=cx.createRadialGradient(cx0,cy0,0,cx0,cy0,Math.max(W,H)*.6);
+    g.addColorStop(0,'#061826');g.addColorStop(1,'#020B12');
+    cx.fillStyle=g;cx.fillRect(0,0,W,H);
     if(!cv._s) cv._s=Array.from({length:80},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()+.3,o:Math.random()}));
-    cv._s.forEach(s=>{cx.fillStyle=`rgba(200,230,255,${s.o*.5})`;cx.beginPath();cx.arc(s.x,s.y,s.r,0,6.28);cx.fill()});
-
-    const R = Math.min(W,H)*0.38;
-
-    // Orbit rings
-    cx.strokeStyle='rgba(31,168,217,.08)'; cx.lineWidth=1; cx.setLineDash([3,6]);
-    [0.55,0.70,0.80,0.95].forEach(f=>{cx.beginPath();cx.arc(cx0,cy0,R*f,0,6.28);cx.stroke()});
+    cv._s.forEach(s=>{cx.fillStyle='rgba(200,230,255,'+(s.o*.5)+')';cx.beginPath();cx.arc(s.x,s.y,s.r,0,6.28);cx.fill();});
+    cx.strokeStyle='rgba(31,168,217,.08)';cx.lineWidth=1;cx.setLineDash([3,6]);
+    [0.55,.70,.80,.95].forEach(f=>{cx.beginPath();cx.arc(cx0,cy0,R*f,0,6.28);cx.stroke();});
     cx.setLineDash([]);
-
-    // Earth
     const eg=cx.createRadialGradient(cx0-15,cy0-12,0,cx0,cy0,42);
-    eg.addColorStop(0,'#1A5C8A'); eg.addColorStop(0.6,'#0D3D5E'); eg.addColorStop(1,'#061826');
-    cx.fillStyle=eg; cx.beginPath(); cx.arc(cx0,cy0,42,0,6.28); cx.fill();
-    cx.strokeStyle='rgba(31,168,217,.3)'; cx.lineWidth=1.5;
-    cx.beginPath(); cx.arc(cx0,cy0,42,0,6.28); cx.stroke();
-    // Earth glow
-    cx.strokeStyle='rgba(31,168,217,.1)'; cx.lineWidth=8;
-    cx.beginPath(); cx.arc(cx0,cy0,44,0,6.28); cx.stroke();
-
-    // Receiver on earth
-    cx.fillStyle='#F5BE18'; cx.strokeStyle='rgba(245,190,24,.5)'; cx.lineWidth=1.5;
-    cx.beginPath(); cx.arc(cx0+28,cy0+28,5,0,6.28); cx.fill(); cx.stroke();
-
-    // Satellites + signal lines
+    eg.addColorStop(0,'#1A5C8A');eg.addColorStop(.6,'#0D3D5E');eg.addColorStop(1,'#061826');
+    cx.fillStyle=eg;cx.beginPath();cx.arc(cx0,cy0,42,0,6.28);cx.fill();
+    cx.strokeStyle='rgba(31,168,217,.3)';cx.lineWidth=1.5;cx.beginPath();cx.arc(cx0,cy0,42,0,6.28);cx.stroke();
+    cx.strokeStyle='rgba(31,168,217,.1)';cx.lineWidth=8;cx.beginPath();cx.arc(cx0,cy0,44,0,6.28);cx.stroke();
+    cx.fillStyle='#F5BE18';cx.beginPath();cx.arc(cx0+28,cy0+28,5,0,6.28);cx.fill();
     sats.forEach((s,i)=>{
-      const ang = s.phase + t*s.speed;
-      const r = R*s.orbit;
-      const sx2=cx0+Math.cos(ang)*r, sy2=cy0+Math.sin(ang)*r;
-      // Signal line to receiver
-      const dist=Math.sqrt((sx2-cx0-28)**2+(sy2-cy0-28)**2);
-      const sig = 0.4+0.2*Math.sin(t*0.05+i);
-      const hex = s.color.replace('#','');
-      const sr=parseInt(hex.slice(0,2),16), sg=parseInt(hex.slice(2,4),16), sb=parseInt(hex.slice(4,6),16);
-      cx.strokeStyle='rgba('+sr+','+sg+','+sb+','+(sig*0.4)+')';
-      cx.setLineDash([3,5]); cx.lineWidth=.8;
-      cx.beginPath(); cx.moveTo(sx2,sy2); cx.lineTo(cx0+28,cy0+28); cx.stroke();
-      cx.setLineDash([]);
-      // Satellite body
-      cx.fillStyle=s.color; cx.shadowBlur=8; cx.shadowColor=s.color;
-      cx.beginPath(); cx.arc(sx2,sy2,5,0,6.28); cx.fill();
-      cx.shadowBlur=0;
-      // Solar panels
-      cx.strokeStyle=s.color+'aa'; cx.lineWidth=2;
+      const ang=s.phase+t*s.speed,r=R*s.orbit;
+      const sx2=cx0+Math.cos(ang)*r,sy2=cy0+Math.sin(ang)*r;
+      const hex=s.color.replace('#','');
+      const sr=parseInt(hex.slice(0,2),16),sg2=parseInt(hex.slice(2,4),16),sb=parseInt(hex.slice(4,6),16);
+      const sig=0.4+0.2*Math.sin(t*0.05+i);
+      cx.strokeStyle='rgba('+sr+','+sg2+','+sb+','+(sig*0.4)+')';cx.setLineDash([3,5]);cx.lineWidth=.8;
+      cx.beginPath();cx.moveTo(sx2,sy2);cx.lineTo(cx0+28,cy0+28);cx.stroke();cx.setLineDash([]);
+      cx.fillStyle=s.color;cx.shadowBlur=8;cx.shadowColor=s.color;
+      cx.beginPath();cx.arc(sx2,sy2,5,0,6.28);cx.fill();cx.shadowBlur=0;
+      cx.strokeStyle=s.color+'aa';cx.lineWidth=2;
       cx.beginPath();cx.moveTo(sx2-12,sy2);cx.lineTo(sx2-6,sy2);cx.stroke();
       cx.beginPath();cx.moveTo(sx2+6,sy2);cx.lineTo(sx2+12,sy2);cx.stroke();
-      // PRN label
-      cx.fillStyle='rgba(208,232,245,.55)'; cx.font='7px monospace';
-      cx.fillText(`PRN${i+1}`,sx2+7,sy2-5);
+      cx.fillStyle='rgba(208,232,245,.55)';cx.font='7px monospace';cx.fillText('PRN'+(i+1),sx2+7,sy2-5);
     });
-
-    // HUD
-    cx.fillStyle='rgba(3,13,24,.78)'; cx.strokeStyle='rgba(31,168,217,.25)'; cx.lineWidth=1;
+    cx.fillStyle='rgba(3,13,24,.78)';cx.strokeStyle='rgba(31,168,217,.25)';cx.lineWidth=1;
     cx.beginPath();cx.roundRect(10,10,180,72,7);cx.fill();cx.stroke();
-    cx.fillStyle='#1FA8D9'; cx.font='bold 9px monospace';
-    cx.fillText('● GNSS RTK — SATELLITE LOCK',16,26);
-    cx.fillStyle='rgba(208,232,245,.7)'; cx.font='9px monospace';
-    cx.fillText(`SATS TRACKED: ${sats.length}/6`,16,42);
-    cx.fillText(`HDOP: 0.${Math.abs(Math.sin(t*.01)*100).toFixed(0).padStart(3,'0')}`,16,57);
-    cx.fillText(`ACCURACY: ±${(8+Math.sin(t*.02)*3).toFixed(0)}mm`,16,72);
-
+    cx.fillStyle='#1FA8D9';cx.font='bold 9px monospace';cx.fillText('● GNSS RTK — SATELLITE LOCK',16,26);
+    cx.fillStyle='rgba(208,232,245,.7)';cx.font='9px monospace';
+    cx.fillText('SATS TRACKED: '+sats.length+'/6',16,42);
+    cx.fillText('HDOP: 0.'+Math.abs(Math.sin(t*.01)*100).toFixed(0).padStart(3,'0'),16,57);
+    cx.fillText('ACCURACY: ±'+(8+Math.sin(t*.02)*3).toFixed(0)+'mm',16,72);
     requestAnimationFrame(frame);
   }
   frame();
 })();
 
 /* ══════════════════════════════════════════
-   CANVAS 4 — CAD Drawing Animation
+   CANVAS 4 — CAD Drawing (video section)
 ══════════════════════════════════════════ */
 (function(){
-  const cv = document.getElementById('cv4');
+  const cv=document.getElementById('cv4');
   if(!cv) return;
-  const cx = cv.getContext('2d');
-  const W = cv.width, H = cv.height;
-  let t = 0;
-
-  // Building floor plan lines to draw
-  const lines = [
-    // Outer walls
-    [60,60,560,60],[560,60,560,290],[560,290,60,290],[60,290,60,60],
-    // Inner rooms
-    [200,60,200,180],[60,180,200,180],[200,180,350,180],[350,60,350,180],
-    [350,180,350,290],[200,180,200,290],
-    // Door openings
-    [60,120,80,120],[200,100,200,120],[330,180,350,180],
-    // Windows
-    [240,60,290,60],[420,60,470,60],[100,290,160,290],[400,290,480,290],
-    // Dimensions
-    [60,310,560,310],[40,60,40,290],
-  ];
-  const totalLen = lines.reduce((s,[x1,y1,x2,y2])=>s+Math.sqrt((x2-x1)**2+(y2-y1)**2),0);
-  let drawn = 0;
-
-  // Coordinate labels to pop in
-  const labels = [
-    {x:60,y:60,txt:'A(0.000,0.000)',age:0,show:false},
-    {x:560,y:60,txt:'B(20.000,0.000)',age:0,show:false},
-    {x:560,y:290,txt:'C(20.000,10.000)',age:0,show:false},
-    {x:60,y:290,txt:'D(0.000,10.000)',age:0,show:false},
-    {x:200,y:60,txt:'E(5.830,0.000)',age:0,show:false},
-    {x:350,y:60,txt:'F(11.670,0.000)',age:0,show:false},
-  ];
-
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  let t=0,drawn=0;
+  const lines=[[60,60,560,60],[560,60,560,290],[560,290,60,290],[60,290,60,60],[200,60,200,180],[60,180,200,180],[200,180,350,180],[350,60,350,180],[350,180,350,290],[200,180,200,290],[60,120,80,120],[200,100,200,120],[330,180,350,180],[240,60,290,60],[420,60,470,60],[100,290,160,290],[400,290,480,290],[60,310,560,310],[40,60,40,290]];
+  const totalLen=lines.reduce((s,[x1,y1,x2,y2])=>s+Math.sqrt((x2-x1)**2+(y2-y1)**2),0);
+  const labels=[{x:60,y:60,txt:'A(0.000,0.000)',age:0,show:false},{x:560,y:60,txt:'B(20.000,0.000)',age:0,show:false},{x:560,y:290,txt:'C(20.000,10.000)',age:0,show:false},{x:60,y:290,txt:'D(0.000,10.000)',age:0,show:false},{x:200,y:60,txt:'E(5.830,0.000)',age:0,show:false},{x:350,y:60,txt:'F(11.670,0.000)',age:0,show:false}];
   function frame(){
     t++;
-    const g=cx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0,'#020C16'); g.addColorStop(1,'#04111C');
-    cx.fillStyle=g; cx.fillRect(0,0,W,H);
-
-    // Blueprint grid
-    cx.strokeStyle='rgba(31,168,217,.06)'; cx.lineWidth=.5;
+    const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#020C16');g.addColorStop(1,'#04111C');
+    cx.fillStyle=g;cx.fillRect(0,0,W,H);
+    cx.strokeStyle='rgba(31,168,217,.06)';cx.lineWidth=.5;
     for(let x=0;x<W;x+=20){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke();}
     for(let y=0;y<H;y+=20){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();}
-
-    // Animate drawing lines progressively
-    drawn = Math.min(totalLen, drawn + 4);
-    let rem = drawn;
+    drawn=Math.min(totalLen,drawn+4);
+    let rem=drawn;
     lines.forEach(([x1,y1,x2,y2],i)=>{
-      const len = Math.sqrt((x2-x1)**2+(y2-y1)**2);
-      if(rem<=0) return;
-      const frac = Math.min(1,rem/len);
-      const ex=x1+(x2-x1)*frac, ey=y1+(y2-y1)*frac;
-      cx.strokeStyle = i<4 ? 'rgba(31,168,217,.9)' : i<12 ? 'rgba(31,168,217,.55)' : 'rgba(245,190,24,.4)';
-      cx.lineWidth = i<4 ? 2 : 1;
-      cx.shadowBlur = i<4?4:0; cx.shadowColor='#1FA8D9';
-      cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(ex,ey);cx.stroke();
-      cx.shadowBlur=0;
-      rem -= len;
+      const len=Math.sqrt((x2-x1)**2+(y2-y1)**2);
+      if(rem<=0)return;
+      const frac=Math.min(1,rem/len);
+      cx.strokeStyle=i<4?'rgba(31,168,217,.9)':i<12?'rgba(31,168,217,.55)':'rgba(245,190,24,.4)';
+      cx.lineWidth=i<4?2:1;cx.shadowBlur=i<4?4:0;cx.shadowColor='#1FA8D9';
+      cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x1+(x2-x1)*frac,y1+(y2-y1)*frac);cx.stroke();cx.shadowBlur=0;rem-=len;
     });
-
-    // Show labels as drawing progresses
     labels.forEach((lb,i)=>{
-      if(drawn > i*(totalLen/labels.length)) lb.show=true;
-      if(lb.show){ lb.age++;
-        const a=Math.min(1,lb.age/20);
-        cx.fillStyle=`rgba(245,190,24,${a})`;
-        cx.strokeStyle=`rgba(245,190,24,${a*.5})`;
-        cx.lineWidth=1;
+      if(drawn>i*(totalLen/labels.length))lb.show=true;
+      if(lb.show){lb.age++;const a=Math.min(1,lb.age/20);
+        cx.fillStyle='rgba(245,190,24,'+a+')';cx.strokeStyle='rgba(245,190,24,'+(a*.5)+')';cx.lineWidth=1;
         cx.beginPath();cx.arc(lb.x,lb.y,4,0,6.28);cx.fill();cx.stroke();
-        cx.fillStyle=`rgba(208,232,245,${a*.7})`; cx.font='7.5px monospace';
-        cx.fillText(lb.txt,lb.x+7,lb.y-4);
+        cx.fillStyle='rgba(208,232,245,'+(a*.7)+')';cx.font='7.5px monospace';cx.fillText(lb.txt,lb.x+7,lb.y-4);
       }
     });
-
-    // Cursor at draw head
-    if(drawn < totalLen){
-      let rem2=drawn;
-      let cx2=lines[0][0],cy2=lines[0][1];
-      for(const [x1,y1,x2,y2] of lines){
-        const len=Math.sqrt((x2-x1)**2+(y2-y1)**2);
-        if(rem2<=len){const f=rem2/len;cx2=x1+(x2-x1)*f;cy2=y1+(y2-y1)*f;break;}
-        rem2-=len;
-      }
-      cx.fillStyle='rgba(245,190,24,.9)'; cx.shadowBlur=8; cx.shadowColor='#F5BE18';
+    if(drawn<totalLen){
+      let rem2=drawn,cx2=lines[0][0],cy2=lines[0][1];
+      for(const [x1,y1,x2,y2] of lines){const len=Math.sqrt((x2-x1)**2+(y2-y1)**2);if(rem2<=len){const f=rem2/len;cx2=x1+(x2-x1)*f;cy2=y1+(y2-y1)*f;break;}rem2-=len;}
+      cx.fillStyle='rgba(245,190,24,.9)';cx.shadowBlur=8;cx.shadowColor='#F5BE18';
       cx.beginPath();cx.arc(cx2,cy2,5,0,6.28);cx.fill();cx.shadowBlur=0;
     } else {
-      // Loop reset after pause
-      if(t%240===0){drawn=0;labels.forEach(l=>{l.show=false;l.age=0});}
+      if(t%240===0){drawn=0;labels.forEach(l=>{l.show=false;l.age=0;});}
     }
-
-    // HUD
     const pct=Math.round((drawn/totalLen)*100);
-    cx.fillStyle='rgba(3,13,24,.78)'; cx.strokeStyle='rgba(31,168,217,.25)'; cx.lineWidth=1;
+    cx.fillStyle='rgba(3,13,24,.78)';cx.strokeStyle='rgba(31,168,217,.25)';cx.lineWidth=1;
     cx.beginPath();cx.roundRect(10,10,195,72,7);cx.fill();cx.stroke();
-    cx.fillStyle='#1FA8D9'; cx.font='bold 9px monospace';
-    cx.fillText('● AS-BUILT CAD — DRAWING...',16,26);
-    cx.fillStyle='rgba(208,232,245,.7)'; cx.font='9px monospace';
-    cx.fillText(`LAYER: FLOOR PLAN | DWG`,16,42);
-    cx.fillText(`ENTITIES: ${lines.length} | SCALE 1:100`,16,57);
-    cx.fillText(`PROGRESS: ${pct}% COMPLETE`,16,72);
-
+    cx.fillStyle='#1FA8D9';cx.font='bold 9px monospace';cx.fillText('● AS-BUILT CAD — DRAWING...',16,26);
+    cx.fillStyle='rgba(208,232,245,.7)';cx.font='9px monospace';
+    cx.fillText('LAYER: FLOOR PLAN | DWG',16,42);
+    cx.fillText('ENTITIES: '+lines.length+' | SCALE 1:100',16,57);
+    cx.fillText('PROGRESS: '+pct+'% COMPLETE',16,72);
     requestAnimationFrame(frame);
   }
   frame();
 })();
 
 /* ── Scroll fade-in ── */
-const obs = new IntersectionObserver(
-  entries => entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('in') }),
-  { threshold: .07, rootMargin: '0px 0px -24px 0px' }
+const obs=new IntersectionObserver(
+  entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in')}),
+  {threshold:.07,rootMargin:'0px 0px -24px 0px'}
 );
-document.querySelectorAll('.fi').forEach(el => obs.observe(el));
+document.querySelectorAll('.fi').forEach(el=>obs.observe(el));
 
 /* ── Counter animation ── */
-const ctEls = [...document.querySelectorAll('.cn[data-to]')];
-let cAnimated = false;
-const ctObs = new IntersectionObserver(([e]) => {
-  if(!e.isIntersecting || cAnimated) return;
-  cAnimated = true;
-  ctEls.forEach(el => {
-    const target = +el.dataset.to;
-    const suf = el.querySelector('.csuf')?.outerHTML || '';
-    let n = 0;
-    const step = target / 54;
-    const timer = setInterval(() => {
-      n = Math.min(n + step, target);
-      el.innerHTML = Math.floor(n) + suf;
-      if(n >= target) clearInterval(timer);
-    }, 22);
+const ctEls=[...document.querySelectorAll('.cn[data-to]')];
+let cAnimated=false;
+const ctObs=new IntersectionObserver(([e])=>{
+  if(!e.isIntersecting||cAnimated)return;
+  cAnimated=true;
+  ctEls.forEach(el=>{
+    const target=+el.dataset.to;
+    const suf=el.querySelector('.csuf')?.outerHTML||'';
+    let n=0;const step=target/54;
+    const timer=setInterval(()=>{n=Math.min(n+step,target);el.innerHTML=Math.floor(n)+suf;if(n>=target)clearInterval(timer);},22);
   });
   ctObs.disconnect();
-}, { threshold: .35 });
-const ctRow = document.querySelector('.ctr');
-if(ctRow) ctObs.observe(ctRow);
+},{threshold:.35});
+const ctRow=document.querySelector('.ctr');
+if(ctRow)ctObs.observe(ctRow);
 </script>
 </body>
 </html>
