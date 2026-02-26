@@ -107,11 +107,10 @@ img{display:block;max-width:100%;height:auto}
 .badge{display:inline-flex;align-items:center;gap:9px;background:rgba(31,168,217,.12);border:1px solid rgba(31,168,217,.3);color:var(--B);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:7px 16px;border-radius:999px;margin-bottom:24px}
 .bdot{width:7px;height:7px;border-radius:50%;background:var(--B);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.55)}}
-h1{font-family:'Syne',sans-serif;font-size:clamp(38px,5vw,68px);font-weight:800;line-height:1.06;letter-spacing:-1.5px;color:var(--W);margin-bottom:20px}
+h1{font-family:'Syne',sans-serif;font-size:clamp(26px,3.2vw,44px);font-weight:800;line-height:1.1;letter-spacing:-.8px;color:var(--W);margin-bottom:18px}
 h1 .c1{color:var(--B)}
 h1 .c2{color:var(--G)}
-.hpar{font-size:17px;line-height:1.8;color:rgba(208,232,245,.7);max-width:52ch;margin-bottom:36px}
-.hbtns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:38px}
+.hbtns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px}
 .bp{background:var(--B);color:#fff;font-weight:700;font-size:15px;padding:14px 30px;border-radius:var(--r);display:inline-flex;align-items:center;gap:8px;transition:var(--e);font-family:'Plus Jakarta Sans',sans-serif}
 .bp:hover{background:var(--B2);transform:translateY(-2px);box-shadow:0 10px 28px rgba(31,168,217,.44)}
 .bo{border:2px solid rgba(255,255,255,.2);color:var(--W);font-weight:600;font-size:15px;padding:13px 26px;border-radius:var(--r);display:inline-flex;align-items:center;gap:8px;transition:var(--e)}
@@ -160,10 +159,11 @@ h1 .c2{color:var(--G)}
 .lbl{font-size:10.5px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--B);margin-bottom:14px;display:flex;align-items:center;gap:10px}
 .lbl::before{content:'';width:20px;height:2.5px;background:var(--B);border-radius:2px;flex-shrink:0}
 .lbk{color:var(--B3)}.lbk::before{background:var(--B3)}
-h2{font-family:'Syne',sans-serif;font-size:clamp(28px,3.4vw,46px);font-weight:800;line-height:1.1;letter-spacing:-.5px;color:var(--W);margin-bottom:14px}
+h2{font-family:'Syne',sans-serif;font-size:clamp(22px,2.4vw,34px);font-weight:800;line-height:1.18;letter-spacing:-.4px;color:var(--W);margin-bottom:14px}
 h2.dk{color:#0A1929}
-.sub{font-size:17px;color:var(--M);max-width:62ch;line-height:1.72}
+.sub{font-size:15px;color:var(--M);max-width:62ch;line-height:1.72}
 .sub.dk{color:#3A5A78}
+.hpar{font-size:15px;line-height:1.78;color:rgba(208,232,245,.7);max-width:52ch;margin-bottom:32px}
 .tc{text-align:center}
 .mx{margin-left:auto;margin-right:auto;display:block}
 
@@ -203,8 +203,18 @@ h2.dk{color:#0A1929}
 .slink:hover{gap:12px}
 
 /* ═══════════════════════════════════════
-   VIDEO SECTION — Click-to-play (never breaks!)
+   CANVAS ANIMATIONS (AI Videos)
 ═══════════════════════════════════════ */
+.canv-wrap{border-radius:var(--r2);overflow:hidden;aspect-ratio:16/9;position:relative;box-shadow:var(--s);border:1px solid rgba(31,168,217,.18);background:#030D18}
+.canv-wrap canvas{width:100%;height:100%;display:block}
+.canv-lbl{position:absolute;bottom:14px;left:14px;background:rgba(3,13,24,.88);backdrop-filter:blur(10px);border:1px solid rgba(31,168,217,.22);color:var(--W);font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:9px;display:flex;align-items:center;gap:7px}
+.canv-lbl::before{content:'';width:6px;height:6px;border-radius:50%;background:#1FA8D9;animation:pulse 1.8s infinite;flex-shrink:0}
+.canv-wrap3{border-radius:var(--r) var(--r) 0 0;overflow:hidden;aspect-ratio:16/9;position:relative;background:#030D18}
+.canv-wrap3 canvas{width:100%;height:100%;display:block}
+.canv-lbl3{position:absolute;bottom:10px;left:10px;background:rgba(3,13,24,.85);border:1px solid rgba(31,168,217,.2);color:var(--W);font-size:11px;font-weight:700;padding:5px 10px;border-radius:7px;display:flex;align-items:center;gap:6px}
+.canv-lbl3::before{content:'';width:5px;height:5px;border-radius:50%;background:#1FA8D9;animation:pulse 1.8s infinite;flex-shrink:0}
+
+
 .vsec{position:relative;padding:96px 0}
 .vbg{position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=1600&q=50') center/cover no-repeat;filter:brightness(.12) saturate(.3)}
 .vov{position:absolute;inset:0;background:linear-gradient(140deg,rgba(4,13,22,.98) 0%,rgba(4,13,22,.9) 100%)}
@@ -218,7 +228,7 @@ h2.dk{color:#0A1929}
 .vbtns{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
 
 /* ── Video Player Card (click-to-play) ── */
-.vpc{border-radius:var(--r2);overflow:hidden;aspect-ratio:16/9;position:relative;cursor:pointer;box-shadow:var(--s);border:1px solid rgba(31,168,217,.18)}
+.vpc{display:block;border-radius:var(--r2);overflow:hidden;aspect-ratio:16/9;position:relative;cursor:pointer;box-shadow:var(--s);border:1px solid rgba(31,168,217,.18)}
 .vpc-thumb{width:100%;height:100%;object-fit:cover;transition:transform .45s ease}
 .vpc:hover .vpc-thumb{transform:scale(1.04)}
 .vpc-ov{position:absolute;inset:0;background:rgba(4,13,22,.45);display:flex;align-items:center;justify-content:center;transition:background .3s}
@@ -226,14 +236,13 @@ h2.dk{color:#0A1929}
 .vpc-play{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;transition:transform .25s,box-shadow .25s;box-shadow:0 6px 28px rgba(0,0,0,.5)}
 .vpc:hover .vpc-play{transform:scale(1.1);box-shadow:0 10px 40px rgba(0,0,0,.6)}
 .vpc-play svg{width:28px;height:28px;color:var(--B);margin-left:4px}
-.vpc iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .vpc-label{position:absolute;bottom:16px;left:16px;background:rgba(4,13,22,.85);backdrop-filter:blur(10px);border:1px solid rgba(31,168,217,.2);color:var(--W);font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px}
 
 /* 3-video grid */
 .v3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .vc3{background:rgba(10,25,41,.6);border:1px solid rgba(31,168,217,.1);border-radius:var(--r2);overflow:hidden;transition:var(--e)}
 .vc3:hover{border-color:var(--Bl);transform:translateY(-4px);box-shadow:0 12px 36px rgba(0,0,0,.5)}
-.vc3-thumb{aspect-ratio:16/9;position:relative;overflow:hidden;cursor:pointer}
+.vc3-thumb{display:block;aspect-ratio:16/9;position:relative;overflow:hidden;cursor:pointer}
 .vc3-thumb img{width:100%;height:100%;object-fit:cover;transition:transform .4s ease}
 .vc3:hover .vc3-thumb img{transform:scale(1.05)}
 .vc3-ov{position:absolute;inset:0;background:rgba(4,13,22,.5);display:flex;align-items:center;justify-content:center;transition:background .3s}
@@ -241,7 +250,6 @@ h2.dk{color:#0A1929}
 .vc3-play{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;transition:transform .2s}
 .vc3:hover .vc3-play{transform:scale(1.12)}
 .vc3-play svg{width:20px;height:20px;color:var(--B);margin-left:3px}
-.vc3-thumb iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .vc3-body{padding:18px}
 .vc3-cat{font-size:10.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--B);margin-bottom:6px}
 .vc3-title{font-family:'Syne',sans-serif;font-size:14.5px;font-weight:700;color:var(--W);line-height:1.35}
@@ -529,50 +537,50 @@ h2.dk{color:#0A1929}
   <div class="wrap">
     <div class="fi"><div class="lbl">What We Do</div><h2>Core surveying services in Dubai</h2><p class="sub">Professional fieldwork, calibrated instruments, and submission-ready CAD documentation — every time.</p></div>
     <div class="sg">
-      <!-- Total Station — surveying instrument on site -->
+      <!-- Total Station — engineer with theodolite -->
       <a class="scard fi" href="total-station-survey-dubai.html" style="transition-delay:.05s">
         <div class="simg">
-          <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=700&q=80" alt="Construction site total station surveying" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=700&q=80" alt="Surveyor with total station on construction site" loading="lazy">
           <div class="simgov"></div>
         </div>
         <div class="sbody"><div class="stag">Most Requested</div><h3>Total Station Surveying</h3><ul class="sl2"><li>Site control, traverse & coordinate transfer</li><li>Construction layout / setting-out</li><li>Verification & as-built measurements</li></ul><span class="slink">Learn more →</span></div>
       </a>
-      <!-- Setting Out — construction ground work -->
+      <!-- Setting Out — construction concrete pouring/markings -->
       <a class="scard fi" href="setting-out-dubai.html" style="transition-delay:.1s">
         <div class="simg">
-          <img src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=700&q=80" alt="Setting out construction layout Dubai" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=700&q=80" alt="Construction setting out layout site work" loading="lazy">
           <div class="simgov"></div>
         </div>
         <div class="sbody"><div class="stag">Construction</div><h3>Setting Out / Layout</h3><ul class="sl2"><li>Grids, columns, foundations, road alignments</li><li>Offsets, benchmarks, re-checks</li><li>Daily & weekly progress support</li></ul><span class="slink">Learn more →</span></div>
       </a>
-      <!-- As-Built — engineering drawings / blueprints -->
+      <!-- As-Built — technical blueprint drawing table -->
       <a class="scard fi" href="as-built-survey-dubai.html" style="transition-delay:.15s">
         <div class="simg">
-          <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=700&q=80" alt="As-built survey CAD engineering drawings" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=700&q=80" alt="As-built survey CAD engineering blueprints" loading="lazy">
           <div class="simgov"></div>
         </div>
         <div class="sbody"><div class="stag">Reports</div><h3>As-Built Survey & CAD</h3><ul class="sl2"><li>As-built drawings (DWG / PDF)</li><li>Coordinate tables & deviations</li><li>Submission-ready documentation</li></ul><span class="slink">Learn more →</span></div>
       </a>
-      <!-- GNSS — technology / field work -->
+      <!-- GNSS — satellite / tech data -->
       <a class="scard fi" href="gnss-gps-survey-dubai.html" style="transition-delay:.2s">
         <div class="simg">
-          <img src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=700&q=80" alt="GNSS GPS RTK surveying field work" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=700&q=80" alt="GNSS GPS satellite network surveying" loading="lazy">
           <div class="simgov"></div>
         </div>
         <div class="sbody"><div class="stag">Control</div><h3>GNSS / GPS Surveying (RTK)</h3><ul class="sl2"><li>Control point establishment</li><li>RTK checks & coordinate validation</li><li>Coordinate transformation support</li></ul><span class="slink">Learn more →</span></div>
       </a>
-      <!-- Level Survey — construction floor / concrete slab -->
+      <!-- Level Survey — construction concrete slab floor check -->
       <a class="scard fi" href="level-survey-dubai.html" style="transition-delay:.25s">
         <div class="simg">
-          <img src="https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=700&q=80" alt="Level survey construction building Dubai" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=700&q=80" alt="Level survey construction floor slab Dubai" loading="lazy">
           <div class="simgov"></div>
         </div>
         <div class="sbody"><div class="stag">Levels</div><h3>Level Surveying</h3><ul class="sl2"><li>Benchmarks, profiles & cross-sections</li><li>Cut / fill verification</li><li>Floor level & slab checks</li></ul><span class="slink">Learn more →</span></div>
       </a>
-      <!-- Land / Topo — Dubai aerial construction -->
+      <!-- Land / Topo — aerial Dubai construction site -->
       <a class="scard fi" href="land-surveying-dubai.html" style="transition-delay:.3s">
         <div class="simg">
-          <img src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=700&q=80" alt="Topographic land survey Dubai boundary" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=700&q=80" alt="Topographic land survey Dubai aerial view" loading="lazy">
           <div class="simgov"></div>
         </div>
         <div class="sbody"><div class="stag">Land</div><h3>Land / Boundary / Topographic</h3><ul class="sl2"><li>Topographic surveys in Dubai</li><li>Boundary demarcation & site limits</li><li>Base mapping for design & construction</li></ul><span class="slink">Learn more →</span></div>
@@ -582,18 +590,18 @@ h2.dk{color:#0A1929}
 </section>
 
 <!-- ══════════════════════════
-   VIDEO — CLICK TO PLAY (always works!)
+   VIDEO — Canvas AI Animations (no external dependencies!)
 ══════════════════════════ -->
 <section class="vsec">
   <div class="vbg"></div>
   <div class="vov"></div>
   <div class="vi">
     <div class="wrap">
-      <!-- Featured + text -->
+      <!-- Featured animation + text -->
       <div class="vsplit">
         <div class="vtxt fi">
-          <div class="lbl">Watch & Learn</div>
-          <h2>See precision surveying in action</h2>
+          <div class="lbl">See It In Action</div>
+          <h2>Precision surveying — visualised</h2>
           <p class="sub">Our teams operate daily across Dubai's construction sites — total stations, GNSS rovers, and full CAD workflows delivering results engineers trust.</p>
           <div class="vtags">
             <span class="vtag">Total Station</span><span class="vtag">Setting Out</span>
@@ -607,49 +615,46 @@ h2.dk{color:#0A1929}
             </a>
           </div>
         </div>
-        <!-- Main video — click to play → iframe loads on demand -->
-        <div class="vpc fi" data-vid="E7pR4lRHFxU" onclick="playVid(this)" style="transition-delay:.15s">
-          <img class="vpc-thumb" src="https://img.youtube.com/vi/E7pR4lRHFxU/maxresdefault.jpg" onerror="this.src='https://img.youtube.com/vi/E7pR4lRHFxU/hqdefault.jpg'" alt="Land Surveying explained" loading="lazy">
-          <div class="vpc-ov">
-            <div class="vpc-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-14 9z"/></svg></div>
-          </div>
-          <div class="vpc-label">▶ What is Land Surveying?</div>
+        <!-- MAIN canvas: Total Station scanning scene -->
+        <div class="canv-wrap fi" style="transition-delay:.15s">
+          <canvas id="cv1" width="800" height="450"></canvas>
+          <div class="canv-lbl">● Total Station — Live Scan Animation</div>
         </div>
       </div>
 
-      <!-- 3 video cards — click to play -->
+      <!-- 3 smaller canvas animations -->
       <div class="v3">
         <div class="vc3 fi" style="transition-delay:.05s">
-          <div class="vc3-thumb" data-vid="5MNYgBRT3zM" onclick="playVid3(this)">
-            <img src="https://img.youtube.com/vi/5MNYgBRT3zM/hqdefault.jpg" alt="How total stations work" loading="lazy">
-            <div class="vc3-ov"><div class="vc3-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-14 9z"/></svg></div></div>
+          <div class="canv-wrap3">
+            <canvas id="cv2" width="640" height="360"></canvas>
+            <div class="canv-lbl3">● Setting Out Grid</div>
           </div>
           <div class="vc3-body">
-            <div class="vc3-cat">Technical</div>
-            <div class="vc3-title">How Total Stations Work</div>
-            <div class="vc3-desc">Understand the technology behind precise angle & distance measurement on site.</div>
+            <div class="vc3-cat">Construction</div>
+            <div class="vc3-title">Setting Out Grid Layout</div>
+            <div class="vc3-desc">Grid lines and coordinate markers placed on site with precision.</div>
           </div>
         </div>
         <div class="vc3 fi" style="transition-delay:.1s">
-          <div class="vc3-thumb" data-vid="KDW8ZnvLF2Q" onclick="playVid3(this)">
-            <img src="https://img.youtube.com/vi/KDW8ZnvLF2Q/hqdefault.jpg" alt="Surveying explained" loading="lazy">
-            <div class="vc3-ov"><div class="vc3-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-14 9z"/></svg></div></div>
+          <div class="canv-wrap3">
+            <canvas id="cv3" width="640" height="360"></canvas>
+            <div class="canv-lbl3">● GNSS Satellite Tracking</div>
           </div>
           <div class="vc3-body">
-            <div class="vc3-cat">Education</div>
-            <div class="vc3-title">Why Land Surveying Matters</div>
-            <div class="vc3-desc">The fundamentals of surveying and why it's essential for every construction project.</div>
+            <div class="vc3-cat">Control</div>
+            <div class="vc3-title">GNSS RTK Positioning</div>
+            <div class="vc3-desc">Real-time satellite signals triangulated to millimetre accuracy.</div>
           </div>
         </div>
         <div class="vc3 fi" style="transition-delay:.15s">
-          <div class="vc3-thumb" data-vid="DGkA9pzLNyg" onclick="playVid3(this)">
-            <img src="https://img.youtube.com/vi/DGkA9pzLNyg/hqdefault.jpg" alt="Civil engineering site survey" loading="lazy">
-            <div class="vc3-ov"><div class="vc3-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-14 9z"/></svg></div></div>
+          <div class="canv-wrap3">
+            <canvas id="cv4" width="640" height="360"></canvas>
+            <div class="canv-lbl3">● CAD Drawing Generation</div>
           </div>
           <div class="vc3-body">
-            <div class="vc3-cat">Field Work</div>
-            <div class="vc3-title">Construction Survey on Site</div>
-            <div class="vc3-desc">Practical survey & setting out in action on a real civil engineering project.</div>
+            <div class="vc3-cat">Deliverable</div>
+            <div class="vc3-title">As-Built CAD Output</div>
+            <div class="vc3-desc">Survey data converted to precise DWG plans ready for submission.</div>
           </div>
         </div>
       </div>
@@ -820,20 +825,409 @@ h2.dk{color:#0A1929}
 </footer>
 
 <script>
-/* ── Click-to-play: main featured video ── */
-function playVid(card) {
-  const vid = card.dataset.vid;
-  card.innerHTML = `<iframe src="https://www.youtube.com/embed/${vid}?autoplay=1&rel=0&modestbranding=1&color=white" allow="autoplay; fullscreen; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>`;
-  card.style.cursor = 'default';
-  card.onclick = null;
-}
+/* ══════════════════════════════════════════
+   CANVAS 1 — Total Station Laser Scan
+══════════════════════════════════════════ */
+(function(){
+  const cv = document.getElementById('cv1');
+  if(!cv) return;
+  const cx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  let t = 0;
+  // Ground points accumulated
+  const pts = [];
+  // Instrument position
+  const ix = W * 0.35, iy = H * 0.72;
 
-/* ── Click-to-play: 3-grid video thumbnails ── */
-function playVid3(thumbEl) {
-  const vid = thumbEl.dataset.vid;
-  thumbEl.innerHTML = `<iframe src="https://www.youtube.com/embed/${vid}?autoplay=1&rel=0&modestbranding=1" allow="autoplay; fullscreen; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>`;
-  thumbEl.onclick = null;
-}
+  function bg(){
+    // Dark sky gradient
+    const g = cx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#020B14'); g.addColorStop(1,'#0A1E2E');
+    cx.fillStyle = g; cx.fillRect(0,0,W,H);
+    // Grid lines (ground plane perspective)
+    cx.strokeStyle = 'rgba(31,168,217,.07)'; cx.lineWidth = .7;
+    for(let i=0;i<16;i++){
+      const x = (i/15)*W;
+      cx.beginPath(); cx.moveTo(x,H*0.58); cx.lineTo(ix,iy); cx.stroke();
+    }
+    for(let j=1;j<8;j++){
+      const y = H*0.58 + (j/8)*(H-H*0.58);
+      const f = (y-H*0.58)/(H*0.42);
+      const x0 = ix*(1-f); const x1 = W - W*(1-f)*(1 - ix/W);
+      cx.beginPath(); cx.moveTo(x0,y); cx.lineTo(x1,y); cx.stroke();
+    }
+    // Horizon city silhouette
+    cx.fillStyle = '#0C1E2E';
+    const bldgs = [[0,0.58,0.06,0.22],[0.06,0.58,0.04,0.16],[0.10,0.58,0.07,0.19],[0.17,0.58,0.05,0.28],[0.22,0.58,0.08,0.13],[0.30,0.58,0.06,0.24],[0.56,0.58,0.06,0.20],[0.62,0.58,0.09,0.15],[0.71,0.58,0.05,0.25],[0.76,0.58,0.07,0.18],[0.83,0.58,0.06,0.22],[0.89,0.58,0.11,0.12]];
+    bldgs.forEach(([x,y,w,h2])=>cx.fillRect(x*W,y*H - h2*H,w*W,h2*H));
+    // Stars
+    if(!cv._stars){cv._stars=Array.from({length:60},()=>({x:Math.random()*W,y:Math.random()*H*0.55,r:Math.random()*1.2,o:Math.random()}))}
+    cv._stars.forEach(s=>{cx.fillStyle=`rgba(180,220,255,${s.o*(0.4+0.3*Math.sin(t*0.04+s.x))})`;cx.beginPath();cx.arc(s.x,s.y,s.r,0,6.28);cx.fill()});
+  }
+
+  function instrument(){
+    // Base
+    cx.fillStyle='#1A2D3F'; cx.strokeStyle='rgba(31,168,217,.4)'; cx.lineWidth=1.5;
+    cx.beginPath(); cx.ellipse(ix,iy+8,28,8,0,0,6.28); cx.fill(); cx.stroke();
+    // Tripod legs
+    cx.strokeStyle='rgba(31,168,217,.35)'; cx.lineWidth=2;
+    [[ix-22,iy+38],[ix+22,iy+38],[ix,iy+40]].forEach(([lx,ly])=>{cx.beginPath();cx.moveTo(ix,iy+8);cx.lineTo(lx,ly);cx.stroke()});
+    // Body
+    const bg2=cx.createLinearGradient(ix-16,iy-26,ix+16,iy+8);
+    bg2.addColorStop(0,'#1E3A50'); bg2.addColorStop(1,'#0E2030');
+    cx.fillStyle=bg2; cx.strokeStyle='rgba(31,168,217,.5)'; cx.lineWidth=1.5;
+    cx.beginPath(); cx.roundRect(ix-14,iy-26,28,34,5); cx.fill(); cx.stroke();
+    // Lens eye (rotates with beam angle)
+    const ang = -Math.PI/4 + Math.sin(t*0.016)*Math.PI*0.55;
+    cx.fillStyle='rgba(31,168,217,.9)'; cx.strokeStyle='#1FA8D9'; cx.lineWidth=1;
+    cx.beginPath(); cx.arc(ix,iy-10,5,0,6.28); cx.fill(); cx.stroke();
+    // Rotate symbol on body
+    cx.fillStyle='rgba(31,168,217,.3)'; cx.font='10px monospace';
+    cx.fillText('≡',ix-5,iy+4);
+    return ang;
+  }
+
+  function scanBeam(ang){
+    const len = 320;
+    const bx = ix + Math.cos(ang)*len, by = (iy-10) + Math.sin(ang)*len;
+    // Beam glow
+    const g = cx.createLinearGradient(ix,iy-10,bx,by);
+    g.addColorStop(0,'rgba(31,168,217,.9)');
+    g.addColorStop(0.4,'rgba(31,168,217,.35)');
+    g.addColorStop(1,'rgba(31,168,217,0)');
+    cx.strokeStyle=g; cx.lineWidth=1.8; cx.setLineDash([]);
+    cx.shadowBlur=12; cx.shadowColor='#1FA8D9';
+    cx.beginPath(); cx.moveTo(ix,iy-10); cx.lineTo(bx,by); cx.stroke();
+    cx.shadowBlur=0;
+    // Hit point sparkle
+    if(by > H*0.56){
+      pts.push({x:bx,y:by,a:1,age:0});
+      if(pts.length>120) pts.shift();
+    }
+    return {bx,by};
+  }
+
+  function drawPts(){
+    pts.forEach(p=>{
+      p.age++; p.a = Math.max(0,1-p.age/80);
+      cx.fillStyle=`rgba(31,168,217,${p.a})`;
+      cx.shadowBlur=6; cx.shadowColor='#1FA8D9';
+      cx.beginPath(); cx.arc(p.x,p.y,1.8,0,6.28); cx.fill();
+      cx.shadowBlur=0;
+    });
+  }
+
+  function coords(){
+    // HUD overlay
+    cx.fillStyle='rgba(3,13,24,.7)'; cx.strokeStyle='rgba(31,168,217,.28)'; cx.lineWidth=1;
+    cx.beginPath(); cx.roundRect(12,12,200,90,8); cx.fill(); cx.stroke();
+    cx.fillStyle='#1FA8D9'; cx.font='bold 10px monospace';
+    cx.fillText('● TOTAL STATION — LIVE SCAN',18,30);
+    cx.fillStyle='rgba(208,232,245,.7)'; cx.font='10px monospace';
+    const ang2 = (-Math.PI/4 + Math.sin(t*0.016)*Math.PI*0.55)*(180/Math.PI)+45;
+    cx.fillText(`HZ: ${(ang2%360+360).toFixed(4)}°`,18,50);
+    cx.fillText(`V:  89.${((t*0.3)%100).toFixed(4)}°`,18,65);
+    cx.fillText(`SD: ${(14.${String(Math.floor((t*0.7)%1000)).padStart(3,'0')}m`).replace('${','').slice(0,-2) + (14+(t*.002%4)).toFixed(3)}m`,18,80);
+    cx.fillText(`PTS: ${pts.length}`,18,95);
+  }
+
+  function loop(){
+    t++;
+    bg();
+    const ang = instrument();
+    scanBeam(ang);
+    drawPts();
+    // Coord HUD
+    cx.fillStyle='rgba(3,13,24,.7)'; cx.strokeStyle='rgba(31,168,217,.28)'; cx.lineWidth=1;
+    cx.beginPath(); cx.roundRect(12,12,210,88,8); cx.fill(); cx.stroke();
+    cx.fillStyle='#1FA8D9'; cx.font='bold 10px monospace';
+    cx.fillText('● TOTAL STATION — LIVE SCAN',18,30);
+    cx.fillStyle='rgba(208,232,245,.75)'; cx.font='10px monospace';
+    const deg = ((-Math.PI/4 + Math.sin(t*0.016)*Math.PI*0.55)*(180/Math.PI)+90+360)%360;
+    cx.fillText(`HZ: ${deg.toFixed(4)}°`,18,48);
+    cx.fillText(`V:  89.${String(Math.floor((t*17)%10000)).padStart(4,'0')}°`,18,64);
+    cx.fillText(`SD: ${(14.1 + Math.sin(t*.01)*0.3).toFixed(3)} m`,18,80);
+    cx.fillText(`POINTS SCANNED: ${pts.length}`,18,96);
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+
+/* ══════════════════════════════════════════
+   CANVAS 2 — Setting Out Grid
+══════════════════════════════════════════ */
+(function(){
+  const cv = document.getElementById('cv2');
+  if(!cv) return;
+  const cx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  let t = 0;
+  const revealed = []; // grid intersections revealed over time
+  const gridN = 8, gridM = 5;
+  const pad = 60;
+  const gw = (W-pad*2)/gridN, gh = (H-pad*2)/gridM;
+
+  function frame(){
+    t++;
+    const g = cx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#020B14'); g.addColorStop(1,'#060F1A');
+    cx.fillStyle=g; cx.fillRect(0,0,W,H);
+
+    // Reveal new grid points gradually
+    const maxPts = (gridN+1)*(gridM+1);
+    if(revealed.length < maxPts && t%4===0){
+      const idx = revealed.length;
+      revealed.push({r:Math.floor(idx/(gridN+1)), c:idx%(gridN+1), age:0});
+    }
+
+    // Draw grid lines (pulse animation)
+    const pulse = 0.4+0.2*Math.sin(t*0.04);
+    cx.strokeStyle=`rgba(31,168,217,${pulse*0.3})`; cx.lineWidth=0.7; cx.setLineDash([4,4]);
+    for(let c=0;c<=gridN;c++){const x=pad+c*gw;cx.beginPath();cx.moveTo(x,pad);cx.lineTo(x,H-pad);cx.stroke();}
+    for(let r=0;r<=gridM;r++){const y=pad+r*gh;cx.beginPath();cx.moveTo(pad,y);cx.lineTo(W-pad,y);cx.stroke();}
+    cx.setLineDash([]);
+
+    // Intersection markers
+    revealed.forEach(p=>{
+      p.age++;
+      const x=pad+p.c*gw, y=pad+p.r*gh;
+      const a=Math.min(1,p.age/20);
+      // crosshair
+      cx.strokeStyle=`rgba(31,168,217,${a*0.9})`; cx.lineWidth=1.5;
+      cx.beginPath();cx.moveTo(x-10,y);cx.lineTo(x+10,y);cx.stroke();
+      cx.beginPath();cx.moveTo(x,y-10);cx.lineTo(x,y+10);cx.stroke();
+      // circle
+      cx.strokeStyle=`rgba(245,190,24,${a*0.7})`; cx.lineWidth=1;
+      cx.beginPath();cx.arc(x,y,5,0,6.28);cx.stroke();
+      // coord label (some)
+      if((p.r+p.c)%3===0){
+        cx.fillStyle=`rgba(208,232,245,${a*0.6})`; cx.font='7px monospace';
+        cx.fillText(`N${p.r*10}.00 E${p.c*10}.00`,x+8,y-4);
+      }
+    });
+
+    // Active point — scanning cursor
+    const scanI = Math.floor((t/3)%(gridN+1)), scanJ = Math.floor((t/3/(gridN+1))%(gridM+1));
+    const sx=pad+scanI*gw, sy=pad+scanJ*gh;
+    cx.strokeStyle='rgba(245,190,24,.9)'; cx.lineWidth=2;
+    cx.shadowBlur=10; cx.shadowColor='#F5BE18';
+    cx.beginPath();cx.arc(sx,sy,8,0,6.28);cx.stroke();
+    cx.shadowBlur=0;
+
+    // HUD
+    cx.fillStyle='rgba(3,13,24,.75)'; cx.strokeStyle='rgba(31,168,217,.25)'; cx.lineWidth=1;
+    cx.beginPath();cx.roundRect(10,10,175,70,7);cx.fill();cx.stroke();
+    cx.fillStyle='#1FA8D9'; cx.font='bold 9px monospace';
+    cx.fillText('● SETTING OUT — GRID LAYOUT',16,26);
+    cx.fillStyle='rgba(208,232,245,.7)'; cx.font='9px monospace';
+    cx.fillText(`GRID: ${gridN}×${gridM} | TOLERANCE: ±3mm`,16,42);
+    cx.fillText(`POINTS SET: ${revealed.length}/${maxPts}`,16,57);
+    cx.fillText(`STATUS: ${revealed.length<maxPts?'SCANNING...':'COMPLETE ✓'}`,16,72);
+
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+/* ══════════════════════════════════════════
+   CANVAS 3 — GNSS Satellite Tracking
+══════════════════════════════════════════ */
+(function(){
+  const cv = document.getElementById('cv3');
+  if(!cv) return;
+  const cx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  let t = 0;
+  const cx0=W/2, cy0=H/2;
+  const sats = [
+    {orbit:0.95,speed:0.007,phase:0,color:'#1FA8D9'},
+    {orbit:0.70,speed:0.011,phase:1.2,color:'#4ADE80'},
+    {orbit:0.75,speed:-0.009,phase:2.4,color:'#F5BE18'},
+    {orbit:0.55,speed:0.015,phase:0.6,color:'#1FA8D9'},
+    {orbit:0.80,speed:-0.006,phase:3.8,color:'#A78BFA'},
+    {orbit:0.60,speed:0.013,phase:5.1,color:'#F5BE18'},
+  ];
+
+  function frame(){
+    t++;
+    const g=cx.createRadialGradient(cx0,cy0,0,cx0,cy0,Math.max(W,H)*0.6);
+    g.addColorStop(0,'#061826'); g.addColorStop(1,'#020B12');
+    cx.fillStyle=g; cx.fillRect(0,0,W,H);
+
+    // Stars bg
+    if(!cv._s) cv._s=Array.from({length:80},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()+.3,o:Math.random()}));
+    cv._s.forEach(s=>{cx.fillStyle=`rgba(200,230,255,${s.o*.5})`;cx.beginPath();cx.arc(s.x,s.y,s.r,0,6.28);cx.fill()});
+
+    const R = Math.min(W,H)*0.38;
+
+    // Orbit rings
+    cx.strokeStyle='rgba(31,168,217,.08)'; cx.lineWidth=1; cx.setLineDash([3,6]);
+    [0.55,0.70,0.80,0.95].forEach(f=>{cx.beginPath();cx.arc(cx0,cy0,R*f,0,6.28);cx.stroke()});
+    cx.setLineDash([]);
+
+    // Earth
+    const eg=cx.createRadialGradient(cx0-15,cy0-12,0,cx0,cy0,42);
+    eg.addColorStop(0,'#1A5C8A'); eg.addColorStop(0.6,'#0D3D5E'); eg.addColorStop(1,'#061826');
+    cx.fillStyle=eg; cx.beginPath(); cx.arc(cx0,cy0,42,0,6.28); cx.fill();
+    cx.strokeStyle='rgba(31,168,217,.3)'; cx.lineWidth=1.5;
+    cx.beginPath(); cx.arc(cx0,cy0,42,0,6.28); cx.stroke();
+    // Earth glow
+    cx.strokeStyle='rgba(31,168,217,.1)'; cx.lineWidth=8;
+    cx.beginPath(); cx.arc(cx0,cy0,44,0,6.28); cx.stroke();
+
+    // Receiver on earth
+    cx.fillStyle='#F5BE18'; cx.strokeStyle='rgba(245,190,24,.5)'; cx.lineWidth=1.5;
+    cx.beginPath(); cx.arc(cx0+28,cy0+28,5,0,6.28); cx.fill(); cx.stroke();
+
+    // Satellites + signal lines
+    sats.forEach((s,i)=>{
+      const ang = s.phase + t*s.speed;
+      const r = R*s.orbit;
+      const sx2=cx0+Math.cos(ang)*r, sy2=cy0+Math.sin(ang)*r;
+      // Signal line to receiver
+      const dist=Math.sqrt((sx2-cx0-28)**2+(sy2-cy0-28)**2);
+      const sig = 0.4+0.2*Math.sin(t*0.05+i);
+      cx.strokeStyle=`${s.color.replace('#','rgba(').replace(/(..)(..)(..)/, (m,r2,g2,b3)=>`rgba(${parseInt(r2,16)},${parseInt(g2,16)},${parseInt(b3,16)}`)}`,${sig*0.4})`;
+      cx.setLineDash([3,5]); cx.lineWidth=.8;
+      cx.beginPath(); cx.moveTo(sx2,sy2); cx.lineTo(cx0+28,cy0+28); cx.stroke();
+      cx.setLineDash([]);
+      // Satellite body
+      cx.fillStyle=s.color; cx.shadowBlur=8; cx.shadowColor=s.color;
+      cx.beginPath(); cx.arc(sx2,sy2,5,0,6.28); cx.fill();
+      cx.shadowBlur=0;
+      // Solar panels
+      cx.strokeStyle=s.color+'aa'; cx.lineWidth=2;
+      cx.beginPath();cx.moveTo(sx2-12,sy2);cx.lineTo(sx2-6,sy2);cx.stroke();
+      cx.beginPath();cx.moveTo(sx2+6,sy2);cx.lineTo(sx2+12,sy2);cx.stroke();
+      // PRN label
+      cx.fillStyle='rgba(208,232,245,.55)'; cx.font='7px monospace';
+      cx.fillText(`PRN${i+1}`,sx2+7,sy2-5);
+    });
+
+    // HUD
+    cx.fillStyle='rgba(3,13,24,.78)'; cx.strokeStyle='rgba(31,168,217,.25)'; cx.lineWidth=1;
+    cx.beginPath();cx.roundRect(10,10,180,72,7);cx.fill();cx.stroke();
+    cx.fillStyle='#1FA8D9'; cx.font='bold 9px monospace';
+    cx.fillText('● GNSS RTK — SATELLITE LOCK',16,26);
+    cx.fillStyle='rgba(208,232,245,.7)'; cx.font='9px monospace';
+    cx.fillText(`SATS TRACKED: ${sats.length}/6`,16,42);
+    cx.fillText(`HDOP: 0.${Math.abs(Math.sin(t*.01)*100).toFixed(0).padStart(3,'0')}`,16,57);
+    cx.fillText(`ACCURACY: ±${(8+Math.sin(t*.02)*3).toFixed(0)}mm`,16,72);
+
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+/* ══════════════════════════════════════════
+   CANVAS 4 — CAD Drawing Animation
+══════════════════════════════════════════ */
+(function(){
+  const cv = document.getElementById('cv4');
+  if(!cv) return;
+  const cx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  let t = 0;
+
+  // Building floor plan lines to draw
+  const lines = [
+    // Outer walls
+    [60,60,560,60],[560,60,560,290],[560,290,60,290],[60,290,60,60],
+    // Inner rooms
+    [200,60,200,180],[60,180,200,180],[200,180,350,180],[350,60,350,180],
+    [350,180,350,290],[200,180,200,290],
+    // Door openings
+    [60,120,80,120],[200,100,200,120],[330,180,350,180],
+    // Windows
+    [240,60,290,60],[420,60,470,60],[100,290,160,290],[400,290,480,290],
+    // Dimensions
+    [60,310,560,310],[40,60,40,290],
+  ];
+  const totalLen = lines.reduce((s,[x1,y1,x2,y2])=>s+Math.sqrt((x2-x1)**2+(y2-y1)**2),0);
+  let drawn = 0;
+
+  // Coordinate labels to pop in
+  const labels = [
+    {x:60,y:60,txt:'A(0.000,0.000)',age:0,show:false},
+    {x:560,y:60,txt:'B(20.000,0.000)',age:0,show:false},
+    {x:560,y:290,txt:'C(20.000,10.000)',age:0,show:false},
+    {x:60,y:290,txt:'D(0.000,10.000)',age:0,show:false},
+    {x:200,y:60,txt:'E(5.830,0.000)',age:0,show:false},
+    {x:350,y:60,txt:'F(11.670,0.000)',age:0,show:false},
+  ];
+
+  function frame(){
+    t++;
+    const g=cx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#020C16'); g.addColorStop(1,'#04111C');
+    cx.fillStyle=g; cx.fillRect(0,0,W,H);
+
+    // Blueprint grid
+    cx.strokeStyle='rgba(31,168,217,.06)'; cx.lineWidth=.5;
+    for(let x=0;x<W;x+=20){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke();}
+    for(let y=0;y<H;y+=20){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();}
+
+    // Animate drawing lines progressively
+    drawn = Math.min(totalLen, drawn + 4);
+    let rem = drawn;
+    lines.forEach(([x1,y1,x2,y2],i)=>{
+      const len = Math.sqrt((x2-x1)**2+(y2-y1)**2);
+      if(rem<=0) return;
+      const frac = Math.min(1,rem/len);
+      const ex=x1+(x2-x1)*frac, ey=y1+(y2-y1)*frac;
+      cx.strokeStyle = i<4 ? 'rgba(31,168,217,.9)' : i<12 ? 'rgba(31,168,217,.55)' : 'rgba(245,190,24,.4)';
+      cx.lineWidth = i<4 ? 2 : 1;
+      cx.shadowBlur = i<4?4:0; cx.shadowColor='#1FA8D9';
+      cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(ex,ey);cx.stroke();
+      cx.shadowBlur=0;
+      rem -= len;
+    });
+
+    // Show labels as drawing progresses
+    labels.forEach((lb,i)=>{
+      if(drawn > i*(totalLen/labels.length)) lb.show=true;
+      if(lb.show){ lb.age++;
+        const a=Math.min(1,lb.age/20);
+        cx.fillStyle=`rgba(245,190,24,${a})`;
+        cx.strokeStyle=`rgba(245,190,24,${a*.5})`;
+        cx.lineWidth=1;
+        cx.beginPath();cx.arc(lb.x,lb.y,4,0,6.28);cx.fill();cx.stroke();
+        cx.fillStyle=`rgba(208,232,245,${a*.7})`; cx.font='7.5px monospace';
+        cx.fillText(lb.txt,lb.x+7,lb.y-4);
+      }
+    });
+
+    // Cursor at draw head
+    if(drawn < totalLen){
+      let rem2=drawn;
+      let cx2=lines[0][0],cy2=lines[0][1];
+      for(const [x1,y1,x2,y2] of lines){
+        const len=Math.sqrt((x2-x1)**2+(y2-y1)**2);
+        if(rem2<=len){const f=rem2/len;cx2=x1+(x2-x1)*f;cy2=y1+(y2-y1)*f;break;}
+        rem2-=len;
+      }
+      cx.fillStyle='rgba(245,190,24,.9)'; cx.shadowBlur=8; cx.shadowColor='#F5BE18';
+      cx.beginPath();cx.arc(cx2,cy2,5,0,6.28);cx.fill();cx.shadowBlur=0;
+    } else {
+      // Loop reset after pause
+      if(t%240===0){drawn=0;labels.forEach(l=>{l.show=false;l.age=0});}
+    }
+
+    // HUD
+    const pct=Math.round((drawn/totalLen)*100);
+    cx.fillStyle='rgba(3,13,24,.78)'; cx.strokeStyle='rgba(31,168,217,.25)'; cx.lineWidth=1;
+    cx.beginPath();cx.roundRect(10,10,195,72,7);cx.fill();cx.stroke();
+    cx.fillStyle='#1FA8D9'; cx.font='bold 9px monospace';
+    cx.fillText('● AS-BUILT CAD — DRAWING...',16,26);
+    cx.fillStyle='rgba(208,232,245,.7)'; cx.font='9px monospace';
+    cx.fillText(`LAYER: FLOOR PLAN | DWG`,16,42);
+    cx.fillText(`ENTITIES: ${lines.length} | SCALE 1:100`,16,57);
+    cx.fillText(`PROGRESS: ${pct}% COMPLETE`,16,72);
+
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
 
 /* ── Scroll fade-in ── */
 const obs = new IntersectionObserver(
@@ -853,10 +1247,10 @@ const ctObs = new IntersectionObserver(([e]) => {
     const suf = el.querySelector('.csuf')?.outerHTML || '';
     let n = 0;
     const step = target / 54;
-    const t = setInterval(() => {
+    const timer = setInterval(() => {
       n = Math.min(n + step, target);
       el.innerHTML = Math.floor(n) + suf;
-      if(n >= target) clearInterval(t);
+      if(n >= target) clearInterval(timer);
     }, 22);
   });
   ctObs.disconnect();
