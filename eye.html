@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Eye — Sky TerraEye Orthomosaic Platform</title>
+<link rel="icon" href="assets/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --B:#1FA8D9;--B2:#1482AA;--B3:#0D608A;
+  --Bdim:rgba(31,168,217,.12);--Bl:rgba(31,168,217,.22);
+  --G:#F5BE18;--Gl:rgba(245,190,24,.14);
+  --D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;
+  --T:#D0E8F5;--M:#5A839E;--Dm:#243D52;
+  --W:#fff;--Gr:#22C55E;
+  --r:14px;--r2:22px;
+  --e:.32s cubic-bezier(.4,0,.2,1);
+}
+html,body{height:100%}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--T);overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+
+/* UAE bar */
+.uae{height:5px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
+
+/* Nav */
+.nav{background:rgba(4,13,22,.96);backdrop-filter:blur(24px);border-bottom:1px solid rgba(31,168,217,.1);padding:0 32px;height:70px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:12px}
+.logo img{height:30px}
+.logt{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--W)}
+.logt b{color:var(--B)}
+.nav-back{font-size:13px;color:var(--M);display:flex;align-items:center;gap:6px;transition:color .2s}
+.nav-back:hover{color:var(--T)}
+.nav-back svg{width:14px;height:14px}
+
+/* Page layout */
+.page{min-height:calc(100vh - 75px);display:grid;grid-template-columns:1fr 1fr}
+
+/* Left — branding */
+.left{background:linear-gradient(145deg,#040E1C 0%,#071628 50%,#0A1F35 100%);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:72px 64px}
+.left::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(31,168,217,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(31,168,217,.04) 1px,transparent 1px);background-size:44px 44px}
+.glow1{position:absolute;top:-80px;left:-80px;width:400px;height:400px;background:radial-gradient(circle,rgba(31,168,217,.12) 0%,transparent 70%);pointer-events:none}
+.glow2{position:absolute;bottom:-60px;right:-60px;width:300px;height:300px;background:radial-gradient(circle,rgba(245,190,24,.08) 0%,transparent 70%);pointer-events:none}
+
+.left-inner{position:relative;z-index:2}
+.eyetag{display:inline-flex;align-items:center;gap:9px;background:rgba(245,190,24,.1);border:1px solid rgba(245,190,24,.3);color:var(--G);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:7px 16px;border-radius:999px;margin-bottom:32px}
+.eyetag svg{width:14px;height:14px}
+.left h1{font-family:'Syne',sans-serif;font-size:clamp(28px,2.8vw,40px);font-weight:800;line-height:1.12;color:var(--W);margin-bottom:18px;letter-spacing:-.5px}
+.left h1 span{color:var(--B)}
+.left p{font-size:15px;color:var(--M);line-height:1.75;max-width:44ch;margin-bottom:40px}
+
+.feat{display:flex;flex-direction:column;gap:14px}
+.fi{display:flex;align-items:flex-start;gap:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:16px}
+.fi-ic{width:38px;height:38px;border-radius:10px;background:var(--Bdim);border:1px solid var(--Bl);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fi-ic svg{width:17px;height:17px;color:var(--B)}
+.fi-ic.gold{background:rgba(245,190,24,.1);border-color:rgba(245,190,24,.25)}
+.fi-ic.gold svg{color:var(--G)}
+.fi-ic.grn{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.2)}
+.fi-ic.grn svg{color:#4ADE80}
+.fi-t{font-size:13.5px;font-weight:700;color:var(--T);margin-bottom:2px}
+.fi-d{font-size:12px;color:var(--M)}
+
+/* Right — form */
+.right{display:flex;align-items:center;justify-content:center;padding:56px 64px;background:var(--D2)}
+.card{width:100%;max-width:440px}
+
+.tabs{display:flex;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:4px;margin-bottom:32px}
+.tab{flex:1;padding:10px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--M);transition:var(--e);font-family:'Plus Jakarta Sans',sans-serif}
+.tab.active{background:var(--B);color:#fff;box-shadow:0 4px 16px rgba(31,168,217,.35)}
+
+.form-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--W);margin-bottom:6px}
+.form-sub{font-size:14px;color:var(--M);margin-bottom:28px}
+
+.field{margin-bottom:18px}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--M);letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px}
+.field input{width:100%;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:10px;color:var(--T);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;padding:12px 14px;outline:none;transition:var(--e)}
+.field input:focus{border-color:var(--B);background:rgba(31,168,217,.05);box-shadow:0 0 0 3px rgba(31,168,217,.1)}
+.field input::placeholder{color:var(--Dm)}
+
+.submit{width:100%;padding:14px;background:var(--B);color:#fff;border:none;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:var(--e);margin-top:6px}
+.submit:hover{background:var(--B2);transform:translateY(-1px);box-shadow:0 8px 24px rgba(31,168,217,.4)}
+.submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+.err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);color:#FCA5A5;font-size:13px;padding:11px 14px;border-radius:9px;margin-bottom:16px;display:none}
+.err.show{display:block}
+.ok-msg{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);color:#86EFAC;font-size:13px;padding:11px 14px;border-radius:9px;margin-bottom:16px;display:none}
+.ok-msg.show{display:block}
+
+.divider{display:flex;align-items:center;gap:12px;margin:22px 0;color:var(--Dm);font-size:12px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.06)}
+
+.agent-box{background:rgba(245,190,24,.06);border:1px solid rgba(245,190,24,.2);border-radius:12px;padding:16px;margin-top:24px}
+.agent-box h4{font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--G);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.agent-box h4 svg{width:13px;height:13px}
+.agent-box p{font-size:12.5px;color:var(--M);line-height:1.6;margin-bottom:12px}
+.dl-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(245,190,24,.12);border:1px solid rgba(245,190,24,.3);color:var(--G);font-size:12px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;transition:var(--e)}
+.dl-btn:hover{background:rgba(245,190,24,.2)}
+.dl-btn svg{width:13px;height:13px}
+
+/* Hidden panels */
+.panel{display:none}.panel.active{display:block}
+
+@media(max-width:900px){
+  .page{grid-template-columns:1fr}
+  .left{display:none}
+  .right{padding:40px 24px}
+}
+</style>
+</head>
+<body>
+
+<div class="uae"></div>
+<nav class="nav">
+  <a class="logo" href="index.html">
+    <img src="assets/img/logo.png" alt="Sky TerraEye">
+    <div class="logt"><b>SKY</b> TERRAEYE</div>
+  </a>
+  <a class="nav-back" href="index.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Back to site
+  </a>
+</nav>
+
+<div class="page">
+
+  <!-- Left: branding -->
+  <div class="left">
+    <div class="glow1"></div>
+    <div class="glow2"></div>
+    <div class="left-inner">
+      <div class="eyetag">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Sky TerraEye
+      </div>
+      <h1>Drone Thermal<br><span>Orthomosaic</span><br>Platform</h1>
+      <p>Generate seamless, georeferenced orthomosaic maps from your drone thermal imagery — processed entirely on your own workstation. No cloud. No data leaves your machine.</p>
+      <div class="feat">
+        <div class="fi">
+          <div class="fi-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h18"/></svg>
+          </div>
+          <div>
+            <div class="fi-t">GPS-accurate stitching</div>
+            <div class="fi-d">Affine radiometric correction + Gaussian-smoothed Voronoi blending</div>
+          </div>
+        </div>
+        <div class="fi">
+          <div class="fi-ic gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <div>
+            <div class="fi-t">Processes on your machine</div>
+            <div class="fi-d">Your 32 GB workstation does all the work. Zero upload. Zero cost.</div>
+          </div>
+        </div>
+        <div class="fi">
+          <div class="fi-ic grn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <div>
+            <div class="fi-t">GeoTIFF output</div>
+            <div class="fi-d">EPSG-projected, DEFLATE compressed, with overviews. Ready for QGIS.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: form -->
+  <div class="right">
+    <div class="card">
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('signin')">Sign In</button>
+        <button class="tab" onclick="switchTab('signup')">Sign Up</button>
+      </div>
+
+      <!-- Sign In -->
+      <div class="panel active" id="panel-signin">
+        <div class="form-title">Welcome back</div>
+        <div class="form-sub">Sign in to access the Eye platform</div>
+        <div class="err" id="si-err"></div>
+        <div class="ok-msg" id="si-ok"></div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="si-email" placeholder="you@skyterraeye.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="si-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()">
+        </div>
+        <button class="submit" onclick="doSignIn()">Sign In → Eye</button>
+
+        <div class="divider">or</div>
+
+        <div style="text-align:center;font-size:13px;color:var(--M)">
+          No account? <a onclick="switchTab('signup')" style="color:var(--B);font-weight:700;cursor:pointer">Sign up →</a>
+        </div>
+      </div>
+
+      <!-- Sign Up -->
+      <div class="panel" id="panel-signup">
+        <div class="form-title">Create account</div>
+        <div class="form-sub">Join the Sky TerraEye team workspace</div>
+        <div class="err" id="su-err"></div>
+        <div class="ok-msg" id="su-ok"></div>
+        <div class="field">
+          <label>Full Name</label>
+          <input type="text" id="su-name" placeholder="Ahmad Al Rashid">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="su-email" placeholder="you@skyterraeye.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="su-pass" placeholder="Min 8 characters" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label>Team Invite Code</label>
+          <input type="text" id="su-code" placeholder="Ask your admin for the code">
+        </div>
+        <button class="submit" onclick="doSignUp()">Create Account</button>
+
+        <div class="divider">or</div>
+
+        <div style="text-align:center;font-size:13px;color:var(--M)">
+          Already a member? <a onclick="switchTab('signin')" style="color:var(--B);font-weight:700;cursor:pointer">Sign in →</a>
+        </div>
+      </div>
+
+      <!-- Agent download box (always visible) -->
+      <div class="agent-box">
+        <h4>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          Run the local agent
+        </h4>
+        <p>Processing runs entirely on your workstation. Download and run the agent once — then use Eye from any browser tab.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a class="dl-btn" href="agent/launch.bat" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Windows (launch.bat)
+          </a>
+          <a class="dl-btn" href="agent/launch.sh" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Mac / Linux
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Config ─────────────────────────────────────────────────────────────────
+// Change this invite code to control who can sign up
+const INVITE_CODE = 'SKYEYE2024';
+
+// ── Tab switch ──────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', (tab==='signin'&&i===0)||(tab==='signup'&&i===1));
+  });
+  document.getElementById('panel-signin').classList.toggle('active', tab==='signin');
+  document.getElementById('panel-signup').classList.toggle('active', tab==='signup');
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.classList.add('show');
+}
+function hideMsg(id) { document.getElementById(id).classList.remove('show'); }
+function showOk(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.classList.add('show');
+}
+
+function getUsers() {
+  try { return JSON.parse(localStorage.getItem('ste_users') || '{}'); }
+  catch { return {}; }
+}
+function saveUsers(u) { localStorage.setItem('ste_users', JSON.stringify(u)); }
+
+function setSession(email, name) {
+  localStorage.setItem('ste_session', JSON.stringify({
+    email, name, ts: Date.now()
+  }));
+}
+
+// ── Sign Up ─────────────────────────────────────────────────────────────────
+function doSignUp() {
+  hideMsg('su-err'); hideMsg('su-ok');
+  const name  = document.getElementById('su-name').value.trim();
+  const email = document.getElementById('su-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('su-pass').value;
+  const code  = document.getElementById('su-code').value.trim().toUpperCase();
+
+  if (!name)              return showErr('su-err', 'Please enter your full name.');
+  if (!email.includes('@')) return showErr('su-err', 'Please enter a valid email.');
+  if (pass.length < 8)   return showErr('su-err', 'Password must be at least 8 characters.');
+  if (code !== INVITE_CODE) return showErr('su-err', 'Invalid invite code. Ask your admin.');
+
+  const users = getUsers();
+  if (users[email])      return showErr('su-err', 'An account with this email already exists.');
+
+  // Simple hash (not cryptographic — fine for this use case)
+  const hash = btoa(email + ':' + pass);
+  users[email] = { name, hash };
+  saveUsers(users);
+  setSession(email, name);
+
+  showOk('su-ok', '✓ Account created! Redirecting to Eye...');
+  setTimeout(() => { window.location.href = 'app.html'; }, 1200);
+}
+
+// ── Sign In ─────────────────────────────────────────────────────────────────
+function doSignIn() {
+  hideMsg('si-err'); hideMsg('si-ok');
+  const email = document.getElementById('si-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('si-pass').value;
+
+  if (!email || !pass) return showErr('si-err', 'Please enter your email and password.');
+
+  const users = getUsers();
+  const user  = users[email];
+  if (!user)  return showErr('si-err', 'No account found. Sign up first.');
+
+  const hash = btoa(email + ':' + pass);
+  if (hash !== user.hash) return showErr('si-err', 'Incorrect password.');
+
+  setSession(email, user.name);
+  showOk('si-ok', `✓ Welcome back, ${user.name}! Redirecting...`);
+  setTimeout(() => { window.location.href = 'app.html'; }, 1000);
+}
+
+// ── Auto-redirect if already logged in ──────────────────────────────────────
+(function() {
+  try {
+    const s = JSON.parse(localStorage.getItem('ste_session') || 'null');
+    if (s && s.ts && (Date.now() - s.ts) < 7*24*60*60*1000) {
+      window.location.href = 'app.html';
+    }
+  } catch {}
+})();
+</script>
+</body>
+</html>

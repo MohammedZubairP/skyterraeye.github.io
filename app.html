@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Eye — Orthomosaic Processor | Sky TerraEye</title>
+<link rel="icon" href="assets/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --B:#1FA8D9;--B2:#1482AA;--B3:#0D608A;
+  --Bdim:rgba(31,168,217,.12);--Bl:rgba(31,168,217,.22);
+  --G:#F5BE18;--Gl:rgba(245,190,24,.14);
+  --D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;--D5:#0D1F32;
+  --T:#D0E8F5;--M:#5A839E;--Dm:#243D52;
+  --W:#fff;--Gr:#22C55E;
+  --r:12px;--r2:18px;
+  --e:.28s cubic-bezier(.4,0,.2,1);
+  --mono:'Courier New',monospace;
+}
+html,body{height:100%}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--T);overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+
+/* UAE bar */
+.uae{height:5px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
+
+/* Nav */
+.nav{background:rgba(4,13,22,.97);backdrop-filter:blur(24px);border-bottom:1px solid rgba(31,168,217,.1);padding:0 24px;height:62px;display:flex;align-items:center;gap:16px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo img{height:28px}
+.logt{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--W)}
+.logt b{color:var(--B)}
+.nav-sep{width:1px;height:28px;background:rgba(255,255,255,.08)}
+.nav-tag{display:flex;align-items:center;gap:7px;background:rgba(245,190,24,.1);border:1px solid rgba(245,190,24,.25);color:var(--G);font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:5px 12px;border-radius:999px}
+.nav-tag svg{width:12px;height:12px}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.user-pill{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:999px;padding:5px 14px 5px 5px;font-size:13px;color:var(--M)}
+.user-av{width:28px;height:28px;border-radius:50%;background:var(--B);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
+.signout{font-size:12px;color:var(--M);cursor:pointer;transition:color .2s;padding:4px 8px;border-radius:6px}
+.signout:hover{color:var(--T);background:rgba(255,255,255,.05)}
+
+/* Agent status */
+.agent-bar{background:var(--D3);border-bottom:1px solid rgba(255,255,255,.05);padding:8px 24px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--M)}
+.adot{width:7px;height:7px;border-radius:50%;background:var(--Dm);flex-shrink:0;transition:all .3s}
+.adot.on{background:var(--Gr);box-shadow:0 0 6px var(--Gr)}
+.adot.err{background:#F87171;box-shadow:0 0 6px #F87171}
+.ahelp{margin-left:auto;font-size:11px;color:var(--Dm);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.ahelp:hover{color:var(--M)}
+
+/* Layout */
+.app{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - 62px - 5px - 33px)}
+
+/* ── Left panel ── */
+.lpanel{border-right:1px solid rgba(255,255,255,.05);overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;background:var(--D2)}
+.lpanel::-webkit-scrollbar{width:3px}
+.lpanel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.06);border-radius:2px}
+
+/* Section card */
+.scard{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:var(--r2);overflow:hidden}
+.shead{padding:9px 14px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.05);font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--B);display:flex;align-items:center;gap:8px}
+.snum{width:18px;height:18px;border-radius:5px;background:var(--B);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sbody{padding:14px;display:flex;flex-direction:column;gap:11px}
+
+/* Field */
+.field label{display:block;font-size:10.5px;font-weight:700;color:var(--M);letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px}
+.field input{width:100%;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.07);border-radius:8px;color:var(--T);font-family:var(--mono);font-size:11.5px;padding:9px 12px;outline:none;transition:var(--e)}
+.field input:focus{border-color:var(--B);background:rgba(31,168,217,.04);box-shadow:0 0 0 2px rgba(31,168,217,.08)}
+.field input::placeholder{color:var(--Dm)}
+.hint{font-size:10px;color:var(--Dm);margin-top:3px;font-family:var(--mono)}
+
+/* Grid 2 */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* Info box */
+.infobox{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:9px 12px;font-family:var(--mono);font-size:11px;color:var(--Dm);min-height:34px;display:flex;align-items:center;gap:8px}
+.infobox.ok{color:#86EFAC;border-color:rgba(34,197,94,.2)}
+.infobox.err{color:#FCA5A5;border-color:rgba(239,68,68,.2)}
+
+/* Buttons */
+.btn-go{width:100%;padding:13px;background:var(--B);color:#fff;border:none;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:var(--e);letter-spacing:.3px}
+.btn-go:hover:not(:disabled){background:var(--B2);transform:translateY(-1px);box-shadow:0 8px 24px rgba(31,168,217,.35)}
+.btn-go:disabled{opacity:.3;cursor:not-allowed;transform:none}
+.btn-row{display:flex;gap:8px}
+.btn-sm{flex:1;padding:9px;border:1.5px solid rgba(255,255,255,.08);background:transparent;color:var(--M);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:var(--e)}
+.btn-sm:hover:not(:disabled){border-color:var(--B);color:var(--B)}
+.btn-sm.danger{border-color:rgba(239,68,68,.2);color:#F87171}
+.btn-sm.danger:hover{border-color:#F87171;background:rgba(239,68,68,.05)}
+.btn-sm:disabled{opacity:.3;cursor:not-allowed}
+
+/* ── Right panel ── */
+.rpanel{display:flex;flex-direction:column;overflow:hidden;background:var(--D)}
+
+/* Progress area */
+.prog-area{padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.05);background:var(--D3)}
+.prog-row{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+.prog-label{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--M);flex:1}
+.prog-pct{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--B);line-height:1}
+.prog-track{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--B3),var(--B));border-radius:2px;width:0%;transition:width .4s ease;box-shadow:0 0 8px rgba(31,168,217,.5)}
+.prog-sub{font-size:11px;color:var(--Dm);margin-top:7px;display:flex;justify-content:space-between}
+
+/* Done banner */
+.done-banner{display:none;margin:12px 24px;padding:14px 18px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:10px;align-items:center;gap:12px;font-size:13px;font-weight:700;color:#86EFAC}
+.done-banner.show{display:flex}
+.done-path{flex:1;font-size:10.5px;color:var(--Dm);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Log */
+.log-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.log-head{padding:8px 24px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:8px;background:var(--D3);font-size:10px;font-weight:800;letter-spacing:2px;color:var(--Dm);text-transform:uppercase}
+.log-head button{margin-left:auto;font-size:10px;padding:4px 10px;border:1px solid rgba(255,255,255,.07);background:transparent;color:var(--Dm);border-radius:5px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:color .2s}
+.log-head button:hover{color:var(--M)}
+#log{flex:1;overflow-y:auto;padding:14px 24px;font-family:var(--mono);font-size:11px;line-height:1.75;color:#4A7A60;background:var(--D)}
+#log::-webkit-scrollbar{width:3px}
+#log::-webkit-scrollbar-thumb{background:rgba(255,255,255,.06)}
+.ll{white-space:pre-wrap;word-break:break-all}
+.ll.ok{color:#86EFAC}
+.ll.err{color:#FCA5A5}
+.ll.hd{color:var(--B);font-weight:700}
+
+/* Agent modal */
+.modal-bg{position:fixed;inset:0;background:rgba(4,13,22,.88);backdrop-filter:blur(8px);z-index:500;display:none;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--D2);border:1px solid rgba(31,168,217,.15);border-radius:var(--r2);padding:32px;max-width:520px;width:90%}
+.modal h3{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--W);margin-bottom:6px}
+.modal p{font-size:13px;color:var(--M);line-height:1.65;margin-bottom:18px}
+.code{background:#020B15;border:1px solid rgba(31,168,217,.1);border-radius:8px;padding:14px;font-family:var(--mono);font-size:11.5px;color:#4A9E70;line-height:1.8;margin-bottom:14px}
+.modal-close{padding:10px 20px;background:var(--B);color:#fff;border:none;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:var(--e)}
+.modal-close:hover{background:var(--B2)}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.pulsing{animation:pulse 1.4s infinite}
+
+@media(max-width:860px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .lpanel{max-height:50vh}
+}
+</style>
+</head>
+<body>
+
+<!-- Guard: redirect to eye.html if not logged in -->
+<script>
+(function(){
+  try {
+    var s = JSON.parse(localStorage.getItem('ste_session') || 'null');
+    if (!s || !s.ts || (Date.now()-s.ts) > 7*24*60*60*1000) {
+      window.location.href = 'eye.html'; return;
+    }
+    window._user = s;
+  } catch(e) { window.location.href = 'eye.html'; }
+})();
+</script>
+
+<div class="uae"></div>
+
+<nav class="nav">
+  <a class="logo" href="index.html">
+    <img src="assets/img/logo.png" alt="Sky TerraEye">
+    <div class="logt"><b>SKY</b> TERRAEYE</div>
+  </a>
+  <div class="nav-sep"></div>
+  <div class="nav-tag">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    Eye Platform
+  </div>
+  <div class="nav-right">
+    <div class="user-pill">
+      <div class="user-av" id="userAv">?</div>
+      <span id="userName">Loading...</span>
+    </div>
+    <span class="signout" onclick="signOut()">Sign out</span>
+  </div>
+</nav>
+
+<!-- Agent status bar -->
+<div class="agent-bar">
+  <div class="adot" id="adot"></div>
+  <span id="astat">Connecting to local agent at localhost:7842…</span>
+  <span class="ahelp" onclick="showModal()">How to start the agent?</span>
+</div>
+
+<!-- Main app -->
+<div class="app">
+
+  <!-- Left: controls -->
+  <div class="lpanel">
+
+    <!-- 1. Input folder -->
+    <div class="scard">
+      <div class="shead"><div class="snum">1</div> Image Folder</div>
+      <div class="sbody">
+        <div class="field">
+          <label>Local folder path</label>
+          <input type="text" id="folder" placeholder="C:\DJI\Flight_001\thermal" oninput="onFolder()">
+        </div>
+        <div class="infobox" id="folderInfo">Enter the full path to your image folder</div>
+      </div>
+    </div>
+
+    <!-- 2. Output -->
+    <div class="scard">
+      <div class="shead"><div class="snum">2</div> Output</div>
+      <div class="sbody">
+        <div class="field">
+          <label>Output path (.tif)</label>
+          <input type="text" id="output" placeholder="auto — saves to image folder">
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Settings -->
+    <div class="scard">
+      <div class="shead"><div class="snum">3</div> Settings</div>
+      <div class="sbody">
+        <div class="g2">
+          <div class="field">
+            <label>GSD (m/px)</label>
+            <input type="text" id="gsd" value="auto">
+          </div>
+          <div class="field">
+            <label>HFOV (°)</label>
+            <input type="text" id="hfov" value="auto">
+          </div>
+        </div>
+        <div class="field">
+          <label>Footprint Scale</label>
+          <input type="text" id="fpscale" value="1.0">
+          <div class="hint">1.0 default · 1.3 if gaps · 0.8 if over-blended</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Run -->
+    <div class="scard">
+      <div class="shead"><div class="snum">4</div> Generate</div>
+      <div class="sbody">
+        <button class="btn-go" id="runBtn" onclick="startJob()" disabled>
+          ▶ Generate Orthomosaic
+        </button>
+        <div class="btn-row">
+          <button class="btn-sm danger" id="cancelBtn" onclick="cancelJob()" disabled>✕ Cancel</button>
+          <button class="btn-sm" id="openBtn" onclick="openFolder()" disabled>📂 Open Folder</button>
+          <button class="btn-sm" id="dlBtn" onclick="dlResult()" disabled>⬇ Download</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end lpanel -->
+
+  <!-- Right: progress + log -->
+  <div class="rpanel">
+
+    <div class="prog-area">
+      <div class="prog-row">
+        <div class="prog-label" id="progLabel">Ready</div>
+        <div class="prog-pct" id="progPct">0%</div>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+      <div class="prog-sub">
+        <span id="progSub">Configure settings and press Generate</span>
+        <span id="elapsed"></span>
+      </div>
+    </div>
+
+    <div class="done-banner" id="doneBanner">
+      <span>✅ Complete</span>
+      <span class="done-path" id="donePath"></span>
+      <button class="btn-sm" onclick="dlResult()" style="white-space:nowrap;flex-shrink:0">⬇ Download</button>
+    </div>
+
+    <div class="log-wrap">
+      <div class="log-head">
+        Processing Log
+        <button onclick="clearLog()">Clear</button>
+      </div>
+      <div id="log"></div>
+    </div>
+
+  </div>
+
+</div><!-- end app -->
+
+<!-- Agent help modal -->
+<div class="modal-bg" id="modal" onclick="if(event.target===this)hideModal()">
+  <div class="modal">
+    <h3>Start the local agent</h3>
+    <p>Download the agent files and run them on your workstation. The browser will connect to it at <code style="color:var(--B)">localhost:7842</code>. Your images never leave your machine.</p>
+    <div class="code">
+      <div style="color:var(--Dm)"># First time — download from the site, then:</div>
+      <div>conda activate ortho</div>
+      <div>python agent.py</div>
+      <br>
+      <div style="color:var(--Dm)"># Or just double-click:</div>
+      <div>launch.bat   (Windows)</div>
+      <div>./launch.sh  (Mac / Linux)</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">
+      <a class="btn-sm" href="agent/launch.bat" download style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">⬇ launch.bat</a>
+      <a class="btn-sm" href="agent/launch.sh"  download style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">⬇ launch.sh</a>
+      <a class="btn-sm" href="agent/agent.py"   download style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">⬇ agent.py</a>
+    </div>
+    <button class="modal-close" onclick="hideModal()">Got it</button>
+  </div>
+</div>
+
+<script>
+// ── User ───────────────────────────────────────────────────────────────────
+const user = window._user || {};
+document.getElementById('userName').textContent = user.name || user.email || 'Team Member';
+document.getElementById('userAv').textContent   = (user.name || 'U')[0].toUpperCase();
+
+function signOut() {
+  localStorage.removeItem('ste_session');
+  window.location.href = 'eye.html';
+}
+
+// ── Agent check ────────────────────────────────────────────────────────────
+let agentOk = false;
+
+async function checkAgent() {
+  try {
+    const r = await fetch('http://localhost:7842/api/status', {signal: AbortSignal.timeout(2000)});
+    const d = await r.json();
+    agentOk = d.ok && d.engine;
+    document.getElementById('adot').className  = 'adot ' + (agentOk ? 'on' : 'err');
+    document.getElementById('astat').textContent = agentOk
+      ? `Agent connected — GDAL ${d.gdal?'✓':'✗'}  Engine ✓`
+      : `Agent connected but engine error: ${d.engine_error}`;
+    if (agentOk && !runBtn.disabled && jobId === null) runBtn.disabled = false;
+    if (agentOk) log('[agent] Ready', 'hd');
+  } catch {
+    agentOk = false;
+    document.getElementById('adot').className  = 'adot err';
+    document.getElementById('astat').textContent = 'Local agent not running — see "How to start the agent?"';
+    document.getElementById('runBtn').disabled = true;
+  }
+}
+
+// ── State ──────────────────────────────────────────────────────────────────
+let jobId = null, pollTimer = null, logTotal = 0, startTime = null, elTimer = null;
+const runBtn = document.getElementById('runBtn');
+
+// ── Folder ─────────────────────────────────────────────────────────────────
+let folderTimer = null;
+function onFolder() {
+  clearTimeout(folderTimer);
+  folderTimer = setTimeout(browseFolder, 700);
+}
+
+async function browseFolder() {
+  const folder = document.getElementById('folder').value.trim();
+  if (!folder) return;
+  const box = document.getElementById('folderInfo');
+  box.className = 'infobox'; box.textContent = 'Scanning…';
+  try {
+    const r = await fetch('http://localhost:7842/api/browse', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({folder})
+    });
+    const d = await r.json();
+    if (d.ok) {
+      box.className = 'infobox ok';
+      box.textContent = `✓ ${d.count} images found`;
+      if (!document.getElementById('output').value)
+        document.getElementById('output').value = folder.replace(/[\\/]$/,'') + (navigator.userAgent.includes('Win') ? '\\' : '/') + 'orthomosaic.tif';
+      if (agentOk) runBtn.disabled = false;
+    } else {
+      box.className = 'infobox err'; box.textContent = '✗ ' + d.error;
+    }
+  } catch { box.className = 'infobox err'; box.textContent = '✗ Agent not reachable'; }
+}
+
+// ── Start ──────────────────────────────────────────────────────────────────
+async function startJob() {
+  const folder  = document.getElementById('folder').value.trim();
+  const output  = document.getElementById('output').value.trim();
+  const gsd     = document.getElementById('gsd').value.trim();
+  const hfov    = document.getElementById('hfov').value.trim();
+  const fpscale = document.getElementById('fpscale').value.trim();
+  if (!folder) return;
+
+  clearLog(); jobId = null; logTotal = 0;
+  setUI('running');
+  document.getElementById('doneBanner').classList.remove('show');
+
+  try {
+    const r = await fetch('http://localhost:7842/api/process', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        folder, output: output||null,
+        fp_scale: parseFloat(fpscale)||1.0,
+        gsd:  gsd==='auto'?null:gsd,
+        hfov: hfov==='auto'?null:hfov,
+      })
+    });
+    const d = await r.json();
+    if (!d.ok) { log('❌ '+d.error,'err'); setUI('idle'); return; }
+    jobId = d.job_id;
+    log(`Job ${jobId} — ${d.image_count} images`, 'hd');
+    startTime = Date.now();
+    pollTimer = setInterval(poll, 400);
+    elTimer   = setInterval(updateElapsed, 1000);
+  } catch(e) { log('❌ '+e,'err'); setUI('idle'); }
+}
+
+// ── Poll ───────────────────────────────────────────────────────────────────
+async function poll() {
+  if (!jobId) return;
+  try {
+    const r = await fetch(`http://localhost:7842/api/job/${jobId}?since=${logTotal}`);
+    const d = await r.json();
+    if (!d.ok) return;
+    for (const line of (d.log||[])) {
+      const c = line.startsWith('❌')||line.includes('ERROR') ? 'err'
+              : line.startsWith('✅')||line.startsWith('✓')   ? 'ok'
+              : /^[🎨📷📐💾🗺⏱]/.test(line)                  ? 'hd' : '';
+      log(line, c);
+    }
+    logTotal = d.log_total;
+    setProg(d.progress);
+    if (d.status==='done') {
+      clearInterval(pollTimer); clearInterval(elTimer);
+      setUI('done');
+      const banner = document.getElementById('doneBanner');
+      banner.classList.add('show');
+      document.getElementById('donePath').textContent = (d.output_path||'') + (d.output_size?`  (${(d.output_size/1e6).toFixed(1)} MB)`:'');
+    } else if (d.status==='error'||d.status==='cancelled') {
+      clearInterval(pollTimer); clearInterval(elTimer); setUI('idle');
+    }
+  } catch {}
+}
+
+// ── Cancel ─────────────────────────────────────────────────────────────────
+async function cancelJob() {
+  if (!jobId) return;
+  await fetch(`http://localhost:7842/api/cancel/${jobId}`, {method:'POST'});
+  clearInterval(pollTimer); clearInterval(elTimer);
+  setUI('idle'); log('Cancelled.','err');
+}
+
+function dlResult() { if (jobId) window.location.href = `http://localhost:7842/api/download/${jobId}`; }
+function openFolder() { if (jobId) fetch(`http://localhost:7842/api/open_folder/${jobId}`, {method:'POST'}); }
+
+// ── UI helpers ─────────────────────────────────────────────────────────────
+function setUI(state) {
+  const run=document.getElementById('runBtn'), cancel=document.getElementById('cancelBtn'),
+        open=document.getElementById('openBtn'), dl=document.getElementById('dlBtn'),
+        lbl=document.getElementById('progLabel'), sub=document.getElementById('progSub');
+  if (state==='running') {
+    run.disabled=true; cancel.disabled=false; open.disabled=true; dl.disabled=true;
+    lbl.textContent='Processing…'; lbl.className='prog-label pulsing';
+    sub.textContent='Running radiometric correction + blending…';
+  } else if (state==='done') {
+    run.disabled=false; cancel.disabled=true; open.disabled=false; dl.disabled=false;
+    lbl.textContent='Complete ✅'; lbl.className='prog-label';
+    sub.textContent='Orthomosaic ready';
+  } else {
+    run.disabled=!agentOk; cancel.disabled=true; open.disabled=true; dl.disabled=true;
+    lbl.textContent='Ready'; lbl.className='prog-label';
+    sub.textContent='Configure settings and press Generate';
+    setProg(0);
+  }
+}
+
+function setProg(p) {
+  document.getElementById('progFill').style.width = p+'%';
+  document.getElementById('progPct').textContent  = Math.round(p)+'%';
+}
+
+function updateElapsed() {
+  if (!startTime) return;
+  const s = Math.round((Date.now()-startTime)/1000);
+  document.getElementById('elapsed').textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+// ── Log ────────────────────────────────────────────────────────────────────
+function log(msg, cls='') {
+  const el = document.getElementById('log');
+  const d  = document.createElement('div');
+  d.className = 'll '+cls; d.textContent = msg;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
+}
+function clearLog() { document.getElementById('log').innerHTML = ''; }
+
+// ── Modal ──────────────────────────────────────────────────────────────────
+function showModal() { document.getElementById('modal').classList.add('show'); }
+function hideModal() { document.getElementById('modal').classList.remove('show'); }
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+checkAgent();
+setInterval(checkAgent, 12000);
+</script>
+</body>
+</html>
