@@ -40,13 +40,18 @@ def voronoi_weight(cx_i, cy_i, nb_centers, oh, ow):
 
 def smooth_weight(w2d, sigma_px):
     """
-    Apply Gaussian blur to a weight mask to create a wide, smooth blend zone.
-    sigma_px controls the blend width:
-      sigma=8:   ~24px blend zone  (sharp, detail preserved)
-      sigma=40:  ~120px blend zone (smooth, colour differences hidden)
+    Gaussian blur on weight mask — pure numpy, no scipy needed.
+    3 passes of box filter per axis approximates a Gaussian (CLT).
+    sigma_px controls blend width: ~40 gives ~120px smooth transition.
     """
-    from scipy.ndimage import gaussian_filter
-    return gaussian_filter(w2d.astype(np.float64), sigma=sigma_px).astype(np.float32)
+    w = w2d.astype(np.float64)
+    r = max(1, int(round(sigma_px * 1.73)))
+    if r % 2 == 0: r += 1
+    k = np.ones(r, np.float64) / r
+    for _ in range(3):
+        w = np.apply_along_axis(lambda row: np.convolve(row, k, mode='same'), 1, w)
+        w = np.apply_along_axis(lambda col: np.convolve(col, k, mode='same'), 0, w)
+    return w.astype(np.float32)
 
 
 """
