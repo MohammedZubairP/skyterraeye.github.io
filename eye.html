@@ -319,7 +319,8 @@ function doSignUp() {
   setSession(email, name);
 
   showOk('su-ok', '✓ Account created! Redirecting to Eye...');
-  setTimeout(() => { window.location.href = 'app.html'; }, 1200);
+  const udata = encodeURIComponent(JSON.stringify({email, name}));
+    setTimeout(() => { window.location.href = 'app.html#' + udata; }, 1200);
 }
 
 // ── Sign In ─────────────────────────────────────────────────────────────────
@@ -339,7 +340,8 @@ function doSignIn() {
 
   setSession(email, user.name);
   showOk('si-ok', `✓ Welcome back, ${user.name}! Redirecting...`);
-  setTimeout(() => { window.location.href = 'app.html'; }, 1000);
+  const udata2 = encodeURIComponent(JSON.stringify({email, name: user.name}));
+  setTimeout(() => { window.location.href = 'app.html#' + udata2; }, 1000);
 }
 
 // ── Auto-redirect if already logged in ──────────────────────────────────────

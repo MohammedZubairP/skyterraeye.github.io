@@ -146,13 +146,26 @@ img{display:block;max-width:100%}
 <!-- Guard: redirect to eye.html if not logged in -->
 <script>
 (function(){
-  try {
-    var s = JSON.parse(localStorage.getItem('ste_session') || 'null');
-    if (!s || !s.ts || (Date.now()-s.ts) > 7*24*60*60*1000) {
-      window.location.href = 'eye.html'; return;
-    }
-    window._user = s;
-  } catch(e) { window.location.href = 'eye.html'; }
+  // Check session from GitHub Pages localStorage
+  var session = null;
+  try { session = JSON.parse(localStorage.getItem('ste_session') || 'null'); } catch(e){}
+
+  // Also check if hash has user info (just redirected from eye.html)
+  var hash = location.hash.slice(1);
+  if (hash) {
+    try {
+      var fromHash = JSON.parse(decodeURIComponent(hash));
+      if (fromHash.email) session = fromHash;
+    } catch(e){}
+  }
+
+  if (!session || !session.email) {
+    window.location.href = 'eye.html'; return;
+  }
+
+  // Forward user to agent, passing name+email as hash so agent doesn't need to re-auth
+  var udata = encodeURIComponent(JSON.stringify(session));
+  window.location.href = 'http://localhost:7842/#' + udata;
 })();
 </script>
 
