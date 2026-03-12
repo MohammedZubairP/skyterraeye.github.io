@@ -163,11 +163,10 @@ img{display:block;max-width:100%}
     window.location.href = 'eye.html'; return;
   }
 
-  // Forward user to agent, passing name+email as hash so agent doesn't need to re-auth
+  // app.html is ALWAYS the Eye agent bridge → port 7842
+  // Terra uses terra_app.html → port 7843
   var udata = encodeURIComponent(JSON.stringify(session));
-  // Check if user came from terra.html (future use)
-  const dest = (document.referrer||'').includes('terra') ? 7843 : 7842;
-  window.location.href = 'http://localhost:' + dest + '/#' + udata;
+  window.location.href = 'http://localhost:7842/#' + udata;
 })();
 </script>
 
