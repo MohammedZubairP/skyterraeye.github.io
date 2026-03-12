@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terra — Photogrammetry Suite | Sky TerraEye</title>
+<link rel="icon" href="assets/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --B:#1FA8D9;--B2:#1482AA;
+  --Bdim:rgba(31,168,217,.12);--Bl:rgba(31,168,217,.22);
+  --G:#F5BE18;
+  --TR:#22C55E;--TRdim:rgba(34,197,94,.1);--TRb:rgba(34,197,94,.25);
+  --D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;
+  --T:#D0E8F5;--M:#5A839E;--Dm:#243D52;
+  --W:#fff;
+  --r:14px;--r2:22px;
+  --e:.32s cubic-bezier(.4,0,.2,1);
+}
+html,body{height:100%}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--T);overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+
+.uae{height:5px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
+
+/* Nav — same as index.html */
+.nav{position:sticky;top:0;z-index:300;background:rgba(4,13,22,.94);backdrop-filter:blur(24px);border-bottom:1px solid rgba(31,168,217,.1)}
+.nw{max-width:1280px;margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:74px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo img{height:32px}
+.logt{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--W)}
+.logt b{color:var(--B)}
+.nl{display:flex;align-items:center;gap:8px}
+.nl a{font-size:14px;font-weight:600;color:var(--M);padding:8px 14px;border-radius:var(--r);transition:var(--e)}
+.nl a:hover{color:var(--W);background:rgba(255,255,255,.06)}
+.eye-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(245,190,24,.1);border:1.5px solid rgba(245,190,24,.35);color:var(--G);font-size:13.5px;font-weight:700;padding:7px 16px;border-radius:999px;transition:var(--e)}
+.eye-btn:hover{background:rgba(245,190,24,.18)}
+.eye-btn svg{width:14px;height:14px}
+.terra-btn{display:inline-flex;align-items:center;gap:7px;background:var(--TRdim);border:1.5px solid var(--TRb);color:var(--TR);font-size:13.5px;font-weight:700;padding:7px 16px;border-radius:999px;transition:var(--e)}
+.terra-btn:hover{background:rgba(34,197,94,.18)}
+.terra-btn svg{width:14px;height:14px}
+.cta{background:var(--B);color:#fff;font-weight:700;padding:8px 18px;border-radius:var(--r)}
+.cta:hover{background:var(--B2)}
+
+/* Hero */
+.hero{min-height:calc(100vh - 79px);display:flex;align-items:center;position:relative;overflow:hidden}
+.hbg{position:absolute;inset:0;background:#071220}
+.hgrid{position:absolute;inset:0;background-image:linear-gradient(rgba(34,197,94,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(34,197,94,.04) 1px,transparent 1px);background-size:52px 52px}
+.hglow{position:absolute;top:-100px;left:10%;width:600px;height:600px;background:radial-gradient(circle,rgba(34,197,94,.08) 0%,transparent 70%);pointer-events:none}
+.hglow2{position:absolute;bottom:-80px;right:5%;width:400px;height:400px;background:radial-gradient(circle,rgba(31,168,217,.06) 0%,transparent 70%);pointer-events:none}
+.hi{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:80px 32px 120px;display:grid;grid-template-columns:1.1fr .9fr;gap:72px;align-items:center;width:100%}
+
+.badge{display:inline-flex;align-items:center;gap:9px;background:var(--TRdim);border:1px solid var(--TRb);color:var(--TR);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:7px 16px;border-radius:999px;margin-bottom:24px}
+.bdot{width:7px;height:7px;border-radius:50%;background:var(--TR);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.55)}}
+h1{font-family:'Syne',sans-serif;font-size:clamp(28px,3.2vw,46px);font-weight:800;line-height:1.1;letter-spacing:-.8px;color:var(--W);margin-bottom:18px}
+h1 .g{color:var(--TR)}
+h1 .b{color:var(--B)}
+.hdesc{font-size:15px;color:var(--M);line-height:1.75;max-width:52ch;margin-bottom:36px}
+
+.hbtns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px}
+.btn-primary{background:var(--TR);color:#fff;font-weight:800;font-size:15px;padding:14px 30px;border-radius:var(--r);display:inline-flex;align-items:center;gap:9px;transition:var(--e);font-family:'Plus Jakarta Sans',sans-serif}
+.btn-primary:hover{background:#16a34a;transform:translateY(-2px);box-shadow:0 10px 28px rgba(34,197,94,.35)}
+.btn-primary svg{width:16px;height:16px}
+.btn-outline{border:2px solid rgba(255,255,255,.18);color:var(--W);font-weight:600;font-size:15px;padding:13px 26px;border-radius:var(--r);display:inline-flex;align-items:center;gap:8px;transition:var(--e)}
+.btn-outline:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.35)}
+
+/* Pipeline steps visual */
+.pipeline{display:flex;flex-direction:column;gap:10px}
+.pstep{background:rgba(10,25,41,.85);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;transition:var(--e);backdrop-filter:blur(16px)}
+.pstep:hover{border-color:rgba(34,197,94,.2);background:rgba(10,25,41,.95)}
+.pstep-num{width:32px;height:32px;border-radius:8px;background:var(--TRdim);border:1px solid var(--TRb);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--TR);flex-shrink:0}
+.pstep-body{flex:1}
+.pstep-t{font-size:13.5px;font-weight:800;color:var(--T);margin-bottom:2px}
+.pstep-d{font-size:11.5px;color:var(--M)}
+.pstep-badge{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+.pb-blue{background:rgba(31,168,217,.1);color:var(--B);border:1px solid rgba(31,168,217,.2)}
+.pb-green{background:var(--TRdim);color:var(--TR);border:1px solid var(--TRb)}
+.pb-gold{background:rgba(245,190,24,.1);color:var(--G);border:1px solid rgba(245,190,24,.25)}
+
+.connector{width:2px;height:10px;background:rgba(34,197,94,.15);margin-left:22px;flex-shrink:0;align-self:flex-start}
+
+/* Features section */
+.sec{padding:88px 0}
+.wrap{max-width:1280px;margin:0 auto;padding:0 32px}
+.lbl{font-size:10.5px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--TR);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.lbl::before{content:'';width:20px;height:2.5px;background:var(--TR);border-radius:2px;flex-shrink:0}
+h2{font-family:'Syne',sans-serif;font-size:clamp(22px,2.4vw,34px);font-weight:800;line-height:1.18;letter-spacing:-.4px;color:var(--W);margin-bottom:14px}
+.sub{font-size:15px;color:var(--M);max-width:62ch;line-height:1.72;margin-bottom:52px}
+.tc{text-align:center}.mx{margin:0 auto}
+
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.fcard{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:var(--r2);padding:26px;transition:var(--e)}
+.fcard:hover{border-color:rgba(34,197,94,.2);transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,.4)}
+.fic{width:44px;height:44px;border-radius:12px;background:var(--TRdim);border:1px solid var(--TRb);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.fic svg{width:20px;height:20px;color:var(--TR)}
+.fic.blue{background:var(--Bdim);border-color:var(--Bl)}
+.fic.blue svg{color:var(--B)}
+.fic.gold{background:rgba(245,190,24,.1);border-color:rgba(245,190,24,.25)}
+.fic.gold svg{color:var(--G)}
+.fcard h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--W);margin-bottom:9px}
+.fcard p{font-size:13px;color:var(--M);line-height:1.7}
+
+/* Setup section */
+.setup-sec{background:var(--D2);border-top:1px solid rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.04)}
+.setup-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px}
+.sstep{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:var(--r2);padding:26px;position:relative}
+.snum{width:36px;height:36px;border-radius:10px;background:var(--TR);color:#fff;font-family:'Syne',sans-serif;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.sstep h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--W);margin-bottom:8px}
+.sstep p{font-size:13px;color:var(--M);line-height:1.65}
+.code-block{background:#020B15;border:1px solid rgba(34,197,94,.12);border-radius:9px;padding:12px 14px;font-family:'Courier New',monospace;font-size:12px;color:#4ADE80;margin-top:12px;line-height:1.8}
+.dl-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.dl-btn{display:inline-flex;align-items:center;gap:7px;background:var(--TRdim);border:1px solid var(--TRb);color:var(--TR);font-size:12px;font-weight:700;padding:8px 14px;border-radius:8px;transition:var(--e);cursor:pointer}
+.dl-btn:hover{background:rgba(34,197,94,.2)}
+.dl-btn svg{width:13px;height:13px}
+
+/* CTA */
+.cta-band{background:linear-gradient(135deg,rgba(34,197,94,.08) 0%,transparent 60%);border:1px solid rgba(34,197,94,.15);border-radius:24px;padding:64px;display:flex;align-items:center;justify-content:space-between;gap:40px;margin:80px 0}
+.cta-band h2{max-width:28ch}
+.cta-band h2 span{color:var(--TR)}
+
+/* Footer */
+.footer{background:#03080F;border-top:1px solid rgba(31,168,217,.08);padding:40px 0 28px}
+.fbot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--Dm)}
+
+@media(max-width:1000px){.hi{grid-template-columns:1fr}.pipeline{display:none}.feat-grid{grid-template-columns:1fr 1fr}.setup-steps{grid-template-columns:1fr}}
+@media(max-width:640px){.feat-grid{grid-template-columns:1fr}.cta-band{flex-direction:column;padding:36px 24px}}
+</style>
+</head>
+<body>
+
+<div class="uae"></div>
+
+<nav class="nav">
+  <div class="nw">
+    <a class="logo" href="index.html">
+      <img src="assets/img/logo.png" alt="Sky TerraEye">
+      <div class="logt"><b>SKY</b> TERRAEYE</div>
+    </a>
+    <div class="nl">
+      <a href="index.html">Home</a>
+      <a href="index.html#services">Services</a>
+      <a class="eye-btn" href="eye.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Eye
+      </a>
+      <a class="terra-btn" href="terra.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        Terra
+      </a>
+      <a class="cta" href="contact.html">Get a Quote</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hbg"></div>
+  <div class="hgrid"></div>
+  <div class="hglow"></div>
+  <div class="hglow2"></div>
+  <div class="hi">
+    <div>
+      <div class="badge"><div class="bdot"></div>Photogrammetry Suite</div>
+      <h1>Full SfM Pipeline.<br><span class="g">On Your Machine.</span><br><span class="b">Zero Cloud.</span></h1>
+      <p class="hdesc">Terra runs OpenDroneMap on your own workstation via Docker — Align, Dense Cloud, DSM/DTM, and Orthomosaic. No subscription. No data upload. No limits.</p>
+      <div class="hbtns">
+        <a class="btn-primary" href="terra_app.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+          Launch Terra
+        </a>
+        <a class="btn-outline" href="#setup">Setup Guide →</a>
+      </div>
+    </div>
+    <div class="pipeline">
+      <div class="pstep">
+        <div class="pstep-num">1</div>
+        <div class="pstep-body">
+          <div class="pstep-t">Align — Structure from Motion</div>
+          <div class="pstep-d">Feature extraction, matching, camera pose reconstruction</div>
+        </div>
+        <div class="pstep-badge pb-blue">SfM</div>
+      </div>
+      <div class="connector"></div>
+      <div class="pstep">
+        <div class="pstep-num">2</div>
+        <div class="pstep-body">
+          <div class="pstep-t">Dense — Point Cloud</div>
+          <div class="pstep-d">MVS depth maps, fusion, LAZ/PLY output</div>
+        </div>
+        <div class="pstep-badge pb-green">MVS</div>
+      </div>
+      <div class="connector"></div>
+      <div class="pstep">
+        <div class="pstep-num">3</div>
+        <div class="pstep-body">
+          <div class="pstep-t">DSM / DTM — Elevation</div>
+          <div class="pstep-d">Surface + bare-earth rasters, hillshade GeoTIFF</div>
+        </div>
+        <div class="pstep-badge pb-gold">DEM</div>
+      </div>
+      <div class="connector"></div>
+      <div class="pstep">
+        <div class="pstep-num">4</div>
+        <div class="pstep-body">
+          <div class="pstep-t">Orthomosaic — Final Map</div>
+          <div class="pstep-d">Orthorectified, radiometrically balanced GeoTIFF</div>
+        </div>
+        <div class="pstep-badge pb-green">GeoTIFF</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="sec">
+  <div class="wrap">
+    <div class="lbl">Capabilities</div>
+    <h2 class="tc mx">Everything in one pipeline</h2>
+    <p class="sub tc mx">Powered by OpenDroneMap — the same engine used by professional mapping firms worldwide. No seat licence. No per-project fee.</p>
+    <div class="feat-grid">
+      <div class="fcard">
+        <div class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></div>
+        <h3>Structure from Motion</h3>
+        <p>FLANN feature matching + bundle adjustment across hundreds of overlapping images. Fast, medium, or accurate quality presets.</p>
+      </div>
+      <div class="fcard">
+        <div class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
+        <h3>Dense Point Cloud</h3>
+        <p>Multi-view stereo depth maps fused into a dense LAZ or PLY point cloud — ready for QGIS, CloudCompare, or AutoCAD.</p>
+      </div>
+      <div class="fcard">
+        <div class="fic blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18M3 21V3m18 0v18"/></svg></div>
+        <h3>DSM + DTM + Hillshade</h3>
+        <p>Digital surface and bare-earth models at auto or custom resolution. SMRF ground filtering. GDAL hillshade overlay.</p>
+      </div>
+      <div class="fcard">
+        <div class="fic gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h18"/></svg></div>
+        <h3>Georeferenced Orthomosaic</h3>
+        <p>5 cm/px default resolution. EPSG projected, DEFLATE compressed, with radiometric balance and p2/p98 stretch.</p>
+      </div>
+      <div class="fcard">
+        <div class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <h3>Runs 100% Locally</h3>
+        <p>Your images never leave the workstation. No API keys, no cloud subscription, no data transfer. Docker runs entirely offline after setup.</p>
+      </div>
+      <div class="fcard">
+        <div class="fic blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <h3>Works alongside Eye</h3>
+        <p>Use Eye for thermal drone stitching and Terra for full RGB photogrammetry — both run simultaneously on the same machine, different ports.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Setup guide -->
+<section class="sec setup-sec" id="setup">
+  <div class="wrap">
+    <div class="lbl">One-time setup</div>
+    <h2>Ready in 10 minutes</h2>
+    <p class="sub">Terra uses Docker to run ODM — no Python environment needed beyond Flask. Install once, use forever.</p>
+    <div class="setup-steps">
+      <div class="sstep">
+        <div class="snum">1</div>
+        <h3>Install Docker Desktop</h3>
+        <p>Free download for Windows and Mac. Installs the Docker engine that runs ODM in an isolated container.</p>
+        <div class="dl-row">
+          <a class="dl-btn" href="https://www.docker.com/products/docker-desktop/" target="_blank">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Docker Desktop
+          </a>
+        </div>
+      </div>
+      <div class="sstep">
+        <div class="snum">2</div>
+        <h3>Download Terra agent</h3>
+        <p>Download the agent files below, place them in a folder on your workstation alongside the Eye agent files.</p>
+        <div class="dl-row">
+          <a class="dl-btn" href="agent/terra_agent.py" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            terra_agent.py
+          </a>
+          <a class="dl-btn" href="agent/terra_launch.bat" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            terra_launch.bat
+          </a>
+        </div>
+      </div>
+      <div class="sstep">
+        <div class="snum">3</div>
+        <h3>Pull ODM + launch</h3>
+        <p>Double-click <code style="color:#86EFAC;font-size:11px">terra_launch.bat</code>. Terra will guide you through pulling the ODM image (one-time, ~2 GB), then open the platform automatically.</p>
+        <div class="code-block">
+          docker pull opendronemap/odm<br>
+          python terra_agent.py
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="sec">
+  <div class="wrap">
+    <div class="cta-band">
+      <div>
+        <div class="lbl">Get started</div>
+        <h2>Ready to map your <span>first project?</span></h2>
+        <p style="font-size:15px;color:var(--M);margin-top:10px">Sign in with your Eye account — same login, same team, different tool.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;flex-shrink:0">
+        <a class="btn-primary" href="terra_app.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+          Launch Terra
+        </a>
+        <a class="btn-outline" href="contact.html" style="justify-content:center">Questions? Contact us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="fbot">
+      <div>© 2025 Sky TerraEye. All rights reserved.</div>
+      <div style="display:flex;gap:20px">
+        <a href="index.html" style="color:var(--M);transition:color .2s" onmouseover="this.style.color='var(--T)'" onmouseout="this.style.color='var(--M)'">Home</a>
+        <a href="eye.html" style="color:var(--M);transition:color .2s" onmouseover="this.style.color='var(--T)'" onmouseout="this.style.color='var(--M)'">Eye</a>
+        <a href="terra.html" style="color:var(--TR)">Terra</a>
+        <a href="contact.html" style="color:var(--M);transition:color .2s" onmouseover="this.style.color='var(--T)'" onmouseout="this.style.color='var(--M)'">Contact</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

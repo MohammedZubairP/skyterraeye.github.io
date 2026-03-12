@@ -165,7 +165,9 @@ img{display:block;max-width:100%}
 
   // Forward user to agent, passing name+email as hash so agent doesn't need to re-auth
   var udata = encodeURIComponent(JSON.stringify(session));
-  window.location.href = 'http://localhost:7842/#' + udata;
+  // Check if user came from terra.html (future use)
+  const dest = (document.referrer||'').includes('terra') ? 7843 : 7842;
+  window.location.href = 'http://localhost:' + dest + '/#' + udata;
 })();
 </script>
 

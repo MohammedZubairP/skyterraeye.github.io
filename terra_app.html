@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Opening Terra…</title>
+<style>
+body{background:#071220;font-family:'Plus Jakarta Sans',sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#5A839E}
+.wrap{text-align:center}
+.spin{width:36px;height:36px;border:3px solid rgba(34,197,94,.15);border-top-color:#22C55E;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+p{font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="spin"></div>
+  <p>Opening Terra Platform…</p>
+</div>
+<script>
+(function(){
+  // Read session (from hash or localStorage)
+  var session = null;
+  var hash = location.hash.slice(1);
+  if (hash) {
+    try {
+      var h = JSON.parse(decodeURIComponent(hash));
+      if (h.email) { h.ts=Date.now(); session=h; }
+    } catch(e){}
+  }
+  if (!session) {
+    try { session = JSON.parse(localStorage.getItem('ste_session')||'null'); } catch(e){}
+  }
+  if (!session || !session.email) {
+    window.location.href = 'eye.html'; return;
+  }
+  var udata = encodeURIComponent(JSON.stringify(session));
+  window.location.href = 'http://localhost:7843/#' + udata;
+})();
+</script>
+</body>
+</html>
