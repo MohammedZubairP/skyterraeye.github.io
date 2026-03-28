@@ -117,8 +117,23 @@ button{font-family:'Plus Jakarta Sans',sans-serif}
 .zb{width:30px;height:30px;background:rgba(10,25,41,.88);border:1px solid var(--cb);border-radius:4px;color:var(--M);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .12s}
 .zb:hover{background:var(--Bdim);color:var(--B)}
 
-/* Selection box */
-#selbox{position:absolute;border:1px dashed var(--Strata);background:rgba(167,139,250,.05);pointer-events:none;display:none}
+/* Selection box — two AutoCAD modes */
+#selbox{position:absolute;pointer-events:none;display:none}
+#selbox.window{
+  border:1px solid #4fa8ff;
+  background:rgba(30,100,220,.08);
+}
+#selbox.crossing{
+  border:1px dashed #4eff91;
+  background:rgba(30,220,100,.06);
+}
+/* Selection count badge */
+#selCount{position:absolute;top:10px;right:10px;background:rgba(6,14,26,.9);border:1px solid var(--cb);border-radius:4px;padding:3px 9px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--M);display:none}
+#selCount span{color:#F5BE18;font-weight:700}
+/* Selection mode hint */
+#selMode{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(6,14,26,.9);border:1px solid var(--cb);border-radius:4px;padding:4px 12px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;pointer-events:none;display:none;white-space:nowrap}
+#selMode.window{color:#4fa8ff;border-color:rgba(79,168,255,.3)}
+#selMode.crossing{color:#4eff91;border-color:rgba(78,255,145,.3)}
 
 /* Drop zone */
 #dz{display:none;position:absolute;inset:0;background:rgba(167,139,250,.06);border:3px dashed var(--Strata);z-index:80;align-items:center;justify-content:center;pointer-events:none}
@@ -262,6 +277,70 @@ button{font-family:'Plus Jakarta Sans',sans-serif}
 .attr-add{margin-top:7px;font-size:10.5px;color:var(--Strata);background:none;border:1px dashed var(--StrataL);border-radius:3px;padding:3px 9px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .1s}
 .attr-add:hover{background:var(--StrataDim)}
 
+
+/* ── Toolbar size CSS vars ── */
+:root{--tb-w:40px;--tb-btn:32px;--tb-ico:14px}
+body.tb-sm{--tb-w:30px;--tb-btn:24px;--tb-ico:11px}
+body.tb-lg{--tb-w:56px;--tb-btn:46px;--tb-ico:20px}
+.toolbox{width:var(--tb-w)!important}
+.tb2{width:var(--tb-btn)!important;height:var(--tb-btn)!important;font-size:var(--tb-ico)!important}
+body.rb-sm .ribbon{height:46px}
+body.rb-lg .ribbon{height:88px}
+body.rb-sm .rb-ico{font-size:12px!important}
+body.rb-lg .rb-ico{font-size:20px!important}
+body.rb-sm .rg-lbl{font-size:7px}
+body.rb-lg .rg-lbl{font-size:10px}
+
+/* ── Ribbon tab strip ── */
+.rib-tab-strip{display:flex;background:#060F1C;border-bottom:1px solid rgba(31,168,217,.07);flex-shrink:0;overflow-x:auto}
+.rib-tab-strip::-webkit-scrollbar{height:0}
+.rib-tab-strip.rhidden,.ribbon.rhidden{display:none!important}
+.rstab{background:none;border:none;border-bottom:2px solid transparent;padding:3px 13px;font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;color:var(--M);transition:all .14s;white-space:nowrap;font-family:'IBM Plex Mono',monospace}
+.rstab:hover{color:var(--T)}
+.rstab.act{color:var(--Strata);border-bottom-color:var(--Strata);background:rgba(167,139,250,.04)}
+.rib-content{display:none;height:calc(100% - 1px);align-items:stretch;padding:0 3px}
+.rib-content.act{display:flex}
+
+/* ── Menu group dividers ── */
+.tb-mg{display:flex;align-items:stretch;border-right:1px solid rgba(31,168,217,.06);padding:0 2px}
+.tb-mg-lbl{font-size:8px;color:rgba(90,131,158,.4);letter-spacing:.7px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;padding:0 4px;border-right:1px solid rgba(31,168,217,.04);margin-right:2px;white-space:nowrap}
+
+/* ── Entity hover tooltip ── */
+#eTip{position:absolute;background:#091625;border:1px solid var(--Strata);border-radius:5px;padding:6px 11px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;pointer-events:none;display:none;z-index:95;box-shadow:0 4px 22px rgba(0,0,0,.6);min-width:155px}
+#eTip .etH{color:var(--Strata);font-weight:700;font-size:10px;margin-bottom:4px;letter-spacing:.4px}
+#eTip .etR{color:var(--M);display:flex;justify-content:space-between;gap:10px;font-size:9px;margin-bottom:2px}
+#eTip .etR .etV{color:var(--T)}
+
+/* ── Units pill in topbar ── */
+.unit-pill{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--G);background:rgba(245,190,24,.06);border:1px solid rgba(245,190,24,.2);padding:3px 9px;border-radius:4px;cursor:pointer;transition:all .12s;white-space:nowrap}
+.unit-pill:hover{background:rgba(245,190,24,.12);border-color:rgba(245,190,24,.4)}
+
+/* ── Settings modal tabs ── */
+.set-tab-bar{display:flex;background:rgba(0,0,0,.12);border-bottom:1px solid var(--cb);flex-shrink:0}
+.set-tab{background:none;border:none;border-bottom:2px solid transparent;padding:8px 14px;font-size:9.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;cursor:pointer;color:var(--M);transition:all .12s;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.set-tab:hover{color:var(--T)}
+.set-tab.act{color:var(--Strata);border-bottom-color:var(--Strata)}
+.set-pane{display:none;padding:14px 16px}
+.set-pane.act{display:block}
+
+/* ── Toolbar visibility ── */
+.toolbox.thidden{display:none!important}
+.rpanel.rhidden{display:none!important}
+
+/* ── Size cards ── */
+.sz-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:11px}
+.sz-c{padding:9px 6px;background:var(--cp);border:1px solid var(--cb);border-radius:4px;text-align:center;cursor:pointer;transition:all .1s;font-size:10px;color:var(--M)}
+.sz-c:hover,.sz-c.sel{border-color:var(--StrataL);background:var(--StrataDim);color:var(--Strata)}
+.sz-ico{font-size:16px;margin-bottom:3px}
+
+/* bg swatches */
+.bg-swatches{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.bg-sw{width:30px;height:20px;border-radius:3px;border:2px solid transparent;cursor:pointer;transition:border-color .1s}
+.bg-sw:hover,.bg-sw.sel{border-color:var(--Strata)}
+
+/* units badge on canvas */
+.cbadge.gold span{color:var(--G)}
+
 /* Scrollbars global */
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -289,105 +368,217 @@ button{font-family:'Plus Jakarta Sans',sans-serif}
     </div>
   </div>
 
-  <!-- Menus -->
+  <!-- Menus — grouped like AutoCAD -->
   <div class="tb-menus">
-    <div class="tb-menu">
-      <button class="tb-menu-btn" onclick="openMo('moImport')">File</button>
-      <div class="tb-dropdown">
-        <div class="tb-dd-item" onclick="openMo('moImport')">📂 Import Drawing <span class="tb-ks">Ctrl+O</span></div>
-        <div class="tb-dd-item" onclick="openMo('moExport')">💾 Export Drawing <span class="tb-ks">Ctrl+E</span></div>
-        <div class="tb-dd-item" onclick="openMo('moExportLayers')">📤 Export Layers</div>
-        <div class="tb-dd-item" onclick="openMo('moExportAttrs')">🏷️ Export Attributes</div>
-        <div class="tb-dd-sep"></div>
-        <div class="tb-dd-item">🖨️ Print / Plot <span class="tb-ks">Ctrl+P</span></div>
-        <div class="tb-dd-item">📸 Publish PDF</div>
-        <div class="tb-dd-sep"></div>
-        <div class="tb-dd-item">⚙️ Drawing Properties</div>
+    <!-- FILE group -->
+    <div class="tb-mg">
+      <span class="tb-mg-lbl">FILE</span>
+      <div class="tb-menu">
+        <button class="tb-menu-btn">File ▾</button>
+        <div class="tb-dropdown">
+          <div class="tb-dd-item" onclick="openMo('moImport')">📂 Import Drawing <span class="tb-ks">Ctrl+O</span></div>
+          <div class="tb-dd-item" onclick="openMo('moExport')">💾 Export Drawing <span class="tb-ks">Ctrl+E</span></div>
+          <div class="tb-dd-item" onclick="openMo('moExportLayers')">📤 Export Layers</div>
+          <div class="tb-dd-item" onclick="openMo('moExportAttrs')">🏷️ Export Attributes</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item" onclick="openMo('moSettings')">⚙️ Drawing Settings <span class="tb-ks">Ctrl+,</span></div>
+          <div class="tb-dd-item">🖨️ Print / Plot <span class="tb-ks">Ctrl+P</span></div>
+          <div class="tb-dd-item">📸 Publish PDF</div>
+        </div>
+      </div>
+      <div class="tb-menu">
+        <button class="tb-menu-btn">Edit ▾</button>
+        <div class="tb-dropdown">
+          <div class="tb-dd-item">↩️ Undo <span class="tb-ks">Ctrl+Z</span></div>
+          <div class="tb-dd-item">↪️ Redo <span class="tb-ks">Ctrl+Y</span></div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item">📋 Copy <span class="tb-ks">Ctrl+C</span></div>
+          <div class="tb-dd-item">✂️ Cut</div>
+          <div class="tb-dd-item">📌 Paste</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item" onclick="openMo('moExplode')">💥 Explode</div>
+          <div class="tb-dd-item">🔍 Find &amp; Replace</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item" onclick="openMo('moSettings')">⚙️ Edit Drawing Settings</div>
+        </div>
       </div>
     </div>
-    <div class="tb-menu">
-      <button class="tb-menu-btn">Edit</button>
-      <div class="tb-dropdown">
-        <div class="tb-dd-item">↩️ Undo <span class="tb-ks">Ctrl+Z</span></div>
-        <div class="tb-dd-item">↪️ Redo <span class="tb-ks">Ctrl+Y</span></div>
-        <div class="tb-dd-sep"></div>
-        <div class="tb-dd-item">📋 Copy <span class="tb-ks">Ctrl+C</span></div>
-        <div class="tb-dd-item">✂️ Cut <span class="tb-ks">Ctrl+X</span></div>
-        <div class="tb-dd-item">📌 Paste <span class="tb-ks">Ctrl+V</span></div>
-        <div class="tb-dd-sep"></div>
-        <div class="tb-dd-item" onclick="openMo('moExplode')">💥 Explode</div>
-        <div class="tb-dd-item">🔍 Find &amp; Replace</div>
+    <!-- VIEW group -->
+    <div class="tb-mg">
+      <span class="tb-mg-lbl">VIEW</span>
+      <div class="tb-menu">
+        <button class="tb-menu-btn">View ▾</button>
+        <div class="tb-dropdown">
+          <div class="tb-dd-item" onclick="showPanel('layers')">📋 Layer Manager</div>
+          <div class="tb-dd-item" onclick="zoomExt()">🔭 Zoom Extents</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item" onclick="toggleGrid()">⊞ Toggle Grid</div>
+          <div class="tb-dd-item" onclick="toggleSnap()">🧲 Toggle Snap</div>
+          <div class="tb-dd-item" onclick="toggleOrtho()">📏 Toggle Ortho</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item" onclick="uiToggleToolbox()">🔧 Show/Hide Toolbox</div>
+          <div class="tb-dd-item" onclick="uiToggleRibbon()">▦ Show/Hide Ribbon</div>
+          <div class="tb-dd-item" onclick="uiToggleRpanel()">▷ Show/Hide Properties</div>
+        </div>
+      </div>
+      <div class="tb-menu">
+        <button class="tb-menu-btn">Format ▾</button>
+        <div class="tb-dropdown">
+          <div class="tb-dd-item" onclick="showPanel('layers')">📋 Layer Manager</div>
+          <div class="tb-dd-item">🖊️ Linetype Manager</div>
+          <div class="tb-dd-item">⬛ Lineweight</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item">🔤 Text Style</div>
+          <div class="tb-dd-item">📏 Dimension Style</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item" onclick="openMo('moSettings');setTimeout(()=>openSetTab('units'),60)">📐 Units</div>
+        </div>
       </div>
     </div>
-    <div class="tb-menu">
-      <button class="tb-menu-btn">View</button>
-      <div class="tb-dropdown">
-        <div class="tb-dd-item" onclick="showPanel('layers')">📋 Layer Manager</div>
-        <div class="tb-dd-item" onclick="zoomExt()">🔭 Zoom Extents <span class="tb-ks">Z→E</span></div>
-        <div class="tb-dd-sep"></div>
-        <div class="tb-dd-item" onclick="toggleGrid()">🟩 Toggle Grid</div>
-        <div class="tb-dd-item" onclick="toggleSnap()">🧲 Toggle Snap</div>
-        <div class="tb-dd-item" onclick="toggleOrtho()">📏 Toggle Ortho</div>
+    <!-- DRAW group -->
+    <div class="tb-mg">
+      <span class="tb-mg-lbl">DRAW</span>
+      <div class="tb-menu">
+        <button class="tb-menu-btn">Draw ▾</button>
+        <div class="tb-dropdown">
+          <div class="tb-dd-item" onclick="setTool('line')">⁄ Line <span class="tb-ks">L</span></div>
+          <div class="tb-dd-item" onclick="setTool('polyline')">〰 Polyline <span class="tb-ks">PL</span></div>
+          <div class="tb-dd-item" onclick="setTool('spline')">≈ Spline</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item" onclick="setTool('circle')">○ Circle <span class="tb-ks">C</span></div>
+          <div class="tb-dd-item" onclick="setTool('arc')">◠ Arc <span class="tb-ks">A</span></div>
+          <div class="tb-dd-item" onclick="setTool('rect')">▭ Rectangle <span class="tb-ks">REC</span></div>
+          <div class="tb-dd-item" onclick="setTool('ellipse')">◎ Ellipse</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item" onclick="setTool('hatch')">▩ Hatch/Fill <span class="tb-ks">H</span></div>
+        </div>
       </div>
     </div>
-    <div class="tb-menu">
-      <button class="tb-menu-btn">Modify</button>
-      <div class="tb-dropdown">
-        <div class="tb-dd-item" onclick="setTool('move')">✥ Move <span class="tb-ks">M</span></div>
-        <div class="tb-dd-item" onclick="setTool('copy')">📋 Copy <span class="tb-ks">CO</span></div>
-        <div class="tb-dd-item" onclick="setTool('rotate')">🔄 Rotate <span class="tb-ks">RO</span></div>
-        <div class="tb-dd-item" onclick="setTool('scale')">⚖️ Scale <span class="tb-ks">SC</span></div>
-        <div class="tb-dd-item" onclick="setTool('mirror')">🪞 Mirror <span class="tb-ks">MI</span></div>
-        <div class="tb-dd-item" onclick="setTool('offset')">↔ Offset <span class="tb-ks">O</span></div>
-        <div class="tb-dd-item" onclick="setTool('trim')">✂️ Trim <span class="tb-ks">TR</span></div>
-        <div class="tb-dd-item" onclick="setTool('extend')">➡️ Extend <span class="tb-ks">EX</span></div>
-        <div class="tb-dd-sep"></div>
-        <div class="tb-dd-item" onclick="openMo('moArray')">🔲 Array <span class="tb-ks">AR</span></div>
-        <div class="tb-dd-item" onclick="toast('Fillet applied','ok')">🔀 Fillet <span class="tb-ks">F</span></div>
-        <div class="tb-dd-item" onclick="toast('Chamfer applied','ok')">✂️ Chamfer</div>
+    <!-- MODIFY group -->
+    <div class="tb-mg">
+      <span class="tb-mg-lbl">MODIFY</span>
+      <div class="tb-menu">
+        <button class="tb-menu-btn">Modify ▾</button>
+        <div class="tb-dropdown">
+          <div class="tb-dd-item" onclick="setTool('move')">✥ Move <span class="tb-ks">M</span></div>
+          <div class="tb-dd-item" onclick="setTool('copy')">❑ Copy <span class="tb-ks">CO</span></div>
+          <div class="tb-dd-item" onclick="setTool('rotate')">↻ Rotate <span class="tb-ks">RO</span></div>
+          <div class="tb-dd-item" onclick="setTool('scale')">⤡ Scale <span class="tb-ks">SC</span></div>
+          <div class="tb-dd-item" onclick="setTool('mirror')">⇌ Mirror <span class="tb-ks">MI</span></div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item" onclick="setTool('offset')">⊏ Offset <span class="tb-ks">O</span></div>
+          <div class="tb-dd-item" onclick="setTool('trim')">✂ Trim <span class="tb-ks">TR</span></div>
+          <div class="tb-dd-item" onclick="setTool('extend')">⇒ Extend <span class="tb-ks">EX</span></div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item" onclick="openMo('moArray')">🔲 Array <span class="tb-ks">AR</span></div>
+          <div class="tb-dd-item" onclick="toast('Fillet','ok')">🔀 Fillet</div>
+          <div class="tb-dd-item" onclick="toast('Chamfer','ok')">✂️ Chamfer</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item" onclick="openMo('moExplode')">💥 Explode</div>
+          <div class="tb-dd-item" onclick="delSel()">🗑️ Delete <span class="tb-ks">Del</span></div>
+        </div>
       </div>
     </div>
-    <div class="tb-menu">
-      <button class="tb-menu-btn">Insert</button>
-      <div class="tb-dropdown">
-        <div class="tb-dd-item" onclick="openMo('moBlock')">🧱 Insert Block <span class="tb-ks">I</span></div>
-        <div class="tb-dd-item">📦 Xref Attach</div>
-        <div class="tb-dd-item">🖼️ Raster Image</div>
-        <div class="tb-dd-item">📄 PDF Underlay</div>
-        <div class="tb-dd-sep"></div>
-        <div class="tb-dd-item">📍 Point Cloud</div>
+    <!-- ANNOTATE group -->
+    <div class="tb-mg">
+      <span class="tb-mg-lbl">ANNOTATE</span>
+      <div class="tb-menu">
+        <button class="tb-menu-btn">Annotate ▾</button>
+        <div class="tb-dropdown">
+          <div class="tb-dd-item" onclick="setTool('text')">📝 MText <span class="tb-ks">MT</span></div>
+          <div class="tb-dd-item" onclick="setTool('text')">✏️ Single Line Text</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item" onclick="setTool('dim-linear')">📐 Linear Dim</div>
+          <div class="tb-dd-item" onclick="setTool('dim-radius')">⭕ Radius Dim</div>
+          <div class="tb-dd-item" onclick="setTool('dim-angular')">∡ Angular Dim</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item" onclick="setTool('leader')">🏷️ Multileader</div>
+          <div class="tb-dd-item" onclick="setTool('hatch')">🌫️ Hatch/Fill</div>
+        </div>
+      </div>
+      <div class="tb-menu">
+        <button class="tb-menu-btn">Insert ▾</button>
+        <div class="tb-dropdown">
+          <div class="tb-dd-item" onclick="openMo('moBlock')">🧱 Insert Block <span class="tb-ks">I</span></div>
+          <div class="tb-dd-item" onclick="openMo('moBlockEdit')">✏️ Block Editor</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item">📦 Xref Attach</div>
+          <div class="tb-dd-item">🖼️ Raster Image</div>
+          <div class="tb-dd-item">📄 PDF Underlay</div>
+          <div class="tb-dd-item">📍 Point Cloud</div>
+        </div>
       </div>
     </div>
-    <div class="tb-menu">
-      <button class="tb-menu-btn">Annotate</button>
-      <div class="tb-dropdown">
-        <div class="tb-dd-item" onclick="setTool('text')">📝 MText <span class="tb-ks">MT</span></div>
-        <div class="tb-dd-item" onclick="setTool('text')">✏️ Single Line Text</div>
-        <div class="tb-dd-sep"></div>
-        <div class="tb-dd-item" onclick="setTool('dim-linear')">📐 Linear Dimension</div>
-        <div class="tb-dd-item" onclick="setTool('dim-radius')">⭕ Radius Dimension</div>
-        <div class="tb-dd-item" onclick="setTool('dim-angular')">📐 Angular Dimension</div>
-        <div class="tb-dd-sep"></div>
-        <div class="tb-dd-item" onclick="setTool('leader')">🏷️ Multileader</div>
-        <div class="tb-dd-item" onclick="setTool('hatch')">🌫️ Hatch / Fill</div>
+    <!-- CIVIL 3D group -->
+    <div class="tb-mg">
+      <span class="tb-mg-lbl" style="color:rgba(245,190,24,.4)">CIVIL 3D</span>
+      <div class="tb-menu">
+        <button class="tb-menu-btn" style="color:var(--G)">Surfaces ▾</button>
+        <div class="tb-dropdown">
+          <div class="tb-dd-item" onclick="openMo('moCivil')">🏔️ Create Surface</div>
+          <div class="tb-dd-item" onclick="openMo('moCivil')">〰️ Contours</div>
+          <div class="tb-dd-item" onclick="openMo('moCivil')">📦 Volume Surface</div>
+          <div class="tb-dd-item" onclick="openMo('moCivil')">📊 Analysis</div>
+        </div>
+      </div>
+      <div class="tb-menu">
+        <button class="tb-menu-btn" style="color:var(--G)">Roads ▾</button>
+        <div class="tb-dropdown">
+          <div class="tb-dd-item" onclick="openMo('moCivil')">📍 Alignment</div>
+          <div class="tb-dd-item" onclick="openMo('moCivil')">📈 Profile/View</div>
+          <div class="tb-dd-item" onclick="openMo('moCivil')">🌊 Corridor</div>
+          <div class="tb-dd-item" onclick="openMo('moCivil')">📏 Section View</div>
+        </div>
+      </div>
+      <div class="tb-menu">
+        <button class="tb-menu-btn" style="color:var(--G)">Utilities ▾</button>
+        <div class="tb-dropdown">
+          <div class="tb-dd-item" onclick="openMo('moCivil')">💧 Pipe Network</div>
+          <div class="tb-dd-item" onclick="openMo('moCivil')">⛲ Pressure Net</div>
+          <div class="tb-dd-item" onclick="openMo('moCivil')">🏗️ Grading</div>
+          <div class="tb-dd-item" onclick="openMo('moCivil')">🌧️ Catchments</div>
+        </div>
+      </div>
+      <div class="tb-menu">
+        <button class="tb-menu-btn" style="color:var(--G)">Survey ▾</button>
+        <div class="tb-dropdown">
+          <div class="tb-dd-item" onclick="openMo('moCivil')">📌 Points/Groups</div>
+          <div class="tb-dd-item" onclick="openMo('moCivil')">📡 Survey Data</div>
+          <div class="tb-dd-item" onclick="openMo('moCivil')">🗺️ GIS Features</div>
+          <div class="tb-dd-item" onclick="openMo('moCivil')">🔲 Parcels</div>
+        </div>
       </div>
     </div>
-    <div class="tb-menu">
-      <button class="tb-menu-btn" style="color:var(--G)">Civil 3D</button>
-      <div class="tb-dropdown">
-        <div class="tb-dd-item" onclick="openMo('moCivil')">🏔️ Surfaces</div>
-        <div class="tb-dd-item" onclick="openMo('moCivil')">📍 Alignments</div>
-        <div class="tb-dd-item" onclick="openMo('moCivil')">📈 Profiles</div>
-        <div class="tb-dd-item" onclick="openMo('moCivil')">🌊 Corridors</div>
-        <div class="tb-dd-item" onclick="openMo('moCivil')">💧 Pipe Networks</div>
-        <div class="tb-dd-item" onclick="openMo('moCivil')">🏗️ Grading</div>
-        <div class="tb-dd-item" onclick="openMo('moCivil')">📌 Points / Point Groups</div>
-        <div class="tb-dd-item" onclick="openMo('moCivil')">🗺️ GIS Data</div>
+    <!-- TOOLS group -->
+    <div class="tb-mg">
+      <span class="tb-mg-lbl">TOOLS</span>
+      <div class="tb-menu">
+        <button class="tb-menu-btn">Tools ▾</button>
+        <div class="tb-dropdown">
+          <div class="tb-dd-item" onclick="setTool('measure-dist')">📏 Distance <span class="tb-ks">DI</span></div>
+          <div class="tb-dd-item" onclick="setTool('measure-area')">📐 Area <span class="tb-ks">AA</span></div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item">📊 Drawing Audit</div>
+          <div class="tb-dd-item">🧹 Purge Unused</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item" onclick="openMo('moSettings')">⚙️ Drawing Settings <span class="tb-ks">Ctrl+,</span></div>
+        </div>
+      </div>
+      <div class="tb-menu">
+        <button class="tb-menu-btn">Help ▾</button>
+        <div class="tb-dropdown">
+          <div class="tb-dd-item">📘 Keyboard Shortcuts</div>
+          <div class="tb-dd-item">🌐 Sky TerraEye Website</div>
+          <div class="tb-dd-sep"></div>
+          <div class="tb-dd-item">ℹ️ About Strata</div>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="tb-right">
+    <button class="unit-pill" id="unitPill" onclick="openMo('moSettings')" title="Click to change units">mm</button>
+    <button style="background:none;border:1px solid var(--cb);border-radius:4px;padding:3px 8px;color:var(--M);cursor:pointer;font-size:12px" onclick="openMo('moSettings')" title="Drawing Settings">⚙️</button>
     <div class="coord-pill" id="coordPill">X: 0.000 &nbsp;&nbsp; Y: 0.000</div>
     <a class="tb-back" href="index.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
@@ -396,8 +587,18 @@ button{font-family:'Plus Jakarta Sans',sans-serif}
   </div>
 </div>
 
+<!-- Ribbon tab strip -->
+<div class="rib-tab-strip" id="ribTabStrip">
+  <button class="rstab act" onclick="switchRibTab('home')" id="rt-home">Home</button>
+  <button class="rstab" onclick="switchRibTab('insert')" id="rt-insert">Insert</button>
+  <button class="rstab" onclick="switchRibTab('annotate')" id="rt-annotate">Annotate</button>
+  <button class="rstab" onclick="switchRibTab('modify')" id="rt-modify">Modify</button>
+  <button class="rstab" onclick="switchRibTab('layers')" id="rt-layers">Layers</button>
+  <button class="rstab" onclick="switchRibTab('civil')" id="rt-civil" style="color:var(--G)">Civil 3D</button>
+  <button class="rstab" onclick="switchRibTab('view')" id="rt-view">View</button>
+</div>
 <!-- ── Ribbon ── -->
-<div class="ribbon">
+<div class="ribbon" id="ribbonEl" style="flex-direction:column;height:auto">
   <!-- File -->
   <div class="rg">
     <div class="rrow">
@@ -545,7 +746,7 @@ button{font-family:'Plus Jakarta Sans',sans-serif}
 <div class="workspace">
 
   <!-- Left Toolbox -->
-  <div class="toolbox">
+  <div class="toolbox" id="toolboxEl">
     <button class="tb2" data-tip="Select" onclick="setTool('select')">🖱️</button>
     <button class="tb2" data-tip="Pan" onclick="setTool('pan')">🖐️</button>
     <div class="tsep"></div>
@@ -584,6 +785,8 @@ button{font-family:'Plus Jakarta Sans',sans-serif}
     ondrop="vpDrop(event)" ondragover="vpDragOver(event)" ondragleave="vpDragLeave(event)">
     <canvas id="cad"></canvas>
     <div id="selbox"></div>
+    <div id="selCount">SELECTED: <span id="selCountNum">0</span></div>
+    <div id="selMode"></div>
     <div id="dz">
       <div class="dz-inner">
         📐 Drop DWG / DXF file here
@@ -593,6 +796,7 @@ button{font-family:'Plus Jakarta Sans',sans-serif}
     <div class="cov">
       <div class="cbadge">LAYER: <span id="layerBadge">0 – Default</span></div>
       <div class="cbadge strata">TOOL: <span id="toolBadge">LINE</span></div>
+      <div class="cbadge gold">UNITS: <span id="unitsBadge">mm</span></div>
       <div class="cbadge">ZOOM: <span id="zoomBadge">100%</span></div>
     </div>
     <div class="zoom-f">
@@ -603,7 +807,7 @@ button{font-family:'Plus Jakarta Sans',sans-serif}
   </div>
 
   <!-- Right Panel -->
-  <div class="rpanel">
+  <div class="rpanel" id="rpanelEl">
     <div class="ptabs">
       <div class="ptab act" onclick="showPanel('layers')" id="tab-layers">LAYERS</div>
       <div class="ptab" onclick="showPanel('props')" id="tab-props">PROPS</div>
@@ -691,7 +895,7 @@ button{font-family:'Plus Jakarta Sans',sans-serif}
   <div class="si">ORTHO <span class="sv" id="stOrtho">OFF</span></div><div class="ssep"></div>
   <div class="si">OSNAP <span class="sv" id="stOsnap">ON</span></div><div class="ssep"></div>
   <div class="si">UNITS <span class="sv">METRIC</span></div><div class="ssep"></div>
-  <div class="si">ZOOM <span class="sv" id="stZoom">100%</span></div>
+  <div class="si">ZOOM <span class="sv" id="stZoom">100%</span></div><div class="ssep"></div><div class="si">UNITS <span class="sv" id="stUnits">mm</span></div>
   <div style="margin-left:auto;display:flex;gap:5px">
     <button class="sbtn on" id="btn-snap" onclick="toggleSnap()">SNAP</button>
     <button class="sbtn on" id="btn-grid" onclick="toggleGrid()">GRID</button>
@@ -699,6 +903,8 @@ button{font-family:'Plus Jakarta Sans',sans-serif}
     <button class="sbtn on" id="btn-osnap" onclick="toggleOsnap()">OSNAP</button>
     <button class="sbtn" onclick="toast('Polar tracking toggled','ok')">POLAR</button>
     <button class="sbtn" onclick="toast('Switching to 3D view','ok')">3D</button>
+    <button class="sbtn" onclick="openMo('moSettings');setTimeout(()=>openSetTab('units'),60)" style="color:var(--G);border-color:rgba(245,190,24,.25)" id="sbUnitBtn">mm</button>
+    <button class="sbtn" onclick="openMo('moSettings')" title="Settings">⚙️</button>
   </div>
 </div>
 
@@ -1083,6 +1289,10 @@ const S={
   curLayer:0,
   mouse:{x:0,y:0},
   panning:false, panStart:null,
+  // ── Selection drag state ──
+  selDragging:false,
+  selStart:{x:0,y:0},   // screen coords where drag started
+  selCurrent:{x:0,y:0}, // current mouse screen coords
 };
 
 // ════════════════════════════
@@ -1110,7 +1320,7 @@ function render(){
   drawCross(S.mouse.x,S.mouse.y);
   S.entities.forEach(e=>{if(layVis(e.layer))drawEnt(e)});
   if(S.drawing&&S.startPt) drawPreview(S.mouse.x,S.mouse.y);
-  // Origin
+  // Origin marker
   const o=w2s(0,0);
   ctx.strokeStyle='rgba(208,232,245,.15)';ctx.lineWidth=1;ctx.setLineDash([]);
   ctx.beginPath();ctx.moveTo(o.x-8,o.y);ctx.lineTo(o.x+8,o.y);ctx.stroke();
@@ -1165,29 +1375,240 @@ function drawPreview(mx,my){
 }
 function layVis(lid){const l=S.layers.find(la=>la.id===(lid??0));return l?l.vis:true}
 
+// ════════════════════════════════════════════
+// ENTITY BOUNDING BOX  (world coordinates)
+// ════════════════════════════════════════════
+function entBBox(e){
+  switch(e.type){
+    case'line':   return{x:Math.min(e.x1,e.x2),y:Math.min(e.y1,e.y2),x2:Math.max(e.x1,e.x2),y2:Math.max(e.y1,e.y2)};
+    case'circle': return{x:e.cx-e.r,y:e.cy-e.r,x2:e.cx+e.r,y2:e.cy+e.r};
+    case'rect':   return{x:Math.min(e.x,e.x+e.w),y:Math.min(e.y,e.y+e.h),x2:Math.max(e.x,e.x+e.w),y2:Math.max(e.y,e.y+e.h)};
+    case'text':   return{x:e.x,y:e.y-20/S.zoom,x2:e.x+80/S.zoom,y2:e.y};
+    default:      return null;
+  }
+}
+
+// ════════════════════════════════════════════
+// AUTOCAD SELECTION  (window vs crossing)
+// ════════════════════════════════════════════
+//  LEFT→RIGHT  : Window   — only entities FULLY inside the box
+//  RIGHT→LEFT  : Crossing — entities that touch / intersect the box
+function applySelection(sx1,sy1,sx2,sy2,additive){
+  // Convert screen drag rect → world rect
+  const w1=s2w(Math.min(sx1,sx2),Math.min(sy1,sy2));
+  const w2=s2w(Math.max(sx1,sx2),Math.max(sy1,sy2));
+  const rMinX=Math.min(w1.x,w2.x), rMaxX=Math.max(w1.x,w2.x);
+  const rMinY=Math.min(w1.y,w2.y), rMaxY=Math.max(w1.y,w2.y);
+
+  // Direction: if drag went left (sx2 < sx1) → crossing, else window
+  const isCrossing=(sx2 < sx1);
+
+  if(!additive) S.entities.forEach(e=>e.selected=false);
+
+  S.entities.forEach(e=>{
+    if(!layVis(e.layer)) return;
+    const bb=entBBox(e);
+    if(!bb) return;
+
+    if(isCrossing){
+      // Crossing: bb intersects selection rect (they overlap at all)
+      const intersects=!(bb.x2<rMinX || bb.x>rMaxX || bb.y2<rMinY || bb.y>rMaxY);
+      if(intersects) e.selected=true;
+    } else {
+      // Window: entity fully inside selection rect
+      const inside=(bb.x>=rMinX && bb.x2<=rMaxX && bb.y>=rMinY && bb.y2<=rMaxY);
+      if(inside) e.selected=true;
+    }
+  });
+
+  updateSelCount();
+}
+
+// Single-click hit test — select the entity under the cursor
+function hitTest(sx,sy,additive){
+  const wp=s2w(sx,sy);
+  const tol=8/S.zoom; // 8px tolerance in world units
+  if(!additive) S.entities.forEach(e=>e.selected=false);
+
+  let hit=false;
+  // Iterate in reverse so topmost entity wins
+  for(let i=S.entities.length-1;i>=0;i--){
+    const e=S.entities[i];
+    if(!layVis(e.layer)) continue;
+    if(pointHitsEntity(wp.x,wp.y,e,tol)){
+      e.selected=!e.selected;
+      hit=true;
+      break;
+    }
+  }
+  if(!hit && !additive) S.entities.forEach(e=>e.selected=false);
+  updateSelCount();
+}
+
+function pointHitsEntity(wx,wy,e,tol){
+  switch(e.type){
+    case'line':{
+      // Distance from point to line segment
+      const dx=e.x2-e.x1,dy=e.y2-e.y1;
+      const len2=dx*dx+dy*dy;
+      if(len2===0) return Math.hypot(wx-e.x1,wy-e.y1)<tol;
+      let t=((wx-e.x1)*dx+(wy-e.y1)*dy)/len2;
+      t=Math.max(0,Math.min(1,t));
+      return Math.hypot(wx-(e.x1+t*dx),wy-(e.y1+t*dy))<tol;
+    }
+    case'circle':{
+      const d=Math.hypot(wx-e.cx,wy-e.cy);
+      return Math.abs(d-e.r)<tol;
+    }
+    case'rect':{
+      // Hit any of the 4 edges
+      const x1=Math.min(e.x,e.x+e.w),y1=Math.min(e.y,e.y+e.h);
+      const x2=Math.max(e.x,e.x+e.w),y2=Math.max(e.y,e.y+e.h);
+      const onH=(wy>=y1-tol&&wy<=y1+tol&&wx>=x1-tol&&wx<=x2+tol)||
+                (wy>=y2-tol&&wy<=y2+tol&&wx>=x1-tol&&wx<=x2+tol);
+      const onV=(wx>=x1-tol&&wx<=x1+tol&&wy>=y1-tol&&wy<=y2+tol)||
+                (wx>=x2-tol&&wx<=x2+tol&&wy>=y1-tol&&wy<=y2+tol);
+      return onH||onV;
+    }
+    case'text':{
+      const bb=entBBox(e);
+      return bb&&wx>=bb.x&&wx<=bb.x2&&wy>=bb.y&&wy<=bb.y2;
+    }
+    default: return false;
+  }
+}
+
+function updateSelCount(){
+  const n=S.entities.filter(e=>e.selected).length;
+  const sc=document.getElementById('selCount');
+  const sn=document.getElementById('selCountNum');
+  if(n>0){sc.style.display='block';sn.textContent=n;}
+  else sc.style.display='none';
+}
+
 // ════════════════════════════
-// MOUSE
+// SELECTION BOX (DOM overlay)
 // ════════════════════════════
+function showSelBox(x1,y1,x2,y2){
+  const box=document.getElementById('selbox');
+  const isCrossing=(x2<x1);
+  const left=Math.min(x1,x2), top=Math.min(y1,y2);
+  const w=Math.abs(x2-x1), h=Math.abs(y2-y1);
+  box.style.cssText=`display:block;left:${left}px;top:${top}px;width:${w}px;height:${h}px`;
+  box.className=isCrossing?'crossing':'window';
+
+  const mode=document.getElementById('selMode');
+  if(isCrossing){
+    mode.style.display='block';
+    mode.className='crossing';
+    mode.textContent='◈ CROSSING — selects anything touching';
+  } else {
+    mode.style.display='block';
+    mode.className='window';
+    mode.textContent='□ WINDOW — selects fully enclosed objects';
+  }
+}
+function hideSelBox(){
+  document.getElementById('selbox').style.display='none';
+  document.getElementById('selMode').style.display='none';
+}
+
+// ════════════════════════════
+// MOUSE EVENTS
+// ════════════════════════════
+const DRAG_THRESHOLD=4; // px before we consider it a drag
+
 canvas.addEventListener('mousemove',e=>{
   const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
-  if(S.panning&&S.panStart){S.pan.x+=mx-S.panStart.x;S.pan.y+=my-S.panStart.y;S.panStart={x:mx,y:my}}
+
+  // Pan
+  if(S.panning&&S.panStart){
+    S.pan.x+=mx-S.panStart.x;S.pan.y+=my-S.panStart.y;S.panStart={x:mx,y:my};
+  }
+
   S.mouse={x:mx,y:my};
   const wp=s2w(mx,my);
   document.getElementById('coordPill').innerHTML=`X: ${wp.x.toFixed(3)} &nbsp;&nbsp; Y: ${wp.y.toFixed(3)}`;
+
+  // Selection drag box
+  if(S.selDragging){
+    S.selCurrent={x:mx,y:my};
+    showSelBox(S.selStart.x,S.selStart.y,mx,my);
+  }
+
   render();
 });
+
 canvas.addEventListener('mousedown',e=>{
-  if(S.tool==='pan'||e.button===1){S.panning=true;const r=canvas.getBoundingClientRect();S.panStart={x:e.clientX-r.left,y:e.clientY-r.top};canvas.style.cursor='grabbing';return}
-  if(e.button!==0)return;
-  const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  // Middle button or pan tool = pan
+  if(S.tool==='pan'||e.button===1){
+    S.panning=true;
+    const r=canvas.getBoundingClientRect();
+    S.panStart={x:e.clientX-r.left,y:e.clientY-r.top};
+    canvas.style.cursor='grabbing';
+    return;
+  }
+  if(e.button!==0) return;
+
+  const r=canvas.getBoundingClientRect();
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
   const wp=s2w(mx,my);
+
+  // ── SELECT tool: start drag or single-click ──
+  if(S.tool==='select'){
+    S.selDragging=true;
+    S.selStart={x:mx,y:my};
+    S.selCurrent={x:mx,y:my};
+    return;
+  }
+
+  // ── Drawing tools ──
   if(!S.drawing){
-    if(['line','polyline','circle','rect','arc','ellipse'].includes(S.tool)){S.drawing=true;S.startPt=wp;setMsg('Specify second point or press ESC')}
+    if(['line','polyline','circle','rect','arc','ellipse'].includes(S.tool)){
+      S.drawing=true;S.startPt=wp;
+      setMsg('Specify second point — press ESC to cancel');
+    }
   } else {
     commitEnt(wp);S.drawing=false;S.startPt=null;setMsg('Ready');toast('Entity drawn','ok');
   }
 });
-canvas.addEventListener('mouseup',()=>{S.panning=false;canvas.style.cursor='crosshair'});
+
+canvas.addEventListener('mouseup',e=>{
+  // End pan
+  if(S.panning){
+    S.panning=false;
+    canvas.style.cursor=S.tool==='pan'?'grab':'crosshair';
+  }
+
+  if(e.button!==0) return;
+
+  // End selection drag
+  if(S.selDragging){
+    S.selDragging=false;
+    const r=canvas.getBoundingClientRect();
+    const mx=e.clientX-r.left, my=e.clientY-r.top;
+    const dx=Math.abs(mx-S.selStart.x), dy=Math.abs(my-S.selStart.y);
+    const additive=e.shiftKey;
+
+    hideSelBox();
+
+    if(dx>DRAG_THRESHOLD||dy>DRAG_THRESHOLD){
+      // It was a drag — apply window or crossing selection
+      applySelection(S.selStart.x,S.selStart.y,mx,my,additive);
+      const n=S.entities.filter(x=>x.selected).length;
+      const mode=(mx<S.selStart.x)?'CROSSING':'WINDOW';
+      setMsg(`${mode} selection — ${n} object(s) selected  |  Del to delete`);
+    } else {
+      // Single click — hit test
+      hitTest(S.selStart.x,S.selStart.y,additive);
+      const n=S.entities.filter(x=>x.selected).length;
+      if(n>0) setMsg(n+' object(s) selected  |  Del to delete, Shift+click to add');
+      else setMsg('Nothing selected — click an object or drag to select');
+    }
+    render();
+  }
+});
+
 canvas.addEventListener('wheel',e=>{
   e.preventDefault();
   const f=e.deltaY<0?1.12:.89;
@@ -1225,8 +1646,24 @@ function setTool(t){
 }
 document.addEventListener('keydown',e=>{
   const tag=document.activeElement.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
-  if(e.key==='Escape'){S.drawing=false;S.startPt=null;setMsg('Ready');render()}
-  if(e.key==='Delete')delSel();
+
+  // Delete or Backspace — delete selected entities
+  if(e.key==='Delete'||e.key==='Backspace'){
+    e.preventDefault();
+    delSel();
+    return;
+  }
+
+  // Escape — cancel drawing OR deselect all
+  if(e.key==='Escape'){
+    if(S.drawing){S.drawing=false;S.startPt=null;setMsg('Ready')}
+    else{S.entities.forEach(x=>x.selected=false);updateSelCount();setMsg('Selection cleared')}
+    S.selDragging=false;hideSelBox();
+    render();
+    return;
+  }
+
+  // Tool shortcuts
   const km={'l':'line','c':'circle','r':'rect','m':'move','s':'select','p':'pan','t':'text'};
   if(km[e.key.toLowerCase()])setTool(km[e.key.toLowerCase()]);
 });
@@ -1286,7 +1723,16 @@ function selCard(el){el.closest('.og').querySelectorAll('.oc').forEach(c=>c.clas
 // ════════════════════════════
 // ACTIONS
 // ════════════════════════════
-function delSel(){const b=S.entities.length;S.entities=S.entities.filter(e=>!e.selected);const d=b-S.entities.length;render();toast(d>0?d+' object(s) deleted':'No selection','ok')}
+function delSel(){
+  const b=S.entities.length;
+  S.entities=S.entities.filter(e=>!e.selected);
+  const d=b-S.entities.length;
+  updateSelCount();
+  render();
+  if(d>0) toast(d+' object(s) deleted','ok');
+  else toast('Nothing selected — use SELECT tool then Delete','warn');
+  setMsg(d>0?d+' object(s) deleted':'Nothing selected');
+}
 function zoomBy(f){
   S.zoom=Math.max(.05,Math.min(50,S.zoom*f));
   S.pan.x=W/2-(W/2-S.pan.x)*f;S.pan.y=H/2-(H/2-S.pan.y)*f;
@@ -1365,6 +1811,163 @@ function toast(msg,type=''){
   el.textContent=msg;el.className='toast show'+(type?' '+type:'');
   clearTimeout(tTimer);tTimer=setTimeout(()=>el.classList.remove('show'),2600);
 }
+
+// ═════════════════════════════════════
+// UNITS  
+// ═════════════════════════════════════
+S.units='mm';
+function previewUnits(u){
+  S.units=u;
+  document.getElementById('unitPill').textContent=u;
+  document.getElementById('unitsBadge').textContent=u;
+  const su=document.getElementById('stUnits');if(su)su.textContent=u;
+  const sb=document.getElementById('sbUnitBtn');if(sb)sb.textContent=u;
+}
+function applySettings(){
+  const u=document.getElementById('setUnits')?.value||'mm';
+  previewUnits(u);
+  closeMo('moSettings');
+  toast('Settings applied','ok');
+}
+
+// ═════════════════════════════════════
+// SETTINGS TABS
+// ═════════════════════════════════════
+function openSetTab(t){
+  document.querySelectorAll('.set-tab').forEach(b=>b.classList.remove('act'));
+  document.querySelectorAll('.set-pane').forEach(p=>p.classList.remove('act'));
+  const tb=document.getElementById('stab-'+t),pn=document.getElementById('sp-'+t);
+  if(tb)tb.classList.add('act');
+  if(pn)pn.classList.add('act');
+}
+
+// ═════════════════════════════════════
+// RIBBON TABS
+// ═════════════════════════════════════
+function switchRibTab(t){
+  document.querySelectorAll('.rstab').forEach(b=>b.classList.remove('act'));
+  document.querySelectorAll('.rib-content').forEach(p=>p.classList.remove('act'));
+  const tb=document.getElementById('rt-'+t);if(tb)tb.classList.add('act');
+  const pn=document.getElementById('rc-'+t);if(pn)pn.classList.add('act');
+}
+
+// ═════════════════════════════════════
+// PANEL TOGGLE
+// ═════════════════════════════════════
+function uiToggleToolbox(show){
+  const el=document.getElementById('toolboxEl');if(!el)return;
+  const chk=document.getElementById('chkTb');
+  const makeVisible=show!==undefined?show:el.classList.contains('thidden');
+  el.classList.toggle('thidden',!makeVisible);
+  if(chk)chk.checked=makeVisible;
+  setTimeout(resize,220);
+}
+function uiToggleRibbon(show){
+  const el=document.getElementById('ribbonEl');
+  const strip=document.getElementById('ribTabStrip');
+  const chk=document.getElementById('chkRib');
+  const makeVisible=show!==undefined?show:el?.classList.contains('rhidden');
+  el?.classList.toggle('rhidden',!makeVisible);
+  strip?.classList.toggle('rhidden',!makeVisible);
+  if(chk)chk.checked=makeVisible;
+  setTimeout(resize,220);
+}
+function uiToggleRpanel(show){
+  const el=document.getElementById('rpanelEl');if(!el)return;
+  const chk=document.getElementById('chkRp');
+  const makeVisible=show!==undefined?show:el.classList.contains('rhidden');
+  el.classList.toggle('rhidden',!makeVisible);
+  if(chk)chk.checked=makeVisible;
+  setTimeout(resize,220);
+}
+
+// ═════════════════════════════════════
+// TOOLBAR SIZE
+// ═════════════════════════════════════
+function setTbSz(sz){
+  document.body.classList.remove('tb-sm','tb-lg');
+  if(sz==='sm')document.body.classList.add('tb-sm');
+  else if(sz==='lg')document.body.classList.add('tb-lg');
+  setTimeout(resize,60);
+}
+function setRbSz(sz){
+  document.body.classList.remove('rb-sm','rb-lg');
+  if(sz==='sm')document.body.classList.add('rb-sm');
+  else if(sz==='lg')document.body.classList.add('rb-lg');
+  setTimeout(resize,60);
+}
+function markSzC(el,grp){
+  const ids=grp==='tb'?['szc-sm','szc-md','szc-lg']:['rbc-sm','rbc-md','rbc-lg'];
+  ids.forEach(id=>document.getElementById(id)?.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+// ═════════════════════════════════════
+// BACKGROUND COLOUR
+// ═════════════════════════════════════
+function setBgColor(c,el){
+  document.querySelector('.viewport').style.background=c;
+  document.querySelectorAll('.bg-sw').forEach(s=>s.classList.remove('sel'));
+  if(el)el.classList.add('sel');
+}
+
+// ═════════════════════════════════════
+// ENTITY HOVER TOOLTIP
+// ═════════════════════════════════════
+function getEntInfo(e){
+  const ly=S.layers.find(l=>l.id===(e.layer||0));
+  const lName=ly?ly.name:'0';
+  const u=S.units||'mm';
+  const f=v=>v.toFixed(3)+' '+u;
+  switch(e.type){
+    case'line':{
+      const len=Math.hypot(e.x2-e.x1,e.y2-e.y1);
+      const ang=(Math.atan2(e.y2-e.y1,e.x2-e.x1)*180/Math.PI).toFixed(2);
+      return{type:'LINE',rows:[['Layer',lName],['Length',f(len)],['Angle',ang+'°'],['Start',e.x1.toFixed(2)+', '+e.y1.toFixed(2)]]};
+    }
+    case'circle':return{type:'CIRCLE',rows:[['Layer',lName],['Radius',f(e.r)],['Diam',f(e.r*2)],['Center',e.cx.toFixed(2)+', '+e.cy.toFixed(2)]]};
+    case'rect':{
+      const area=(Math.abs(e.w)*Math.abs(e.h)).toFixed(2);
+      return{type:'RECTANGLE',rows:[['Layer',lName],['Width',f(Math.abs(e.w))],['Height',f(Math.abs(e.h))],['Area',area+' '+u+'²']]};
+    }
+    case'text':return{type:'TEXT',rows:[['Layer',lName],['Content',e.txt||''],['Height',f(e.sz||12)]]};
+    default:return{type:e.type.toUpperCase(),rows:[['Layer',lName]]};
+  }
+}
+function showEntTip(mx,my){
+  const chk=document.getElementById('chkHoverTip');
+  const tip=document.getElementById('eTip');
+  if(!tip)return;
+  if(chk&&!chk.checked){tip.style.display='none';return}
+  const wp=s2w(mx,my);
+  const tol=10/S.zoom;
+  let found=null;
+  for(let i=S.entities.length-1;i>=0;i--){
+    const e=S.entities[i];
+    if(!layVis(e.layer))continue;
+    if(pointHitsEntity(wp.x,wp.y,e,tol)){found=e;break}
+  }
+  if(!found){tip.style.display='none';return}
+  const info=getEntInfo(found);
+  document.getElementById('eTipHead').textContent=info.type;
+  document.getElementById('eTipRows').innerHTML=info.rows.map(r=>'<div class="etR"><span>'+r[0]+'</span><span class="etV">'+r[1]+'</span></div>').join('');
+  let tx=mx+14,ty=my-6;
+  if(tx+170>W)tx=mx-178;
+  if(ty+100>H)ty=H-108;
+  tip.style.left=tx+'px';tip.style.top=ty+'px';tip.style.display='block';
+}
+// Hook into mousemove for tooltip
+canvas.addEventListener('mousemove',function(ev){
+  if(!S.selDragging&&!S.drawing&&!S.panning){
+    const r=canvas.getBoundingClientRect();
+    showEntTip(ev.clientX-r.left,ev.clientY-r.top);
+  } else {
+    const tip=document.getElementById('eTip');if(tip)tip.style.display='none';
+  }
+});
+canvas.addEventListener('mousedown',function(){
+  const tip=document.getElementById('eTip');if(tip)tip.style.display='none';
+});
 
 // Init
 setTimeout(()=>toast('Strata ready — import a .DWG / .DXF file or start drawing','ok'),400);
