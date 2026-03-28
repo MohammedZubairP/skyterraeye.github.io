@@ -234,13 +234,13 @@ button{font-family:'Plus Jakarta Sans',sans-serif}
 .fl{display:block;font-size:10px;font-weight:700;color:var(--M);letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px;font-family:'IBM Plex Mono',monospace}
 .fi2,.fs2{width:100%;background:var(--cp);border:1px solid var(--cb);border-radius:4px;color:var(--T);font-size:12.5px;font-family:'Plus Jakarta Sans',sans-serif;padding:7px 9px;outline:none;transition:border-color .15s}
 .fi2:focus,.fs2:focus{border-color:var(--Strata)}
-.frow{display:grid;grid-template-columns:1fr;gap:10px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fcheck{display:flex;align-items:center;gap:7px;font-size:12.5px;cursor:pointer;margin-bottom:5px}
 .fcheck input{cursor:pointer;accent-color:var(--Strata)}
 .fsect{font-size:10.5px;font-weight:700;color:var(--Strata);letter-spacing:1px;text-transform:uppercase;margin:12px 0 7px;font-family:'IBM Plex Mono',monospace;padding-bottom:4px;border-bottom:1px solid var(--cb)}
 
 /* Option cards */
-.og{display:grid;grid-template-columns:1fr;gap:7px;margin-bottom:12px}
+.og{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
 .oc{padding:10px;background:var(--cp);border:1px solid var(--cb);border-radius:5px;cursor:pointer;transition:all .12s}
 .oc:hover,.oc.sel{border-color:var(--StrataL);background:var(--StrataDim)}
 .oc-ico{font-size:20px;margin-bottom:3px}
@@ -351,8 +351,8 @@ body.rb-lg .rg-lbl{font-size:10px}
    SIDE TOOL PANEL  (left column)
 ══════════════════════════════ */
 .side-panel{
-  width:60px;
-  min-width:60px;
+  width:14px;          /* collapsed = just the trigger strip */
+  min-width:14px;
   flex-shrink:0;
   background:#07111C;
   border-right:1px solid var(--cb);
@@ -360,28 +360,56 @@ body.rb-lg .rg-lbl{font-size:10px}
   flex-direction:column;
   overflow:hidden;
   position:relative;
-  transition:width .18s ease, min-width .18s ease;
-  z-index:10;
+  transition:width .22s cubic-bezier(.4,0,.2,1);
+  z-index:20;
 }
-.side-panel.collapsed{
-  width:0 !important;
-  min-width:0 !important;
-  border-right:none;
+/* expanded on hover OR when pinned */
+.side-panel:hover,
+.side-panel.pinned{
+  width:122px;
 }
-.side-collapse{
+.side-trigger{
   position:absolute;
-  right:-11px;top:50%;
-  transform:translateY(-50%);
-  width:11px;height:32px;
-  background:#07111C;
-  border:1px solid var(--cb);border-left:none;
-  border-radius:0 4px 4px 0;
-  color:var(--M);cursor:pointer;
-  font-size:9px;z-index:20;
-  display:flex;align-items:center;justify-content:center;
+  inset:0;
+  cursor:pointer;
+  z-index:2;
+}
+/* when collapsed, show a visible ‹ strip indicator */
+.side-panel:not(:hover):not(.pinned) .side-scroll{
+  opacity:0;
+  pointer-events:none;
+}
+.side-panel:not(:hover):not(.pinned)::after{
+  content:'◀';
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  color:rgba(90,131,158,.45);
+  font-size:9px;
+  pointer-events:none;
+}
+.side-panel:hover::after,.side-panel.pinned::after{display:none}
+.side-scroll{
+  opacity:1;
+  transition:opacity .15s ease;
+}
+/* pin button — only visible when panel is hovered or pinned */
+.side-pin{
+  position:absolute;
+  top:4px;right:4px;
+  background:none;border:1px solid transparent;
+  border-radius:3px;
+  color:rgba(90,131,158,.4);
+  cursor:pointer;font-size:9px;
+  padding:1px 3px;
+  z-index:10;
+  opacity:0;
   transition:all .12s;
 }
-.side-collapse:hover{color:var(--T);background:rgba(31,168,217,.1)}
+.side-panel:hover .side-pin,
+.side-panel.pinned .side-pin{opacity:1}
+.side-panel.pinned .side-pin{color:var(--Strata);border-color:var(--StrataL);background:var(--StrataDim)}
+.side-pin:hover{color:var(--T);border-color:var(--Bl)}
 .side-scroll{
   flex:1;
   overflow-y:auto;
@@ -395,7 +423,7 @@ body.rb-lg .rg-lbl{font-size:10px}
 .sg{margin-bottom:1px}
 .sg-grid{
   display:grid;
-  grid-template-columns:1fr;
+  grid-template-columns:1fr 1fr;
   gap:2px;
   padding:2px 5px 0;
 }
@@ -525,12 +553,6 @@ body.rb-lg .rg-lbl{font-size:10px}
 .li-act:hover{opacity:1;background:rgba(31,168,217,.1)}
 .li-act.active{opacity:1}
 .li-dis .ln{text-decoration:line-through;opacity:.5}
-
-
-/* === SKY TERRAEYE PRO UPGRADE === */
-.sg-btn{padding:10px 0!important;}
-.sg-ico{font-size:20px!important;}
-.sg-lbl{display:none!important;}
 
 </style>
 </head>
@@ -936,7 +958,9 @@ body.rb-lg .rg-lbl{font-size:10px}
   ══════════════════════════════ -->
   <div class="side-panel" id="toolboxEl">
     <!-- collapse toggle -->
-    <button class="side-collapse" id="sideCollapseBtn" onclick="toggleSidePanel()" title="Collapse panel">‹</button>
+    <!-- hover trigger strip + pin button -->
+    <div class="side-trigger" title="Tools panel"></div>
+    <button class="side-pin" id="sidePinBtn" onclick="pinSidePanel()" title="Pin panel open">📌</button>
 
     <!-- scrollable tool groups -->
     <div class="side-scroll">
@@ -1723,6 +1747,11 @@ function drawEnt(e){
     case'line':{const a=s(e.x1,e.y1),b=s(e.x2,e.y2);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();break}
     case'circle':{const c=s(e.cx,e.cy);ctx.beginPath();ctx.arc(c.x,c.y,e.r*S.zoom,0,Math.PI*2);ctx.stroke();break}
     case'rect':{const p=s(e.x,e.y);ctx.strokeRect(p.x,p.y,e.w*S.zoom,-e.h*S.zoom);break}
+    case'arc':{
+      const c=s(e.cx,e.cy),r=e.r*S.zoom;
+      const sa=(e.startAngle||0)*Math.PI/180,ea=(e.endAngle||180)*Math.PI/180;
+      ctx.beginPath();ctx.arc(c.x,c.y,r,-ea,-sa,false);ctx.stroke();break;
+    }
     case'text':{const p=s(e.x,e.y);ctx.font=`${(e.sz||13)*S.zoom}px "Plus Jakarta Sans",sans-serif`;ctx.fillStyle=e.color||(ly?ly.color:'#fff');ctx.fillText(e.txt,p.x,p.y);break}
   }
   if(e.selected){
@@ -2127,26 +2156,213 @@ function toggleOrtho(){S.ortho=!S.ortho;document.getElementById('stOrtho').textC
 function toggleOsnap(){S.osnap=!S.osnap;document.getElementById('stOsnap').textContent=S.osnap?'ON':'OFF';document.getElementById('btn-osnap').classList.toggle('on',S.osnap)}
 
 // Import simulation
-function simImport(){
-  closeMo('moImport');
-  S.entities=[
-    {type:'rect',x:-120,y:-70,w:240,h:140,layer:1},
-    {type:'rect',x:-100,y:-50,w:70,h:100,layer:1},
-    {type:'rect',x:30,y:-50,w:70,h:100,layer:1},
-    {type:'line',x1:-220,y1:-90,x2:220,y2:-90,layer:2},
-    {type:'line',x1:-220,y1:90,x2:220,y2:90,layer:2},
-    {type:'circle',cx:0,cy:50,r:18,layer:3},
-    {type:'circle',cx:-70,cy:0,r:9,layer:3},
-    {type:'circle',cx:70,cy:0,r:9,layer:3},
-    {type:'line',x1:-140,y1:-130,x2:140,y2:-130,layer:4},
-    {type:'line',x1:-140,y1:130,x2:140,y2:130,layer:4},
-    {type:'line',x1:0,y1:-160,x2:0,y2:160,layer:6},
-    {type:'text',x:-95,y:80,txt:'BUILDING A',sz:9,layer:5},
-    {type:'text',x:-45,y:-108,txt:'ROAD CENTRELINE',sz:7.5,layer:5},
-  ];
-  zoomExt();
-  setTimeout(()=>toast('Drawing loaded — 13 entities across 9 layers','ok'),700);
+
+// ──────────────────────────────────────────────────────────────
+//  FILE IMPORT  — real parser for DXF (ASCII) + SVG
+// ──────────────────────────────────────────────────────────────
+let _importedFile = null; // stores the File object selected
+
+// Called when user picks a file
+function handleFile(e){
+  const f=e.target.files?.[0];
+  if(!f)return;
+  _importedFile=f;
+  document.getElementById('impZone').querySelector('.imp-t').textContent='📐 '+f.name;
+  toast('File ready: '+f.name+' — click Import Drawing','ok');
 }
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('impZone').classList.remove('dov');
+  const f=e.dataTransfer?.files?.[0];
+  if(!f)return;
+  _importedFile=f;
+  document.getElementById('impZone').querySelector('.imp-t').textContent='📐 '+f.name;
+  toast('File ready: '+f.name+' — click Import Drawing','ok');
+}
+
+// Main import entry point
+function simImport(){
+  if(!_importedFile){
+    closeMo('moImport');
+    toast('No file selected — click the drop zone to choose a file','warn');
+    return;
+  }
+  closeMo('moImport');
+  const name=_importedFile.name.toLowerCase();
+  const reader=new FileReader();
+
+  if(name.endsWith('.dxf')){
+    reader.onload=ev=>{ try{parseDXF(ev.target.result,_importedFile.name)}catch(err){toast('DXF parse error: '+err.message,'warn');console.error(err)} };
+    reader.readAsText(_importedFile);
+  } else if(name.endsWith('.svg')){
+    reader.onload=ev=>{ try{parseSVG(ev.target.result,_importedFile.name)}catch(err){toast('SVG parse error: '+err.message,'warn')} };
+    reader.readAsText(_importedFile);
+  } else if(name.endsWith('.dwg')||name.endsWith('.dwf')||name.endsWith('.dwt')){
+    toast('DWG/DWF are binary AutoCAD formats — try exporting as DXF from AutoCAD first','warn');
+    setMsg('Hint: open in AutoCAD → Save As → AutoCAD DXF → import here');
+  } else {
+    // Try reading as text anyway (some files have unusual extensions)
+    reader.onload=ev=>{
+      const txt=ev.target.result;
+      if(txt.includes('SECTION')&&txt.includes('ENTITIES')){
+        try{parseDXF(txt,_importedFile.name)}catch(e){toast('Parse failed: '+e.message,'warn')}
+      } else {
+        toast('Unsupported format. Please use .DXF or .SVG','warn');
+      }
+    };
+    reader.readAsText(_importedFile);
+  }
+  _importedFile=null;
+}
+
+// ── DXF ASCII PARSER ──────────────────────────────────────────
+function parseDXF(txt, filename){
+  const lines=txt.split(/\r?\n/);
+  const ents=[];
+  let i=0;
+  let _eid=Date.now();
+
+  // parse pairs: group code + value
+  const pairs=[];
+  for(let j=0;j<lines.length-1;j+=2){
+    pairs.push([lines[j].trim(), lines[j+1].trim()]);
+  }
+
+  // Find ENTITIES section
+  let inEntities=false, inObjects=false;
+  let cur=null;
+
+  for(let p=0;p<pairs.length;p++){
+    const [gc,val]=pairs[p];
+
+    if(gc==='2'&&val==='ENTITIES'){inEntities=true;continue}
+    if(gc==='2'&&val==='OBJECTS'){inObjects=true;inEntities=false;continue}
+    if(gc==='0'&&val==='ENDSEC'){inEntities=false;inObjects=false;cur=null;continue}
+
+    if(!inEntities) continue;
+
+    if(gc==='0'){
+      // save previous entity
+      if(cur) { const e=buildEntity(cur); if(e){e._id=++_eid;ents.push(e);} }
+      cur={type:val, data:{}};
+    } else if(cur){
+      cur.data[gc]=(cur.data[gc]||[]);
+      cur.data[gc].push(val);
+    }
+  }
+  if(cur){ const e=buildEntity(cur); if(e){e._id=++Date.now();ents.push(e);} }
+
+  if(ents.length===0){
+    toast('No renderable entities found in DXF. Check the file has ENTITIES section.','warn');
+    return;
+  }
+
+  S.entities=ents;
+  renderLayers();
+  zoomExt();
+  const msg=`${filename} loaded — ${ents.length} entities`;
+  toast(msg,'ok');
+  setMsg(msg);
+}
+
+function buildEntity(cur){
+  const d=cur.data;
+  const g=k=>(d[k]&&d[k][0])||'0';
+  const gf=k=>parseFloat(g(k))||0;
+  const layer=0; // simplified — full parser would map layer names
+
+  switch(cur.type.toUpperCase()){
+    case'LINE':
+      return{type:'line',x1:gf('10'),y1:gf('20'),x2:gf('11'),y2:gf('21'),layer};
+    case'CIRCLE':
+      return{type:'circle',cx:gf('10'),cy:gf('20'),r:gf('40'),layer};
+    case'ARC':
+      return{type:'arc',cx:gf('10'),cy:gf('20'),r:gf('40'),startAngle:gf('50'),endAngle:gf('51'),layer};
+    case'LWPOLYLINE':{
+      // pairs of 10/20 = vertices
+      const xs=(d['10']||[]).map(Number);
+      const ys=(d['20']||[]).map(Number);
+      if(xs.length<2) return null;
+      const segs=[];
+      for(let i=0;i<xs.length-1;i++){
+        segs.push({type:'line',x1:xs[i],y1:ys[i],x2:xs[i+1],y2:ys[i+1],layer,_id:Date.now()+i});
+      }
+      // treat first segment as representative — push rest
+      for(let i=1;i<segs.length;i++) S.entities.push(segs[i]);
+      return segs[0]||null;
+    }
+    case'POLYLINE':
+      return null; // VERTEX pairs handled separately — skip for now
+    case'SPLINE':
+      return{type:'line',x1:gf('10'),y1:gf('20'),x2:gf('13'),y2:gf('23'),layer}; // approx
+    case'TEXT':
+    case'MTEXT':
+      return{type:'text',x:gf('10'),y:gf('20'),txt:(d['1']||['TEXT'])[0],sz:Math.max(3,gf('40')||10),layer};
+    case'INSERT':
+      return{type:'rect',x:gf('10'),y:gf('20'),w:20,h:20,layer}; // block placeholder
+    case'SOLID':
+    case'TRACE':{
+      const x1=gf('10'),y1=gf('20'),x2=gf('12'),y2=gf('22');
+      return{type:'rect',x:Math.min(x1,x2),y:Math.min(y1,y2),w:Math.abs(x2-x1)||10,h:Math.abs(y2-y1)||10,layer};
+    }
+    case'ELLIPSE':
+      return{type:'circle',cx:gf('10'),cy:gf('20'),r:gf('40')*0.7||20,layer}; // approx
+    case'POINT':
+      return{type:'circle',cx:gf('10'),cy:gf('20'),r:1.5,layer};
+    default:
+      return null;
+  }
+}
+
+// ── SVG PARSER ────────────────────────────────────────────────
+function parseSVG(txt, filename){
+  const parser=new DOMParser();
+  const doc=parser.parseFromString(txt,'image/svg+xml');
+  const ents=[];
+  let _eid=Date.now();
+
+  function svgNum(el,attr,def=0){ return parseFloat(el.getAttribute(attr)||def)||def; }
+
+  doc.querySelectorAll('line').forEach(el=>{
+    ents.push({type:'line',x1:svgNum(el,'x1'),y1:-svgNum(el,'y1'),x2:svgNum(el,'x2'),y2:-svgNum(el,'y2'),layer:0,_id:++_eid});
+  });
+  doc.querySelectorAll('rect').forEach(el=>{
+    const x=svgNum(el,'x'),y=svgNum(el,'y'),w=svgNum(el,'width',10),h=svgNum(el,'height',10);
+    ents.push({type:'rect',x,y:-(y+h),w,h,layer:0,_id:++_eid});
+  });
+  doc.querySelectorAll('circle').forEach(el=>{
+    ents.push({type:'circle',cx:svgNum(el,'cx'),cy:-svgNum(el,'cy'),r:svgNum(el,'r',5),layer:0,_id:++_eid});
+  });
+  doc.querySelectorAll('ellipse').forEach(el=>{
+    ents.push({type:'circle',cx:svgNum(el,'cx'),cy:-svgNum(el,'cy'),r:(svgNum(el,'rx')+svgNum(el,'ry'))/2,layer:0,_id:++_eid});
+  });
+  doc.querySelectorAll('text,tspan').forEach(el=>{
+    const x=svgNum(el,'x'),y=-svgNum(el,'y');
+    const txt=el.textContent.trim();
+    if(txt) ents.push({type:'text',x,y,txt,sz:12,layer:0,_id:++_eid});
+  });
+  // polyline / polygon
+  doc.querySelectorAll('polyline,polygon').forEach(el=>{
+    const pts=(el.getAttribute('points')||'').trim().split(/[\s,]+/).map(Number).filter(n=>!isNaN(n));
+    for(let i=0;i<pts.length-3;i+=2){
+      ents.push({type:'line',x1:pts[i],y1:-pts[i+1],x2:pts[i+2],y2:-pts[i+3],layer:0,_id:++_eid});
+    }
+  });
+
+  if(ents.length===0){
+    toast('No renderable shapes found in SVG','warn');
+    return;
+  }
+  S.entities=ents;
+  renderLayers();
+  zoomExt();
+  const msg=`${filename} loaded — ${ents.length} shapes`;
+  toast(msg,'ok');
+  setMsg(msg);
+}
+
+// Viewport drag-drop → real import
+
 
 // Export layers
 function expLayersSep(){
@@ -2163,17 +2379,23 @@ function addAttrRow(){
   tb.appendChild(r);
 }
 
-// File handling
-function handleDrop(e){e.preventDefault();document.getElementById('impZone').classList.remove('dov');const f=e.dataTransfer?.files?.[0];if(f){document.getElementById('impZone').querySelector('.imp-t').textContent='📐 '+f.name;toast('File ready: '+f.name,'ok')}}
+// Drag over zone
 function handleDragOver(e){e.preventDefault();document.getElementById('impZone').classList.add('dov')}
 function handleDragLeave(){document.getElementById('impZone').classList.remove('dov')}
-function handleFile(e){const f=e.target.files?.[0];if(f){document.getElementById('impZone').querySelector('.imp-t').textContent='📐 '+f.name;toast('File ready: '+f.name,'ok')}}
 
-// Viewport drag-and-drop
+// Viewport drag-and-drop (real files)
 const vp2=document.getElementById('vp');
 vp2.addEventListener('dragover',e=>{e.preventDefault();document.getElementById('dz').style.display='flex'});
 vp2.addEventListener('dragleave',()=>{document.getElementById('dz').style.display='none'});
-vp2.addEventListener('drop',e=>{e.preventDefault();document.getElementById('dz').style.display='none';const f=e.dataTransfer?.files?.[0];if(f){toast('Loading: '+f.name,'ok');setTimeout(()=>simImport(),500)}});
+vp2.addEventListener('drop',e=>{
+  e.preventDefault();
+  document.getElementById('dz').style.display='none';
+  const f=e.dataTransfer?.files?.[0];
+  if(f){
+    _importedFile=f;
+    simImport();
+  }
+});
 
 // Command line
 function setMsg(m){document.getElementById('cmdMsg').textContent=m}
@@ -2238,9 +2460,9 @@ function switchRibTab(t){
 function uiToggleToolbox(show){
   const el=document.getElementById('toolboxEl');if(!el)return;
   const chk=document.getElementById('chkTb');
-  const makeVisible=show!==undefined?show:el.classList.contains('thidden');
-  el.classList.toggle('thidden',!makeVisible);
-  if(chk)chk.checked=makeVisible;
+  if(show===false){el.style.display='none'}else if(show===true){el.style.display=''}
+  else{el.style.display=el.style.display==='none'?'':'none'}
+  if(chk)chk.checked=(el.style.display!=='none');
   setTimeout(resize,220);
 }
 function uiToggleRibbon(show){
@@ -2577,11 +2799,16 @@ document.addEventListener('click',function(e){
 // ──────────────────────────────────────────────────────
 //  SIDE PANEL COLLAPSE
 // ──────────────────────────────────────────────────────
-function toggleSidePanel(){
+function pinSidePanel(){
   const el=document.getElementById('toolboxEl');
-  const btn=document.getElementById('sideCollapseBtn');
-  const collapsed=el.classList.toggle('collapsed');
-  btn.textContent=collapsed?'›':'‹';
+  const btn=document.getElementById('sidePinBtn');
+  const pinned=el.classList.toggle('pinned');
+  btn.title=pinned?'Unpin panel':'Pin panel open';
+  if(pinned) toast('Panel pinned open','ok');
+}
+// keep legacy toggle working from menu
+function toggleSidePanel(){
+  document.getElementById('toolboxEl').classList.toggle('pinned');
   setTimeout(resize,220);
 }
 
@@ -2656,63 +2883,6 @@ function zoomToLayer(layerId){
 
 // Init
 setTimeout(()=>toast('Strata ready — import a .DWG / .DXF file or start drawing','ok'),400);
-
-// === SKY TERRAEYE SURVEY MODULE (BASIC PLACEHOLDER) ===
-function importCSVPoints(){
-    alert("CSV Import coming next version (Easting, Northing, Elevation)");
-}
-
-
-// === ADVANCED SKY TERRAEYE MODULES ===
-
-// CSV POINT IMPORT (basic working)
-function loadCSVPoints(file){
-    const reader = new FileReader();
-    reader.onload = function(e){
-        const lines = e.target.result.split("\n");
-        lines.forEach(line=>{
-            const parts = line.split(",");
-            if(parts.length>=3){
-                S.entities.push({
-                    type:'circle',
-                    cx:parseFloat(parts[0]),
-                    cy:parseFloat(parts[1]),
-                    r:2,
-                    layer:3
-                });
-            }
-        });
-        render();
-        toast("CSV Points Loaded","ok");
-    };
-    reader.readAsText(file);
-}
-
-// QUICK ORTHO PREVIEW (image load)
-function loadOrthoImage(file){
-    const img = new Image();
-    img.onload = function(){
-        ctx.drawImage(img,0,0,canvas.width,canvas.height);
-        toast("Ortho preview loaded","ok");
-    };
-    img.src = URL.createObjectURL(file);
-}
-
-// SIMPLE SURFACE SIMULATION
-function generateSurface(){
-    toast("Surface (TIN) generation coming next upgrade","warn");
-}
-
-// ALIGNMENT TOOL PLACEHOLDER
-function createAlignment(){
-    toast("Alignment tool activated","ok");
-}
-
-// PROFILE VIEW PLACEHOLDER
-function createProfile(){
-    toast("Profile view coming soon","warn");
-}
-
 </script>
 <!-- Tool Properties Popover (body-level, position:fixed) -->
 <div id="toolPropsPanel">
