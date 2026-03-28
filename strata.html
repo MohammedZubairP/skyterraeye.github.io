@@ -1748,9 +1748,16 @@ function drawEnt(e){
     case'circle':{const c=s(e.cx,e.cy);ctx.beginPath();ctx.arc(c.x,c.y,e.r*S.zoom,0,Math.PI*2);ctx.stroke();break}
     case'rect':{const p=s(e.x,e.y);ctx.strokeRect(p.x,p.y,e.w*S.zoom,-e.h*S.zoom);break}
     case'arc':{
+      // DXF ARC: angles in degrees, Y-inverted → negate and flip direction
       const c=s(e.cx,e.cy),r=e.r*S.zoom;
-      const sa=(e.startAngle||0)*Math.PI/180,ea=(e.endAngle||180)*Math.PI/180;
-      ctx.beginPath();ctx.arc(c.x,c.y,r,-ea,-sa,false);ctx.stroke();break;
+      const sa=-(e.startAngle||0)*Math.PI/180;
+      const ea=-(e.endAngle||180)*Math.PI/180;
+      ctx.beginPath();ctx.arc(c.x,c.y,r,sa,ea,true);ctx.stroke();break;
+    }
+    case'ellipse':{
+      const c=s(e.cx,e.cy);
+      const rx=(e.rx||10)*S.zoom,ry=(e.ry||10)*S.zoom;
+      ctx.beginPath();ctx.ellipse(c.x,c.y,rx,ry,0,0,Math.PI*2);ctx.stroke();break;
     }
     case'text':{const p=s(e.x,e.y);ctx.font=`${(e.sz||13)*S.zoom}px "Plus Jakarta Sans",sans-serif`;ctx.fillStyle=e.color||(ly?ly.color:'#fff');ctx.fillText(e.txt,p.x,p.y);break}
   }
@@ -1782,11 +1789,13 @@ function layVis(lid){const l=S.layers.find(la=>la.id===(lid??0));return l?l.vis:
 // ════════════════════════════════════════════
 function entBBox(e){
   switch(e.type){
-    case'line':   return{x:Math.min(e.x1,e.x2),y:Math.min(e.y1,e.y2),x2:Math.max(e.x1,e.x2),y2:Math.max(e.y1,e.y2)};
-    case'circle': return{x:e.cx-e.r,y:e.cy-e.r,x2:e.cx+e.r,y2:e.cy+e.r};
-    case'rect':   return{x:Math.min(e.x,e.x+e.w),y:Math.min(e.y,e.y+e.h),x2:Math.max(e.x,e.x+e.w),y2:Math.max(e.y,e.y+e.h)};
-    case'text':   return{x:e.x,y:e.y-20/S.zoom,x2:e.x+80/S.zoom,y2:e.y};
-    default:      return null;
+    case'line':    return{x:Math.min(e.x1,e.x2),y:Math.min(e.y1,e.y2),x2:Math.max(e.x1,e.x2),y2:Math.max(e.y1,e.y2)};
+    case'circle':  return{x:e.cx-e.r,y:e.cy-e.r,x2:e.cx+e.r,y2:e.cy+e.r};
+    case'arc':     return{x:e.cx-(e.r||10),y:e.cy-(e.r||10),x2:e.cx+(e.r||10),y2:e.cy+(e.r||10)};
+    case'ellipse': return{x:e.cx-(e.rx||10),y:e.cy-(e.ry||10),x2:e.cx+(e.rx||10),y2:e.cy+(e.ry||10)};
+    case'rect':    return{x:Math.min(e.x,e.x+e.w),y:Math.min(e.y,e.y+e.h),x2:Math.max(e.x,e.x+e.w),y2:Math.max(e.y,e.y+e.h)};
+    case'text':    return{x:e.x,y:e.y-20,x2:e.x+80,y2:e.y};
+    default:       return null;
   }
 }
 
@@ -2149,7 +2158,43 @@ function zoomBy(f){
   const z=Math.round(S.zoom*100)+'%';
   document.getElementById('zoomBadge').textContent=z;document.getElementById('stZoom').textContent=z;render();
 }
-function zoomExt(){S.zoom=1;S.pan.x=W/2;S.pan.y=H/2;document.getElementById('zoomBadge').textContent='100%';document.getElementById('stZoom').textContent='100%';render();toast('Zoom extents','ok')}
+function zoomExt(){
+  if(S.entities.length===0){
+    S.zoom=1;S.pan.x=W/2;S.pan.y=H/2;
+  } else {
+    // compute world bounding box of all visible entities
+    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+    S.entities.forEach(e=>{
+      if(!layVis(e.layer))return;
+      let pts=[];
+      if(e.type==='line')pts=[{x:e.x1,y:e.y1},{x:e.x2,y:e.y2}];
+      else if(e.type==='circle')pts=[{x:e.cx-e.r,y:e.cy-e.r},{x:e.cx+e.r,y:e.cy+e.r}];
+      else if(e.type==='arc')pts=[{x:e.cx-e.r,y:e.cy-e.r},{x:e.cx+e.r,y:e.cy+e.r}];
+      else if(e.type==='rect')pts=[{x:e.x,y:e.y},{x:e.x+e.w,y:e.y+e.h}];
+      else if(e.type==='text')pts=[{x:e.x,y:e.y}];
+      else return;
+      pts.forEach(p=>{
+        minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);
+        minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);
+      });
+    });
+    if(!isFinite(minX)){S.zoom=1;S.pan.x=W/2;S.pan.y=H/2;}
+    else{
+      const dw=maxX-minX||1,dh=maxY-minY||1;
+      const pad=0.12;
+      S.zoom=Math.min(W/(dw*(1+pad)),H/(dh*(1+pad)));
+      S.zoom=Math.max(0.0001,Math.min(1000,S.zoom));
+      // center: world center → screen center
+      const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
+      S.pan.x=W/2-cx*S.zoom;
+      S.pan.y=H/2+cy*S.zoom; // +cy because Y is inverted
+    }
+  }
+  const z=Math.round(S.zoom*100)+'%';
+  document.getElementById('zoomBadge').textContent=z;
+  document.getElementById('stZoom').textContent=z;
+  render();
+}
 function toggleSnap(){S.snap=!S.snap;document.getElementById('stSnap').textContent=S.snap?'ON':'OFF';document.getElementById('btn-snap').classList.toggle('on',S.snap)}
 function toggleGrid(){S.grid=!S.grid;document.getElementById('stGrid').textContent=S.grid?'ON':'OFF';document.getElementById('btn-grid').classList.toggle('on',S.grid);render()}
 function toggleOrtho(){S.ortho=!S.ortho;document.getElementById('stOrtho').textContent=S.ortho?'ON':'OFF';document.getElementById('btn-ortho').classList.toggle('on',S.ortho)}
@@ -2215,100 +2260,217 @@ function simImport(){
   _importedFile=null;
 }
 
-// ── DXF ASCII PARSER ──────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+//  DXF ASCII PARSER  (robust — handles real AutoCAD/Civil3D DXF)
+// ══════════════════════════════════════════════════════════════
 function parseDXF(txt, filename){
-  const lines=txt.split(/\r?\n/);
-  const ents=[];
-  let i=0;
-  let _eid=Date.now();
+  // Normalise line endings, strip BOM
+  txt=txt.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const lines=txt.split('\n');
 
-  // parse pairs: group code + value
+  // Build [groupCode, value] pairs — DXF alternates code/value lines
   const pairs=[];
-  for(let j=0;j<lines.length-1;j+=2){
-    pairs.push([lines[j].trim(), lines[j+1].trim()]);
+  for(let i=0;i+1<lines.length;i+=2){
+    const gc=lines[i].trim();
+    const val=lines[i+1].trim();
+    if(gc!=='')pairs.push([gc,val]);
   }
 
-  // Find ENTITIES section
-  let inEntities=false, inObjects=false;
-  let cur=null;
+  const ents=[];
+  let _eid=0;
+  let inEnt=false;
+  let cur=null;          // {type, data:{gc:[val,…]}}
+  let layers={};         // layer name → layer id map
+  let layIdx=100;
 
+  function getLayId(name){
+    if(layers[name]===undefined){layers[name]=layIdx++;}
+    return layers[name];
+  }
+
+  // Scan for ENTITIES section
   for(let p=0;p<pairs.length;p++){
     const [gc,val]=pairs[p];
 
-    if(gc==='2'&&val==='ENTITIES'){inEntities=true;continue}
-    if(gc==='2'&&val==='OBJECTS'){inObjects=true;inEntities=false;continue}
-    if(gc==='0'&&val==='ENDSEC'){inEntities=false;inObjects=false;cur=null;continue}
+    // ── section boundaries ──
+    if(gc==='0'&&val==='ENDSEC'){inEnt=false;if(cur){flush();cur=null;}continue;}
+    if(gc==='2'&&val==='ENTITIES'){inEnt=true;continue;}
+    if(!inEnt)continue;
 
-    if(!inEntities) continue;
-
+    // ── entity start ──
     if(gc==='0'){
-      // save previous entity
-      if(cur) { const e=buildEntity(cur); if(e){e._id=++_eid;ents.push(e);} }
-      cur={type:val, data:{}};
-    } else if(cur){
-      cur.data[gc]=(cur.data[gc]||[]);
+      if(cur)flush();
+      if(val==='SEQEND'||val==='ENDBLK'){cur=null;continue;}
+      cur={type:val,data:{}};
+      continue;
+    }
+
+    if(cur){
+      if(!cur.data[gc])cur.data[gc]=[];
       cur.data[gc].push(val);
     }
   }
-  if(cur){ const e=buildEntity(cur); if(e){e._id=++Date.now();ents.push(e);} }
+  if(cur)flush();
+
+  // ── helper: emit entity ──
+  function flush(){
+    const built=buildDXFEnt(cur,getLayId);
+    if(!built)return;
+    if(Array.isArray(built)){built.forEach(e=>{e._id=++_eid;ents.push(e)});}
+    else{built._id=++_eid;ents.push(built);}
+  }
 
   if(ents.length===0){
-    toast('No renderable entities found in DXF. Check the file has ENTITIES section.','warn');
+    toast('No entities found in DXF — the file may be empty or use unsupported entity types','warn');
     return;
   }
 
+  // Inject any new layers from the DXF
+  Object.keys(layers).forEach(name=>{
+    if(!S.layers.find(l=>l.name===name)){
+      const cols=['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060','#4488ff'];
+      S.layers.push({id:layers[name],name,color:cols[S.layers.length%cols.length],vis:true,lock:false,frz:false,disabled:false});
+    }
+  });
+
   S.entities=ents;
   renderLayers();
-  zoomExt();
-  const msg=`${filename} loaded — ${ents.length} entities`;
+  setTimeout(()=>{zoomExt();},80); // wait for canvas resize
+  const msg=`${filename}: ${ents.length} entities loaded`;
   toast(msg,'ok');
   setMsg(msg);
 }
 
-function buildEntity(cur){
+function buildDXFEnt(cur,getLayId){
+  if(!cur)return null;
   const d=cur.data;
-  const g=k=>(d[k]&&d[k][0])||'0';
+  const g =k=>(d[k]&&d[k][0])||'';
   const gf=k=>parseFloat(g(k))||0;
-  const layer=0; // simplified — full parser would map layer names
+  const gfn=(k,n)=>(d[k]&&d[k][n])?parseFloat(d[k][n]):0; // nth occurrence
+  const layerName=g('8')||'0';
+  const layer=getLayId(layerName);
+  const color=null; // inherit from layer
 
   switch(cur.type.toUpperCase()){
-    case'LINE':
+
+    case 'LINE':
       return{type:'line',x1:gf('10'),y1:gf('20'),x2:gf('11'),y2:gf('21'),layer};
-    case'CIRCLE':
+
+    case 'CIRCLE':
       return{type:'circle',cx:gf('10'),cy:gf('20'),r:gf('40'),layer};
-    case'ARC':
-      return{type:'arc',cx:gf('10'),cy:gf('20'),r:gf('40'),startAngle:gf('50'),endAngle:gf('51'),layer};
-    case'LWPOLYLINE':{
-      // pairs of 10/20 = vertices
-      const xs=(d['10']||[]).map(Number);
-      const ys=(d['20']||[]).map(Number);
-      if(xs.length<2) return null;
+
+    case 'ARC':
+      return{type:'arc',cx:gf('10'),cy:gf('20'),r:gf('40'),
+        startAngle:gf('50'),endAngle:gf('51'),layer};
+
+    case 'ELLIPSE':{
+      // major axis vector determines radius approx
+      const rx=Math.hypot(gf('11'),gf('21'))||gf('40')||10;
+      const ry=rx*(gf('40')||0.5);
+      return{type:'ellipse',cx:gf('10'),cy:gf('20'),rx,ry,layer};
+    }
+
+    case 'LWPOLYLINE':{
+      const xs=d['10']?d['10'].map(Number):[];
+      const ys=d['20']?d['20'].map(Number):[];
+      if(xs.length<2)return null;
+      const flag=parseInt(g('70'))||0;
+      const closed=!!(flag&1);
       const segs=[];
-      for(let i=0;i<xs.length-1;i++){
-        segs.push({type:'line',x1:xs[i],y1:ys[i],x2:xs[i+1],y2:ys[i+1],layer,_id:Date.now()+i});
-      }
-      // treat first segment as representative — push rest
-      for(let i=1;i<segs.length;i++) S.entities.push(segs[i]);
-      return segs[0]||null;
+      for(let i=0;i<xs.length-1;i++)
+        segs.push({type:'line',x1:xs[i],y1:ys[i],x2:xs[i+1],y2:ys[i+1],layer});
+      if(closed&&xs.length>2)
+        segs.push({type:'line',x1:xs[xs.length-1],y1:ys[ys.length-1],x2:xs[0],y2:ys[0],layer});
+      return segs.length?segs:null;
     }
-    case'POLYLINE':
-      return null; // VERTEX pairs handled separately — skip for now
-    case'SPLINE':
-      return{type:'line',x1:gf('10'),y1:gf('20'),x2:gf('13'),y2:gf('23'),layer}; // approx
-    case'TEXT':
-    case'MTEXT':
-      return{type:'text',x:gf('10'),y:gf('20'),txt:(d['1']||['TEXT'])[0],sz:Math.max(3,gf('40')||10),layer};
-    case'INSERT':
-      return{type:'rect',x:gf('10'),y:gf('20'),w:20,h:20,layer}; // block placeholder
-    case'SOLID':
-    case'TRACE':{
-      const x1=gf('10'),y1=gf('20'),x2=gf('12'),y2=gf('22');
-      return{type:'rect',x:Math.min(x1,x2),y:Math.min(y1,y2),w:Math.abs(x2-x1)||10,h:Math.abs(y2-y1)||10,layer};
+
+    case 'POLYLINE':
+      // vertices come as VERTEX entities (handled in flush loop — skip header)
+      return null;
+
+    case 'VERTEX':{
+      // stand-alone vertex — draw as tiny dot
+      const x=gf('10'),y=gf('20');
+      return{type:'circle',cx:x,cy:y,r:0.5,layer};
     }
-    case'ELLIPSE':
-      return{type:'circle',cx:gf('10'),cy:gf('20'),r:gf('40')*0.7||20,layer}; // approx
-    case'POINT':
-      return{type:'circle',cx:gf('10'),cy:gf('20'),r:1.5,layer};
+
+    case 'SPLINE':{
+      // use control points as polyline approximation
+      const xs=d['10']?d['10'].map(Number):[];
+      const ys=d['20']?d['20'].map(Number):[];
+      if(xs.length<2)return null;
+      const segs=[];
+      for(let i=0;i<xs.length-1;i++)
+        segs.push({type:'line',x1:xs[i],y1:ys[i],x2:xs[i+1],y2:ys[i+1],layer});
+      return segs.length?segs:null;
+    }
+
+    case 'TEXT':
+    case 'ATTDEF':
+    case 'ATTRIB':{
+      const txt=(g('1')||g('2')||'TEXT').trim().replace(/\\P/g,' ');
+      const sz=Math.max(0.5,gf('40')||2);
+      return{type:'text',x:gf('10'),y:gf('20'),txt,sz,layer};
+    }
+
+    case 'MTEXT':{
+      // strip RTF codes from MTEXT content
+      let txt=(g('1')||'TEXT').replace(/\{[^}]*\}|\\[a-zA-Z]+;?/g,'').trim();
+      const sz=Math.max(0.5,gf('40')||2);
+      return{type:'text',x:gf('10'),y:gf('20'),txt:txt||'TEXT',sz,layer};
+    }
+
+    case 'INSERT':{
+      // Block reference — draw as a small rectangle placeholder
+      const sx=gf('41')||1,sy=gf('42')||1;
+      return{type:'rect',x:gf('10')-5*sx,y:gf('20')-5*sy,w:10*sx,h:10*sy,layer};
+    }
+
+    case 'POINT':
+      return{type:'circle',cx:gf('10'),cy:gf('20'),r:Math.max(0.3,gf('39')||0.5),layer};
+
+    case 'SOLID':
+    case 'TRACE':{
+      const xs=[gf('10'),gf('12')];
+      const ys=[gf('20'),gf('22')];
+      return{type:'rect',x:Math.min(...xs),y:Math.min(...ys),
+        w:Math.abs(xs[1]-xs[0])||1,h:Math.abs(ys[1]-ys[0])||1,layer};
+    }
+
+    case 'HATCH':
+      // Skip hatch boundary — just skip
+      return null;
+
+    case 'DIMENSION':{
+      // draw as a simple line between defpoints
+      return{type:'line',x1:gf('10'),y1:gf('20'),x2:gf('13'),y2:gf('23'),layer};
+    }
+
+    case 'LEADER':{
+      const xs=d['10']?d['10'].map(Number):[];
+      const ys=d['20']?d['20'].map(Number):[];
+      if(xs.length<2)return null;
+      const segs=[];
+      for(let i=0;i<xs.length-1;i++)
+        segs.push({type:'line',x1:xs[i],y1:ys[i],x2:xs[i+1],y2:ys[i+1],layer});
+      return segs;
+    }
+
+    case 'XLINE':
+    case 'RAY':{
+      // infinite lines — draw as long lines from base point
+      const bx=gf('10'),by=gf('20');
+      const dx=gf('11'),dy=gf('21');
+      const L=1e6;
+      return{type:'line',x1:bx-dx*L,y1:by-dy*L,x2:bx+dx*L,y2:by+dy*L,layer};
+    }
+
+    case 'WIPEOUT':
+    case 'IMAGE':
+    case 'OLE2FRAME':
+    case 'VIEWPORT':
+      return null;
+
     default:
       return null;
   }
@@ -2319,44 +2481,71 @@ function parseSVG(txt, filename){
   const parser=new DOMParser();
   const doc=parser.parseFromString(txt,'image/svg+xml');
   const ents=[];
-  let _eid=Date.now();
+  let _eid=0;
+  const n=(el,attr,def=0)=>parseFloat(el.getAttribute(attr))||def;
 
-  function svgNum(el,attr,def=0){ return parseFloat(el.getAttribute(attr)||def)||def; }
-
+  // SVG Y goes down, our world Y goes up → negate Y
   doc.querySelectorAll('line').forEach(el=>{
-    ents.push({type:'line',x1:svgNum(el,'x1'),y1:-svgNum(el,'y1'),x2:svgNum(el,'x2'),y2:-svgNum(el,'y2'),layer:0,_id:++_eid});
+    ents.push({type:'line',x1:n(el,'x1'),y1:-n(el,'y1'),x2:n(el,'x2'),y2:-n(el,'y2'),layer:0,_id:++_eid});
   });
   doc.querySelectorAll('rect').forEach(el=>{
-    const x=svgNum(el,'x'),y=svgNum(el,'y'),w=svgNum(el,'width',10),h=svgNum(el,'height',10);
-    ents.push({type:'rect',x,y:-(y+h),w,h,layer:0,_id:++_eid});
+    const x=n(el,'x'),y=n(el,'y'),w=n(el,'width',10),h=n(el,'height',10);
+    ents.push({type:'rect',x,y:-(y),w,h:-h,layer:0,_id:++_eid});
   });
   doc.querySelectorAll('circle').forEach(el=>{
-    ents.push({type:'circle',cx:svgNum(el,'cx'),cy:-svgNum(el,'cy'),r:svgNum(el,'r',5),layer:0,_id:++_eid});
+    ents.push({type:'circle',cx:n(el,'cx'),cy:-n(el,'cy'),r:Math.max(0.1,n(el,'r',5)),layer:0,_id:++_eid});
   });
   doc.querySelectorAll('ellipse').forEach(el=>{
-    ents.push({type:'circle',cx:svgNum(el,'cx'),cy:-svgNum(el,'cy'),r:(svgNum(el,'rx')+svgNum(el,'ry'))/2,layer:0,_id:++_eid});
+    ents.push({type:'ellipse',cx:n(el,'cx'),cy:-n(el,'cy'),rx:n(el,'rx',10),ry:n(el,'ry',5),layer:0,_id:++_eid});
   });
-  doc.querySelectorAll('text,tspan').forEach(el=>{
-    const x=svgNum(el,'x'),y=-svgNum(el,'y');
+  doc.querySelectorAll('text').forEach(el=>{
     const txt=el.textContent.trim();
-    if(txt) ents.push({type:'text',x,y,txt,sz:12,layer:0,_id:++_eid});
+    if(txt)ents.push({type:'text',x:n(el,'x'),y:-n(el,'y',0),txt,sz:Math.max(2,n(el,'font-size',12)),layer:0,_id:++_eid});
   });
-  // polyline / polygon
   doc.querySelectorAll('polyline,polygon').forEach(el=>{
-    const pts=(el.getAttribute('points')||'').trim().split(/[\s,]+/).map(Number).filter(n=>!isNaN(n));
-    for(let i=0;i<pts.length-3;i+=2){
+    const pts=(el.getAttribute('points')||'').trim().split(/[\s,]+/).map(Number).filter(v=>!isNaN(v));
+    for(let i=0;i+3<pts.length;i+=2)
       ents.push({type:'line',x1:pts[i],y1:-pts[i+1],x2:pts[i+2],y2:-pts[i+3],layer:0,_id:++_eid});
-    }
+  });
+  // path elements — extract M/L/Z moveto/lineto
+  doc.querySelectorAll('path').forEach(el=>{
+    const d=el.getAttribute('d')||'';
+    const segs=d.match(/[MLHVCSQTAZmlhvcsqtaz][^MLHVCSQTAZmlhvcsqtaz]*/g)||[];
+    let cx=0,cy=0,sx=0,sy=0;
+    segs.forEach(seg=>{
+      const cmd=seg[0];
+      const nums=seg.slice(1).trim().split(/[\s,]+/).map(Number).filter(v=>!isNaN(v));
+      if(cmd==='M'||cmd==='m'){
+        if(cmd==='M'){cx=nums[0]||0;cy=nums[1]||0;}
+        else{cx+=nums[0]||0;cy+=nums[1]||0;}
+        sx=cx;sy=cy;
+        for(let i=2;i+1<nums.length;i+=2){
+          const nx=cmd==='M'?nums[i]:cx+nums[i];
+          const ny=cmd==='M'?nums[i+1]:cy+nums[i+1];
+          ents.push({type:'line',x1:cx,y1:-cy,x2:nx,y2:-ny,layer:0,_id:++_eid});
+          cx=nx;cy=ny;
+        }
+      } else if(cmd==='L'||cmd==='l'){
+        for(let i=0;i+1<nums.length;i+=2){
+          const nx=cmd==='L'?nums[i]:cx+nums[i];
+          const ny=cmd==='L'?nums[i+1]:cy+nums[i+1];
+          ents.push({type:'line',x1:cx,y1:-cy,x2:nx,y2:-ny,layer:0,_id:++_eid});
+          cx=nx;cy=ny;
+        }
+      } else if(cmd==='H'){cx=nums[0]||cx;ents.push({type:'line',x1:cx-(nums[0]||0),y1:-cy,x2:cx,y2:-cy,layer:0,_id:++_eid});}
+      else if(cmd==='V'){const oy=cy;cy=nums[0]||cy;ents.push({type:'line',x1:cx,y1:-oy,x2:cx,y2:-cy,layer:0,_id:++_eid});}
+      else if(cmd==='Z'||cmd==='z'){ents.push({type:'line',x1:cx,y1:-cy,x2:sx,y2:-sy,layer:0,_id:++_eid});cx=sx;cy=sy;}
+    });
   });
 
   if(ents.length===0){
-    toast('No renderable shapes found in SVG','warn');
+    toast('No shapes found in SVG','warn');
     return;
   }
   S.entities=ents;
   renderLayers();
-  zoomExt();
-  const msg=`${filename} loaded — ${ents.length} shapes`;
+  setTimeout(()=>zoomExt(),80);
+  const msg=`${filename}: ${ents.length} shapes loaded`;
   toast(msg,'ok');
   setMsg(msg);
 }
