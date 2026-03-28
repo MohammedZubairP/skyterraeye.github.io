@@ -89,8 +89,8 @@ button{font-family:'Plus Jakarta Sans',sans-serif}
 /* ── Main workspace ── */
 .workspace{flex:1;display:flex;overflow:hidden;min-height:0}
 
-/* Left toolbox */
-.toolbox{width:40px;flex-shrink:0;background:var(--cp);border-right:1px solid var(--cb);display:flex;flex-direction:column;align-items:center;padding:5px 0;gap:1px;overflow-y:auto}
+/* Legacy toolbox — superseded by .side-panel */
+.toolbox-legacy{width:40px;flex-shrink:0}
 .toolbox::-webkit-scrollbar{width:2px}
 .tb2{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid transparent;border-radius:5px;cursor:pointer;font-size:14px;color:var(--M);transition:all .12s;position:relative;flex-shrink:0}
 .tb2:hover{background:rgba(31,168,217,.08);border-color:var(--cb);color:var(--T)}
@@ -282,8 +282,8 @@ button{font-family:'Plus Jakarta Sans',sans-serif}
 :root{--tb-w:40px;--tb-btn:32px;--tb-ico:14px}
 body.tb-sm{--tb-w:30px;--tb-btn:24px;--tb-ico:11px}
 body.tb-lg{--tb-w:56px;--tb-btn:46px;--tb-ico:20px}
-.toolbox{width:var(--tb-w)!important}
-.tb2{width:var(--tb-btn)!important;height:var(--tb-btn)!important;font-size:var(--tb-ico)!important}
+/* .toolbox handled by .side-panel */
+
 body.rb-sm .ribbon{height:46px}
 body.rb-lg .ribbon{height:88px}
 body.rb-sm .rb-ico{font-size:12px!important}
@@ -346,6 +346,186 @@ body.rb-lg .rg-lbl{font-size:10px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--ct);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:#2A4560}
+
+/* ══════════════════════════════
+   SIDE TOOL PANEL  (left column)
+══════════════════════════════ */
+.side-panel{
+  width:120px;
+  min-width:120px;
+  flex-shrink:0;
+  background:#07111C;
+  border-right:1px solid var(--cb);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  position:relative;
+  transition:width .18s ease, min-width .18s ease;
+  z-index:10;
+}
+.side-panel.collapsed{
+  width:0 !important;
+  min-width:0 !important;
+  border-right:none;
+}
+.side-collapse{
+  position:absolute;
+  right:-11px;top:50%;
+  transform:translateY(-50%);
+  width:11px;height:32px;
+  background:#07111C;
+  border:1px solid var(--cb);border-left:none;
+  border-radius:0 4px 4px 0;
+  color:var(--M);cursor:pointer;
+  font-size:9px;z-index:20;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .12s;
+}
+.side-collapse:hover{color:var(--T);background:rgba(31,168,217,.1)}
+.side-scroll{
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:5px 0 10px;
+}
+.side-scroll::-webkit-scrollbar{width:2px}
+.side-scroll::-webkit-scrollbar-thumb{background:var(--ct);border-radius:2px}
+
+/* group */
+.sg{margin-bottom:1px}
+.sg-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:2px;
+  padding:2px 5px 0;
+}
+.sg-grid.cols1{grid-template-columns:1fr}
+.sg-btn{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:7px 3px 6px;
+  background:rgba(255,255,255,.02);
+  border:1px solid transparent;
+  border-radius:5px;
+  cursor:pointer;
+  transition:all .1s;
+  gap:4px;
+  position:relative;
+  min-width:0;
+}
+.sg-btn:hover{background:rgba(31,168,217,.09);border-color:rgba(31,168,217,.2)}
+.sg-btn.act{background:rgba(167,139,250,.18);border-color:var(--StrataL)!important}
+.sg-btn.del:hover{background:rgba(255,80,80,.1);border-color:rgba(255,80,80,.3)}
+.sg-btn.disabled{opacity:.3;pointer-events:none}
+.sg-ico{font-size:18px;line-height:1;display:block;color:var(--T)}
+.sg-lbl{
+  font-size:7px;font-weight:700;
+  letter-spacing:.4px;text-transform:uppercase;
+  color:var(--M);
+  font-family:'IBM Plex Mono',monospace;
+  line-height:1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:100%;
+}
+.sg-btn.act .sg-lbl{color:var(--Strata)}
+.sg-btn:hover .sg-lbl{color:var(--T)}
+.sg-btn.del:hover .sg-lbl{color:#ff6060}
+.sg-title{
+  font-size:7.5px;font-weight:700;
+  letter-spacing:1.2px;text-transform:uppercase;
+  color:rgba(90,131,158,.4);
+  text-align:center;
+  padding:3px 0 2px;
+  font-family:'IBM Plex Mono',monospace;
+  border-bottom:1px solid rgba(31,168,217,.07);
+  margin:2px 5px 0;
+}
+
+/* ── Tool Props Popover ── */
+#toolPropsPanel{
+  position:fixed;
+  left:130px; top:100px;
+  width:230px;
+  background:#0B1D30;
+  border:1px solid var(--StrataL);
+  border-radius:7px;
+  box-shadow:0 8px 32px rgba(0,0,0,.75);
+  z-index:600;
+  display:none;
+  overflow:hidden;
+}
+#toolPropsPanel.open{display:block}
+.tpp-head{padding:8px 11px;background:rgba(167,139,250,.12);border-bottom:1px solid var(--StrataL);display:flex;justify-content:space-between;align-items:center}
+.tpp-title{font-size:10.5px;font-weight:800;color:var(--Strata);font-family:'Syne',sans-serif;text-transform:uppercase;letter-spacing:.5px}
+.tpp-close{cursor:pointer;color:var(--M);font-size:13px;transition:color .1s}
+.tpp-close:hover{color:#ff6060}
+.tpp-body{padding:9px 11px;max-height:65vh;overflow-y:auto}
+.tpp-body::-webkit-scrollbar{width:2px}
+.tpp-sec{font-size:8px;font-weight:700;color:var(--Strata);letter-spacing:1.2px;text-transform:uppercase;margin:7px 0 4px;font-family:'IBM Plex Mono',monospace;padding-bottom:2px;border-bottom:1px solid rgba(167,139,250,.15)}
+.tpp-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px}
+.tpp-lbl{font-size:9px;color:var(--M);white-space:nowrap}
+.tpp-val{font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--T)}
+.tpp-input{background:rgba(0,0,0,.35);border:1px solid var(--cb);border-radius:3px;color:var(--T);font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 5px;width:86px;outline:none}
+.tpp-input:focus{border-color:var(--Strata)}
+.tpp-sel{background:rgba(0,0,0,.35);border:1px solid var(--cb);border-radius:3px;color:var(--T);font-size:9px;padding:2px 3px;width:90px;outline:none}
+.tpp-toggle{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+.tpp-toggle input{accent-color:var(--Strata);cursor:pointer}
+.tpp-toggle label{font-size:9px;color:var(--M);cursor:pointer}
+.tpp-actions{display:flex;gap:4px;margin-top:8px;padding-top:7px;border-top:1px solid var(--cb)}
+.tpp-act-btn{flex:1;padding:4px 5px;background:none;border:1px solid var(--cb);border-radius:3px;color:var(--M);font-size:8.5px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .09s}
+.tpp-act-btn:hover{border-color:var(--Bl);color:var(--B)}
+.tpp-act-btn.en{color:#4eff91;border-color:rgba(78,255,145,.25)}
+.tpp-act-btn.en:hover{background:rgba(78,255,145,.07)}
+.tpp-act-btn.dis{color:#ff6060;border-color:rgba(255,80,80,.25)}
+.tpp-act-btn.dis:hover{background:rgba(255,80,80,.07)}
+
+/* ── Model/Layout bar ── */
+.layout-bar{
+  height:26px;flex-shrink:0;
+  background:#030A14;
+  border-top:1px solid rgba(31,168,217,.08);
+  display:flex;align-items:stretch;
+  padding:0 6px;overflow-x:auto;
+}
+.layout-bar::-webkit-scrollbar{height:0}
+.lt{
+  display:flex;align-items:center;gap:4px;
+  padding:0 10px;
+  font-size:9.5px;font-weight:700;
+  color:var(--M);cursor:pointer;
+  border-bottom:2px solid transparent;
+  border-right:1px solid rgba(31,168,217,.06);
+  white-space:nowrap;transition:all .11s;
+  font-family:'IBM Plex Mono',monospace;
+  letter-spacing:.3px;text-transform:uppercase;
+  position:relative;
+}
+.lt:hover{color:var(--T);background:rgba(31,168,217,.04)}
+.lt.act{border-bottom-color:var(--B)}
+.lt.model.act{border-bottom-color:#4eff91;color:#4eff91}
+.lt.layout.act{border-bottom-color:var(--Strata);color:var(--Strata)}
+.lt-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.lt-add{display:flex;align-items:center;padding:0 8px;color:var(--M);cursor:pointer;font-size:13px;opacity:.45;border:none;background:none;transition:opacity .1s}
+.lt-add:hover{opacity:1}
+.lt-ctx{display:none;position:absolute;bottom:100%;left:0;background:#0C1C2E;border:1px solid var(--cb);border-radius:5px;min-width:130px;z-index:400;padding:3px;box-shadow:0 -4px 16px rgba(0,0,0,.6)}
+.lt:hover .lt-ctx{display:block}
+.lt-ctx-item{padding:4px 9px;font-size:10px;cursor:pointer;border-radius:3px;color:var(--T)}
+.lt-ctx-item:hover{background:var(--Bdim);color:var(--B)}
+.layout-bar-right{margin-left:auto;display:flex;align-items:center;gap:5px;padding-left:8px;border-left:1px solid rgba(31,168,217,.07)}
+.lb-btn{padding:1px 7px;background:none;border:1px solid var(--cb);border-radius:2px;color:var(--M);font-size:8.5px;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .08s}
+.lb-btn:hover{color:var(--T);border-color:var(--Bl)}
+
+/* ── Layer list upgrade ── */
+.li-actions{display:flex;gap:1px;margin-left:auto;align-items:center}
+.li-act{font-size:9.5px;cursor:pointer;opacity:.3;transition:opacity .1s;padding:1px 2px;border-radius:2px;line-height:1}
+.li-act:hover{opacity:1;background:rgba(31,168,217,.1)}
+.li-act.active{opacity:1}
+.li-dis .ln{text-decoration:line-through;opacity:.5}
+
 </style>
 </head>
 <body>
@@ -745,39 +925,187 @@ body.rb-lg .rg-lbl{font-size:10px}
 <!-- ── Workspace ── -->
 <div class="workspace">
 
-  <!-- Left Toolbox -->
-  <div class="toolbox" id="toolboxEl">
-    <button class="tb2" data-tip="Select" onclick="setTool('select')">🖱️</button>
-    <button class="tb2" data-tip="Pan" onclick="setTool('pan')">🖐️</button>
-    <div class="tsep"></div>
-    <button class="tb2" data-tip="Line (L)" onclick="setTool('line')">⁄</button>
-    <button class="tb2" data-tip="Polyline" onclick="setTool('polyline')">〰</button>
-    <button class="tb2" data-tip="Circle (C)" onclick="setTool('circle')">○</button>
-    <button class="tb2" data-tip="Arc" onclick="setTool('arc')">◠</button>
-    <button class="tb2" data-tip="Rectangle" onclick="setTool('rect')">▭</button>
-    <button class="tb2" data-tip="Ellipse" onclick="setTool('ellipse')">◎</button>
-    <button class="tb2" data-tip="Spline" onclick="setTool('spline')">≈</button>
-    <button class="tb2" data-tip="Hatch / Fill" onclick="setTool('hatch')">▩</button>
-    <div class="tsep"></div>
-    <button class="tb2" data-tip="Move (M)" onclick="setTool('move')">✥</button>
-    <button class="tb2" data-tip="Copy" onclick="setTool('copy')">❑</button>
-    <button class="tb2" data-tip="Rotate" onclick="setTool('rotate')">↻</button>
-    <button class="tb2" data-tip="Scale" onclick="setTool('scale')">⤡</button>
-    <button class="tb2" data-tip="Mirror" onclick="setTool('mirror')">⇌</button>
-    <button class="tb2" data-tip="Offset" onclick="setTool('offset')">⊏</button>
-    <button class="tb2" data-tip="Trim" onclick="setTool('trim')">✂</button>
-    <button class="tb2" data-tip="Extend" onclick="setTool('extend')">⇒</button>
-    <div class="tsep"></div>
-    <button class="tb2" data-tip="Text (T)" onclick="setTool('text')">T</button>
-    <button class="tb2" data-tip="Dimension" onclick="setTool('dim-linear')">⟷</button>
-    <button class="tb2" data-tip="Leader" onclick="setTool('leader')">⇁</button>
-    <div class="tsep"></div>
-    <button class="tb2" data-tip="Measure Distance" onclick="setTool('measure-dist')">📏</button>
-    <button class="tb2" data-tip="Measure Area" onclick="setTool('measure-area')">📐</button>
-    <div class="tsep"></div>
-    <button class="tb2" data-tip="Delete (Del)" onclick="delSel()" style="color:#ff6060">✕</button>
-    <button class="tb2" data-tip="Explode" onclick="openMo('moExplode')">💥</button>
-    <button class="tb2" data-tip="Insert Block" onclick="openMo('moBlock')">🧱</button>
+  <!-- ══════════════════════════════
+       LEFT SIDE PANEL  (CAD style)
+  ══════════════════════════════ -->
+  <div class="side-panel" id="toolboxEl">
+    <!-- collapse toggle -->
+    <button class="side-collapse" id="sideCollapseBtn" onclick="toggleSidePanel()" title="Collapse panel">‹</button>
+
+    <!-- scrollable tool groups -->
+    <div class="side-scroll">
+
+      <!-- FILE -->
+      <div class="sg">
+        <div class="sg-grid">
+          <button class="sg-btn" onclick="openMo('moImport')" data-tip="Import Drawing">
+            <span class="sg-ico">📂</span><span class="sg-lbl">IMPORT</span>
+          </button>
+          <button class="sg-btn" onclick="openMo('moExport')" data-tip="Export Drawing">
+            <span class="sg-ico">💾</span><span class="sg-lbl">EXPORT</span>
+          </button>
+        </div>
+        <div class="sg-title">FILE</div>
+      </div>
+
+      <!-- DRAW -->
+      <div class="sg">
+        <div class="sg-grid">
+          <button class="sg-btn" id="sg-line" onclick="clickTool('line')" data-tip="Line (L)">
+            <span class="sg-ico sg-ico-line">⁄</span><span class="sg-lbl">LINE</span>
+          </button>
+          <button class="sg-btn act" id="sg-polyline" onclick="clickTool('polyline')" data-tip="Polyline (PL)">
+            <span class="sg-ico">〰</span><span class="sg-lbl">PLINE</span>
+          </button>
+          <button class="sg-btn" id="sg-circle" onclick="clickTool('circle')" data-tip="Circle (C)">
+            <span class="sg-ico">○</span><span class="sg-lbl">CIRCLE</span>
+          </button>
+          <button class="sg-btn" id="sg-arc" onclick="clickTool('arc')" data-tip="Arc (A)">
+            <span class="sg-ico">◠</span><span class="sg-lbl">ARC</span>
+          </button>
+          <button class="sg-btn" id="sg-rect" onclick="clickTool('rect')" data-tip="Rectangle (REC)">
+            <span class="sg-ico">▭</span><span class="sg-lbl">RECT</span>
+          </button>
+          <button class="sg-btn" id="sg-ellipse" onclick="clickTool('ellipse')" data-tip="Ellipse (EL)">
+            <span class="sg-ico">◎</span><span class="sg-lbl">ELLIPSE</span>
+          </button>
+          <button class="sg-btn" id="sg-spline" onclick="clickTool('spline')" data-tip="Spline">
+            <span class="sg-ico">≈</span><span class="sg-lbl">SPLINE</span>
+          </button>
+          <button class="sg-btn" id="sg-hatch" onclick="clickTool('hatch')" data-tip="Hatch/Fill (H)">
+            <span class="sg-ico">▩</span><span class="sg-lbl">HATCH</span>
+          </button>
+        </div>
+        <div class="sg-title">DRAW</div>
+      </div>
+
+      <!-- MODIFY -->
+      <div class="sg">
+        <div class="sg-grid">
+          <button class="sg-btn" id="sg-move" onclick="clickTool('move')" data-tip="Move (M)">
+            <span class="sg-ico">✥</span><span class="sg-lbl">MOVE</span>
+          </button>
+          <button class="sg-btn" id="sg-copy" onclick="clickTool('copy')" data-tip="Copy (CO)">
+            <span class="sg-ico">❑</span><span class="sg-lbl">COPY</span>
+          </button>
+          <button class="sg-btn" id="sg-rotate" onclick="clickTool('rotate')" data-tip="Rotate (RO)">
+            <span class="sg-ico">↻</span><span class="sg-lbl">ROTATE</span>
+          </button>
+          <button class="sg-btn" id="sg-scale" onclick="clickTool('scale')" data-tip="Scale (SC)">
+            <span class="sg-ico">⤡</span><span class="sg-lbl">SCALE</span>
+          </button>
+          <button class="sg-btn" id="sg-mirror" onclick="clickTool('mirror')" data-tip="Mirror (MI)">
+            <span class="sg-ico">⇌</span><span class="sg-lbl">MIRROR</span>
+          </button>
+          <button class="sg-btn" id="sg-offset" onclick="clickTool('offset')" data-tip="Offset (O)">
+            <span class="sg-ico">⊏</span><span class="sg-lbl">OFFSET</span>
+          </button>
+          <button class="sg-btn" id="sg-trim" onclick="clickTool('trim')" data-tip="Trim (TR)">
+            <span class="sg-ico">✂</span><span class="sg-lbl">TRIM</span>
+          </button>
+          <button class="sg-btn" id="sg-extend" onclick="clickTool('extend')" data-tip="Extend (EX)">
+            <span class="sg-ico">⇒</span><span class="sg-lbl">EXTEND</span>
+          </button>
+        </div>
+        <div class="sg-title">MODIFY</div>
+      </div>
+
+      <!-- EDIT -->
+      <div class="sg">
+        <div class="sg-grid">
+          <button class="sg-btn" id="sg-select" onclick="clickTool('select')" data-tip="Select (S)">
+            <span class="sg-ico">🖱️</span><span class="sg-lbl">SELECT</span>
+          </button>
+          <button class="sg-btn del" onclick="delSel()" data-tip="Delete selected (Del)">
+            <span class="sg-ico">🗑️</span><span class="sg-lbl">DELETE</span>
+          </button>
+          <button class="sg-btn" onclick="openMo('moExplode')" data-tip="Explode objects">
+            <span class="sg-ico">💥</span><span class="sg-lbl">EXPLODE</span>
+          </button>
+          <button class="sg-btn" onclick="openMo('moBlock')" data-tip="Insert Block (I)">
+            <span class="sg-ico">🧱</span><span class="sg-lbl">BLOCK</span>
+          </button>
+          <button class="sg-btn" onclick="openMo('moBlockEdit')" data-tip="Block Editor">
+            <span class="sg-ico">✏️</span><span class="sg-lbl">BLKEDIT</span>
+          </button>
+          <button class="sg-btn" onclick="toast('Group created','ok')" data-tip="Group objects">
+            <span class="sg-ico">📦</span><span class="sg-lbl">GROUP</span>
+          </button>
+        </div>
+        <div class="sg-title">EDIT</div>
+      </div>
+
+      <!-- ANNOTATE -->
+      <div class="sg">
+        <div class="sg-grid">
+          <button class="sg-btn" id="sg-text" onclick="clickTool('text')" data-tip="Text (T)">
+            <span class="sg-ico">📝</span><span class="sg-lbl">TEXT</span>
+          </button>
+          <button class="sg-btn" id="sg-leader" onclick="clickTool('leader')" data-tip="Leader">
+            <span class="sg-ico">🏷️</span><span class="sg-lbl">LEADER</span>
+          </button>
+          <button class="sg-btn" id="sg-dim-linear" onclick="clickTool('dim-linear')" data-tip="Linear Dim">
+            <span class="sg-ico">⟷</span><span class="sg-lbl">DIMLIN</span>
+          </button>
+          <button class="sg-btn" id="sg-dim-radius" onclick="clickTool('dim-radius')" data-tip="Radius Dim">
+            <span class="sg-ico">⭕</span><span class="sg-lbl">DIMRAD</span>
+          </button>
+          <button class="sg-btn" id="sg-dim-angular" onclick="clickTool('dim-angular')" data-tip="Angular Dim">
+            <span class="sg-ico">∡</span><span class="sg-lbl">DIMANG</span>
+          </button>
+        </div>
+        <div class="sg-title">ANNOTATE</div>
+      </div>
+
+      <!-- PATTERN -->
+      <div class="sg">
+        <div class="sg-grid">
+          <button class="sg-btn" onclick="openMo('moArray')" data-tip="Rectangular Array">
+            <span class="sg-ico">🔲</span><span class="sg-lbl">RECT ARR</span>
+          </button>
+          <button class="sg-btn" onclick="openMo('moArray')" data-tip="Polar Array">
+            <span class="sg-ico">⭕</span><span class="sg-lbl">POLAR ARR</span>
+          </button>
+          <button class="sg-btn" onclick="toast('Fillet applied','ok')" data-tip="Fillet (F)">
+            <span class="sg-ico">🔀</span><span class="sg-lbl">FILLET</span>
+          </button>
+          <button class="sg-btn" onclick="toast('Chamfer applied','ok')" data-tip="Chamfer (CHA)">
+            <span class="sg-ico">✂️</span><span class="sg-lbl">CHAMFER</span>
+          </button>
+        </div>
+        <div class="sg-title">PATTERN</div>
+      </div>
+
+      <!-- LAYERS -->
+      <div class="sg">
+        <div class="sg-grid" style="grid-template-columns:1fr">
+          <button class="sg-btn wide" onclick="showPanel('layers')" data-tip="Layer Manager">
+            <span class="sg-ico">📋</span><span class="sg-lbl">LAYERS</span>
+          </button>
+        </div>
+        <div class="sg-title">LAYERS</div>
+      </div>
+
+      <!-- MEASURE -->
+      <div class="sg">
+        <div class="sg-grid">
+          <button class="sg-btn" id="sg-measure-dist" onclick="clickTool('measure-dist')" data-tip="Measure Distance (DI)">
+            <span class="sg-ico">📏</span><span class="sg-lbl">DIST</span>
+          </button>
+          <button class="sg-btn" id="sg-measure-area" onclick="clickTool('measure-area')" data-tip="Measure Area (AA)">
+            <span class="sg-ico">📐</span><span class="sg-lbl">AREA</span>
+          </button>
+          <button class="sg-btn" id="sg-pan" onclick="clickTool('pan')" data-tip="Pan (P)">
+            <span class="sg-ico">🖐️</span><span class="sg-lbl">PAN</span>
+          </button>
+          <button class="sg-btn" onclick="zoomExt()" data-tip="Zoom Extents (Z+E)">
+            <span class="sg-ico">🔭</span><span class="sg-lbl">EXTENTS</span>
+          </button>
+        </div>
+        <div class="sg-title">VIEW / MEASURE</div>
+      </div>
+
+    </div><!-- /side-scroll -->
   </div>
 
   <!-- Viewport -->
@@ -785,6 +1113,7 @@ body.rb-lg .rg-lbl{font-size:10px}
     ondrop="vpDrop(event)" ondragover="vpDragOver(event)" ondragleave="vpDragLeave(event)">
     <canvas id="cad"></canvas>
     <div id="selbox"></div>
+
     <div id="selCount">SELECTED: <span id="selCountNum">0</span></div>
     <div id="selMode"></div>
     <div id="dz">
@@ -880,6 +1209,44 @@ body.rb-lg .rg-lbl{font-size:10px}
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+
+<!-- ══ MODEL / LAYOUT TABS ══ -->
+<div class="layout-bar" id="layoutBar">
+  <div class="lt model act" id="lt-model" onclick="switchLayout('model')">
+    <span class="lt-dot" style="background:#4eff91"></span>
+    Model
+    <div class="lt-ctx">
+      <div class="lt-ctx-item" onclick="zoomExt();event.stopPropagation()">🔭 Zoom Extents</div>
+      <div class="lt-ctx-item" onclick="event.stopPropagation()">⚙️ Model Properties</div>
+    </div>
+  </div>
+  <div class="lt layout" id="lt-layout1" onclick="switchLayout('layout1')">
+    <span class="lt-dot" style="background:var(--Strata)"></span>
+    Layout 1
+    <div class="lt-ctx">
+      <div class="lt-ctx-item" onclick="event.stopPropagation()">📐 Page Setup</div>
+      <div class="lt-ctx-item" onclick="toast('Layout renamed','ok');event.stopPropagation()">✏️ Rename</div>
+      <div class="lt-ctx-item" onclick="toast('Layout copied','ok');event.stopPropagation()">📋 Copy</div>
+      <div class="lt-ctx-item" onclick="event.stopPropagation()">🗑️ Delete</div>
+    </div>
+  </div>
+  <div class="lt layout" id="lt-layout2" onclick="switchLayout('layout2')">
+    <span class="lt-dot" style="background:var(--Strata)"></span>
+    Layout 2
+    <div class="lt-ctx">
+      <div class="lt-ctx-item" onclick="event.stopPropagation()">📐 Page Setup</div>
+      <div class="lt-ctx-item" onclick="toast('Layout renamed','ok');event.stopPropagation()">✏️ Rename</div>
+      <div class="lt-ctx-item" onclick="toast('Layout copied','ok');event.stopPropagation()">📋 Copy</div>
+      <div class="lt-ctx-item" onclick="event.stopPropagation()">🗑️ Delete</div>
+    </div>
+  </div>
+  <button class="lt-add" onclick="addLayout()" title="Add new layout">＋</button>
+  <div class="layout-bar-right">
+    <button class="lb-btn" onclick="zoomExt()">🔭 Extents</button>
+    <button class="lb-btn" onclick="openMo('moSettings')">⚙️</button>
   </div>
 </div>
 
@@ -1676,14 +2043,22 @@ function renderLayers(){
   list.innerHTML='';
   S.layers.forEach(l=>{
     const el=document.createElement('div');
-    el.className='li'+(l.id===S.curLayer?' sel':'');
-    el.innerHTML=`<div class="ld" style="background:${l.color}"></div><span class="ln">${l.name}</span>
-    <div class="lic">
-      <span class="${l.vis?'on':''}" onclick="togLyr(${l.id},'vis')" title="${l.vis?'Hide':'Show'}">${l.vis?'👁️':'🚫'}</span>
-      <span class="${l.lock?'':'on'}" onclick="togLyr(${l.id},'lock')" title="${l.lock?'Unlock':'Lock'}">🔒</span>
-      <span onclick="togLyr(${l.id},'frz')" title="Freeze/Thaw">${l.frz?'❄️':'☀️'}</span>
+    el.className='li'+(l.id===S.curLayer?' sel':'')+(l.disabled?' li-dis':'');
+    el.innerHTML=`<div class="ld" style="background:${l.color}"></div>
+    <span class="ln" style="color:${l.disabled?'var(--M)':'var(--T)'}">${l.name}</span>
+    <div class="li-actions">
+      <span class="li-act ${l.vis?'active':''}" onclick="togLyr(${l.id},'vis');event.stopPropagation()" title="${l.vis?'Hide layer':'Show layer'}">${l.vis?'👁️':'🚫'}</span>
+      <span class="li-act ${l.lock?'active':''}" onclick="togLyr(${l.id},'lock');event.stopPropagation()" title="${l.lock?'Unlock':'Lock'}">🔒</span>
+      <span class="li-act" onclick="togLyr(${l.id},'frz');event.stopPropagation()" title="Freeze/Thaw">${l.frz?'❄️':'☀️'}</span>
+      <span class="li-act" onclick="zoomToLayer(${l.id});event.stopPropagation()" title="Zoom to layer">🔭</span>
+      <span class="li-act ${l.disabled?'active':''}" onclick="togLyr(${l.id},'disabled');event.stopPropagation()" title="${l.disabled?'Enable layer':'Disable layer'}" style="color:${l.disabled?'#ff6060':'var(--M)'}">⊘</span>
     </div>`;
-    el.onclick=ev=>{if(ev.target.closest('.lic'))return;S.curLayer=l.id;document.getElementById('layerBadge').textContent=l.name;renderLayers()};
+    el.onclick=ev=>{
+      if(ev.target.closest('.li-actions'))return;
+      S.curLayer=l.id;
+      document.getElementById('layerBadge').textContent=l.name;
+      renderLayers();
+    };
     list.appendChild(el);
   });
   // Export layer checkboxes
@@ -1969,8 +2344,321 @@ canvas.addEventListener('mousedown',function(){
   const tip=document.getElementById('eTip');if(tip)tip.style.display='none';
 });
 
+// ══════════════════════════════════════════
+//  TOOL DEFINITIONS for properties panel
+// ══════════════════════════════════════════
+const TOOL_DEFS = {
+  line:       {label:'Line',icon:'⁄',   color:'#D0E8F5', group:'Draw',
+    props:[
+      {label:'From X',key:'x1',type:'number',default:0},
+      {label:'From Y',key:'y1',type:'number',default:0},
+      {label:'To X',  key:'x2',type:'number',default:100},
+      {label:'To Y',  key:'y2',type:'number',default:100},
+      {label:'Length',key:'_len',type:'computed'},
+      {label:'Angle °',key:'_ang',type:'computed'},
+    ],
+    attrs:[
+      {label:'Layer',   key:'layer',   type:'select',    options:()=>S.layers.map(l=>l.name)},
+      {label:'Linetype',key:'linetype',type:'select',    options:['Continuous','Dashed','Center','Phantom']},
+      {label:'Lineweight',key:'lw',   type:'select',    options:['0.25mm','0.35mm','0.50mm','0.70mm']},
+      {label:'Color',   key:'color',  type:'color',     default:'#1FA8D9'},
+    ]
+  },
+  polyline:   {label:'Polyline', icon:'〰', color:'#D0E8F5', group:'Draw',
+    props:[{label:'Start X',key:'x1',type:'number',default:0},{label:'Start Y',key:'y1',type:'number',default:0},{label:'Close',key:'closed',type:'bool',default:false}],
+    attrs:[{label:'Layer',key:'layer',type:'select',options:()=>S.layers.map(l=>l.name)},{label:'Lineweight',key:'lw',type:'select',options:['0.25mm','0.35mm','0.50mm']}]
+  },
+  circle:     {label:'Circle',  icon:'○', color:'#4eff91', group:'Draw',
+    props:[
+      {label:'Center X',key:'cx',type:'number',default:0},
+      {label:'Center Y',key:'cy',type:'number',default:0},
+      {label:'Radius',  key:'r', type:'number',default:50},
+      {label:'Diameter',key:'_diam',type:'computed'},
+      {label:'Circumf.', key:'_circ',type:'computed'},
+      {label:'Area',    key:'_area',type:'computed'},
+    ],
+    attrs:[{label:'Layer',key:'layer',type:'select',options:()=>S.layers.map(l=>l.name)},{label:'Color',key:'color',type:'color',default:'#1FA8D9'}]
+  },
+  arc:        {label:'Arc',     icon:'◠', color:'#A78BFA', group:'Draw',
+    props:[{label:'Center X',key:'cx',type:'number',default:0},{label:'Center Y',key:'cy',type:'number',default:0},{label:'Radius',key:'r',type:'number',default:50},{label:'Start°',key:'startAngle',type:'number',default:0},{label:'End°',key:'endAngle',type:'number',default:90}],
+    attrs:[{label:'Layer',key:'layer',type:'select',options:()=>S.layers.map(l=>l.name)}]
+  },
+  rect:       {label:'Rectangle',icon:'▭',color:'#F5BE18', group:'Draw',
+    props:[
+      {label:'X',     key:'x',type:'number',default:0},
+      {label:'Y',     key:'y',type:'number',default:0},
+      {label:'Width', key:'w',type:'number',default:100},
+      {label:'Height',key:'h',type:'number',default:80},
+      {label:'Area',  key:'_area',type:'computed'},
+      {label:'Perim.', key:'_perim',type:'computed'},
+    ],
+    attrs:[{label:'Layer',key:'layer',type:'select',options:()=>S.layers.map(l=>l.name)},{label:'Linetype',key:'linetype',type:'select',options:['Continuous','Dashed']},{label:'Fill',key:'fill',type:'bool',default:false}]
+  },
+  ellipse:    {label:'Ellipse', icon:'◎', color:'#A78BFA', group:'Draw',
+    props:[{label:'Center X',key:'cx',type:'number',default:0},{label:'Center Y',key:'cy',type:'number',default:0},{label:'Radius X',key:'rx',type:'number',default:80},{label:'Radius Y',key:'ry',type:'number',default:50}],
+    attrs:[{label:'Layer',key:'layer',type:'select',options:()=>S.layers.map(l=>l.name)}]
+  },
+  spline:     {label:'Spline',  icon:'≈', color:'#1FA8D9', group:'Draw',
+    props:[{label:'Degree',key:'degree',type:'select',options:['3','4','5'],default:'3'},{label:'Fit Tolerance',key:'tol',type:'number',default:0}],
+    attrs:[{label:'Layer',key:'layer',type:'select',options:()=>S.layers.map(l=>l.name)}]
+  },
+  hatch:      {label:'Hatch',   icon:'▩', color:'#556677', group:'Draw',
+    props:[{label:'Pattern',key:'pattern',type:'select',options:['ANSI31','ANSI32','SOLID','LINE','DOTS'],default:'ANSI31'},{label:'Scale',key:'scale',type:'number',default:1},{label:'Angle°',key:'angle',type:'number',default:0}],
+    attrs:[{label:'Layer',key:'layer',type:'select',options:()=>S.layers.map(l=>l.name)},{label:'Color',key:'color',type:'color',default:'#556677'}]
+  },
+  move:       {label:'Move',    icon:'✥', color:'#4eff91', group:'Modify',
+    props:[{label:'Base Point X',key:'bpx',type:'number',default:0},{label:'Base Point Y',key:'bpy',type:'number',default:0},{label:'Displace X',key:'dx',type:'number',default:0},{label:'Displace Y',key:'dy',type:'number',default:0}],
+    attrs:[]
+  },
+  copy:       {label:'Copy',    icon:'❑', color:'#1FA8D9', group:'Modify',
+    props:[{label:'Base X',key:'bpx',type:'number',default:0},{label:'Base Y',key:'bpy',type:'number',default:0},{label:'Copies',key:'count',type:'number',default:1}],attrs:[]
+  },
+  rotate:     {label:'Rotate',  icon:'↻', color:'#F5BE18', group:'Modify',
+    props:[{label:'Base X',key:'bx',type:'number',default:0},{label:'Base Y',key:'by',type:'number',default:0},{label:'Angle°',key:'ang',type:'number',default:0}],attrs:[]
+  },
+  scale:      {label:'Scale',   icon:'⤡', color:'#F5BE18', group:'Modify',
+    props:[{label:'Base X',key:'bx',type:'number',default:0},{label:'Base Y',key:'by',type:'number',default:0},{label:'Factor',key:'factor',type:'number',default:1}],attrs:[]
+  },
+  mirror:     {label:'Mirror',  icon:'⇌', color:'#A78BFA', group:'Modify',
+    props:[{label:'Axis X1',key:'x1',type:'number',default:0},{label:'Axis Y1',key:'y1',type:'number',default:0},{label:'Axis X2',key:'x2',type:'number',default:100},{label:'Axis Y2',key:'y2',type:'number',default:0},{label:'Delete original',key:'del',type:'bool',default:false}],attrs:[]
+  },
+  offset:     {label:'Offset',  icon:'⊏', color:'#1FA8D9', group:'Modify',
+    props:[{label:'Distance',key:'dist',type:'number',default:10}],attrs:[]
+  },
+  trim:       {label:'Trim',    icon:'✂', color:'#ff9060', group:'Modify',props:[],attrs:[]},
+  extend:     {label:'Extend',  icon:'⇒', color:'#ff9060', group:'Modify',props:[],attrs:[]},
+  select:     {label:'Select',  icon:'🖱️', color:'#D0E8F5', group:'Edit',
+    props:[{label:'Mode',key:'mode',type:'select',options:['Window + Crossing','Window only','Crossing only'],default:'Window + Crossing'},{label:'Filter by layer',key:'filtLayer',type:'select',options:()=>['All',...S.layers.map(l=>l.name)]}],attrs:[]
+  },
+  text:       {label:'Text',    icon:'📝', color:'#ff9060', group:'Annotate',
+    props:[{label:'Content',key:'txt',type:'text',default:'Label'},{label:'Height',key:'sz',type:'number',default:12},{label:'Rotation°',key:'rot',type:'number',default:0},{label:'Style',key:'style',type:'select',options:['Standard','Bold','Annotative'],default:'Standard'}],
+    attrs:[{label:'Layer',key:'layer',type:'select',options:()=>S.layers.map(l=>l.name)},{label:'Color',key:'color',type:'color',default:'#ffffff'},{label:'Justify',key:'just',type:'select',options:['Left','Center','Right']}]
+  },
+  leader:     {label:'Leader',  icon:'🏷️', color:'#A78BFA', group:'Annotate',
+    props:[{label:'Arrow size',key:'arrowSz',type:'number',default:5},{label:'Text Height',key:'sz',type:'number',default:10},{label:'Curved',key:'curved',type:'bool',default:false}],
+    attrs:[{label:'Layer',key:'layer',type:'select',options:()=>S.layers.map(l=>l.name)}]
+  },
+  'dim-linear':{label:'Linear Dim',icon:'⟷',color:'#A78BFA',group:'Annotate',
+    props:[{label:'Text Height',key:'sz',type:'number',default:8},{label:'Arrow Size',key:'arrowSz',type:'number',default:4},{label:'Extension',key:'ext',type:'number',default:3},{label:'Dim Scale',key:'scale',type:'number',default:1}],
+    attrs:[{label:'Layer',key:'layer',type:'select',options:()=>S.layers.map(l=>l.name)},{label:'Style',key:'dstyle',type:'select',options:['Standard','ISO-25','Annotative']}]
+  },
+  'dim-radius':{label:'Radius Dim',icon:'⭕',color:'#A78BFA',group:'Annotate',
+    props:[{label:'Text Height',key:'sz',type:'number',default:8},{label:'Arrow Size',key:'arrowSz',type:'number',default:4}],
+    attrs:[{label:'Layer',key:'layer',type:'select',options:()=>S.layers.map(l=>l.name)}]
+  },
+  'dim-angular':{label:'Angular Dim',icon:'∡',color:'#A78BFA',group:'Annotate',
+    props:[{label:'Text Height',key:'sz',type:'number',default:8}],
+    attrs:[{label:'Layer',key:'layer',type:'select',options:()=>S.layers.map(l=>l.name)}]
+  },
+  'measure-dist':{label:'Measure Dist',icon:'📏',color:'#4eff91',group:'Measure',props:[{label:'Precision',key:'prec',type:'select',options:['0','0.0','0.000','0.0000'],default:'0.000'}],attrs:[]},
+  'measure-area':{label:'Measure Area',icon:'📐',color:'#4eff91',group:'Measure',props:[{label:'Precision',key:'prec',type:'select',options:['0','0.0','0.000'],default:'0.000'},{label:'Show perimeter',key:'showPerim',type:'bool',default:true}],attrs:[]},
+  pan:        {label:'Pan',     icon:'🖐️', color:'#5A839E', group:'View',props:[],attrs:[]},
+};
+
+// tool enable/disable state
+const disabledTools={};
+
+// ──────────────────────────────────────────────────────
+//  SIDE PANEL – click tool → show properties popover
+// ──────────────────────────────────────────────────────
+function clickTool(t){
+  setTool(t);
+  // sync active state on side panel buttons
+  document.querySelectorAll('.sg-btn').forEach(b=>b.classList.remove('act'));
+  const btn=document.getElementById('sg-'+t);
+  if(btn)btn.classList.add('act');
+  // show the tool properties popover
+  openToolProps(t, btn);
+}
+
+function openToolProps(t, refBtn){
+  const def=TOOL_DEFS[t];
+  if(!def) return;
+  const panel=document.getElementById('toolPropsPanel');
+  document.getElementById('tppTitle').textContent=def.label.toUpperCase();
+
+  // compute fixed-position near the button
+  if(refBtn){
+    const br=refBtn.getBoundingClientRect();
+    let left=br.right+8;
+    let top=br.top;
+    // keep panel in viewport
+    if(left+240>window.innerWidth) left=br.left-248;
+    if(top+380>window.innerHeight) top=window.innerHeight-385;
+    panel.style.left=Math.max(4,left)+'px';
+    panel.style.top=Math.max(4,top)+'px';
+  }
+
+  // build body
+  const isDisabled=!!disabledTools[t];
+  let html='';
+
+  // Tool status toggle
+  html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:5px 6px;background:rgba(0,0,0,.2);border-radius:4px">
+    <span style="font-size:9.5px;color:${isDisabled?'#ff6060':'#4eff91'}">${isDisabled?'⊘ DISABLED':'● ACTIVE'}</span>
+    <button onclick="toggleToolEnabled('${t}')" class="tpp-act-btn ${isDisabled?'en':'dis'}" style="flex:0 0 auto;padding:2px 8px">
+      ${isDisabled?'Enable Tool':'Disable Tool'}
+    </button>
+  </div>`;
+
+  // Properties
+  if(def.props && def.props.length){
+    html+='<div class="tpp-sec">Properties</div>';
+    def.props.forEach(p=>{
+      if(p.type==='computed'){
+        html+=`<div class="tpp-row"><span class="tpp-lbl">${p.label}</span><span class="tpp-val" style="color:var(--B)">—</span></div>`;
+      } else if(p.type==='bool'){
+        html+=`<div class="tpp-toggle"><input type="checkbox" id="tp-${p.key}" ${p.default?'checked':''}><label for="tp-${p.key}">${p.label}</label></div>`;
+      } else if(p.type==='select'){
+        const opts=(typeof p.options==='function'?p.options():p.options)||[];
+        html+=`<div class="tpp-row"><span class="tpp-lbl">${p.label}</span><select class="tpp-sel">${opts.map(o=>`<option ${o===p.default?'selected':''}>${o}</option>`).join('')}</select></div>`;
+      } else if(p.type==='text'){
+        html+=`<div class="tpp-row"><span class="tpp-lbl">${p.label}</span><input class="tpp-input" value="${p.default||''}"></div>`;
+      } else {
+        html+=`<div class="tpp-row"><span class="tpp-lbl">${p.label}</span><input class="tpp-input" type="number" value="${p.default||0}"></div>`;
+      }
+    });
+  }
+
+  // Attributes
+  if(def.attrs && def.attrs.length){
+    html+='<div class="tpp-sec">Attributes</div>';
+    def.attrs.forEach(a=>{
+      if(a.type==='color'){
+        html+=`<div class="tpp-row"><span class="tpp-lbl">${a.label}</span><input type="color" value="${a.default||'#1FA8D9'}" style="width:36px;height:20px;border:1px solid var(--cb);border-radius:2px;background:none;cursor:pointer;padding:0"></div>`;
+      } else if(a.type==='bool'){
+        html+=`<div class="tpp-toggle"><input type="checkbox" id="ta-${a.key}" ${a.default?'checked':''}><label for="ta-${a.key}">${a.label}</label></div>`;
+      } else if(a.type==='select'){
+        const opts=(typeof a.options==='function'?a.options():a.options)||[];
+        html+=`<div class="tpp-row"><span class="tpp-lbl">${a.label}</span><select class="tpp-sel">${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+      } else {
+        html+=`<div class="tpp-row"><span class="tpp-lbl">${a.label}</span><input class="tpp-input" value="${a.default||''}"></div>`;
+      }
+    });
+  }
+
+  // Quick actions
+  html+=`<div class="tpp-actions">
+    <button class="tpp-act-btn" onclick="setTool('select');closeToolProps()">✕ Cancel</button>
+    <button class="tpp-act-btn" onclick="toast('Settings applied','ok');closeToolProps()">✓ Apply</button>
+  </div>`;
+
+  document.getElementById('tppBody').innerHTML=html;
+  panel.classList.add('open');
+}
+
+function closeToolProps(){
+  document.getElementById('toolPropsPanel').classList.remove('open');
+}
+
+function toggleToolEnabled(t){
+  disabledTools[t]=!disabledTools[t];
+  const btn=document.getElementById('sg-'+t);
+  if(btn)btn.classList.toggle('disabled',!!disabledTools[t]);
+  if(disabledTools[t]&&S.tool===t){setTool('select')}
+  closeToolProps();
+  toast((disabledTools[t]?'Disabled: ':'Enabled: ')+t.toUpperCase(), disabledTools[t]?'warn':'ok');
+}
+
+// Close popover when clicking outside
+document.addEventListener('click',function(e){
+  const panel=document.getElementById('toolPropsPanel');
+  if(panel.classList.contains('open')&&!panel.contains(e.target)&&!e.target.closest('.sg-btn')){
+    panel.classList.remove('open');
+  }
+});
+
+// ──────────────────────────────────────────────────────
+//  SIDE PANEL COLLAPSE
+// ──────────────────────────────────────────────────────
+function toggleSidePanel(){
+  const el=document.getElementById('toolboxEl');
+  const btn=document.getElementById('sideCollapseBtn');
+  const collapsed=el.classList.toggle('collapsed');
+  btn.textContent=collapsed?'›':'‹';
+  setTimeout(resize,220);
+}
+
+// ──────────────────────────────────────────────────────
+//  MODEL / LAYOUT TABS
+// ──────────────────────────────────────────────────────
+const layouts=[
+  {id:'model',name:'Model',type:'model',color:'#4eff91'},
+  {id:'layout1',name:'Layout 1',type:'layout',color:'var(--Strata)'},
+  {id:'layout2',name:'Layout 2',type:'layout',color:'var(--Strata)'},
+];
+let activeLayout='model';
+
+function switchLayout(id){
+  activeLayout=id;
+  document.querySelectorAll('.lt').forEach(t=>t.classList.remove('act'));
+  const el=document.getElementById('lt-'+id);
+  if(el)el.classList.add('act');
+  toast('Switched to: '+(id==='model'?'Model':layouts.find(l=>l.id===id)?.name||id),'ok');
+  // In layout space, we'd show viewport boundaries — for now just toast
+  if(id!=='model') setMsg('Layout space — click canvas to set viewport');
+  else setMsg('Model space — ready');
+}
+
+function addLayout(){
+  const n=layouts.length;
+  const newId='layout'+(n+1);
+  const name='Layout '+(n+1);
+  layouts.push({id:newId,name,type:'layout',color:'var(--Strata)'});
+  const bar=document.getElementById('layoutBar');
+  const addBtn=bar.querySelector('.lt-add');
+  const newTab=document.createElement('div');
+  newTab.className='lt layout';
+  newTab.id='lt-'+newId;
+  newTab.innerHTML=`<span class="lt-dot" style="background:var(--Strata)"></span>${name}
+    <div class="lt-ctx">
+      <div class="lt-ctx-item" onclick="event.stopPropagation()">📐 Page Setup</div>
+      <div class="lt-ctx-item" onclick="toast('Renamed','ok');event.stopPropagation()">✏️ Rename</div>
+      <div class="lt-ctx-item" onclick="this.closest('.lt').remove();event.stopPropagation()">🗑️ Delete</div>
+    </div>`;
+  newTab.onclick=()=>switchLayout(newId);
+  bar.insertBefore(newTab,addBtn);
+  switchLayout(newId);
+}
+
+// ──────────────────────────────────────────────────────
+//  ZOOM TO LAYER
+// ──────────────────────────────────────────────────────
+function zoomToLayer(layerId){
+  const ents=S.entities.filter(e=>e.layer===layerId&&layVis(e.layer));
+  if(ents.length===0){toast('No visible entities on this layer','warn');return}
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  ents.forEach(e=>{
+    const bb=entBBox(e);
+    if(!bb)return;
+    minX=Math.min(minX,bb.x);maxX=Math.max(maxX,bb.x2);
+    minY=Math.min(minY,bb.y);maxY=Math.max(maxY,bb.y2);
+  });
+  const dw=maxX-minX||1,dh=maxY-minY||1;
+  const pad=0.2;
+  const scaleX=W/(dw*(1+pad)),scaleY=H/(dh*(1+pad));
+  S.zoom=Math.min(scaleX,scaleY);
+  S.pan.x=W/2-((minX+maxX)/2)*S.zoom;
+  S.pan.y=H/2+((minY+maxY)/2)*S.zoom;
+  const z=Math.round(S.zoom*100)+'%';
+  document.getElementById('zoomBadge').textContent=z;
+  document.getElementById('stZoom').textContent=z;
+  render();
+  const ly=S.layers.find(l=>l.id===layerId);
+  toast('Zoomed to: '+(ly?ly.name:'layer'),'ok');
+}
+
 // Init
 setTimeout(()=>toast('Strata ready — import a .DWG / .DXF file or start drawing','ok'),400);
 </script>
+<!-- Tool Properties Popover (body-level, position:fixed) -->
+<div id="toolPropsPanel">
+  <div class="tpp-head">
+    <span class="tpp-title" id="tppTitle">LINE</span>
+    <span class="tpp-close" onclick="closeToolProps()">✕</span>
+  </div>
+  <div class="tpp-body" id="tppBody"></div>
+</div>
+
 </body>
 </html>
