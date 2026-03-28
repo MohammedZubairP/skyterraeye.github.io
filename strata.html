@@ -1,0 +1,1373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Strata — DWG/DXF Drawing Viewer | Sky TerraEye</title>
+<meta name="description" content="Strata by Sky TerraEye — open, inspect, annotate and export AutoCAD DWG/DXF drawings directly in your browser. Free CAD layer viewer for land surveyors in Dubai.">
+<link rel="canonical" href="https://skyterraeye.com/strata.html">
+<link rel="icon" href="assets/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════
+   BRAND TOKENS (Sky TerraEye)
+══════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --B:#1FA8D9;--B2:#1482AA;--B3:#0D608A;
+  --Bdim:rgba(31,168,217,.12);--Bl:rgba(31,168,217,.22);
+  --G:#F5BE18;--Strata:#A78BFA;--StrataDim:rgba(167,139,250,.1);--StrataL:rgba(167,139,250,.28);
+  --D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;
+  --C:#16283C;--T:#D0E8F5;--M:#5A839E;--Dm:#243D52;
+  --W:#fff;--Gr:#22C55E;
+  --r:14px;--r2:22px;
+  --s:0 18px 64px rgba(0,0,0,.6);
+  --e:.32s cubic-bezier(.4,0,.2,1);
+  /* CAD UI tokens */
+  --cp:#0A1520;--cp2:#0D1C2E;--ct:#1D3550;--cb:rgba(31,168,217,.16);
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--T);font-size:14px;line-height:1.5;display:flex;flex-direction:column}
+a{color:inherit;text-decoration:none}
+button{font-family:'Plus Jakarta Sans',sans-serif}
+
+/* ── UAE Strip ── */
+.uae{height:4px;flex-shrink:0;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
+
+/* ── Top chrome bar ── */
+.topbar{height:42px;flex-shrink:0;background:rgba(4,13,22,.97);border-bottom:1px solid var(--Bl);display:flex;align-items:center;padding:0 16px;gap:0}
+.tb-logo{display:flex;align-items:center;gap:9px;padding-right:16px;border-right:1px solid var(--cb)}
+.tb-logo img{height:22px;width:auto}
+.tb-logo-t{font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--W)}
+.tb-logo-t b{color:var(--B)}
+.tb-title{display:flex;align-items:center;gap:8px;padding:0 16px;border-right:1px solid var(--cb)}
+.tb-title-icon{width:22px;height:22px;background:var(--StrataDim);border:1px solid var(--StrataL);border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tb-title-icon svg{width:12px;height:12px;color:var(--Strata)}
+.tb-title-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--Strata);letter-spacing:.3px}
+.tb-title-sub{font-size:10px;color:var(--M);letter-spacing:.5px;font-family:'IBM Plex Mono',monospace}
+
+/* Menu items */
+.tb-menus{display:flex;align-items:stretch;height:100%;padding:0 6px}
+.tb-menu{position:relative;height:100%;display:flex;align-items:center}
+.tb-menu-btn{background:none;border:none;cursor:pointer;padding:0 10px;font-size:12.5px;font-weight:600;color:var(--M);height:100%;display:flex;align-items:center;gap:4px;transition:color .15s;border-bottom:2px solid transparent}
+.tb-menu-btn:hover,.tb-menu-btn.open{color:var(--T);border-bottom-color:var(--Strata)}
+.tb-dropdown{display:none;position:absolute;top:100%;left:0;background:#0C1A2A;border:1px solid var(--cb);border-radius:8px;min-width:200px;padding:6px;z-index:500;box-shadow:var(--s)}
+.tb-menu:hover .tb-dropdown,.tb-menu-btn.open+.tb-dropdown{display:block}
+.tb-dd-item{padding:7px 12px;font-size:12px;cursor:pointer;border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:16px;color:var(--T);transition:background .1s}
+.tb-dd-item:hover{background:var(--Bdim);color:var(--B)}
+.tb-dd-sep{height:1px;background:var(--cb);margin:4px 0}
+.tb-ks{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--M)}
+
+/* Right controls */
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.coord-pill{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#4eff91;background:rgba(78,255,145,.05);border:1px solid rgba(78,255,145,.15);padding:4px 10px;border-radius:5px;letter-spacing:.8px;min-width:170px;text-align:center}
+.tb-back{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--M);background:var(--Bdim);border:1px solid var(--cb);padding:4px 12px;border-radius:6px;cursor:pointer;transition:var(--e)}
+.tb-back:hover{color:var(--B);border-color:var(--Bl)}
+.tb-back svg{width:13px;height:13px}
+
+/* ── Ribbon ── */
+.ribbon{height:64px;flex-shrink:0;background:var(--cp2);border-bottom:1px solid var(--cb);display:flex;align-items:stretch;padding:0 4px;overflow-x:auto;gap:1px}
+.ribbon::-webkit-scrollbar{height:2px}
+.ribbon::-webkit-scrollbar-thumb{background:var(--ct)}
+.rg{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:4px 6px 2px;border-right:1px solid rgba(31,168,217,.08);min-width:fit-content;gap:1px}
+.rg-lbl{font-size:8.5px;color:var(--M);letter-spacing:1px;text-transform:uppercase;margin-top:auto;font-family:'IBM Plex Mono',monospace}
+.rg.strata-group .rg-lbl{color:var(--Strata)}
+.rrow{display:flex;gap:2px;align-items:center}
+.rb{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3px 6px;background:none;border:1px solid transparent;border-radius:4px;cursor:pointer;color:var(--M);font-size:9px;font-weight:600;gap:2px;min-width:38px;transition:all .12s;letter-spacing:.2px}
+.rb:hover{background:rgba(31,168,217,.08);border-color:var(--cb);color:var(--T)}
+.rb.act{background:rgba(167,139,250,.1);border-color:var(--StrataL);color:var(--Strata)}
+.rb.del:hover{background:rgba(255,80,80,.08);border-color:rgba(255,80,80,.3);color:#ff6060}
+.rb.ok:hover{background:rgba(78,255,145,.07);border-color:rgba(78,255,145,.25);color:#4eff91}
+.rb.warn:hover{background:rgba(245,190,24,.07);border-color:rgba(245,190,24,.25);color:var(--G)}
+.rb-ico{font-size:16px;line-height:1}
+.rb.lg{min-width:46px;padding:5px 7px}
+.rb.lg .rb-ico{font-size:20px}
+.rb.strata-rb:hover{background:rgba(167,139,250,.1);border-color:var(--StrataL);color:var(--Strata)}
+
+/* ── Main workspace ── */
+.workspace{flex:1;display:flex;overflow:hidden;min-height:0}
+
+/* Left toolbox */
+.toolbox{width:40px;flex-shrink:0;background:var(--cp);border-right:1px solid var(--cb);display:flex;flex-direction:column;align-items:center;padding:5px 0;gap:1px;overflow-y:auto}
+.toolbox::-webkit-scrollbar{width:2px}
+.tb2{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid transparent;border-radius:5px;cursor:pointer;font-size:14px;color:var(--M);transition:all .12s;position:relative;flex-shrink:0}
+.tb2:hover{background:rgba(31,168,217,.08);border-color:var(--cb);color:var(--T)}
+.tb2.act{background:rgba(167,139,250,.1);border-color:var(--StrataL);color:var(--Strata)}
+.tsep{width:22px;height:1px;background:var(--cb);margin:2px 0;flex-shrink:0}
+.tb2:hover::after{content:attr(data-tip);position:absolute;left:calc(100% + 7px);top:50%;transform:translateY(-50%);background:#0C1A2A;border:1px solid var(--cb);color:var(--T);padding:3px 8px;font-size:10.5px;white-space:nowrap;border-radius:4px;z-index:999;pointer-events:none;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600}
+
+/* Viewport */
+.viewport{flex:1;position:relative;overflow:hidden;background:
+  radial-gradient(ellipse at 50% 50%,rgba(31,168,217,.025) 0%,transparent 65%),
+  repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(31,168,217,.04) 39px,rgba(31,168,217,.04) 40px),
+  repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(31,168,217,.04) 39px,rgba(31,168,217,.04) 40px),
+  #060E1A}
+#cad{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair}
+
+/* Canvas overlay badges */
+.cov{position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:5px;pointer-events:none}
+.cbadge{background:rgba(6,14,26,.88);border:1px solid var(--cb);border-radius:4px;padding:3px 9px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--M);backdrop-filter:blur(6px)}
+.cbadge span{color:var(--B)}
+.cbadge.strata span{color:var(--Strata)}
+
+/* Zoom float */
+.zoom-f{position:absolute;bottom:56px;right:10px;display:flex;flex-direction:column;gap:2px}
+.zb{width:30px;height:30px;background:rgba(10,25,41,.88);border:1px solid var(--cb);border-radius:4px;color:var(--M);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .12s}
+.zb:hover{background:var(--Bdim);color:var(--B)}
+
+/* Selection box */
+#selbox{position:absolute;border:1px dashed var(--Strata);background:rgba(167,139,250,.05);pointer-events:none;display:none}
+
+/* Drop zone */
+#dz{display:none;position:absolute;inset:0;background:rgba(167,139,250,.06);border:3px dashed var(--Strata);z-index:80;align-items:center;justify-content:center;pointer-events:none}
+#dz .dz-inner{text-align:center;color:var(--Strata);font-weight:800;font-size:17px;font-family:'Syne',sans-serif;letter-spacing:.5px}
+#dz .dz-inner span{display:block;font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:400;color:var(--M);margin-top:6px}
+
+/* ── Right panel ── */
+.rpanel{width:250px;flex-shrink:0;background:var(--cp2);border-left:1px solid var(--cb);display:flex;flex-direction:column;overflow:hidden}
+.ptabs{display:flex;background:var(--cp);border-bottom:1px solid var(--cb);flex-shrink:0}
+.ptab{flex:1;padding:8px 4px;text-align:center;font-size:9.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;color:var(--M);border-bottom:2px solid transparent;transition:all .15s;font-family:'IBM Plex Mono',monospace}
+.ptab:hover{color:var(--T)}
+.ptab.act{color:var(--Strata);border-bottom-color:var(--Strata)}
+.pcontent{flex:1;overflow-y:auto}
+.pcontent::-webkit-scrollbar{width:3px}
+.pcontent::-webkit-scrollbar-thumb{background:var(--ct);border-radius:2px}
+.psec{display:none}
+.psec.act{display:block}
+
+/* Layer panel */
+.lyr-head{padding:7px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--cb);background:rgba(0,0,0,.15)}
+.lyr-head-t{font-size:9.5px;font-weight:700;color:var(--M);letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace}
+.lyr-actions{display:flex;gap:3px}
+.lbtn{padding:2px 7px;background:none;border:1px solid var(--cb);border-radius:3px;color:var(--M);font-size:9.5px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .1s}
+.lbtn:hover{color:var(--T);border-color:var(--Bl)}
+.lbtn.add{color:#4eff91;border-color:rgba(78,255,145,.25)}
+.lbtn.add:hover{background:rgba(78,255,145,.07)}
+.lbtn.strata{color:var(--Strata);border-color:var(--StrataL)}
+.lbtn.strata:hover{background:var(--StrataDim)}
+
+.li{display:flex;align-items:center;padding:5px 8px;gap:5px;border-bottom:1px solid rgba(31,168,217,.06);cursor:pointer;transition:background .1s;font-size:11.5px}
+.li:hover{background:rgba(31,168,217,.04)}
+.li.sel{background:rgba(167,139,250,.06)}
+.ld{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.ln{flex:1;font-weight:500}
+.lic{display:flex;gap:3px;margin-left:auto}
+.lic span{font-size:11px;cursor:pointer;opacity:.4;transition:opacity .1s;padding:1px}
+.lic span:hover{opacity:1}
+.lic span.on{opacity:1}
+
+/* Props */
+.pg{padding:9px 10px;border-bottom:1px solid var(--cb)}
+.pg-t{font-size:9px;font-weight:700;color:var(--Strata);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;font-family:'IBM Plex Mono',monospace}
+.pr{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:8px}
+.pl{font-size:10.5px;color:var(--M)}
+.pv{font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--T)}
+.pi{background:var(--cp);border:1px solid var(--cb);border-radius:2px;color:var(--T);font-size:10.5px;font-family:'IBM Plex Mono',monospace;padding:2px 5px;width:92px;outline:none}
+.pi:focus{border-color:var(--Strata)}
+.ps2{background:var(--cp);border:1px solid var(--cb);border-radius:2px;color:var(--T);font-size:10.5px;padding:2px 4px;width:92px;outline:none}
+
+/* Blocks */
+.bl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:9px}
+.bl-item{aspect-ratio:1;background:var(--cp);border:1px solid var(--cb);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:9.5px;gap:3px;transition:all .12s;color:var(--M)}
+.bl-item:hover{border-color:var(--StrataL);color:var(--Strata);background:var(--StrataDim)}
+.bl-item .bi{font-size:18px}
+
+/* ── Command / status ── */
+.cmdbar{height:26px;flex-shrink:0;background:#040B14;border-top:1px solid var(--cb);display:flex;align-items:center;padding:0 8px;gap:6px}
+.cmd-prompt{color:var(--Strata);font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:700}
+.cmd-input{flex:1;background:none;border:none;outline:none;color:var(--T);font-family:'IBM Plex Mono',monospace;font-size:10.5px;caret-color:var(--Strata)}
+.cmd-msg{color:var(--M);font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-style:italic}
+.statusbar{height:26px;flex-shrink:0;background:#030810;border-top:1px solid rgba(31,168,217,.06);display:flex;align-items:center;padding:0 10px;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:9.5px}
+.si{color:var(--M);display:flex;align-items:center;gap:4px}
+.sv{color:#4eff91}
+.ssep{width:1px;height:12px;background:var(--cb)}
+.sbtn{padding:1px 7px;background:none;border:1px solid var(--cb);border-radius:2px;color:var(--M);font-size:9px;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .1s}
+.sbtn:hover{color:var(--T);border-color:var(--Bl)}
+.sbtn.on{color:var(--Strata);border-color:var(--StrataL);background:var(--StrataDim)}
+
+/* ── MODALS ── */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:900;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.mo.open{display:flex}
+.modal{background:#0D1C2E;border:1px solid var(--cb);border-radius:10px;width:500px;max-width:95vw;max-height:88vh;overflow-y:auto;box-shadow:0 24px 72px rgba(0,0,0,.85)}
+.modal.wide{width:580px}
+.mh{padding:14px 18px;border-bottom:1px solid var(--cb);display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.2)}
+.mh-t{font-size:15px;font-weight:800;color:var(--T);font-family:'Syne',sans-serif;display:flex;align-items:center;gap:8px}
+.mh-t .ico{color:var(--Strata);font-size:18px}
+.mh-close{cursor:pointer;color:var(--M);font-size:17px;transition:color .1s}
+.mh-close:hover{color:#ff6060}
+.mb{padding:18px}
+.mf{padding:12px 18px;border-top:1px solid var(--cb);display:flex;justify-content:flex-end;gap:8px}
+
+.btn-p{padding:7px 18px;background:linear-gradient(135deg,#1482AA,#1FA8D9);border:none;border-radius:4px;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.btn-p:hover{opacity:.85}
+.btn-p.strata{background:linear-gradient(135deg,#7C3AED,#A78BFA)}
+.btn-s{padding:7px 18px;background:var(--cp);border:1px solid var(--cb);border-radius:4px;color:var(--T);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-s:hover{border-color:var(--Bl);color:var(--B)}
+
+/* Import drop zone */
+.imp-zone{border:2px dashed var(--cb);border-radius:8px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(0,0,0,.15)}
+.imp-zone:hover,.imp-zone.dov{border-color:var(--Strata);background:var(--StrataDim)}
+.imp-ico{font-size:36px;margin-bottom:8px;color:var(--Strata)}
+.imp-t{font-size:15px;font-weight:800;color:var(--T);font-family:'Syne',sans-serif;margin-bottom:5px}
+.imp-s{font-size:11.5px;color:var(--M)}
+.fmt-row{display:flex;gap:5px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.fmt{padding:3px 9px;background:var(--StrataDim);border:1px solid var(--StrataL);border-radius:10px;font-size:9.5px;font-family:'IBM Plex Mono',monospace;color:var(--Strata)}
+
+.fg2{margin-bottom:12px}
+.fl{display:block;font-size:10px;font-weight:700;color:var(--M);letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px;font-family:'IBM Plex Mono',monospace}
+.fi2,.fs2{width:100%;background:var(--cp);border:1px solid var(--cb);border-radius:4px;color:var(--T);font-size:12.5px;font-family:'Plus Jakarta Sans',sans-serif;padding:7px 9px;outline:none;transition:border-color .15s}
+.fi2:focus,.fs2:focus{border-color:var(--Strata)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fcheck{display:flex;align-items:center;gap:7px;font-size:12.5px;cursor:pointer;margin-bottom:5px}
+.fcheck input{cursor:pointer;accent-color:var(--Strata)}
+.fsect{font-size:10.5px;font-weight:700;color:var(--Strata);letter-spacing:1px;text-transform:uppercase;margin:12px 0 7px;font-family:'IBM Plex Mono',monospace;padding-bottom:4px;border-bottom:1px solid var(--cb)}
+
+/* Option cards */
+.og{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
+.oc{padding:10px;background:var(--cp);border:1px solid var(--cb);border-radius:5px;cursor:pointer;transition:all .12s}
+.oc:hover,.oc.sel{border-color:var(--StrataL);background:var(--StrataDim)}
+.oc-ico{font-size:20px;margin-bottom:3px}
+.oc-t{font-size:11.5px;font-weight:700;color:var(--T)}
+.oc-d{font-size:10px;color:var(--M);margin-top:1px}
+
+/* Civil3D cards */
+.c3g{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
+.c3c{padding:9px 7px;background:var(--cp);border:1px solid var(--cb);border-radius:5px;text-align:center;cursor:pointer;transition:all .12s;font-size:9.5px;color:var(--M)}
+.c3c:hover{border-color:rgba(245,190,24,.3);color:var(--G);background:rgba(245,190,24,.05)}
+.c3c .c3i{font-size:18px;margin-bottom:2px}
+
+/* Layer export rows */
+.le-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(31,168,217,.06);font-size:11.5px}
+.le-row input{accent-color:var(--Strata);cursor:pointer}
+.le-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+/* Tag chips */
+.chip{padding:2px 7px;border-radius:8px;font-size:9px;font-family:'IBM Plex Mono',monospace}
+.chip-b{background:var(--Bdim);color:var(--B);border:1px solid var(--cb)}
+.chip-s{background:var(--StrataDim);color:var(--Strata);border:1px solid var(--StrataL)}
+.chip-g{background:rgba(78,255,145,.08);color:#4eff91;border:1px solid rgba(78,255,145,.2)}
+
+/* Toast */
+.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(14px);background:#0D1C2E;border:1px solid var(--cb);border-radius:5px;padding:7px 16px;font-size:11.5px;color:var(--T);opacity:0;transition:all .28s;z-index:9999;pointer-events:none;white-space:nowrap}
+.toast.ok{border-color:rgba(78,255,145,.3);color:#4eff91}
+.toast.warn{border-color:rgba(245,190,24,.3);color:var(--G)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Attr table */
+.attr-table{width:100%;border-collapse:collapse;font-size:11px}
+.attr-table th{background:var(--cp);color:var(--M);text-transform:uppercase;font-size:9px;font-family:'IBM Plex Mono',monospace;padding:5px 7px;text-align:left;border-bottom:1px solid var(--cb);letter-spacing:.8px}
+.attr-table td{padding:4px 7px;border-bottom:1px solid rgba(31,168,217,.05)}
+.attr-add{margin-top:7px;font-size:10.5px;color:var(--Strata);background:none;border:1px dashed var(--StrataL);border-radius:3px;padding:3px 9px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .1s}
+.attr-add:hover{background:var(--StrataDim)}
+
+/* Scrollbars global */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--ct);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#2A4560}
+</style>
+</head>
+<body>
+
+<div class="uae"></div>
+
+<!-- ── Top Chrome ── -->
+<div class="topbar">
+  <div class="tb-logo">
+    <img src="assets/img/logo.png" alt="Sky TerraEye">
+    <div class="tb-logo-t"><b>SKY</b> TERRAEYE</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;padding:0 14px;border-right:1px solid var(--cb)">
+    <div class="tb-title-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="4" rx="1"/><rect x="2" y="10" width="20" height="4" rx="1"/><rect x="2" y="17" width="20" height="4" rx="1"/></svg>
+    </div>
+    <div>
+      <div class="tb-title-name">STRATA</div>
+      <div class="tb-title-sub">DWG / DXF LAYER VIEWER</div>
+    </div>
+  </div>
+
+  <!-- Menus -->
+  <div class="tb-menus">
+    <div class="tb-menu">
+      <button class="tb-menu-btn" onclick="openMo('moImport')">File</button>
+      <div class="tb-dropdown">
+        <div class="tb-dd-item" onclick="openMo('moImport')">📂 Import Drawing <span class="tb-ks">Ctrl+O</span></div>
+        <div class="tb-dd-item" onclick="openMo('moExport')">💾 Export Drawing <span class="tb-ks">Ctrl+E</span></div>
+        <div class="tb-dd-item" onclick="openMo('moExportLayers')">📤 Export Layers</div>
+        <div class="tb-dd-item" onclick="openMo('moExportAttrs')">🏷️ Export Attributes</div>
+        <div class="tb-dd-sep"></div>
+        <div class="tb-dd-item">🖨️ Print / Plot <span class="tb-ks">Ctrl+P</span></div>
+        <div class="tb-dd-item">📸 Publish PDF</div>
+        <div class="tb-dd-sep"></div>
+        <div class="tb-dd-item">⚙️ Drawing Properties</div>
+      </div>
+    </div>
+    <div class="tb-menu">
+      <button class="tb-menu-btn">Edit</button>
+      <div class="tb-dropdown">
+        <div class="tb-dd-item">↩️ Undo <span class="tb-ks">Ctrl+Z</span></div>
+        <div class="tb-dd-item">↪️ Redo <span class="tb-ks">Ctrl+Y</span></div>
+        <div class="tb-dd-sep"></div>
+        <div class="tb-dd-item">📋 Copy <span class="tb-ks">Ctrl+C</span></div>
+        <div class="tb-dd-item">✂️ Cut <span class="tb-ks">Ctrl+X</span></div>
+        <div class="tb-dd-item">📌 Paste <span class="tb-ks">Ctrl+V</span></div>
+        <div class="tb-dd-sep"></div>
+        <div class="tb-dd-item" onclick="openMo('moExplode')">💥 Explode</div>
+        <div class="tb-dd-item">🔍 Find &amp; Replace</div>
+      </div>
+    </div>
+    <div class="tb-menu">
+      <button class="tb-menu-btn">View</button>
+      <div class="tb-dropdown">
+        <div class="tb-dd-item" onclick="showPanel('layers')">📋 Layer Manager</div>
+        <div class="tb-dd-item" onclick="zoomExt()">🔭 Zoom Extents <span class="tb-ks">Z→E</span></div>
+        <div class="tb-dd-sep"></div>
+        <div class="tb-dd-item" onclick="toggleGrid()">🟩 Toggle Grid</div>
+        <div class="tb-dd-item" onclick="toggleSnap()">🧲 Toggle Snap</div>
+        <div class="tb-dd-item" onclick="toggleOrtho()">📏 Toggle Ortho</div>
+      </div>
+    </div>
+    <div class="tb-menu">
+      <button class="tb-menu-btn">Modify</button>
+      <div class="tb-dropdown">
+        <div class="tb-dd-item" onclick="setTool('move')">✥ Move <span class="tb-ks">M</span></div>
+        <div class="tb-dd-item" onclick="setTool('copy')">📋 Copy <span class="tb-ks">CO</span></div>
+        <div class="tb-dd-item" onclick="setTool('rotate')">🔄 Rotate <span class="tb-ks">RO</span></div>
+        <div class="tb-dd-item" onclick="setTool('scale')">⚖️ Scale <span class="tb-ks">SC</span></div>
+        <div class="tb-dd-item" onclick="setTool('mirror')">🪞 Mirror <span class="tb-ks">MI</span></div>
+        <div class="tb-dd-item" onclick="setTool('offset')">↔ Offset <span class="tb-ks">O</span></div>
+        <div class="tb-dd-item" onclick="setTool('trim')">✂️ Trim <span class="tb-ks">TR</span></div>
+        <div class="tb-dd-item" onclick="setTool('extend')">➡️ Extend <span class="tb-ks">EX</span></div>
+        <div class="tb-dd-sep"></div>
+        <div class="tb-dd-item" onclick="openMo('moArray')">🔲 Array <span class="tb-ks">AR</span></div>
+        <div class="tb-dd-item" onclick="toast('Fillet applied','ok')">🔀 Fillet <span class="tb-ks">F</span></div>
+        <div class="tb-dd-item" onclick="toast('Chamfer applied','ok')">✂️ Chamfer</div>
+      </div>
+    </div>
+    <div class="tb-menu">
+      <button class="tb-menu-btn">Insert</button>
+      <div class="tb-dropdown">
+        <div class="tb-dd-item" onclick="openMo('moBlock')">🧱 Insert Block <span class="tb-ks">I</span></div>
+        <div class="tb-dd-item">📦 Xref Attach</div>
+        <div class="tb-dd-item">🖼️ Raster Image</div>
+        <div class="tb-dd-item">📄 PDF Underlay</div>
+        <div class="tb-dd-sep"></div>
+        <div class="tb-dd-item">📍 Point Cloud</div>
+      </div>
+    </div>
+    <div class="tb-menu">
+      <button class="tb-menu-btn">Annotate</button>
+      <div class="tb-dropdown">
+        <div class="tb-dd-item" onclick="setTool('text')">📝 MText <span class="tb-ks">MT</span></div>
+        <div class="tb-dd-item" onclick="setTool('text')">✏️ Single Line Text</div>
+        <div class="tb-dd-sep"></div>
+        <div class="tb-dd-item" onclick="setTool('dim-linear')">📐 Linear Dimension</div>
+        <div class="tb-dd-item" onclick="setTool('dim-radius')">⭕ Radius Dimension</div>
+        <div class="tb-dd-item" onclick="setTool('dim-angular')">📐 Angular Dimension</div>
+        <div class="tb-dd-sep"></div>
+        <div class="tb-dd-item" onclick="setTool('leader')">🏷️ Multileader</div>
+        <div class="tb-dd-item" onclick="setTool('hatch')">🌫️ Hatch / Fill</div>
+      </div>
+    </div>
+    <div class="tb-menu">
+      <button class="tb-menu-btn" style="color:var(--G)">Civil 3D</button>
+      <div class="tb-dropdown">
+        <div class="tb-dd-item" onclick="openMo('moCivil')">🏔️ Surfaces</div>
+        <div class="tb-dd-item" onclick="openMo('moCivil')">📍 Alignments</div>
+        <div class="tb-dd-item" onclick="openMo('moCivil')">📈 Profiles</div>
+        <div class="tb-dd-item" onclick="openMo('moCivil')">🌊 Corridors</div>
+        <div class="tb-dd-item" onclick="openMo('moCivil')">💧 Pipe Networks</div>
+        <div class="tb-dd-item" onclick="openMo('moCivil')">🏗️ Grading</div>
+        <div class="tb-dd-item" onclick="openMo('moCivil')">📌 Points / Point Groups</div>
+        <div class="tb-dd-item" onclick="openMo('moCivil')">🗺️ GIS Data</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tb-right">
+    <div class="coord-pill" id="coordPill">X: 0.000 &nbsp;&nbsp; Y: 0.000</div>
+    <a class="tb-back" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Site
+    </a>
+  </div>
+</div>
+
+<!-- ── Ribbon ── -->
+<div class="ribbon">
+  <!-- File -->
+  <div class="rg">
+    <div class="rrow">
+      <button class="rb lg ok" onclick="openMo('moImport')"><span class="rb-ico">📂</span>IMPORT</button>
+      <button class="rb lg" onclick="openMo('moExport')"><span class="rb-ico">💾</span>EXPORT</button>
+    </div>
+    <div class="rg-lbl">FILE</div>
+  </div>
+  <!-- Draw -->
+  <div class="rg">
+    <div class="rrow">
+      <button class="rb act" onclick="setTool('line')" id="rb-line"><span class="rb-ico">⁄</span>LINE</button>
+      <button class="rb" onclick="setTool('polyline')" id="rb-polyline"><span class="rb-ico">〰</span>PLINE</button>
+      <button class="rb" onclick="setTool('circle')" id="rb-circle"><span class="rb-ico">○</span>CIRCLE</button>
+      <button class="rb" onclick="setTool('arc')" id="rb-arc"><span class="rb-ico">◠</span>ARC</button>
+    </div>
+    <div class="rrow">
+      <button class="rb" onclick="setTool('rect')" id="rb-rect"><span class="rb-ico">▭</span>RECT</button>
+      <button class="rb" onclick="setTool('ellipse')" id="rb-ellipse"><span class="rb-ico">◎</span>ELLIPSE</button>
+      <button class="rb" onclick="setTool('spline')" id="rb-spline"><span class="rb-ico">〰</span>SPLINE</button>
+      <button class="rb" onclick="setTool('hatch')" id="rb-hatch"><span class="rb-ico">▩</span>HATCH</button>
+    </div>
+    <div class="rg-lbl">DRAW</div>
+  </div>
+  <!-- Modify -->
+  <div class="rg">
+    <div class="rrow">
+      <button class="rb" onclick="setTool('move')" id="rb-move"><span class="rb-ico">✥</span>MOVE</button>
+      <button class="rb" onclick="setTool('copy')" id="rb-copy"><span class="rb-ico">❑</span>COPY</button>
+      <button class="rb" onclick="setTool('rotate')" id="rb-rotate"><span class="rb-ico">↻</span>ROTATE</button>
+      <button class="rb" onclick="setTool('scale')" id="rb-scale"><span class="rb-ico">⤡</span>SCALE</button>
+    </div>
+    <div class="rrow">
+      <button class="rb" onclick="setTool('mirror')" id="rb-mirror"><span class="rb-ico">⇌</span>MIRROR</button>
+      <button class="rb" onclick="setTool('offset')" id="rb-offset"><span class="rb-ico">⊏</span>OFFSET</button>
+      <button class="rb" onclick="setTool('trim')" id="rb-trim"><span class="rb-ico">✂</span>TRIM</button>
+      <button class="rb" onclick="setTool('extend')" id="rb-extend"><span class="rb-ico">⇒</span>EXTEND</button>
+    </div>
+    <div class="rg-lbl">MODIFY</div>
+  </div>
+  <!-- Edit/Select -->
+  <div class="rg">
+    <div class="rrow">
+      <button class="rb" onclick="setTool('select')" id="rb-select"><span class="rb-ico">🖱️</span>SELECT</button>
+      <button class="rb del" onclick="delSel()"><span class="rb-ico">🗑️</span>DELETE</button>
+      <button class="rb" onclick="openMo('moExplode')"><span class="rb-ico">💥</span>EXPLODE</button>
+    </div>
+    <div class="rrow">
+      <button class="rb" onclick="openMo('moBlock')"><span class="rb-ico">🧱</span>BLOCK</button>
+      <button class="rb" onclick="openMo('moBlockEdit')"><span class="rb-ico">✏️</span>BLKEDIT</button>
+      <button class="rb" onclick="toast('Group applied','ok')"><span class="rb-ico">📦</span>GROUP</button>
+    </div>
+    <div class="rg-lbl">EDIT</div>
+  </div>
+  <!-- Annotate -->
+  <div class="rg">
+    <div class="rrow">
+      <button class="rb" onclick="setTool('text')" id="rb-text"><span class="rb-ico">📝</span>TEXT</button>
+      <button class="rb" onclick="setTool('leader')" id="rb-leader"><span class="rb-ico">🏷️</span>LEADER</button>
+    </div>
+    <div class="rrow">
+      <button class="rb" onclick="setTool('dim-linear')" id="rb-dim-linear"><span class="rb-ico">📐</span>DIMLIN</button>
+      <button class="rb" onclick="setTool('dim-radius')" id="rb-dim-radius"><span class="rb-ico">⭕</span>DIMRAD</button>
+      <button class="rb" onclick="setTool('dim-angular')" id="rb-dim-angular"><span class="rb-ico">∡</span>DIMANG</button>
+    </div>
+    <div class="rg-lbl">ANNOTATE</div>
+  </div>
+  <!-- Array/Pattern -->
+  <div class="rg">
+    <div class="rrow">
+      <button class="rb" onclick="openMo('moArray')"><span class="rb-ico">🔲</span>RECT ARR</button>
+      <button class="rb" onclick="openMo('moArray')"><span class="rb-ico">⭕</span>POLAR ARR</button>
+    </div>
+    <div class="rrow">
+      <button class="rb warn" onclick="toast('Fillet applied','ok')"><span class="rb-ico">🔀</span>FILLET</button>
+      <button class="rb warn" onclick="toast('Chamfer applied','ok')"><span class="rb-ico">✂️</span>CHAMFER</button>
+    </div>
+    <div class="rg-lbl">PATTERN</div>
+  </div>
+  <!-- Layers -->
+  <div class="rg">
+    <div class="rrow">
+      <button class="rb lg ok" onclick="showPanel('layers')"><span class="rb-ico">📋</span>LAYERS</button>
+    </div>
+    <div class="rrow">
+      <button class="rb" onclick="openMo('moExportLayers')"><span class="rb-ico">📤</span>EXPORT LYRS</button>
+    </div>
+    <div class="rg-lbl">LAYERS</div>
+  </div>
+  <!-- Export -->
+  <div class="rg">
+    <div class="rrow">
+      <button class="rb" onclick="openMo('moExport')"><span class="rb-ico">📄</span>DXF</button>
+      <button class="rb" onclick="openMo('moExport')"><span class="rb-ico">📄</span>DWG</button>
+      <button class="rb" onclick="openMo('moExport')"><span class="rb-ico">🖼️</span>SVG/PNG</button>
+    </div>
+    <div class="rrow">
+      <button class="rb" onclick="openMo('moExportAttrs')"><span class="rb-ico">🏷️</span>ATTR EXPORT</button>
+      <button class="rb" onclick="openMo('moExport')"><span class="rb-ico">🏗️</span>IFC</button>
+    </div>
+    <div class="rg-lbl">EXPORT</div>
+  </div>
+  <!-- Measure -->
+  <div class="rg">
+    <div class="rrow">
+      <button class="rb" onclick="setTool('measure-dist')" id="rb-measure-dist"><span class="rb-ico">📏</span>DIST</button>
+      <button class="rb" onclick="setTool('measure-area')" id="rb-measure-area"><span class="rb-ico">📐</span>AREA</button>
+    </div>
+    <div class="rrow">
+      <button class="rb" onclick="setTool('measure-angle')" id="rb-measure-angle"><span class="rb-ico">∡</span>ANGLE</button>
+      <button class="rb" onclick="setTool('measure-radius')" id="rb-measure-radius"><span class="rb-ico">⭕</span>RADIUS</button>
+    </div>
+    <div class="rg-lbl">MEASURE</div>
+  </div>
+  <!-- Civil3D -->
+  <div class="rg strata-group">
+    <div class="rrow">
+      <button class="rb lg strata-rb" onclick="openMo('moCivil')"><span class="rb-ico">🏔️</span>SURFACES</button>
+      <button class="rb lg strata-rb" onclick="openMo('moCivil')"><span class="rb-ico">📍</span>ALIGNMENT</button>
+    </div>
+    <div class="rrow">
+      <button class="rb strata-rb" onclick="openMo('moCivil')"><span class="rb-ico">📈</span>PROFILE</button>
+      <button class="rb strata-rb" onclick="openMo('moCivil')"><span class="rb-ico">🌊</span>CORRIDOR</button>
+      <button class="rb strata-rb" onclick="openMo('moCivil')"><span class="rb-ico">💧</span>PIPE NET</button>
+    </div>
+    <div class="rg-lbl">CIVIL 3D</div>
+  </div>
+  <!-- View aids -->
+  <div class="rg">
+    <div class="rrow">
+      <button class="rb" onclick="setTool('pan')" id="rb-pan"><span class="rb-ico">🖐️</span>PAN</button>
+      <button class="rb" onclick="zoomExt()"><span class="rb-ico">🔭</span>EXTENTS</button>
+      <button class="rb" onclick="toggleGrid()"><span class="rb-ico">⊞</span>GRID</button>
+    </div>
+    <div class="rrow">
+      <button class="rb" onclick="toggleSnap()"><span class="rb-ico">🧲</span>SNAP</button>
+      <button class="rb" onclick="toggleOrtho()"><span class="rb-ico">📏</span>ORTHO</button>
+      <button class="rb" onclick="toggleOsnap()"><span class="rb-ico">⊕</span>OSNAP</button>
+    </div>
+    <div class="rg-lbl">VIEW / AIDS</div>
+  </div>
+</div>
+
+<!-- ── Workspace ── -->
+<div class="workspace">
+
+  <!-- Left Toolbox -->
+  <div class="toolbox">
+    <button class="tb2" data-tip="Select" onclick="setTool('select')">🖱️</button>
+    <button class="tb2" data-tip="Pan" onclick="setTool('pan')">🖐️</button>
+    <div class="tsep"></div>
+    <button class="tb2" data-tip="Line (L)" onclick="setTool('line')">⁄</button>
+    <button class="tb2" data-tip="Polyline" onclick="setTool('polyline')">〰</button>
+    <button class="tb2" data-tip="Circle (C)" onclick="setTool('circle')">○</button>
+    <button class="tb2" data-tip="Arc" onclick="setTool('arc')">◠</button>
+    <button class="tb2" data-tip="Rectangle" onclick="setTool('rect')">▭</button>
+    <button class="tb2" data-tip="Ellipse" onclick="setTool('ellipse')">◎</button>
+    <button class="tb2" data-tip="Spline" onclick="setTool('spline')">≈</button>
+    <button class="tb2" data-tip="Hatch / Fill" onclick="setTool('hatch')">▩</button>
+    <div class="tsep"></div>
+    <button class="tb2" data-tip="Move (M)" onclick="setTool('move')">✥</button>
+    <button class="tb2" data-tip="Copy" onclick="setTool('copy')">❑</button>
+    <button class="tb2" data-tip="Rotate" onclick="setTool('rotate')">↻</button>
+    <button class="tb2" data-tip="Scale" onclick="setTool('scale')">⤡</button>
+    <button class="tb2" data-tip="Mirror" onclick="setTool('mirror')">⇌</button>
+    <button class="tb2" data-tip="Offset" onclick="setTool('offset')">⊏</button>
+    <button class="tb2" data-tip="Trim" onclick="setTool('trim')">✂</button>
+    <button class="tb2" data-tip="Extend" onclick="setTool('extend')">⇒</button>
+    <div class="tsep"></div>
+    <button class="tb2" data-tip="Text (T)" onclick="setTool('text')">T</button>
+    <button class="tb2" data-tip="Dimension" onclick="setTool('dim-linear')">⟷</button>
+    <button class="tb2" data-tip="Leader" onclick="setTool('leader')">⇁</button>
+    <div class="tsep"></div>
+    <button class="tb2" data-tip="Measure Distance" onclick="setTool('measure-dist')">📏</button>
+    <button class="tb2" data-tip="Measure Area" onclick="setTool('measure-area')">📐</button>
+    <div class="tsep"></div>
+    <button class="tb2" data-tip="Delete (Del)" onclick="delSel()" style="color:#ff6060">✕</button>
+    <button class="tb2" data-tip="Explode" onclick="openMo('moExplode')">💥</button>
+    <button class="tb2" data-tip="Insert Block" onclick="openMo('moBlock')">🧱</button>
+  </div>
+
+  <!-- Viewport -->
+  <div class="viewport" id="vp"
+    ondrop="vpDrop(event)" ondragover="vpDragOver(event)" ondragleave="vpDragLeave(event)">
+    <canvas id="cad"></canvas>
+    <div id="selbox"></div>
+    <div id="dz">
+      <div class="dz-inner">
+        📐 Drop DWG / DXF file here
+        <span>Strata will parse and render your drawing</span>
+      </div>
+    </div>
+    <div class="cov">
+      <div class="cbadge">LAYER: <span id="layerBadge">0 – Default</span></div>
+      <div class="cbadge strata">TOOL: <span id="toolBadge">LINE</span></div>
+      <div class="cbadge">ZOOM: <span id="zoomBadge">100%</span></div>
+    </div>
+    <div class="zoom-f">
+      <button class="zb" onclick="zoomBy(1.2)">+</button>
+      <button class="zb" onclick="zoomExt()">⊞</button>
+      <button class="zb" onclick="zoomBy(0.8)">−</button>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="rpanel">
+    <div class="ptabs">
+      <div class="ptab act" onclick="showPanel('layers')" id="tab-layers">LAYERS</div>
+      <div class="ptab" onclick="showPanel('props')" id="tab-props">PROPS</div>
+      <div class="ptab" onclick="showPanel('blocks')" id="tab-blocks">BLOCKS</div>
+    </div>
+    <div class="pcontent">
+      <!-- Layers -->
+      <div class="psec act" id="sec-layers">
+        <div class="lyr-head">
+          <span class="lyr-head-t">Layer Manager</span>
+          <div class="lyr-actions">
+            <button class="lbtn add" onclick="addLayer()">+ New</button>
+            <button class="lbtn strata" onclick="openMo('moExportLayers')">Export</button>
+          </div>
+        </div>
+        <div id="layerList"></div>
+      </div>
+      <!-- Properties -->
+      <div class="psec" id="sec-props">
+        <div class="pg">
+          <div class="pg-t">General</div>
+          <div class="pr"><span class="pl">Type</span><span class="pv">No selection</span></div>
+          <div class="pr"><span class="pl">Layer</span>
+            <select class="ps2" onchange="toast('Layer changed','ok')">
+              <option>0 – Default</option><option>Walls</option><option>Roads</option>
+            </select>
+          </div>
+          <div class="pr"><span class="pl">Color</span>
+            <input type="color" value="#1FA8D9" style="background:none;border:1px solid var(--cb);border-radius:2px;width:38px;height:22px;cursor:pointer">
+          </div>
+          <div class="pr"><span class="pl">Linetype</span>
+            <select class="ps2"><option>Continuous</option><option>Dashed</option><option>Center</option><option>Phantom</option></select>
+          </div>
+          <div class="pr"><span class="pl">Lineweight</span>
+            <select class="ps2"><option>0.25 mm</option><option>0.35 mm</option><option>0.50 mm</option><option>0.70 mm</option></select>
+          </div>
+        </div>
+        <div class="pg">
+          <div class="pg-t">Geometry</div>
+          <div class="pr"><span class="pl">X</span><input class="pi" value="0.0000"></div>
+          <div class="pr"><span class="pl">Y</span><input class="pi" value="0.0000"></div>
+          <div class="pr"><span class="pl">Z</span><input class="pi" value="0.0000"></div>
+          <div class="pr"><span class="pl">Length</span><input class="pi" value="—"></div>
+          <div class="pr"><span class="pl">Angle °</span><input class="pi" value="—"></div>
+        </div>
+        <div class="pg">
+          <div class="pg-t">Text / Annotation</div>
+          <div class="pr"><span class="pl">Style</span>
+            <select class="ps2"><option>Standard</option><option>Annotative</option></select>
+          </div>
+          <div class="pr"><span class="pl">Height</span><input class="pi" value="2.5"></div>
+        </div>
+      </div>
+      <!-- Blocks -->
+      <div class="psec" id="sec-blocks">
+        <div class="lyr-head">
+          <span class="lyr-head-t">Block Library</span>
+          <button class="lbtn add" onclick="toast('Block created','ok')">+ Create</button>
+        </div>
+        <div class="bl-grid">
+          <div class="bl-item" onclick="toast('Column inserted','ok')"><span class="bi">🏛️</span>Column</div>
+          <div class="bl-item" onclick="toast('Door inserted','ok')"><span class="bi">🚪</span>Door</div>
+          <div class="bl-item" onclick="toast('Window inserted','ok')"><span class="bi">🪟</span>Window</div>
+          <div class="bl-item" onclick="toast('Stair inserted','ok')"><span class="bi">🪜</span>Stair</div>
+          <div class="bl-item" onclick="toast('Tree inserted','ok')"><span class="bi">🌳</span>Tree</div>
+          <div class="bl-item" onclick="toast('Car inserted','ok')"><span class="bi">🚗</span>Car</div>
+          <div class="bl-item" onclick="toast('Pipe inserted','ok')"><span class="bi">⊔</span>Pipe</div>
+          <div class="bl-item" onclick="toast('Valve inserted','ok')"><span class="bi">⚙️</span>Valve</div>
+          <div class="bl-item" onclick="openMo('moBlock')"><span class="bi">📂</span>Browse</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Command Line -->
+<div class="cmdbar">
+  <span class="cmd-prompt">◈ Strata:</span>
+  <input class="cmd-input" id="cmdInput" placeholder="Type command (L, C, REC, TR, EX, LAYER, IMPORT…)" onkeydown="handleCmd(event)">
+  <span class="cmd-msg" id="cmdMsg">Ready — Import a drawing or start drawing directly</span>
+</div>
+<div class="statusbar">
+  <div class="si">SNAP <span class="sv" id="stSnap">ON</span></div><div class="ssep"></div>
+  <div class="si">GRID <span class="sv" id="stGrid">ON</span></div><div class="ssep"></div>
+  <div class="si">ORTHO <span class="sv" id="stOrtho">OFF</span></div><div class="ssep"></div>
+  <div class="si">OSNAP <span class="sv" id="stOsnap">ON</span></div><div class="ssep"></div>
+  <div class="si">UNITS <span class="sv">METRIC</span></div><div class="ssep"></div>
+  <div class="si">ZOOM <span class="sv" id="stZoom">100%</span></div>
+  <div style="margin-left:auto;display:flex;gap:5px">
+    <button class="sbtn on" id="btn-snap" onclick="toggleSnap()">SNAP</button>
+    <button class="sbtn on" id="btn-grid" onclick="toggleGrid()">GRID</button>
+    <button class="sbtn" id="btn-ortho" onclick="toggleOrtho()">ORTHO</button>
+    <button class="sbtn on" id="btn-osnap" onclick="toggleOsnap()">OSNAP</button>
+    <button class="sbtn" onclick="toast('Polar tracking toggled','ok')">POLAR</button>
+    <button class="sbtn" onclick="toast('Switching to 3D view','ok')">3D</button>
+  </div>
+</div>
+
+<!-- ════ MODALS ════ -->
+
+<!-- Import -->
+<div class="mo" id="moImport">
+  <div class="modal wide">
+    <div class="mh">
+      <div class="mh-t"><span class="ico">📂</span> Import Drawing into Strata</div>
+      <span class="mh-close" onclick="closeMo('moImport')">✕</span>
+    </div>
+    <div class="mb">
+      <div class="imp-zone" id="impZone" onclick="document.getElementById('fileInput').click()"
+        ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+        <div class="imp-ico">📐</div>
+        <div class="imp-t">Drop or Click to Import</div>
+        <div class="imp-s">Supports native AutoCAD and standard exchange formats</div>
+        <div class="fmt-row">
+          <span class="fmt">.DWG</span><span class="fmt">.DXF</span><span class="fmt">.DWF</span>
+          <span class="fmt">.DWT</span><span class="fmt">.SVG</span><span class="fmt">.IFC</span><span class="fmt">.SHP</span>
+        </div>
+      </div>
+      <input type="file" id="fileInput" accept=".dwg,.dxf,.dwf,.dwt,.svg,.ifc,.shp" style="display:none" onchange="handleFile(event)">
+
+      <div class="fsect">Import Settings</div>
+      <div class="frow">
+        <div class="fg2">
+          <label class="fl">Drawing Units</label>
+          <select class="fs2"><option>Metric (mm)</option><option>Metric (m)</option><option>Imperial (in)</option><option>Imperial (ft)</option></select>
+        </div>
+        <div class="fg2">
+          <label class="fl">AutoCAD Version</label>
+          <select class="fs2"><option>AutoCAD 2024 (R27)</option><option>AutoCAD 2020</option><option>AutoCAD 2018</option><option>AutoCAD 2013</option><option>AutoCAD 2007</option></select>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <label class="fcheck"><input type="checkbox" checked> Import all layers</label>
+        <label class="fcheck"><input type="checkbox" checked> Import blocks</label>
+        <label class="fcheck"><input type="checkbox" checked> Import attributes</label>
+        <label class="fcheck"><input type="checkbox"> Import xrefs</label>
+        <label class="fcheck"><input type="checkbox" checked> Import hatch patterns</label>
+        <label class="fcheck"><input type="checkbox"> Flatten 3D to 2D</label>
+      </div>
+      <div class="fsect">Civil 3D / Map Objects</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <label class="fcheck"><input type="checkbox" checked> Import Civil3D Objects</label>
+        <label class="fcheck"><input type="checkbox" checked> Import Surfaces</label>
+        <label class="fcheck"><input type="checkbox" checked> Import Alignments</label>
+        <label class="fcheck"><input type="checkbox"> Import Survey Data</label>
+        <label class="fcheck"><input type="checkbox"> Import GIS Features</label>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn-s" onclick="closeMo('moImport')">Cancel</button>
+      <button class="btn-p strata" onclick="simImport()">Import Drawing</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export -->
+<div class="mo" id="moExport">
+  <div class="modal wide">
+    <div class="mh">
+      <div class="mh-t"><span class="ico">💾</span> Export Drawing</div>
+      <span class="mh-close" onclick="closeMo('moExport')">✕</span>
+    </div>
+    <div class="mb">
+      <div class="fsect">Export Format</div>
+      <div class="og">
+        <div class="oc sel" onclick="selCard(this)"><div class="oc-ico">📄</div><div class="oc-t">DXF</div><div class="oc-d">Exchange format, editable</div></div>
+        <div class="oc" onclick="selCard(this)"><div class="oc-ico">📄</div><div class="oc-t">DWG</div><div class="oc-d">AutoCAD native binary</div></div>
+        <div class="oc" onclick="selCard(this)"><div class="oc-ico">📄</div><div class="oc-t">PDF / Plot</div><div class="oc-d">Print-ready output</div></div>
+        <div class="oc" onclick="selCard(this)"><div class="oc-ico">🖼️</div><div class="oc-t">SVG / PNG</div><div class="oc-d">Vector / raster image</div></div>
+        <div class="oc" onclick="selCard(this)"><div class="oc-ico">🏗️</div><div class="oc-t">IFC</div><div class="oc-d">BIM interoperability</div></div>
+        <div class="oc" onclick="selCard(this)"><div class="oc-ico">📊</div><div class="oc-t">CSV / Excel</div><div class="oc-d">Attributes &amp; data tables</div></div>
+      </div>
+      <div class="fsect">Settings</div>
+      <div class="frow">
+        <div class="fg2"><label class="fl">Target Version</label>
+          <select class="fs2"><option>AutoCAD 2024</option><option>AutoCAD 2018</option><option>AutoCAD 2013</option><option>AutoCAD 2007</option></select>
+        </div>
+        <div class="fg2"><label class="fl">Scale</label>
+          <select class="fs2"><option>1:1 (Full Scale)</option><option>1:50</option><option>1:100</option><option>1:200</option><option>1:500</option></select>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <label class="fcheck"><input type="checkbox" checked> Include all layers</label>
+        <label class="fcheck"><input type="checkbox" checked> Include annotations</label>
+        <label class="fcheck"><input type="checkbox" checked> Include attributes</label>
+        <label class="fcheck"><input type="checkbox"> Flatten to 2D</label>
+        <label class="fcheck"><input type="checkbox"> Purge unused</label>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn-s" onclick="closeMo('moExport')">Cancel</button>
+      <button class="btn-p strata" onclick="closeMo('moExport');toast('Drawing exported as DXF','ok')">Export</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export Layers -->
+<div class="mo" id="moExportLayers">
+  <div class="modal">
+    <div class="mh">
+      <div class="mh-t"><span class="ico">📤</span> Export Layers Separately</div>
+      <span class="mh-close" onclick="closeMo('moExportLayers')">✕</span>
+    </div>
+    <div class="mb">
+      <p style="font-size:11.5px;color:var(--M);margin-bottom:12px">Each selected layer will be exported as a separate file.</p>
+      <div id="expLayerList"></div>
+      <div class="fsect">Output Format</div>
+      <div class="frow">
+        <div class="fg2"><label class="fl">Format per Layer</label>
+          <select class="fs2"><option>DXF (R2018)</option><option>SVG</option><option>PDF</option><option>PNG</option></select>
+        </div>
+        <div class="fg2"><label class="fl">Naming Pattern</label>
+          <input class="fi2" value="{drawing}_{layer}">
+        </div>
+      </div>
+      <label class="fcheck"><input type="checkbox" checked> Bundle into ZIP archive</label>
+    </div>
+    <div class="mf">
+      <button class="btn-s" onclick="closeMo('moExportLayers')">Cancel</button>
+      <button class="btn-p strata" onclick="expLayersSep()">Export Layers</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export Attributes -->
+<div class="mo" id="moExportAttrs">
+  <div class="modal">
+    <div class="mh">
+      <div class="mh-t"><span class="ico">🏷️</span> Export Attributes</div>
+      <span class="mh-close" onclick="closeMo('moExportAttrs')">✕</span>
+    </div>
+    <div class="mb">
+      <div class="fsect">Attribute Source</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+        <label class="fcheck"><input type="checkbox" checked> Block Attributes</label>
+        <label class="fcheck"><input type="checkbox" checked> Object Properties</label>
+        <label class="fcheck"><input type="checkbox" checked> Coordinates (X,Y,Z)</label>
+        <label class="fcheck"><input type="checkbox" checked> Layer Info</label>
+        <label class="fcheck"><input type="checkbox"> Annotation Text</label>
+        <label class="fcheck"><input type="checkbox"> Area / Length</label>
+      </div>
+      <div class="fsect">Civil 3D Data</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+        <label class="fcheck"><input type="checkbox" checked> Surface Elevations</label>
+        <label class="fcheck"><input type="checkbox" checked> Alignment Stationing</label>
+        <label class="fcheck"><input type="checkbox"> Pipe Network Data</label>
+        <label class="fcheck"><input type="checkbox"> Point Groups</label>
+      </div>
+      <div class="fsect">Output</div>
+      <div class="frow">
+        <div class="fg2"><label class="fl">Format</label>
+          <select class="fs2"><option>CSV</option><option>Excel (.xlsx)</option><option>JSON</option><option>XML</option></select>
+        </div>
+        <div class="fg2"><label class="fl">Coord Precision</label>
+          <select class="fs2"><option>4 decimal places</option><option>3 decimal places</option><option>6 decimal places</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn-s" onclick="closeMo('moExportAttrs')">Cancel</button>
+      <button class="btn-p strata" onclick="closeMo('moExportAttrs');toast('Attributes exported as CSV','ok')">Export Attributes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Explode -->
+<div class="mo" id="moExplode">
+  <div class="modal">
+    <div class="mh">
+      <div class="mh-t"><span class="ico">💥</span> Explode Objects</div>
+      <span class="mh-close" onclick="closeMo('moExplode')">✕</span>
+    </div>
+    <div class="mb">
+      <div class="fsect">Explode Type</div>
+      <div class="og">
+        <div class="oc sel" onclick="selCard(this)"><div class="oc-ico">🧱</div><div class="oc-t">Explode Block</div><div class="oc-d">Break into primitives</div></div>
+        <div class="oc" onclick="selCard(this)"><div class="oc-ico">〰️</div><div class="oc-t">Polyline</div><div class="oc-d">Lines / arcs</div></div>
+        <div class="oc" onclick="selCard(this)"><div class="oc-ico">🌫️</div><div class="oc-t">Hatch</div><div class="oc-d">Convert to boundary lines</div></div>
+        <div class="oc" onclick="selCard(this)"><div class="oc-ico">🔢</div><div class="oc-t">Array</div><div class="oc-d">Individual items</div></div>
+        <div class="oc" onclick="selCard(this)"><div class="oc-ico">📐</div><div class="oc-t">Dimension</div><div class="oc-d">Lines + text</div></div>
+        <div class="oc" onclick="selCard(this)"><div class="oc-ico">🏗️</div><div class="oc-t">Xref</div><div class="oc-d">Merge into drawing</div></div>
+      </div>
+      <label class="fcheck"><input type="checkbox" checked> Retain original layer assignments</label>
+      <label class="fcheck" style="margin-top:6px"><input type="checkbox"> Explode nested objects recursively</label>
+    </div>
+    <div class="mf">
+      <button class="btn-s" onclick="closeMo('moExplode')">Cancel</button>
+      <button class="btn-p strata" onclick="closeMo('moExplode');toast('Objects exploded successfully','ok')">Apply Explode</button>
+    </div>
+  </div>
+</div>
+
+<!-- Block Manager -->
+<div class="mo" id="moBlock">
+  <div class="modal">
+    <div class="mh">
+      <div class="mh-t"><span class="ico">🧱</span> Block Manager</div>
+      <span class="mh-close" onclick="closeMo('moBlock')">✕</span>
+    </div>
+    <div class="mb">
+      <div class="fsect">Insert Block</div>
+      <div class="frow">
+        <div class="fg2"><label class="fl">Block Name</label><input class="fi2" placeholder="Search or type block name…"></div>
+        <div class="fg2"><label class="fl">Source</label><select class="fs2"><option>Current Drawing</option><option>External File</option><option>Library</option></select></div>
+      </div>
+      <div class="fsect">Placement</div>
+      <div class="frow">
+        <div class="fg2"><label class="fl">X</label><input class="fi2" value="0.0000"></div>
+        <div class="fg2"><label class="fl">Y</label><input class="fi2" value="0.0000"></div>
+      </div>
+      <div class="frow">
+        <div class="fg2"><label class="fl">Rotation °</label><input class="fi2" value="0"></div>
+        <div class="fg2"><label class="fl">Scale</label><input class="fi2" value="1.0"></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn-s" onclick="closeMo('moBlock')">Cancel</button>
+      <button class="btn-p strata" onclick="closeMo('moBlock');toast('Block inserted at origin','ok')">Insert Block</button>
+    </div>
+  </div>
+</div>
+
+<!-- Block Editor -->
+<div class="mo" id="moBlockEdit">
+  <div class="modal wide">
+    <div class="mh">
+      <div class="mh-t"><span class="ico">✏️</span> Block Editor</div>
+      <span class="mh-close" onclick="closeMo('moBlockEdit')">✕</span>
+    </div>
+    <div class="mb">
+      <div class="fsect">Select Block</div>
+      <select class="fs2" style="margin-bottom:12px"><option>Column_Type_A</option><option>Door_900</option><option>Window_1200</option><option>Fire_Hydrant</option><option>Manhole_Cover</option></select>
+      <div class="fsect">Block Properties</div>
+      <div class="frow">
+        <div class="fg2"><label class="fl">Block Name</label><input class="fi2" value="Column_Type_A"></div>
+        <div class="fg2"><label class="fl">Description</label><input class="fi2" value="Structural Column"></div>
+      </div>
+      <div class="frow">
+        <div class="fg2"><label class="fl">Base Point X</label><input class="fi2" value="0.0"></div>
+        <div class="fg2"><label class="fl">Base Point Y</label><input class="fi2" value="0.0"></div>
+      </div>
+      <div class="fsect">Attribute Definitions</div>
+      <table class="attr-table">
+        <thead><tr><th>Tag</th><th>Prompt</th><th>Default</th><th></th></tr></thead>
+        <tbody id="attrBody">
+          <tr>
+            <td><input class="pi" value="TAG"></td>
+            <td><input class="pi" value="Enter tag:"></td>
+            <td><input class="pi" value=""></td>
+            <td><button onclick="this.closest('tr').remove()" style="background:none;border:none;color:#ff6060;cursor:pointer;font-size:13px">✕</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <button class="attr-add" onclick="addAttrRow()">+ Add Attribute</button>
+      <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap">
+        <label class="fcheck"><input type="checkbox" checked> Allow explode</label>
+        <label class="fcheck"><input type="checkbox"> Annotative</label>
+        <label class="fcheck"><input type="checkbox"> Scale uniformly</label>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn-s" onclick="closeMo('moBlockEdit')">Cancel</button>
+      <button class="btn-p strata" onclick="closeMo('moBlockEdit');toast('Block definition saved','ok')">Save Block</button>
+    </div>
+  </div>
+</div>
+
+<!-- Array -->
+<div class="mo" id="moArray">
+  <div class="modal">
+    <div class="mh">
+      <div class="mh-t"><span class="ico">🔲</span> Array Objects</div>
+      <span class="mh-close" onclick="closeMo('moArray')">✕</span>
+    </div>
+    <div class="mb">
+      <div class="fsect">Array Type</div>
+      <div class="og" style="grid-template-columns:repeat(3,1fr)">
+        <div class="oc sel" onclick="selCard(this)"><div class="oc-ico">🔲</div><div class="oc-t">Rectangular</div></div>
+        <div class="oc" onclick="selCard(this)"><div class="oc-ico">⭕</div><div class="oc-t">Polar</div></div>
+        <div class="oc" onclick="selCard(this)"><div class="oc-ico">⬛</div><div class="oc-t">Path</div></div>
+      </div>
+      <div class="fsect">Rectangular Settings</div>
+      <div class="frow">
+        <div class="fg2"><label class="fl">Rows</label><input class="fi2" value="3"></div>
+        <div class="fg2"><label class="fl">Columns</label><input class="fi2" value="4"></div>
+      </div>
+      <div class="frow">
+        <div class="fg2"><label class="fl">Row Spacing</label><input class="fi2" value="5000"></div>
+        <div class="fg2"><label class="fl">Col Spacing</label><input class="fi2" value="5000"></div>
+      </div>
+      <label class="fcheck" style="margin-top:8px"><input type="checkbox"> Associate array</label>
+    </div>
+    <div class="mf">
+      <button class="btn-s" onclick="closeMo('moArray')">Cancel</button>
+      <button class="btn-p strata" onclick="closeMo('moArray');toast('Array created (3×4)','ok')">Apply Array</button>
+    </div>
+  </div>
+</div>
+
+<!-- Civil 3D -->
+<div class="mo" id="moCivil">
+  <div class="modal wide">
+    <div class="mh">
+      <div class="mh-t"><span class="ico">🏙️</span> Civil 3D Tools</div>
+      <span class="mh-close" onclick="closeMo('moCivil')">✕</span>
+    </div>
+    <div class="mb">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span class="chip chip-s">AutoCAD Civil 3D</span>
+        <span style="font-size:10.5px;color:var(--M)">Full Civil3D object support — create, edit &amp; analyse infrastructure objects.</span>
+      </div>
+      <div class="fsect">Surfaces</div>
+      <div class="c3g">
+        <div class="c3c" onclick="toast('Create Surface activated','ok')"><div class="c3i">🏔️</div>Create Surface</div>
+        <div class="c3c" onclick="toast('Add Breaklines active','ok')"><div class="c3i">✂️</div>Breaklines</div>
+        <div class="c3c" onclick="toast('Surface Edit active','ok')"><div class="c3i">✏️</div>Edit Surface</div>
+        <div class="c3c" onclick="toast('Contours generated','ok')"><div class="c3i">〰️</div>Contours</div>
+        <div class="c3c" onclick="toast('Volume Surface created','ok')"><div class="c3i">📦</div>Volume Surface</div>
+        <div class="c3c" onclick="toast('Analysis running','ok')"><div class="c3i">📊</div>Analysis</div>
+      </div>
+      <div class="fsect">Alignments &amp; Roads</div>
+      <div class="c3g">
+        <div class="c3c" onclick="toast('Create Alignment active','ok')"><div class="c3i">📍</div>Create Alignment</div>
+        <div class="c3c" onclick="toast('Edit Alignment active','ok')"><div class="c3i">✏️</div>Edit Alignment</div>
+        <div class="c3c" onclick="toast('Profile created','ok')"><div class="c3i">📈</div>Create Profile</div>
+        <div class="c3c" onclick="toast('Profile View created','ok')"><div class="c3i">📉</div>Profile View</div>
+        <div class="c3c" onclick="toast('Corridor created','ok')"><div class="c3i">🌊</div>Corridor</div>
+        <div class="c3c" onclick="toast('Section View created','ok')"><div class="c3i">📏</div>Section View</div>
+      </div>
+      <div class="fsect">Drainage &amp; Utilities</div>
+      <div class="c3g">
+        <div class="c3c" onclick="toast('Pipe Network active','ok')"><div class="c3i">💧</div>Pipe Network</div>
+        <div class="c3c" onclick="toast('Pressure Net active','ok')"><div class="c3i">⛲</div>Pressure Net</div>
+        <div class="c3c" onclick="toast('Structure placed','ok')"><div class="c3i">🏗️</div>Structures</div>
+        <div class="c3c" onclick="toast('Catchment created','ok')"><div class="c3i">🌧️</div>Catchments</div>
+        <div class="c3c" onclick="toast('Hydraulics running','ok')"><div class="c3i">📊</div>Hydraulics</div>
+        <div class="c3c" onclick="toast('Grading active','ok')"><div class="c3i">🏔️</div>Grading</div>
+      </div>
+      <div class="fsect">Survey &amp; Points</div>
+      <div class="c3g">
+        <div class="c3c" onclick="toast('Create Points active','ok')"><div class="c3i">📌</div>Create Points</div>
+        <div class="c3c" onclick="toast('Point Groups open','ok')"><div class="c3i">🗂️</div>Point Groups</div>
+        <div class="c3c" onclick="toast('Survey Data imported','ok')"><div class="c3i">📡</div>Survey Data</div>
+        <div class="c3c" onclick="toast('Figure Groups active','ok')"><div class="c3i">📐</div>Figure Groups</div>
+        <div class="c3c" onclick="toast('GIS import active','ok')"><div class="c3i">🗺️</div>GIS Features</div>
+        <div class="c3c" onclick="toast('Parcels created','ok')"><div class="c3i">🔲</div>Parcels</div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn-s" onclick="closeMo('moCivil')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toastEl"></div>
+
+<script>
+// ════════════════════════════
+// STATE
+// ════════════════════════════
+const S={
+  tool:'line', zoom:1, pan:{x:0,y:0},
+  snap:true, grid:true, ortho:false, osnap:true,
+  drawing:false, startPt:null,
+  entities:[],
+  layers:[
+    {id:0,name:'0 – Default',color:'#1FA8D9',vis:true,lock:false,frz:false},
+    {id:1,name:'Walls',color:'#D0E8F5',vis:true,lock:false,frz:false},
+    {id:2,name:'Roads',color:'#F5BE18',vis:true,lock:false,frz:false},
+    {id:3,name:'Utilities',color:'#4eff91',vis:true,lock:false,frz:false},
+    {id:4,name:'Dimensions',color:'#A78BFA',vis:true,lock:false,frz:false},
+    {id:5,name:'Text',color:'#ff9060',vis:true,lock:false,frz:false},
+    {id:6,name:'Civil3D_Surface',color:'#ff4466',vis:true,lock:false,frz:false},
+    {id:7,name:'Alignment',color:'#4488ff',vis:true,lock:false,frz:false},
+    {id:8,name:'Hatch',color:'#556677',vis:true,lock:false,frz:false},
+  ],
+  curLayer:0,
+  mouse:{x:0,y:0},
+  panning:false, panStart:null,
+};
+
+// ════════════════════════════
+// CANVAS
+// ════════════════════════════
+const canvas=document.getElementById('cad');
+const ctx=canvas.getContext('2d');
+let W,H;
+function resize(){
+  const vp=document.getElementById('vp');
+  W=canvas.width=vp.clientWidth;H=canvas.height=vp.clientHeight;render();
+}
+window.addEventListener('resize',resize);
+setTimeout(resize,120);
+
+function w2s(x,y){return{x:x*S.zoom+S.pan.x,y:-y*S.zoom+S.pan.y}}
+function s2w(x,y){return{x:(x-S.pan.x)/S.zoom,y:-(y-S.pan.y)/S.zoom}}
+
+// ════════════════════════════
+// RENDER
+// ════════════════════════════
+function render(){
+  ctx.clearRect(0,0,W,H);
+  if(S.grid) drawGrid();
+  drawCross(S.mouse.x,S.mouse.y);
+  S.entities.forEach(e=>{if(layVis(e.layer))drawEnt(e)});
+  if(S.drawing&&S.startPt) drawPreview(S.mouse.x,S.mouse.y);
+  // Origin
+  const o=w2s(0,0);
+  ctx.strokeStyle='rgba(208,232,245,.15)';ctx.lineWidth=1;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(o.x-8,o.y);ctx.lineTo(o.x+8,o.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(o.x,o.y-8);ctx.lineTo(o.x,o.y+8);ctx.stroke();
+}
+function drawGrid(){
+  const sp=50*S.zoom;if(sp<7)return;
+  ctx.strokeStyle='rgba(31,168,217,.05)';ctx.lineWidth=1;
+  const ox=S.pan.x%sp,oy=S.pan.y%sp;
+  ctx.beginPath();
+  for(let x=ox;x<W;x+=sp){ctx.moveTo(x,0);ctx.lineTo(x,H)}
+  for(let y=oy;y<H;y+=sp){ctx.moveTo(0,y);ctx.lineTo(W,y)}
+  ctx.stroke();
+}
+function drawCross(mx,my){
+  ctx.strokeStyle='rgba(31,168,217,.18)';ctx.lineWidth=1;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(mx,0);ctx.lineTo(mx,H);ctx.moveTo(0,my);ctx.lineTo(W,my);ctx.stroke();
+}
+function drawEnt(e){
+  const ly=S.layers.find(l=>l.id===(e.layer||0));
+  ctx.strokeStyle=e.selected?'#F5BE18':(e.color||(ly?ly.color:'#1FA8D9'));
+  ctx.lineWidth=(e.lw||1)*S.zoom*0.45;
+  ctx.setLineDash([]);
+  if(e.selected)ctx.lineWidth=2;
+  const s=w2s;
+  switch(e.type){
+    case'line':{const a=s(e.x1,e.y1),b=s(e.x2,e.y2);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();break}
+    case'circle':{const c=s(e.cx,e.cy);ctx.beginPath();ctx.arc(c.x,c.y,e.r*S.zoom,0,Math.PI*2);ctx.stroke();break}
+    case'rect':{const p=s(e.x,e.y);ctx.strokeRect(p.x,p.y,e.w*S.zoom,-e.h*S.zoom);break}
+    case'text':{const p=s(e.x,e.y);ctx.font=`${(e.sz||13)*S.zoom}px "Plus Jakarta Sans",sans-serif`;ctx.fillStyle=e.color||(ly?ly.color:'#fff');ctx.fillText(e.txt,p.x,p.y);break}
+  }
+  if(e.selected){
+    const pts=getHandles(e);
+    pts.forEach(pt=>{const sp2=s(pt.x,pt.y);ctx.fillStyle='#F5BE18';ctx.fillRect(sp2.x-3,sp2.y-3,6,6)});
+  }
+}
+function getHandles(e){
+  if(e.type==='line')return[{x:e.x1,y:e.y1},{x:e.x2,y:e.y2},{x:(e.x1+e.x2)/2,y:(e.y1+e.y2)/2}];
+  if(e.type==='circle')return[{x:e.cx,y:e.cy}];
+  if(e.type==='rect')return[{x:e.x,y:e.y},{x:e.x+e.w,y:e.y},{x:e.x,y:e.y+e.h},{x:e.x+e.w,y:e.y+e.h}];
+  return[];
+}
+function drawPreview(mx,my){
+  const sp=S.startPt;ctx.strokeStyle='rgba(167,139,250,.7)';ctx.lineWidth=1;ctx.setLineDash([5,4]);
+  switch(S.tool){
+    case'line':case'polyline':{const a=w2s(sp.x,sp.y);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(mx,my);ctx.stroke();break}
+    case'circle':{const c=w2s(sp.x,sp.y),r=Math.hypot(mx-c.x,my-c.y);ctx.beginPath();ctx.arc(c.x,c.y,r,0,Math.PI*2);ctx.stroke();break}
+    case'rect':{const a=w2s(sp.x,sp.y);ctx.strokeRect(a.x,a.y,mx-a.x,my-a.y);break}
+    case'arc':{const c=w2s(sp.x,sp.y),r=Math.hypot(mx-c.x,my-c.y);ctx.beginPath();ctx.arc(c.x,c.y,r,0,Math.PI);ctx.stroke();break}
+  }
+  ctx.setLineDash([]);
+}
+function layVis(lid){const l=S.layers.find(la=>la.id===(lid??0));return l?l.vis:true}
+
+// ════════════════════════════
+// MOUSE
+// ════════════════════════════
+canvas.addEventListener('mousemove',e=>{
+  const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  if(S.panning&&S.panStart){S.pan.x+=mx-S.panStart.x;S.pan.y+=my-S.panStart.y;S.panStart={x:mx,y:my}}
+  S.mouse={x:mx,y:my};
+  const wp=s2w(mx,my);
+  document.getElementById('coordPill').innerHTML=`X: ${wp.x.toFixed(3)} &nbsp;&nbsp; Y: ${wp.y.toFixed(3)}`;
+  render();
+});
+canvas.addEventListener('mousedown',e=>{
+  if(S.tool==='pan'||e.button===1){S.panning=true;const r=canvas.getBoundingClientRect();S.panStart={x:e.clientX-r.left,y:e.clientY-r.top};canvas.style.cursor='grabbing';return}
+  if(e.button!==0)return;
+  const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  const wp=s2w(mx,my);
+  if(!S.drawing){
+    if(['line','polyline','circle','rect','arc','ellipse'].includes(S.tool)){S.drawing=true;S.startPt=wp;setMsg('Specify second point or press ESC')}
+  } else {
+    commitEnt(wp);S.drawing=false;S.startPt=null;setMsg('Ready');toast('Entity drawn','ok');
+  }
+});
+canvas.addEventListener('mouseup',()=>{S.panning=false;canvas.style.cursor='crosshair'});
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const f=e.deltaY<0?1.12:.89;
+  const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  const wx=(mx-S.pan.x)/S.zoom,wy=(my-S.pan.y)/S.zoom;
+  S.zoom=Math.max(.05,Math.min(50,S.zoom*f));
+  S.pan.x=mx-wx*S.zoom;S.pan.y=my-wy*S.zoom;
+  const z=Math.round(S.zoom*100)+'%';
+  document.getElementById('zoomBadge').textContent=z;
+  document.getElementById('stZoom').textContent=z;
+  render();
+});
+function commitEnt(wp){
+  const sp=S.startPt,ly=S.curLayer;let e;
+  switch(S.tool){
+    case'line':e={type:'line',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y,layer:ly};break;
+    case'circle':{const r=Math.hypot((wp.x-sp.x)*S.zoom,(wp.y-sp.y)*S.zoom)/S.zoom;e={type:'circle',cx:sp.x,cy:sp.y,r,layer:ly};break}
+    case'rect':e={type:'rect',x:sp.x,y:sp.y,w:wp.x-sp.x,h:wp.y-sp.y,layer:ly};break;
+    default:e={type:'line',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y,layer:ly};
+  }
+  if(e)S.entities.push(e);
+}
+
+// ════════════════════════════
+// TOOLS
+// ════════════════════════════
+function setTool(t){
+  S.tool=t;S.drawing=false;S.startPt=null;
+  document.querySelectorAll('.rb.act').forEach(b=>b.classList.remove('act'));
+  document.querySelectorAll('.tb2.act').forEach(b=>b.classList.remove('act'));
+  const rb=document.getElementById('rb-'+t);if(rb)rb.classList.add('act');
+  document.getElementById('toolBadge').textContent=t.toUpperCase().replace('-',' ');
+  canvas.style.cursor=t==='pan'?'grab':(t==='select'?'default':'crosshair');
+  setMsg('Tool: '+t.toUpperCase()+' — Click to start');
+}
+document.addEventListener('keydown',e=>{
+  const tag=document.activeElement.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
+  if(e.key==='Escape'){S.drawing=false;S.startPt=null;setMsg('Ready');render()}
+  if(e.key==='Delete')delSel();
+  const km={'l':'line','c':'circle','r':'rect','m':'move','s':'select','p':'pan','t':'text'};
+  if(km[e.key.toLowerCase()])setTool(km[e.key.toLowerCase()]);
+});
+
+// ════════════════════════════
+// LAYERS
+// ════════════════════════════
+function renderLayers(){
+  const list=document.getElementById('layerList');
+  list.innerHTML='';
+  S.layers.forEach(l=>{
+    const el=document.createElement('div');
+    el.className='li'+(l.id===S.curLayer?' sel':'');
+    el.innerHTML=`<div class="ld" style="background:${l.color}"></div><span class="ln">${l.name}</span>
+    <div class="lic">
+      <span class="${l.vis?'on':''}" onclick="togLyr(${l.id},'vis')" title="${l.vis?'Hide':'Show'}">${l.vis?'👁️':'🚫'}</span>
+      <span class="${l.lock?'':'on'}" onclick="togLyr(${l.id},'lock')" title="${l.lock?'Unlock':'Lock'}">🔒</span>
+      <span onclick="togLyr(${l.id},'frz')" title="Freeze/Thaw">${l.frz?'❄️':'☀️'}</span>
+    </div>`;
+    el.onclick=ev=>{if(ev.target.closest('.lic'))return;S.curLayer=l.id;document.getElementById('layerBadge').textContent=l.name;renderLayers()};
+    list.appendChild(el);
+  });
+  // Export layer checkboxes
+  const el=document.getElementById('expLayerList');
+  if(el){el.innerHTML=S.layers.map(l=>`
+    <div class="le-row"><input type="checkbox" checked id="elc-${l.id}">
+    <div class="le-dot" style="background:${l.color}"></div>
+    <label for="elc-${l.id}" style="cursor:pointer;flex:1">${l.name}</label>
+    <span class="chip chip-b">${S.entities.filter(e=>e.layer===l.id).length} obj</span>
+    </div>`).join('')}
+}
+renderLayers();
+function togLyr(id,prop){const l=S.layers.find(la=>la.id===id);if(l){l[prop]=!l[prop];renderLayers();render()}}
+function addLayer(){
+  const nm=prompt('New layer name:');if(!nm)return;
+  const cols=['#ff4466','#44ff88','#ffaa00','#aa44ff','#ff44aa'];
+  S.layers.push({id:Date.now(),name:nm,color:cols[S.layers.length%cols.length],vis:true,lock:false,frz:false});
+  renderLayers();toast('Layer "'+nm+'" created','ok');
+}
+
+// ════════════════════════════
+// PANEL TABS
+// ════════════════════════════
+function showPanel(s){
+  ['layers','props','blocks'].forEach(k=>{document.getElementById('sec-'+k)?.classList.remove('act');document.getElementById('tab-'+k)?.classList.remove('act')});
+  document.getElementById('sec-'+s)?.classList.add('act');document.getElementById('tab-'+s)?.classList.add('act');
+}
+
+// ════════════════════════════
+// MODALS
+// ════════════════════════════
+function openMo(id){renderLayers();document.getElementById(id)?.classList.add('open')}
+function closeMo(id){document.getElementById(id)?.classList.remove('open')}
+document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}));
+function selCard(el){el.closest('.og').querySelectorAll('.oc').forEach(c=>c.classList.remove('sel'));el.classList.add('sel')}
+
+// ════════════════════════════
+// ACTIONS
+// ════════════════════════════
+function delSel(){const b=S.entities.length;S.entities=S.entities.filter(e=>!e.selected);const d=b-S.entities.length;render();toast(d>0?d+' object(s) deleted':'No selection','ok')}
+function zoomBy(f){
+  S.zoom=Math.max(.05,Math.min(50,S.zoom*f));
+  S.pan.x=W/2-(W/2-S.pan.x)*f;S.pan.y=H/2-(H/2-S.pan.y)*f;
+  const z=Math.round(S.zoom*100)+'%';
+  document.getElementById('zoomBadge').textContent=z;document.getElementById('stZoom').textContent=z;render();
+}
+function zoomExt(){S.zoom=1;S.pan.x=W/2;S.pan.y=H/2;document.getElementById('zoomBadge').textContent='100%';document.getElementById('stZoom').textContent='100%';render();toast('Zoom extents','ok')}
+function toggleSnap(){S.snap=!S.snap;document.getElementById('stSnap').textContent=S.snap?'ON':'OFF';document.getElementById('btn-snap').classList.toggle('on',S.snap)}
+function toggleGrid(){S.grid=!S.grid;document.getElementById('stGrid').textContent=S.grid?'ON':'OFF';document.getElementById('btn-grid').classList.toggle('on',S.grid);render()}
+function toggleOrtho(){S.ortho=!S.ortho;document.getElementById('stOrtho').textContent=S.ortho?'ON':'OFF';document.getElementById('btn-ortho').classList.toggle('on',S.ortho)}
+function toggleOsnap(){S.osnap=!S.osnap;document.getElementById('stOsnap').textContent=S.osnap?'ON':'OFF';document.getElementById('btn-osnap').classList.toggle('on',S.osnap)}
+
+// Import simulation
+function simImport(){
+  closeMo('moImport');
+  S.entities=[
+    {type:'rect',x:-120,y:-70,w:240,h:140,layer:1},
+    {type:'rect',x:-100,y:-50,w:70,h:100,layer:1},
+    {type:'rect',x:30,y:-50,w:70,h:100,layer:1},
+    {type:'line',x1:-220,y1:-90,x2:220,y2:-90,layer:2},
+    {type:'line',x1:-220,y1:90,x2:220,y2:90,layer:2},
+    {type:'circle',cx:0,cy:50,r:18,layer:3},
+    {type:'circle',cx:-70,cy:0,r:9,layer:3},
+    {type:'circle',cx:70,cy:0,r:9,layer:3},
+    {type:'line',x1:-140,y1:-130,x2:140,y2:-130,layer:4},
+    {type:'line',x1:-140,y1:130,x2:140,y2:130,layer:4},
+    {type:'line',x1:0,y1:-160,x2:0,y2:160,layer:6},
+    {type:'text',x:-95,y:80,txt:'BUILDING A',sz:9,layer:5},
+    {type:'text',x:-45,y:-108,txt:'ROAD CENTRELINE',sz:7.5,layer:5},
+  ];
+  zoomExt();
+  setTimeout(()=>toast('Drawing loaded — 13 entities across 9 layers','ok'),700);
+}
+
+// Export layers
+function expLayersSep(){
+  const checked=S.layers.filter(l=>{const c=document.getElementById('elc-'+l.id);return c&&c.checked});
+  closeMo('moExportLayers');
+  toast(`${checked.length} layers exported as DXF (ZIP ready)`,'ok');
+}
+
+// Attribute row
+function addAttrRow(){
+  const tb=document.getElementById('attrBody');
+  const r=document.createElement('tr');
+  r.innerHTML=`<td><input class="pi" placeholder="TAG"></td><td><input class="pi" placeholder="Prompt…"></td><td><input class="pi" placeholder="Default"></td><td><button onclick="this.closest('tr').remove()" style="background:none;border:none;color:#ff6060;cursor:pointer;font-size:13px">✕</button></td>`;
+  tb.appendChild(r);
+}
+
+// File handling
+function handleDrop(e){e.preventDefault();document.getElementById('impZone').classList.remove('dov');const f=e.dataTransfer?.files?.[0];if(f){document.getElementById('impZone').querySelector('.imp-t').textContent='📐 '+f.name;toast('File ready: '+f.name,'ok')}}
+function handleDragOver(e){e.preventDefault();document.getElementById('impZone').classList.add('dov')}
+function handleDragLeave(){document.getElementById('impZone').classList.remove('dov')}
+function handleFile(e){const f=e.target.files?.[0];if(f){document.getElementById('impZone').querySelector('.imp-t').textContent='📐 '+f.name;toast('File ready: '+f.name,'ok')}}
+
+// Viewport drag-and-drop
+const vp2=document.getElementById('vp');
+vp2.addEventListener('dragover',e=>{e.preventDefault();document.getElementById('dz').style.display='flex'});
+vp2.addEventListener('dragleave',()=>{document.getElementById('dz').style.display='none'});
+vp2.addEventListener('drop',e=>{e.preventDefault();document.getElementById('dz').style.display='none';const f=e.dataTransfer?.files?.[0];if(f){toast('Loading: '+f.name,'ok');setTimeout(()=>simImport(),500)}});
+
+// Command line
+function setMsg(m){document.getElementById('cmdMsg').textContent=m}
+function handleCmd(e){
+  if(e.key!=='Enter')return;
+  const v=document.getElementById('cmdInput').value.trim().toUpperCase();
+  document.getElementById('cmdInput').value='';
+  const map={L:()=>setTool('line'),PL:()=>setTool('polyline'),C:()=>setTool('circle'),REC:()=>setTool('rect'),A:()=>setTool('arc'),M:()=>setTool('move'),CO:()=>setTool('copy'),RO:()=>setTool('rotate'),SC:()=>setTool('scale'),MI:()=>setTool('mirror'),O:()=>setTool('offset'),TR:()=>setTool('trim'),EX:()=>setTool('extend'),T:()=>setTool('text'),Z:()=>zoomExt(),E:()=>delSel(),LAYER:()=>showPanel('layers'),EXPLODE:()=>openMo('moExplode'),BLOCK:()=>openMo('moBlock'),IMPORT:()=>openMo('moImport'),EXPORT:()=>openMo('moExport')};
+  if(map[v]){map[v]();setMsg('▶ '+v+' activated')}else setMsg('Unknown command: '+v);
+}
+
+// Toast
+let tTimer;
+function toast(msg,type=''){
+  const el=document.getElementById('toastEl');
+  el.textContent=msg;el.className='toast show'+(type?' '+type:'');
+  clearTimeout(tTimer);tTimer=setTimeout(()=>el.classList.remove('show'),2600);
+}
+
+// Init
+setTimeout(()=>toast('Strata ready — import a .DWG / .DXF file or start drawing','ok'),400);
+</script>
+</body>
+</html>
