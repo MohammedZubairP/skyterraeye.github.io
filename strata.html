@@ -234,13 +234,13 @@ button{font-family:'Plus Jakarta Sans',sans-serif}
 .fl{display:block;font-size:10px;font-weight:700;color:var(--M);letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px;font-family:'IBM Plex Mono',monospace}
 .fi2,.fs2{width:100%;background:var(--cp);border:1px solid var(--cb);border-radius:4px;color:var(--T);font-size:12.5px;font-family:'Plus Jakarta Sans',sans-serif;padding:7px 9px;outline:none;transition:border-color .15s}
 .fi2:focus,.fs2:focus{border-color:var(--Strata)}
-.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.frow{display:grid;grid-template-columns:1fr;gap:10px}
 .fcheck{display:flex;align-items:center;gap:7px;font-size:12.5px;cursor:pointer;margin-bottom:5px}
 .fcheck input{cursor:pointer;accent-color:var(--Strata)}
 .fsect{font-size:10.5px;font-weight:700;color:var(--Strata);letter-spacing:1px;text-transform:uppercase;margin:12px 0 7px;font-family:'IBM Plex Mono',monospace;padding-bottom:4px;border-bottom:1px solid var(--cb)}
 
 /* Option cards */
-.og{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
+.og{display:grid;grid-template-columns:1fr;gap:7px;margin-bottom:12px}
 .oc{padding:10px;background:var(--cp);border:1px solid var(--cb);border-radius:5px;cursor:pointer;transition:all .12s}
 .oc:hover,.oc.sel{border-color:var(--StrataL);background:var(--StrataDim)}
 .oc-ico{font-size:20px;margin-bottom:3px}
@@ -351,8 +351,8 @@ body.rb-lg .rg-lbl{font-size:10px}
    SIDE TOOL PANEL  (left column)
 ══════════════════════════════ */
 .side-panel{
-  width:120px;
-  min-width:120px;
+  width:60px;
+  min-width:60px;
   flex-shrink:0;
   background:#07111C;
   border-right:1px solid var(--cb);
@@ -395,7 +395,7 @@ body.rb-lg .rg-lbl{font-size:10px}
 .sg{margin-bottom:1px}
 .sg-grid{
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:1fr;
   gap:2px;
   padding:2px 5px 0;
 }
@@ -525,6 +525,12 @@ body.rb-lg .rg-lbl{font-size:10px}
 .li-act:hover{opacity:1;background:rgba(31,168,217,.1)}
 .li-act.active{opacity:1}
 .li-dis .ln{text-decoration:line-through;opacity:.5}
+
+
+/* === SKY TERRAEYE PRO UPGRADE === */
+.sg-btn{padding:10px 0!important;}
+.sg-ico{font-size:20px!important;}
+.sg-lbl{display:none!important;}
 
 </style>
 </head>
@@ -2650,6 +2656,63 @@ function zoomToLayer(layerId){
 
 // Init
 setTimeout(()=>toast('Strata ready — import a .DWG / .DXF file or start drawing','ok'),400);
+
+// === SKY TERRAEYE SURVEY MODULE (BASIC PLACEHOLDER) ===
+function importCSVPoints(){
+    alert("CSV Import coming next version (Easting, Northing, Elevation)");
+}
+
+
+// === ADVANCED SKY TERRAEYE MODULES ===
+
+// CSV POINT IMPORT (basic working)
+function loadCSVPoints(file){
+    const reader = new FileReader();
+    reader.onload = function(e){
+        const lines = e.target.result.split("\n");
+        lines.forEach(line=>{
+            const parts = line.split(",");
+            if(parts.length>=3){
+                S.entities.push({
+                    type:'circle',
+                    cx:parseFloat(parts[0]),
+                    cy:parseFloat(parts[1]),
+                    r:2,
+                    layer:3
+                });
+            }
+        });
+        render();
+        toast("CSV Points Loaded","ok");
+    };
+    reader.readAsText(file);
+}
+
+// QUICK ORTHO PREVIEW (image load)
+function loadOrthoImage(file){
+    const img = new Image();
+    img.onload = function(){
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        toast("Ortho preview loaded","ok");
+    };
+    img.src = URL.createObjectURL(file);
+}
+
+// SIMPLE SURFACE SIMULATION
+function generateSurface(){
+    toast("Surface (TIN) generation coming next upgrade","warn");
+}
+
+// ALIGNMENT TOOL PLACEHOLDER
+function createAlignment(){
+    toast("Alignment tool activated","ok");
+}
+
+// PROFILE VIEW PLACEHOLDER
+function createProfile(){
+    toast("Profile view coming soon","warn");
+}
+
 </script>
 <!-- Tool Properties Popover (body-level, position:fixed) -->
 <div id="toolPropsPanel">
