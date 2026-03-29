@@ -261,6 +261,30 @@ input,select{font-family:inherit}
 .dwg-tool-link{padding:3px 9px;font-size:9.5px;font-weight:700;border-radius:3px;border:1px solid var(--sep);background:var(--bg4);color:var(--t);cursor:pointer;text-decoration:none;transition:all .12s;display:inline-block}
 .dwg-tool-link:hover{border-color:var(--bl);color:var(--b)}
 .dwg-note{font-size:9px;color:var(--m);text-align:center;padding-top:4px;line-height:1.4}
+/* ── DXF DIAGNOSTIC MODAL ── */
+.diag-section{margin-bottom:12px}
+.diag-header{font-size:9px;font-weight:700;color:var(--st);letter-spacing:1px;text-transform:uppercase;padding-bottom:3px;border-bottom:1px solid var(--sep);margin-bottom:7px;font-family:'IBM Plex Mono',monospace}
+.diag-row{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid rgba(31,168,217,.05)}
+.diag-row:last-child{border-bottom:none}
+.diag-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center;margin-top:1px}
+.diag-body{flex:1;min-width:0}
+.diag-label{font-size:10.5px;font-weight:700;color:var(--t)}
+.diag-desc{font-size:9.5px;color:var(--m);margin-top:1px;line-height:1.45}
+.diag-pill{display:inline-block;padding:1px 6px;border-radius:3px;font-size:8px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-left:5px;vertical-align:middle}
+.diag-pill.ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:var(--gr)}
+.diag-pill.warn{background:rgba(255,144,96,.12);border:1px solid rgba(255,144,96,.35);color:var(--ora)}
+.diag-pill.err{background:rgba(255,68,102,.1);border:1px solid rgba(255,68,102,.3);color:var(--red)}
+.diag-files{margin-top:5px;background:var(--bg);border:1px solid var(--sep);border-radius:4px;padding:5px 7px;max-height:80px;overflow-y:auto}
+.diag-file{font-size:8.5px;font-family:'IBM Plex Mono',monospace;color:var(--m);padding:1px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.diag-file.missing{color:var(--red)}
+.diag-stat-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.diag-stat{background:var(--bg2);border:1px solid var(--sep);border-radius:4px;padding:5px 10px;flex:1;min-width:80px;text-align:center}
+.diag-stat-n{font-size:16px;font-weight:800;color:var(--b);font-family:'Syne',sans-serif;line-height:1}
+.diag-stat-l{font-size:8px;color:var(--m);margin-top:2px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.5px}
+.diag-fix{background:var(--bg2);border:1px solid var(--sep);border-radius:5px;padding:9px 11px;margin-bottom:6px}
+.diag-fix-title{font-size:11px;font-weight:700;color:var(--t);margin-bottom:3px;display:flex;align-items:center;gap:6px}
+.diag-fix-body{font-size:9.5px;color:var(--m);line-height:1.5}
+.diag-fix-code{font-family:'IBM Plex Mono',monospace;color:var(--b);background:var(--bg);padding:1px 4px;border-radius:2px;font-size:8.5px}
 .stabs{display:flex;background:rgba(0,0,0,.12);border-bottom:1px solid var(--sep);flex-shrink:0}
 .stab{background:none;border:none;border-bottom:2px solid transparent;padding:7px 13px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;color:var(--m);font-family:'IBM Plex Mono',monospace;transition:all .12s}
 .stab:hover{color:var(--t)}.stab.act{color:var(--st);border-bottom-color:var(--st)}
@@ -874,6 +898,35 @@ input,select{font-family:inherit}
     <div class="mf">
       <button class="btn s" onclick="closeMo('moDwgGuide')">Cancel</button>
       <button class="btn" onclick="closeMo('moDwgGuide');openMo('moImport')">← Back to Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- DXF DIAGNOSTIC -->
+<div class="mo" id="moDxfDiag">
+  <div class="modal xl">
+    <div class="mh"><div class="mh-t"><span class="i">🔍</span>DXF Diagnostic — Drawing Imported With Issues</div><span class="mc" onclick="closeMo('moDxfDiag')">✕</span></div>
+    <div class="mb">
+
+      <!-- Stats bar -->
+      <div class="diag-stat-row" id="diagStats"></div>
+
+      <!-- Issue list -->
+      <div class="diag-section">
+        <div class="diag-header">Issues Detected</div>
+        <div id="diagIssues"></div>
+      </div>
+
+      <!-- Fix steps -->
+      <div class="diag-section" id="diagFixSection">
+        <div class="diag-header">How to Fix</div>
+        <div id="diagFixes"></div>
+      </div>
+
+    </div>
+    <div class="mf">
+      <button class="btn s" onclick="closeMo('moDxfDiag')">Close</button>
+      <button class="btn" onclick="closeMo('moDxfDiag');openMo('moImport')">Import Different File</button>
     </div>
   </div>
 </div>
@@ -2340,12 +2393,25 @@ function doImport(){
 
 // ── DXF PARSER ────────────────────────────────────────────────────
 function parseDXF(txt,filename){
-  // Clean BOM and line endings
+  // ── 1. Normalise ──────────────────────────────────────────────
   txt=txt.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
   const lines=txt.split('\n');
 
-  // Build group-code / value pairs
-  // DXF: line i = group code, line i+1 = value
+  // ── 2. Pre-scan: detect Civil3D, external images, class count ─
+  const civilRx=/AeccDb|AeccuDb|AecDb|AcMap/;
+  const isCivil=civilRx.test(txt);
+  const imagePaths=[];
+  // IMAGEDEF stores filename in GC 1 following the entity header
+  {
+    let inImgDef=false;
+    for(let i=0;i+1<lines.length;i+=2){
+      const gc=lines[i].trim(), val=(lines[i+1]||'').trim();
+      if(gc==='0'){ inImgDef=(val==='IMAGEDEF'); continue; }
+      if(inImgDef && gc==='1'){ imagePaths.push(val); inImgDef=false; }
+    }
+  }
+
+  // ── 3. Build pair list ────────────────────────────────────────
   const pairs=[];
   for(let i=0;i+1<lines.length;i+=2){
     const gc=lines[i].trim();
@@ -2354,14 +2420,13 @@ function parseDXF(txt,filename){
   }
 
   const ents=[];
-  let inEnt=false;
-  let cur=null;
-  const layerMap={}; // name → id
+  const layerMap={};
+  // Block definitions map: name → array of built entities
+  const blockDefs={};
 
   function getLayId(name){
     const clean=(name||'0').trim();
     if(layerMap[clean]===undefined){
-      // Check existing layers
       const ex=ST.layers.find(l=>l.name===clean);
       if(ex){layerMap[clean]=ex.id;}
       else{
@@ -2374,46 +2439,246 @@ function parseDXF(txt,filename){
     return layerMap[clean];
   }
 
-  function flush(){
-    if(!cur) return;
-    const built=buildDXFEnt(cur,getLayId);
-    if(!built){cur=null;return;}
-    if(Array.isArray(built)) built.forEach(e=>{e._id=++ST._eid;ents.push(e);});
-    else{built._id=++ST._eid;ents.push(built);}
-    cur=null;
+  // ── 4. Generic section parser (ENTITIES + BLOCKS sub-blocks) ──
+  function parsePairsRange(startP,endP,outArr){
+    let cur=null;
+    function flush(){
+      if(!cur)return;
+      const built=buildDXFEnt(cur,getLayId,blockDefs);
+      if(!built){cur=null;return;}
+      if(Array.isArray(built)) built.forEach(e=>{e._id=++ST._eid;outArr.push(e);});
+      else{built._id=++ST._eid;outArr.push(built);}
+      cur=null;
+    }
+    for(let p=startP;p<endP;p++){
+      const [gc,val]=pairs[p];
+      if(gc==='0'){
+        flush();
+        if(val==='SEQEND'||val==='ENDBLK'||val==='ENDSEC') continue;
+        cur={type:val,d:{}};
+      } else if(cur){
+        if(!cur.d[gc]) cur.d[gc]=[];
+        cur.d[gc].push(val);
+      }
+    }
+    flush();
   }
+
+  // ── 5. Walk all sections, collect BLOCKS defs + ENTITIES ──────
+  let entStart=-1,entEnd=-1;
+  // Block parsing state
+  const blockRanges=[];       // [{name, start, end}] within BLOCKS section
+  let inBlocks=false, curBlockName=null, curBlockStart=-1;
 
   for(let p=0;p<pairs.length;p++){
     const [gc,val]=pairs[p];
-    if(gc==='0'){
-      flush();
-      if(val==='ENDSEC'){inEnt=false;continue;}
-      if(val==='SECTION'){
-        // peek next pair for section name
-        if(p+1<pairs.length&&pairs[p+1][0]==='2'&&pairs[p+1][1]==='ENTITIES'){inEnt=true;p++;continue;}
-        continue;
+
+    // Detect section starts
+    if(gc==='0'&&val==='SECTION'){
+      if(p+1<pairs.length&&pairs[p+1][0]==='2'){
+        const secName=pairs[p+1][1];
+        if(secName==='ENTITIES') entStart=p+2;
+        if(secName==='BLOCKS'){inBlocks=true;p++;}
       }
-      if(!inEnt) continue;
-      if(val==='SEQEND'||val==='ENDBLK'){continue;}
-      cur={type:val,d:{}};
-    } else if(cur){
-      if(!cur.d[gc]) cur.d[gc]=[];
-      cur.d[gc].push(val);
+      continue;
+    }
+    if(gc==='0'&&val==='ENDSEC'){
+      if(inBlocks) inBlocks=false;
+      if(entStart>=0&&entEnd<0) entEnd=p;
+      continue;
+    }
+
+    // Inside BLOCKS: track individual BLOCK … ENDBLK ranges
+    if(inBlocks){
+      if(gc==='0'&&val==='BLOCK'){
+        // Name is GC 2 in next few pairs
+        let nm='?';
+        for(let k=p+1;k<Math.min(p+12,pairs.length);k++){
+          if(pairs[k][0]==='2'){nm=pairs[k][1];break;}
+        }
+        curBlockName=nm; curBlockStart=p+1;
+      }
+      if(gc==='0'&&val==='ENDBLK'&&curBlockName!==null){
+        blockRanges.push({name:curBlockName,start:curBlockStart,end:p});
+        curBlockName=null;
+      }
     }
   }
-  flush();
 
-  if(!ents.length){toast('No renderable entities found in DXF','warn');return;}
+  // ── 6. Build block definitions (skipping internal-use blocks) ─
+  const skipBlocks=/^\*(?!Model_Space|MODEL_SPACE)/i;
+  for(const br of blockRanges){
+    if(skipBlocks.test(br.name)) continue;   // skip *Paper_Space, unnamed etc
+    const bEnts=[];
+    parsePairsRange(br.start,br.end,bEnts);
+    if(bEnts.length) blockDefs[br.name]=bEnts;
+  }
 
-  pushUndo();
-  ST.entities=ents;
-  renderLayers();
-  setTimeout(()=>{zoomExt();},100);
-  const msg=`${filename}: ${ents.length} entities`;
-  toast(msg,'ok'); setMsg(msg);
+  // ── 7. Parse *Model_Space block (geometry lives here in Civil3D files) ──
+  let modelSpaceCount=0;
+  for(const br of blockRanges){
+    if(/^\*Model_Space$|^\*MODEL_SPACE$/i.test(br.name)){
+      parsePairsRange(br.start,br.end,ents);
+      modelSpaceCount=ents.length;
+    }
+  }
+
+  // ── 8. Parse ENTITIES section (standard DXF geometry) ─────────
+  const entsBefore=ents.length;
+  if(entStart>=0&&entEnd>entStart) parsePairsRange(entStart,entEnd,ents);
+  const entSecCount=ents.length-entsBefore;
+
+  // ── 9. Diagnostic detection ───────────────────────────────────
+  const blockEntCount=Object.values(blockDefs).reduce((s,a)=>s+a.length,0);
+  const totalVectorInFile=modelSpaceCount+entSecCount+blockEntCount;
+  const warnings=[];
+
+  if(imagePaths.length){
+    warnings.push({
+      icon:'🖼️',
+      label:`${imagePaths.length} External Raster Image${imagePaths.length>1?'s':''} (missing)`,
+      pill:'err',pillTxt:'NOT LOADABLE',
+      desc:`This DXF references ${imagePaths.length} external PNG/TIFF file${imagePaths.length>1?'s':''} that were on the original author's machine. They cannot be loaded without the source files.`,
+      files: imagePaths
+    });
+  }
+
+  if(isCivil&&!ents.length){
+    warnings.push({
+      icon:'🏗️',
+      label:'AutoCAD Civil 3D Proxy Objects Detected',
+      pill:'warn',pillTxt:'PROXY DATA',
+      desc:'Civil 3D stores surfaces, corridors, and contours as proprietary proxy objects (AeccDbSurfaceTin, AeccDbAlignment, etc.) that are invisible to standard DXF parsers. The actual geometry was never written as DXF entities.',
+      files:[]
+    });
+  }
+
+  if(modelSpaceCount>0&&entSecCount===0){
+    warnings.push({
+      icon:'📦',
+      label:`Geometry was in *Model_Space block (${modelSpaceCount} entities recovered)`,
+      pill:'ok',pillTxt:'AUTO-FIXED',
+      desc:'The drawing stored its entities inside the BLOCKS section *Model_Space definition rather than the ENTITIES section. Strata automatically extracted them.',
+      files:[]
+    });
+  }
+
+  if(blockEntCount>0&&ents.length===0){
+    warnings.push({
+      icon:'📋',
+      label:`${blockEntCount} entities found only in named block definitions`,
+      pill:'warn',pillTxt:'NOT SHOWN',
+      desc:'Geometry exists inside named block definitions but the drawing has no INSERT commands placing them on screen. These blocks are: '+Object.keys(blockDefs).join(', '),
+      files:[]
+    });
+  }
+
+  // Show diagnostic if warnings exist OR entity count suspiciously low
+  const showDiag=warnings.length>0||(ents.length<5&&totalVectorInFile>ents.length);
+
+  if(!ents.length&&!warnings.length){
+    toast('No renderable entities found in DXF','warn');
+    return;
+  }
+
+  if(ents.length){
+    pushUndo();
+    ST.entities=ents;
+    renderLayers();
+    setTimeout(()=>{zoomExt();},100);
+  }
+
+  if(showDiag){
+    _dxfDiagData={
+      filename, ents:ents.length, modelSpace:modelSpaceCount,
+      entSec:entSecCount, blockDefs:blockEntCount, imagePaths,
+      isCivil, warnings, totalVector:totalVectorInFile
+    };
+    setTimeout(()=>showDxfDiag(),200);
+  } else {
+    const msg=`${filename}: ${ents.length} entities`;
+    toast(msg,'ok'); setMsg(msg);
+  }
 }
 
-function buildDXFEnt(cur,getLayId){
+let _dxfDiagData=null;
+
+function showDxfDiag(){
+  const d=_dxfDiagData; if(!d) return;
+
+  // Stats row
+  document.getElementById('diagStats').innerHTML=
+    `<div class="diag-stat"><div class="diag-stat-n" style="color:${d.ents>0?'var(--gr)':'var(--red)'}">${d.ents}</div><div class="diag-stat-l">Rendered</div></div>`+
+    `<div class="diag-stat"><div class="diag-stat-n">${d.entSec}</div><div class="diag-stat-l">In ENTITIES</div></div>`+
+    `<div class="diag-stat"><div class="diag-stat-n">${d.modelSpace}</div><div class="diag-stat-l">Model Space</div></div>`+
+    `<div class="diag-stat"><div class="diag-stat-n">${d.imagePaths.length}</div><div class="diag-stat-l">Ext. Images</div></div>`+
+    `<div class="diag-stat"><div class="diag-stat-n" style="color:${d.isCivil?'var(--ora)':'var(--m)'}">C3D</div><div class="diag-stat-l">Civil 3D</div></div>`;
+
+  // Issues
+  const issEl=document.getElementById('diagIssues');
+  if(d.warnings.length===0){
+    issEl.innerHTML='<div class="diag-row"><div class="diag-icon">✅</div><div class="diag-body"><div class="diag-label">No issues detected</div></div></div>';
+  } else {
+    issEl.innerHTML=d.warnings.map(w=>`
+      <div class="diag-row">
+        <div class="diag-icon">${w.icon}</div>
+        <div class="diag-body">
+          <div class="diag-label">${w.label}<span class="diag-pill ${w.pill}">${w.pillTxt}</span></div>
+          <div class="diag-desc">${w.desc}</div>
+          ${w.files.length?`<div class="diag-files">${w.files.map(f=>`<div class="diag-file missing" title="${f}">✗ ${f.split(/[\\/]/).pop()} <span style="opacity:.5">${f}</span></div>`).join('')}</div>`:''}
+        </div>
+      </div>`).join('');
+  }
+
+  // Fix steps
+  const fixEl=document.getElementById('diagFixes');
+  const fixes=[];
+
+  if(d.imagePaths.length&&d.ents===0){
+    fixes.push({
+      icon:'🖥️', title:'Locate and attach the source PNG/TIFF tiles',
+      body:`The contour tiles are on the original author's machine at <span class="diag-fix-code">C:\\Users\\CBE232\\...</span>. Ask them to share the PNG files, then use a GIS tool (QGIS) to open them as georeferenced rasters alongside this DXF.`
+    });
+    fixes.push({
+      icon:'🏗️', title:'Ask the author to export as exploded DXF',
+      body:`In AutoCAD Civil 3D: open the drawing, select all surfaces/contours, run <span class="diag-fix-code">EXPLODE</span>, then <span class="diag-fix-code">DXFOUT</span> to export. This converts Civil 3D objects into standard LWPOLYLINE entities that Strata can read.`
+    });
+  }
+
+  if(d.isCivil&&d.ents<10){
+    fixes.push({
+      icon:'📐', title:'Civil 3D → Explode surfaces to DXF entities',
+      body:`Open in AutoCAD Civil 3D → select the surface object → right-click → <span class="diag-fix-code">Edit Surface → Extract Objects</span>, then Save As DXF. Alternatively use <span class="diag-fix-code">AECCEXPORTTOAUTOCAD</span> command to strip all Civil 3D proxies into standard entities.`
+    });
+  }
+
+  if(d.ents>0&&d.ents<20&&d.imagePaths.length){
+    fixes.push({
+      icon:'✅', title:`${d.ents} vector entities were found and rendered`,
+      body:`The grid partition lines and boundary fence are visible on the canvas. Zoom out (scroll wheel or Z key) to see them — coordinates are UTM scale (~428,000 / 2,863,000 m).`
+    });
+  }
+
+  if(!fixes.length&&d.ents>0){
+    fixes.push({
+      icon:'✅', title:'Drawing loaded successfully',
+      body:`${d.ents} entities were imported from ${d.filename}. Use scroll to zoom and middle-click/pan to navigate the drawing.`
+    });
+  }
+
+  fixEl.innerHTML=fixes.map(f=>`
+    <div class="diag-fix">
+      <div class="diag-fix-title">${f.icon} ${f.title}</div>
+      <div class="diag-fix-body">${f.body}</div>
+    </div>`).join('');
+
+  // Message bar
+  setMsg(d.ents>0?`${d.filename}: ${d.ents} entities rendered (${d.warnings.length} issue${d.warnings.length!==1?'s':''} detected)`:`${d.filename}: No geometry rendered — see diagnostic`);
+  openMo('moDxfDiag');
+}
+
+
+function buildDXFEnt(cur,getLayId,blockDefs){
   if(!cur||!cur.type) return null;
   const d=cur.d;
   const g=k=>(d[k]&&d[k][0])||'';
@@ -2489,8 +2754,35 @@ function buildDXFEnt(cur,getLayId){
       return{type:'text',x:gf('10'),y:gf('20'),txt,sz,layer};
     }
 
-    case 'INSERT':
-      return{type:'rect',x:gf('10'),y:gf('20'),w:10*(gf('41')||1),h:10*(gf('42')||1),layer};
+    case 'INSERT':{
+      // Expand block reference if definition is available
+      const bname=g('2');
+      const ix=gf('10'),iy=gf('20');
+      const sx=gf('41')||1, sy=gf('42')||1;
+      const rot=(gf('50')||0)*Math.PI/180;
+      const cos=Math.cos(rot),sin=Math.sin(rot);
+      if(blockDefs&&blockDefs[bname]){
+        // Transform each entity in the block
+        return blockDefs[bname].map(be=>{
+          const ne=JSON.parse(JSON.stringify(be));
+          ne.layer=layer; // inherit insert's layer
+          ne._id=undefined;
+          function txPt(x,y){return{x:ix+(x*cos-y*sin)*sx, y:iy+(x*sin+y*cos)*sy};}
+          switch(ne.type){
+            case 'line':{const p1=txPt(ne.x1,ne.y1),p2=txPt(ne.x2,ne.y2);ne.x1=p1.x;ne.y1=p1.y;ne.x2=p2.x;ne.y2=p2.y;break;}
+            case 'circle':{const p=txPt(ne.cx,ne.cy);ne.cx=p.x;ne.cy=p.y;ne.r*=Math.max(sx,sy);break;}
+            case 'arc':{const p=txPt(ne.cx,ne.cy);ne.cx=p.x;ne.cy=p.y;ne.r*=Math.max(sx,sy);break;}
+            case 'text':{const p=txPt(ne.x,ne.y);ne.x=p.x;ne.y=p.y;break;}
+          }
+          return ne;
+        }).filter(Boolean);
+      }
+      // Fallback: draw a small cross marker at insert point
+      return[
+        {type:'line',x1:ix-5,y1:iy,x2:ix+5,y2:iy,layer},
+        {type:'line',x1:ix,y1:iy-5,x2:ix,y2:iy+5,layer}
+      ];
+    }
 
     case 'SOLID':
     case 'TRACE':{
@@ -2503,7 +2795,17 @@ function buildDXFEnt(cur,getLayId){
     case 'POINT':
       return{type:'circle',cx:gf('10'),cy:gf('20'),r:Math.max(0.3,gf('39')||0.5),layer};
 
-    case 'HATCH': return null; // complex — skip boundary for now
+    case 'HATCH':{
+      // Render boundary loops as polylines (GC 10/20 = boundary vertices)
+      const xs=ga('10'),ys=ga('20');
+      if(xs.length<2) return null;
+      const segs=[];
+      for(let i=0;i<xs.length-1;i++)
+        segs.push({type:'line',x1:xs[i],y1:ys[i],x2:xs[i+1],y2:ys[i+1],layer});
+      if(xs.length>2)
+        segs.push({type:'line',x1:xs[xs.length-1],y1:ys[ys.length-1],x2:xs[0],y2:ys[0],layer});
+      return segs.length?segs:null;
+    }
 
     case 'DIMENSION':{
       const x1=gf('13'),y1=gf('23'),x2=gf('14'),y2=gf('24');
