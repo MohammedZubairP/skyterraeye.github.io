@@ -233,6 +233,34 @@ input,select{font-family:inherit}
 .impz:hover,.impz.dov{border-color:var(--st);background:var(--stdim)}
 .fmt-row{display:flex;gap:4px;justify-content:center;margin-top:8px;flex-wrap:wrap}
 .fmt{padding:2px 7px;background:var(--stdim);border:1px solid var(--stl);border-radius:8px;font-size:8.5px;font-family:'IBM Plex Mono',monospace;color:var(--st)}
+/* ── DWG GUIDE MODAL ── */
+.dwg-banner{background:rgba(255,144,96,.07);border:1px solid rgba(255,144,96,.3);border-radius:6px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+.dwg-banner-icon{font-size:22px;flex-shrink:0;line-height:1}
+.dwg-banner-body{flex:1;min-width:0}
+.dwg-banner-title{font-size:12px;font-weight:800;color:var(--ora);font-family:'Syne',sans-serif;margin-bottom:3px}
+.dwg-banner-msg{font-size:10.5px;color:var(--t);line-height:1.5}
+.dwg-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.dwg-chip{background:var(--bg2);border:1px solid var(--sep);border-radius:4px;padding:3px 9px;font-size:9.5px;font-family:'IBM Plex Mono',monospace;color:var(--b)}
+.dwg-chip b{color:var(--t)}
+.dwg-steps{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.dwg-step{display:flex;align-items:flex-start;gap:10px;background:var(--bg2);border:1px solid var(--sep);border-radius:5px;padding:9px 11px}
+.dwg-step-num{width:20px;height:20px;border-radius:50%;background:var(--st);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'IBM Plex Mono',monospace}
+.dwg-step-body{flex:1;min-width:0}
+.dwg-step-title{font-size:11px;font-weight:700;color:var(--t);margin-bottom:2px}
+.dwg-step-desc{font-size:10px;color:var(--m);line-height:1.45}
+.dwg-tools{display:flex;flex-direction:column;gap:5px;margin-bottom:4px}
+.dwg-tool{display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:1px solid var(--sep);border-radius:4px;padding:7px 10px;transition:border-color .15s}
+.dwg-tool:hover{border-color:var(--bl)}
+.dwg-tool-info{display:flex;align-items:center;gap:8px}
+.dwg-tool-name{font-size:11px;font-weight:700;color:var(--t)}
+.dwg-tool-tags{display:flex;gap:4px}
+.dwg-tag{font-size:8px;padding:1px 5px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-weight:700}
+.dwg-tag.free{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:var(--gr)}
+.dwg-tag.web{background:rgba(31,168,217,.1);border:1px solid rgba(31,168,217,.25);color:var(--b)}
+.dwg-tag.desktop{background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);color:var(--st)}
+.dwg-tool-link{padding:3px 9px;font-size:9.5px;font-weight:700;border-radius:3px;border:1px solid var(--sep);background:var(--bg4);color:var(--t);cursor:pointer;text-decoration:none;transition:all .12s;display:inline-block}
+.dwg-tool-link:hover{border-color:var(--bl);color:var(--b)}
+.dwg-note{font-size:9px;color:var(--m);text-align:center;padding-top:4px;line-height:1.4}
 .stabs{display:flex;background:rgba(0,0,0,.12);border-bottom:1px solid var(--sep);flex-shrink:0}
 .stab{background:none;border:none;border-bottom:2px solid transparent;padding:7px 13px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;color:var(--m);font-family:'IBM Plex Mono',monospace;transition:all .12s}
 .stab:hover{color:var(--t)}.stab.act{color:var(--st);border-bottom-color:var(--st)}
@@ -736,8 +764,13 @@ input,select{font-family:inherit}
         <div style="font-size:30px;margin-bottom:6px;color:var(--st)">📐</div>
         <div style="font-size:14px;font-weight:800;color:var(--t);font-family:'Syne',sans-serif;margin-bottom:4px" id="impName">Drop or Click to Import</div>
         <div style="font-size:11px;color:var(--m)">Supports AutoCAD DXF (ASCII) and SVG</div>
-        <div class="fmt-row"><span class="fmt">.DXF</span><span class="fmt">.SVG</span><span class="fmt">.DWG*</span><span class="fmt">.IFC*</span></div>
-        <div style="font-size:9px;color:var(--m);margin-top:6px">*DWG/IFC: export as DXF from AutoCAD/Revit first</div>
+        <div class="fmt-row">
+          <span class="fmt" title="Native — imports directly">.DXF ✓</span>
+          <span class="fmt" title="Native — imports directly">.SVG ✓</span>
+          <span class="fmt" style="background:rgba(255,144,96,.1);border-color:rgba(255,144,96,.4);color:var(--ora)" title="Binary — convert to DXF first">.DWG ⚠</span>
+          <span class="fmt" style="background:rgba(255,144,96,.1);border-color:rgba(255,144,96,.4);color:var(--ora)" title="Binary — convert to DXF first">.DWF ⚠</span>
+        </div>
+        <div style="font-size:9px;color:var(--m);margin-top:6px">⚠ DWG/DWF are binary — Strata will guide you through free conversion</div>
       </div>
       <input type="file" id="fileIn" accept=".dxf,.svg,.dwg,.dwf,.dwt,.ifc,.shp" style="display:none" onchange="fileChosen(event)">
       <div class="fsect">Import Options</div>
@@ -753,6 +786,95 @@ input,select{font-family:inherit}
       </div>
     </div>
     <div class="mf"><button class="btn s" onclick="closeMo('moImport')">Cancel</button><button class="btn st" onclick="doImport()">Import Drawing</button></div>
+  </div>
+</div>
+
+<!-- DWG GUIDE -->
+<div class="mo" id="moDwgGuide">
+  <div class="modal w">
+    <div class="mh"><div class="mh-t"><span class="i">⚠️</span>DWG Detected — Conversion Required</div><span class="mc" onclick="closeMo('moDwgGuide')">✕</span></div>
+    <div class="mb">
+      <div class="dwg-banner">
+        <div class="dwg-banner-icon">🔒</div>
+        <div class="dwg-banner-body">
+          <div class="dwg-banner-title">Binary DWG cannot be opened directly</div>
+          <div class="dwg-banner-msg">Strata reads <b>ASCII DXF</b> — the open exchange format. DWG is Autodesk's proprietary binary format and must be converted to DXF first. This takes &lt;30 seconds with any of the free tools below.</div>
+        </div>
+      </div>
+      <div class="dwg-meta" id="dwgMeta"></div>
+      <div class="fsect">Conversion Steps</div>
+      <div class="dwg-steps">
+        <div class="dwg-step">
+          <div class="dwg-step-num">1</div>
+          <div class="dwg-step-body">
+            <div class="dwg-step-title">Open your DWG in a converter</div>
+            <div class="dwg-step-desc">Choose any free tool from the list below — all of them can read your <span id="dwgVer" style="color:var(--b);font-family:'IBM Plex Mono',monospace">AC1027</span> file without needing a licence.</div>
+          </div>
+        </div>
+        <div class="dwg-step">
+          <div class="dwg-step-num">2</div>
+          <div class="dwg-step-body">
+            <div class="dwg-step-title">Export / Save As → DXF (ASCII)</div>
+            <div class="dwg-step-desc">Choose <b>AutoCAD 2013 DXF</b> or any ASCII DXF version. Avoid "Binary DXF" — it won't parse. In AutoCAD: <span style="color:var(--b);font-family:'IBM Plex Mono',monospace">File → Save As → AutoCAD DXF (*.dxf)</span></div>
+          </div>
+        </div>
+        <div class="dwg-step">
+          <div class="dwg-step-num">3</div>
+          <div class="dwg-step-body">
+            <div class="dwg-step-title">Import the .dxf back into Strata</div>
+            <div class="dwg-step-desc">Drag &amp; drop the exported <span style="color:var(--gr);font-family:'IBM Plex Mono',monospace">.dxf</span> onto the canvas, or use File → Import Drawing. All layers, geometry, and blocks will be parsed automatically.</div>
+          </div>
+        </div>
+      </div>
+      <div class="fsect">Free Conversion Tools</div>
+      <div class="dwg-tools">
+        <div class="dwg-tool">
+          <div class="dwg-tool-info">
+            <div>
+              <div class="dwg-tool-name">ODA File Converter</div>
+              <div style="font-size:9px;color:var(--m);margin-top:1px">By Open Design Alliance — the gold standard for DWG conversion</div>
+            </div>
+            <div class="dwg-tool-tags"><span class="dwg-tag free">FREE</span><span class="dwg-tag desktop">DESKTOP</span></div>
+          </div>
+          <a class="dwg-tool-link" href="https://www.opendesign.com/guestfiles/oda_file_converter" target="_blank">Download ↗</a>
+        </div>
+        <div class="dwg-tool">
+          <div class="dwg-tool-info">
+            <div>
+              <div class="dwg-tool-name">Autodesk Viewer</div>
+              <div style="font-size:9px;color:var(--m);margin-top:1px">View in browser, then download as DXF — no install needed</div>
+            </div>
+            <div class="dwg-tool-tags"><span class="dwg-tag free">FREE</span><span class="dwg-tag web">WEB</span></div>
+          </div>
+          <a class="dwg-tool-link" href="https://viewer.autodesk.com" target="_blank">Open ↗</a>
+        </div>
+        <div class="dwg-tool">
+          <div class="dwg-tool-info">
+            <div>
+              <div class="dwg-tool-name">CloudConvert</div>
+              <div style="font-size:9px;color:var(--m);margin-top:1px">Online DWG → DXF converter, drag-drop, no account required</div>
+            </div>
+            <div class="dwg-tool-tags"><span class="dwg-tag free">FREE TIER</span><span class="dwg-tag web">WEB</span></div>
+          </div>
+          <a class="dwg-tool-link" href="https://cloudconvert.com/dwg-to-dxf" target="_blank">Convert ↗</a>
+        </div>
+        <div class="dwg-tool">
+          <div class="dwg-tool-info">
+            <div>
+              <div class="dwg-tool-name">FreeCAD</div>
+              <div style="font-size:9px;color:var(--m);margin-top:1px">Open-source CAD — File → Open DWG, then Export as DXF</div>
+            </div>
+            <div class="dwg-tool-tags"><span class="dwg-tag free">FREE</span><span class="dwg-tag desktop">DESKTOP</span></div>
+          </div>
+          <a class="dwg-tool-link" href="https://www.freecad.org/downloads.php" target="_blank">Download ↗</a>
+        </div>
+      </div>
+      <div class="dwg-note">💡 Tip: ODA File Converter is the fastest — batch-converts entire folders of DWG files to DXF in seconds, preserving all layers and blocks.</div>
+    </div>
+    <div class="mf">
+      <button class="btn s" onclick="closeMo('moDwgGuide')">Cancel</button>
+      <button class="btn" onclick="closeMo('moDwgGuide');openMo('moImport')">← Back to Import</button>
+    </div>
   </div>
 </div>
 
@@ -2121,23 +2243,66 @@ let _pendingFile=null;
 function fileChosen(ev){
   const f=ev.target.files?.[0];if(!f)return;
   _pendingFile=f;
-  document.getElementById('impName').textContent='📐 '+f.name;
-  toast('File ready — click Import Drawing','ok');
+  const name=f.name.toLowerCase();
+  if(name.endsWith('.dwg')||name.endsWith('.dwf')||name.endsWith('.dwt')){
+    closeMo('moImport');
+    showDwgGuide(f);
+  } else {
+    document.getElementById('impName').textContent='📐 '+f.name;
+    toast('File ready — click Import Drawing','ok');
+  }
 }
 function impDrop(ev){
   ev.preventDefault();
   const f=ev.dataTransfer?.files?.[0];if(!f)return;
   _pendingFile=f;
-  document.getElementById('impName').textContent='📐 '+f.name;
+  const name=f.name.toLowerCase();
   document.getElementById('impZone').classList.remove('dov');
-  toast('File ready: '+f.name,'ok');
+  if(name.endsWith('.dwg')||name.endsWith('.dwf')||name.endsWith('.dwt')){
+    closeMo('moImport');
+    showDwgGuide(f);
+  } else {
+    document.getElementById('impName').textContent='📐 '+f.name;
+    toast('File ready: '+f.name,'ok');
+  }
+}
+function showDwgGuide(f){
+  // Read first 6 bytes to get the DWG version string
+  const versionMap={
+    'AC1015':'AutoCAD 2000','AC1018':'AutoCAD 2004','AC1021':'AutoCAD 2007',
+    'AC1024':'AutoCAD 2010','AC1027':'AutoCAD 2013','AC1032':'AutoCAD 2018',
+    'AC1035':'AutoCAD 2023'
+  };
+  const slicedBlob=f.slice(0,6);
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const bytes=new Uint8Array(ev.target.result);
+    const ver=String.fromCharCode(...bytes);
+    const label=versionMap[ver]||ver;
+    const sizeMB=(f.size/1048576).toFixed(2);
+    // Populate meta chips
+    const meta=document.getElementById('dwgMeta');
+    meta.innerHTML=
+      `<span class="dwg-chip">File <b>${f.name}</b></span>`+
+      `<span class="dwg-chip">Format <b>${ver}</b> (${label})</span>`+
+      `<span class="dwg-chip">Size <b>${sizeMB} MB</b></span>`;
+    document.getElementById('dwgVer').textContent=ver+' ('+label+')';
+    openMo('moDwgGuide');
+  };
+  reader.onerror=()=>{ openMo('moDwgGuide'); };
+  reader.readAsArrayBuffer(slicedBlob);
 }
 function vpDrop(ev){
   ev.preventDefault();document.getElementById('dz').style.display='none';
   const f=ev.dataTransfer?.files?.[0];
   if(!f)return;
   _pendingFile=f;
-  doImport();
+  const name=f.name.toLowerCase();
+  if(name.endsWith('.dwg')||name.endsWith('.dwf')||name.endsWith('.dwt')){
+    showDwgGuide(f);
+  } else {
+    doImport();
+  }
 }
 
 function doImport(){
@@ -2156,8 +2321,10 @@ function doImport(){
     reader.onload=ev=>{try{parseSVG(ev.target.result,_pendingFile.name);}catch(e){toast('SVG error: '+e.message,'err');}};
     reader.readAsText(_pendingFile);
   } else if(name.endsWith('.dwg')||name.endsWith('.dwf')||name.endsWith('.dwt')){
-    toast('DWG is binary — export as DXF from AutoCAD first','warn');
-    setMsg('DWG/DWF: Use AutoCAD → Save As → DXF, then re-import');
+    closeMo('moImport');
+    showDwgGuide(_pendingFile);
+    _pendingFile=null;
+    return;
   } else {
     // Try as DXF anyway
     reader.onload=ev=>{
