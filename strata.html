@@ -285,6 +285,22 @@ input,select{font-family:inherit}
 .diag-fix-title{font-size:11px;font-weight:700;color:var(--t);margin-bottom:3px;display:flex;align-items:center;gap:6px}
 .diag-fix-body{font-size:9.5px;color:var(--m);line-height:1.5}
 .diag-fix-code{font-family:'IBM Plex Mono',monospace;color:var(--b);background:var(--bg);padding:1px 4px;border-radius:2px;font-size:8.5px}
+/* ── TILE IMAGE LOADER ── */
+.tile-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:8px}
+.tile-cell{background:var(--bg2);border:1px solid var(--sep);border-radius:4px;padding:5px 6px;text-align:center;position:relative;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:border-color .15s}
+.tile-cell.has-img{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.05)}
+.tile-cell.drop-target{border-color:var(--st);background:var(--stdim)}
+.tile-cell-num{font-size:8px;font-weight:800;color:var(--st);font-family:'IBM Plex Mono',monospace;margin-bottom:2px}
+.tile-cell-name{font-size:7.5px;color:var(--m);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;font-family:'IBM Plex Mono',monospace}
+.tile-cell-img{width:100%;height:36px;object-fit:cover;border-radius:2px;margin-top:3px}
+.tile-cell-clear{position:absolute;top:2px;right:3px;background:none;border:none;color:var(--red);font-size:9px;cursor:pointer;padding:0;line-height:1;display:none}
+.tile-cell.has-img .tile-cell-clear{display:block}
+.tile-drop-zone{border:2px dashed var(--sep);border-radius:5px;padding:12px;text-align:center;cursor:pointer;margin-bottom:10px;transition:all .15s}
+.tile-drop-zone:hover,.tile-drop-zone.dov{border-color:var(--st);background:var(--stdim)}
+.tile-drop-zone-txt{font-size:11px;color:var(--m)}
+.tile-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.overlay-controls{display:flex;gap:6px;align-items:center;padding:5px 0;border-top:1px solid var(--sep);margin-top:5px}
+.overlay-slider{flex:1;accent-color:var(--st)}
 .stabs{display:flex;background:rgba(0,0,0,.12);border-bottom:1px solid var(--sep);flex-shrink:0}
 .stab{background:none;border:none;border-bottom:2px solid transparent;padding:7px 13px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;color:var(--m);font-family:'IBM Plex Mono',monospace;transition:all .12s}
 .stab:hover{color:var(--t)}.stab.act{color:var(--st);border-bottom-color:var(--st)}
@@ -325,6 +341,7 @@ input,select{font-family:inherit}
       <div class="mb-item"><button class="mb-btn" onclick="openMo('moImport')">File ▾</button>
         <div class="mb-dd">
           <div class="dd-item" onclick="openMo('moImport')">📂 Import Drawing<span class="ks">Ctrl+O</span></div>
+          <div class="dd-item" onclick="if(ST.tileBounds&&ST.tileBounds.length){openTileLoader();}else{toast('Import a DXF with tile image references first','warn')}">🖼️ Load PNG Tiles</div>
           <div class="dd-item" onclick="openMo('moExport')">💾 Export<span class="ks">Ctrl+E</span></div>
           <div class="dd-item" onclick="openMo('moExportLayers')">📤 Export Layers</div>
           <div class="dd-sep"></div>
@@ -902,6 +919,49 @@ input,select{font-family:inherit}
   </div>
 </div>
 
+<!-- PNG TILE LOADER -->
+<div class="mo" id="moTileLoader">
+  <div class="modal xl">
+    <div class="mh"><div class="mh-t"><span class="i">🖼️</span>Load PNG Image Tiles</div><span class="mc" onclick="closeMo('moTileLoader')">✕</span></div>
+    <div class="mb">
+      <div style="font-size:10.5px;color:var(--m);margin-bottom:10px;line-height:1.55">
+        This DXF references <span id="tileImgCount" style="color:var(--ora);font-weight:700">12</span> external PNG tiles. Drop the image files below — Strata will match them by filename and render them inside the tile boundaries on the canvas.
+      </div>
+
+      <!-- Drop zone -->
+      <div class="tile-drop-zone" id="tileDropZone"
+           onclick="document.getElementById('tileFileIn').click()"
+           ondragover="event.preventDefault();this.classList.add('dov')"
+           ondragleave="this.classList.remove('dov')"
+           ondrop="handleTileDrop(event)">
+        <div style="font-size:22px;margin-bottom:4px">📂</div>
+        <div class="tile-drop-zone-txt">Drop PNG/TIFF files here, or click to browse</div>
+        <div style="font-size:9px;color:var(--m);margin-top:4px">Accepts multiple files at once</div>
+      </div>
+      <input type="file" id="tileFileIn" accept=".png,.jpg,.jpeg,.tif,.tiff,.webp" multiple style="display:none" onchange="handleTileFiles(this.files)">
+
+      <!-- Tile grid -->
+      <div class="fsect">Tile Assignment (<span id="tileLoadedCount">0</span> / <span id="tileTotalCount">9</span> loaded)</div>
+      <div class="tile-grid" id="tileGrid"></div>
+
+      <!-- Overlay controls -->
+      <div class="overlay-controls">
+        <span style="font-size:9.5px;color:var(--m)">Opacity</span>
+        <input type="range" class="overlay-slider" id="overlayOpacity" min="10" max="100" value="85" oninput="ST.overlayOpacity=this.value/100;render();document.getElementById('overlayOpacityVal').textContent=this.value+'%'">
+        <span style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--g);min-width:30px" id="overlayOpacityVal">85%</span>
+        <label style="font-size:9.5px;color:var(--m);display:flex;align-items:center;gap:4px;cursor:pointer">
+          <input type="checkbox" checked id="overlayShowVec" onchange="render()" style="accent-color:var(--st)"> Vector overlay
+        </label>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn r" onclick="clearAllTiles()">Clear All</button>
+      <button class="btn s" onclick="closeMo('moTileLoader')">Close</button>
+      <button class="btn st" onclick="closeMo('moTileLoader');zoomExt()">Apply & View</button>
+    </div>
+  </div>
+</div>
+
 <!-- DXF DIAGNOSTIC -->
 <div class="mo" id="moDxfDiag">
   <div class="modal xl">
@@ -926,6 +986,7 @@ input,select{font-family:inherit}
     </div>
     <div class="mf">
       <button class="btn s" onclick="closeMo('moDxfDiag')">Close</button>
+      <button class="btn" id="diagLoadTilesBtn" style="display:none" onclick="closeMo('moDxfDiag');openTileLoader()">🖼️ Load PNG Tiles</button>
       <button class="btn" onclick="closeMo('moDxfDiag');openMo('moImport')">Import Different File</button>
     </div>
   </div>
@@ -1146,6 +1207,9 @@ const ST = {
   snap: true, grid: true, ortho: false, osnap: true, polar: false,
   drawing: false, startPt: null, pts: [],   // multi-point draw
   entities: [],
+  imageOverlays: [],   // [{img, minX,minY,maxX,maxY, label, filename}]
+  tileBounds:    [],   // [{minX,minY,maxX,maxY, label}] from imported DXF tile rects
+  imageDefs:     [],   // filenames from IMAGEDEF entries
   layers: [
     {id:0,name:'0 – Default',color:'#1FA8D9',vis:true,lock:false,frz:false,dis:false},
     {id:1,name:'Walls',      color:'#D0E8F5',vis:true,lock:false,frz:false,dis:false},
@@ -1207,8 +1271,63 @@ function render() {
   ctx.fillRect(0,0,W,H);
   if(ST.grid) drawGrid();
   drawCrosshair();
-  // Draw all entities
-  ST.entities.forEach(e => { if(layVisible(e.layer)) drawEntity(e, false); });
+
+  // Draw tile placeholders (hatched boxes) when tiles defined but no image loaded
+  if(ST.tileBounds&&ST.tileBounds.length){
+    ctx.save();
+    ST.tileBounds.forEach((t,i)=>{
+      const hasImg=ST.imageOverlays.some(o=>o.tileIdx===i);
+      if(hasImg) return; // skip — image drawn below
+      const a=w2s(t.minX,t.minY),b=w2s(t.maxX,t.maxY);
+      const sx=Math.min(a.x,b.x),sy=Math.min(a.y,b.y);
+      const sw=Math.abs(b.x-a.x),sh=Math.abs(b.y-a.y);
+      if(sw<1||sh<1) return;
+      // Hatch fill
+      ctx.fillStyle='rgba(167,139,250,.04)';
+      ctx.fillRect(sx,sy,sw,sh);
+      // Diagonal hatch lines
+      ctx.strokeStyle='rgba(167,139,250,.09)';
+      ctx.lineWidth=1;ctx.setLineDash([]);
+      const step=20;
+      ctx.beginPath();
+      for(let d=-sh;d<sw+sh;d+=step){
+        ctx.moveTo(sx+d,sy);ctx.lineTo(sx+d+sh,sy+sh);
+      }
+      ctx.stroke();
+      // Label
+      if(sw>30&&sh>20){
+        ctx.fillStyle='rgba(167,139,250,.35)';
+        ctx.font=`bold ${Math.min(14,Math.max(8,sw/8))}px 'IBM Plex Mono',monospace`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(t.label||('T'+(i+1)),sx+sw/2,sy+sh/2);
+        ctx.textAlign='left';ctx.textBaseline='alphabetic';
+      }
+    });
+    ctx.restore();
+  }
+
+  // Draw image overlays
+  if(ST.imageOverlays&&ST.imageOverlays.length){
+    const opacity=(ST.overlayOpacity!=null?ST.overlayOpacity:0.85);
+    ctx.save();
+    ctx.globalAlpha=opacity;
+    ST.imageOverlays.forEach(o=>{
+      const a=w2s(o.minX,o.minY),b=w2s(o.maxX,o.maxY);
+      const sx=Math.min(a.x,b.x),sy=Math.min(a.y,b.y);
+      const sw=Math.abs(b.x-a.x),sh=Math.abs(b.y-a.y);
+      if(sw<1||sh<1||!o.img) return;
+      ctx.drawImage(o.img,sx,sy,sw,sh);
+    });
+    ctx.globalAlpha=1;
+    ctx.restore();
+  }
+
+  // Draw vector entities
+  const skipVec=ST.imageOverlays.length&&document.getElementById('overlayShowVec')&&!document.getElementById('overlayShowVec').checked;
+  if(!skipVec){
+    ST.entities.forEach(e => { if(layVisible(e.layer)) drawEntity(e, false); });
+  }
+
   // Draw preview
   if(ST.drawing && ST.startPt) drawPreview();
   // Draw measure
@@ -2528,7 +2647,50 @@ function parseDXF(txt,filename){
   if(entStart>=0&&entEnd>entStart) parsePairsRange(entStart,entEnd,ents);
   const entSecCount=ents.length-entsBefore;
 
-  // ── 9. Diagnostic detection ───────────────────────────────────
+  // ── 9. Extract tile rectangles from LWPOLYLINE layer-0 entities ──
+  // These are the georeferenced bounding boxes for external image tiles
+  const tileBounds=[];
+  // Also collect MTEXT labels near tile centers to name them
+  const tileTexts=[];  // {x,y,txt}
+  for(const e of ents){
+    if(e.type==='text') tileTexts.push({x:e.x,y:e.y,txt:e.txt});
+  }
+  // Walk pairs again to collect LWPOLYLINE entities directly (before seg expansion)
+  {
+    let cur2=null;
+    for(let p=entStart;p<entEnd;p++){
+      const [gc,val]=pairs[p];
+      if(gc==='0'){
+        if(cur2&&cur2.type==='LWPOLYLINE'){
+          const d2=cur2.d;
+          const xs2=(d2['10']||[]).map(Number);
+          const ys2=(d2['20']||[]).map(Number);
+          const layName=(d2['8']||['0'])[0];
+          const vcount=parseInt((d2['90']||['0'])[0]);
+          if(xs2.length>=3&&layName==='0'){
+            const minX2=Math.min(...xs2),maxX2=Math.max(...xs2);
+            const minY2=Math.min(...ys2),maxY2=Math.max(...ys2);
+            const cx=(minX2+maxX2)/2,cy=(minY2+maxY2)/2;
+            // Find nearest MTEXT label
+            let label='Tile '+(tileBounds.length+1);
+            let bestD=Infinity;
+            for(const t of tileTexts){
+              const d=Math.hypot(t.x-cx,t.y-cy);
+              if(d<bestD&&d<3000){bestD=d;label=t.txt||label;}
+            }
+            tileBounds.push({minX:minX2,minY:minY2,maxX:maxX2,maxY:maxY2,label});
+          }
+        }
+        cur2=null;
+        if(val==='LWPOLYLINE') cur2={type:val,d:{}};
+      } else if(cur2){
+        if(!cur2.d[gc]) cur2.d[gc]=[];
+        cur2.d[gc].push(val);
+      }
+    }
+  }
+
+  // ── 10. Diagnostic detection ───────────────────────────────────
   const blockEntCount=Object.values(blockDefs).reduce((s,a)=>s+a.length,0);
   const totalVectorInFile=modelSpaceCount+entSecCount+blockEntCount;
   const warnings=[];
@@ -2584,6 +2746,8 @@ function parseDXF(txt,filename){
   if(ents.length){
     pushUndo();
     ST.entities=ents;
+    ST.tileBounds=tileBounds;
+    ST.imageDefs=imagePaths;
     renderLayers();
     setTimeout(()=>{zoomExt();},100);
   }
@@ -2592,7 +2756,8 @@ function parseDXF(txt,filename){
     _dxfDiagData={
       filename, ents:ents.length, modelSpace:modelSpaceCount,
       entSec:entSecCount, blockDefs:blockEntCount, imagePaths,
-      isCivil, warnings, totalVector:totalVectorInFile
+      isCivil, warnings, totalVector:totalVectorInFile,
+      tileBounds
     };
     setTimeout(()=>showDxfDiag(),200);
   } else {
@@ -2602,6 +2767,160 @@ function parseDXF(txt,filename){
 }
 
 let _dxfDiagData=null;
+
+// ── Image overlay state ───────────────────────────────────────────
+// ST.imageOverlays, ST.tileBounds, ST.imageDefs already on ST object
+// overlayOpacity added here as property
+Object.defineProperty(ST,'overlayOpacity',{value:0.85,writable:true});
+
+function openTileLoader(){
+  // Populate tile grid
+  const grid=document.getElementById('tileGrid');
+  const tiles=ST.tileBounds;
+  document.getElementById('tileImgCount').textContent=ST.imageDefs.length;
+  document.getElementById('tileTotalCount').textContent=tiles.length;
+  grid.innerHTML='';
+  // Make grid columns match tile count (up to 5)
+  const cols=Math.min(5,tiles.length);
+  grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  tiles.forEach((t,i)=>{
+    const existing=ST.imageOverlays.find(o=>o.tileIdx===i);
+    const cell=document.createElement('div');
+    cell.className='tile-cell'+(existing?' has-img':'');
+    cell.id='tile-cell-'+i;
+    cell.innerHTML=`
+      <button class="tile-cell-clear" onclick="clearTile(${i})">✕</button>
+      <div class="tile-cell-num">${i+1}</div>
+      <div class="tile-cell-name">${t.label||('Tile '+(i+1))}</div>
+      ${existing?`<img class="tile-cell-img" id="tile-thumb-${i}" src="${existing.src}">`:'<div style="font-size:8px;color:var(--m);margin-top:4px">No image</div>'}
+    `;
+    // Allow individual cell drop
+    cell.addEventListener('dragover',e=>{e.preventDefault();cell.classList.add('drop-target');});
+    cell.addEventListener('dragleave',()=>cell.classList.remove('drop-target'));
+    cell.addEventListener('drop',e=>{
+      e.preventDefault();cell.classList.remove('drop-target');
+      const files=e.dataTransfer.files;
+      if(files.length) loadTileFile(files[0],i);
+    });
+    cell.addEventListener('click',()=>{
+      const inp=document.createElement('input');
+      inp.type='file';inp.accept='.png,.jpg,.jpeg,.tif,.tiff,.webp';
+      inp.onchange=()=>{if(inp.files[0])loadTileFile(inp.files[0],i);};
+      inp.click();
+    });
+    grid.appendChild(cell);
+  });
+  updateTileLoadedCount();
+  openMo('moTileLoader');
+}
+
+function updateTileLoadedCount(){
+  document.getElementById('tileLoadedCount').textContent=ST.imageOverlays.length;
+}
+
+function handleTileDrop(ev){
+  ev.preventDefault();
+  document.getElementById('tileDropZone').classList.remove('dov');
+  handleTileFiles(ev.dataTransfer.files);
+}
+
+function handleTileFiles(files){
+  const fileArr=Array.from(files);
+  // Try to match each file to a tile by filename
+  const tiles=ST.tileBounds;
+  const imageDefs=ST.imageDefs;
+  let unmatched=[];
+
+  fileArr.forEach(file=>{
+    const fname=file.name.toLowerCase();
+    // Try exact filename match against imageDefs (strip path)
+    let tileIdx=-1;
+    for(let i=0;i<imageDefs.length;i++){
+      const defName=imageDefs[i].replace(/\\/g,'/').split('/').pop().toLowerCase();
+      if(defName===fname){
+        // Map imagedef index to tile index (imagedefs > tiles, map by order)
+        tileIdx=Math.min(i,tiles.length-1);
+        break;
+      }
+    }
+    if(tileIdx<0){
+      // Auto-assign to next empty slot
+      unmatched.push(file);
+    } else {
+      loadTileFile(file,tileIdx);
+    }
+  });
+  // Assign unmatched files to empty slots in order
+  let slot=0;
+  for(const file of unmatched){
+    while(slot<tiles.length&&ST.imageOverlays.find(o=>o.tileIdx===slot)) slot++;
+    if(slot<tiles.length){loadTileFile(file,slot);slot++;}
+  }
+}
+
+function loadTileFile(file,tileIdx){
+  const tiles=ST.tileBounds;
+  if(tileIdx>=tiles.length) return;
+  const tile=tiles[tileIdx];
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      // Remove any existing overlay for this tile
+      ST.imageOverlays=ST.imageOverlays.filter(o=>o.tileIdx!==tileIdx);
+      ST.imageOverlays.push({
+        img, tileIdx,
+        src:ev.target.result,
+        filename:file.name,
+        minX:tile.minX,minY:tile.minY,maxX:tile.maxX,maxY:tile.maxY
+      });
+      render();
+      // Update the tile cell UI
+      const cell=document.getElementById('tile-cell-'+tileIdx);
+      if(cell){
+        cell.className='tile-cell has-img';
+        // Replace inner content preserving clear button
+        const btn=cell.querySelector('.tile-cell-clear');
+        cell.innerHTML=`
+          <button class="tile-cell-clear" onclick="clearTile(${tileIdx})">✕</button>
+          <div class="tile-cell-num">${tileIdx+1}</div>
+          <div class="tile-cell-name">${file.name.substring(0,18)}</div>
+          <img class="tile-cell-img" src="${ev.target.result}">
+        `;
+      }
+      updateTileLoadedCount();
+      toast(`Tile ${tileIdx+1} loaded: ${file.name}`,'ok');
+    };
+    img.onerror=()=>toast('Could not load image: '+file.name,'err');
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearTile(tileIdx){
+  ST.imageOverlays=ST.imageOverlays.filter(o=>o.tileIdx!==tileIdx);
+  const cell=document.getElementById('tile-cell-'+tileIdx);
+  if(cell){
+    const tile=ST.tileBounds[tileIdx]||{};
+    cell.className='tile-cell';
+    cell.innerHTML=`
+      <button class="tile-cell-clear" onclick="clearTile(${tileIdx})">✕</button>
+      <div class="tile-cell-num">${tileIdx+1}</div>
+      <div class="tile-cell-name">${tile.label||'No image'}</div>
+      <div style="font-size:8px;color:var(--m);margin-top:4px">No image</div>
+    `;
+  }
+  updateTileLoadedCount();
+  render();
+}
+
+function clearAllTiles(){
+  ST.imageOverlays=[];
+  openTileLoader(); // rebuild grid
+  render();
+}
+
+
 
 function showDxfDiag(){
   const d=_dxfDiagData; if(!d) return;
@@ -2630,39 +2949,46 @@ function showDxfDiag(){
       </div>`).join('');
   }
 
+  // Show "Load PNG Tiles" button when tiles and imagePaths exist
+  const loadTilesBtn=document.getElementById('diagLoadTilesBtn');
+  if(loadTilesBtn) loadTilesBtn.style.display=(d.tileBounds&&d.tileBounds.length&&d.imagePaths.length)?'':'none';
+
   // Fix steps
   const fixEl=document.getElementById('diagFixes');
   const fixes=[];
 
+  if(d.imagePaths.length&&d.tileBounds&&d.tileBounds.length){
+    fixes.push({
+      icon:'🖼️', title:'Load the PNG tiles directly into Strata',
+      body:`Click <b>"🖼️ Load PNG Tiles"</b> below — Strata will match your PNG files by filename and render them georeferenced inside the <b>${d.tileBounds.length} tile boundaries</b> on the canvas. You'll need the ${d.imagePaths.length} PNG files from the original author.`
+    });
+  }
+
+  if(d.imagePaths.length&&d.ents>0){
+    fixes.push({
+      icon:'📁', title:'Get the missing PNG tiles from the file author',
+      body:`Ask for the ${d.imagePaths.length} PNG files. They're named <span class="diag-fix-code">SP0170-SCA-EGT-EN-DWG-0002_GENERAL_LAYOUT*.png</span>. The ${d.tileBounds&&d.tileBounds.length||9} tile grid is already rendered as vector outlines — the PNGs fill each box with the actual contour imagery.`
+    });
+  }
+
   if(d.imagePaths.length&&d.ents===0){
     fixes.push({
-      icon:'🖥️', title:'Locate and attach the source PNG/TIFF tiles',
-      body:`The contour tiles are on the original author's machine at <span class="diag-fix-code">C:\\Users\\CBE232\\...</span>. Ask them to share the PNG files, then use a GIS tool (QGIS) to open them as georeferenced rasters alongside this DXF.`
-    });
-    fixes.push({
       icon:'🏗️', title:'Ask the author to export as exploded DXF',
-      body:`In AutoCAD Civil 3D: open the drawing, select all surfaces/contours, run <span class="diag-fix-code">EXPLODE</span>, then <span class="diag-fix-code">DXFOUT</span> to export. This converts Civil 3D objects into standard LWPOLYLINE entities that Strata can read.`
+      body:`In AutoCAD Civil 3D: open the drawing, select all surfaces/contours, run <span class="diag-fix-code">EXPLODE</span>, then <span class="diag-fix-code">DXFOUT</span>. This converts Civil 3D surfaces into LWPOLYLINE vector entities Strata can read directly.`
     });
   }
 
   if(d.isCivil&&d.ents<10){
     fixes.push({
-      icon:'📐', title:'Civil 3D → Explode surfaces to DXF entities',
-      body:`Open in AutoCAD Civil 3D → select the surface object → right-click → <span class="diag-fix-code">Edit Surface → Extract Objects</span>, then Save As DXF. Alternatively use <span class="diag-fix-code">AECCEXPORTTOAUTOCAD</span> command to strip all Civil 3D proxies into standard entities.`
+      icon:'📐', title:'Civil 3D → Export to AutoCAD DXF',
+      body:`Use <span class="diag-fix-code">AECCEXPORTTOAUTOCAD</span> in Civil 3D to strip proxy objects into standard entities, then save as DXF. Alternatively: Select surface → right-click → Extract Objects → Save As DXF.`
     });
   }
 
-  if(d.ents>0&&d.ents<20&&d.imagePaths.length){
-    fixes.push({
-      icon:'✅', title:`${d.ents} vector entities were found and rendered`,
-      body:`The grid partition lines and boundary fence are visible on the canvas. Zoom out (scroll wheel or Z key) to see them — coordinates are UTM scale (~428,000 / 2,863,000 m).`
-    });
-  }
-
-  if(!fixes.length&&d.ents>0){
+  if(d.ents>0&&!d.imagePaths.length){
     fixes.push({
       icon:'✅', title:'Drawing loaded successfully',
-      body:`${d.ents} entities were imported from ${d.filename}. Use scroll to zoom and middle-click/pan to navigate the drawing.`
+      body:`${d.ents} entities imported from ${d.filename}. Scroll to zoom, middle-click to pan.`
     });
   }
 
@@ -2747,8 +3073,10 @@ function buildDXFEnt(cur,getLayId,blockDefs){
     }
 
     case 'MTEXT':{
-      let txt=(g('1')||'').replace(/\{[^}]*\}/g,'').replace(/\\[a-zA-Z]+;?/g,'').replace(/\\P/gi,' ').trim();
-      if(!txt) txt=(g('3')||'').trim();
+      let txt=(g('1')||g('3')||'');
+      // Strip \cmd; sequences (font/para format codes), then strip { } wrappers
+      txt=txt.replace(/\\[a-zA-Z~][^;\\}]*;/g,'').replace(/[{}]/g,'');
+      txt=txt.replace(/\\P/gi,' ').replace(/\\n/gi,' ').replace(/\\[a-zA-Z]/g,'').trim();
       if(!txt) return null;
       const sz=Math.max(0.5,gf('40')||2);
       return{type:'text',x:gf('10'),y:gf('20'),txt,sz,layer};
