@@ -2782,7 +2782,7 @@ function showDxfDiag(filename,entCount,imgPaths,tileBounds,isCivil){
   if(imgPaths.length){
     const fnames=imgPaths.map(p=>p.replace(/\\/g,'/').split('/').pop());
     issues.push({icon:'🖼️',label:imgPaths.length+' external image tile'+(imgPaths.length>1?'s':'')+' — not found',pill:'err',
-      desc:'The contour imagery is stored as '+imgPaths.length+' external PNG files on the original author's machine. They are not embedded in this DXF.',
+      desc:'The contour imagery is stored as '+imgPaths.length+' external PNG files on the original author\'s machine. They are not embedded in this DXF.',
       files:fnames});
   }
   if(isCivil){issues.push({icon:'🏗️',label:'Civil 3D proxy objects detected',pill:'warn',
