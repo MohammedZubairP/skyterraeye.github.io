@@ -1504,13 +1504,17 @@ function drawCrosshair() {
 }
 
 function layVisible(lid) {
-  const l = ST.layers.find(la=>la.id===(lid??0));
-  return l ? (l.vis && !l.frz && !l.dis) : true;
+  if(lid===undefined||lid===null) return true;
+  const l = ST.layers.find(la=>la.id===lid);
+  if(!l) return true; // unknown layer → show
+  return l.vis && !l.frz && !l.dis;
 }
 
 function getLayColor(e) {
-  const l = ST.layers.find(la=>la.id===(e.layer||0));
-  return e.color || (l?l.color:'#1FA8D9');
+  if(!e) return '#1FA8D9';
+  if(e.color) return e.color; // entity-level ACI color
+  const l = ST.layers.find(la=>la.id===e.layer);
+  return l ? l.color : '#1FA8D9';
 }
 
 function drawEntity(e, ghost) {
@@ -2813,70 +2817,146 @@ function doImport(){
   _pendingFile=null;
 }
 
-// ── DXF PARSER ────────────────────────────────────────────────────
+// ── ACI COLOR TABLE (AutoCAD Color Index → hex) ───────────────────
+const ACI_COLORS={
+  1:'#FF0000',2:'#FFFF00',3:'#00FF00',4:'#00FFFF',5:'#0000FF',
+  6:'#FF00FF',7:'#FFFFFF',8:'#808080',9:'#C0C0C0',
+  10:'#FF0000',11:'#FF7F7F',12:'#CC0000',13:'#CC6666',14:'#990000',15:'#996666',
+  16:'#7F0000',17:'#7F6666',18:'#4C0000',19:'#4C3333',
+  20:'#FF3F00',21:'#FF9F7F',22:'#CC3300',23:'#CC7F66',24:'#992400',25:'#996666',
+  30:'#FF7F00',31:'#FFBF7F',32:'#CC6600',33:'#CC9966',34:'#994C00',35:'#997F66',
+  40:'#FFBF00',41:'#FFDF7F',50:'#FFFF00',51:'#FFFF7F',
+  60:'#7FFF00',70:'#00FF00',80:'#00FF7F',90:'#00FFFF',
+  100:'#007FFF',110:'#0000FF',120:'#7F00FF',130:'#FF00FF',
+  140:'#FF007F',150:'#FF0040',160:'#FF4040',170:'#FF8080',
+  180:'#FFC0C0',190:'#FF8040',200:'#FFBF80',210:'#FFE0A0',
+  250:'#333333',251:'#555555',252:'#777777',253:'#999999',254:'#BBBBBB',255:'#DDDDDD',
+};
+function aciToHex(aci){
+  const n=parseInt(aci);
+  if(isNaN(n)||n<=0||n===256) return null; // ByLayer / ByBlock
+  return ACI_COLORS[n]||null;
+}
+
+// ── DXF PARSER v2 — bulletproof ────────────────────────────────────
 function parseDXF(txt,filename){
-  // ── 1. Normalise ──────────────────────────────────────────────
+  // ── 1. Normalise line endings & strip BOM ─────────────────────
   txt=txt.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
   const lines=txt.split('\n');
 
-  // ── 2. Pre-scan: detect Civil3D, external images, class count ─
+  // ── 2. Build pair list (gc, value) ───────────────────────────
+  const pairs=[];
+  for(let i=0;i<lines.length-1;i+=2){
+    const gc=lines[i].trim();
+    const val=(lines[i+1]||'').trim();
+    if(gc!=='') pairs.push([gc,val]);
+  }
+  const P=pairs.length;
+
+  // ── 3. Find section boundaries ────────────────────────────────
+  const secBounds={}; // sectionName → {start,end} in pairs[]
+  let curSec=null, curSecStart=0;
+  for(let p=0;p<P;p++){
+    const [gc,val]=pairs[p];
+    if(gc==='0'&&val==='SECTION'){
+      if(p+1<P&&pairs[p+1][0]==='2'){
+        curSec=pairs[p+1][1]; curSecStart=p+2; p++;
+      }
+    } else if(gc==='0'&&val==='ENDSEC'&&curSec){
+      secBounds[curSec]={start:curSecStart,end:p};
+      curSec=null;
+    }
+  }
+
+  // ── 4. Pre-scan: ACI colors, Civil3D, image defs ──────────────
   const civilRx=/AeccDb|AeccuDb|AecDb|AcMap/;
   const isCivil=civilRx.test(txt);
   const imagePaths=[];
-  // IMAGEDEF stores filename in GC 1 following the entity header
   {
     let inImgDef=false;
-    for(let i=0;i+1<lines.length;i+=2){
-      const gc=lines[i].trim(), val=(lines[i+1]||'').trim();
-      if(gc==='0'){ inImgDef=(val==='IMAGEDEF'); continue; }
-      if(inImgDef && gc==='1'){ imagePaths.push(val); inImgDef=false; }
+    for(let p=0;p<P;p++){
+      const [gc,val]=pairs[p];
+      if(gc==='0'){inImgDef=(val==='IMAGEDEF');continue;}
+      if(inImgDef&&gc==='1'){imagePaths.push(val);inImgDef=false;}
     }
   }
 
-  // ── 3. Build pair list ────────────────────────────────────────
-  const pairs=[];
-  for(let i=0;i+1<lines.length;i+=2){
-    const gc=lines[i].trim();
-    const val=lines[i+1]===undefined?'':lines[i+1].trim();
-    if(gc!=='') pairs.push([gc,val]);
-  }
-
-  const ents=[];
-  const layerMap={};
-  // Block definitions map: name → array of built entities
-  const blockDefs={};
-
-  function getLayId(name){
-    const clean=(name||'0').trim();
-    if(layerMap[clean]===undefined){
-      const ex=ST.layers.find(l=>l.name===clean);
-      if(ex){layerMap[clean]=ex.id;}
-      else{
-        const cols=['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060','#4488ff','#ff8844','#44ffaa'];
-        const id=Date.now()+Math.random()|0;
-        layerMap[clean]=id;
-        ST.layers.push({id,name:clean,color:cols[ST.layers.length%cols.length],vis:true,lock:false,frz:false,dis:false});
+  // ── 5. Parse TABLES section → layer definitions ───────────────
+  // This pre-populates ST.layers so getLayId never creates orphans
+  const tableLayerColors={}; // layerName → hex color from ACI
+  if(secBounds.TABLES){
+    const {start,end}=secBounds.TABLES;
+    let inLayerEntry=false, curName=null, curAci=null, curFlags=null, curLtype=null;
+    const flushTableLayer=()=>{
+      if(curName!==null){
+        const hex=aciToHex(curAci)||'#1FA8D9';
+        const frozen=curFlags&&(parseInt(curFlags)&(1|4));
+        tableLayerColors[curName]={color:hex,frozen:!!frozen,ltype:curLtype||'Continuous'};
+      }
+      curName=null;curAci=null;curFlags=null;curLtype=null;
+    };
+    for(let p=start;p<end;p++){
+      const [gc,val]=pairs[p];
+      if(gc==='0'){
+        if(inLayerEntry) flushTableLayer();
+        inLayerEntry=(val==='LAYER');
+      } else if(inLayerEntry){
+        if(gc==='2'&&curName===null) curName=val;
+        else if(gc==='62') curAci=val;
+        else if(gc==='70') curFlags=val;
+        else if(gc==='6') curLtype=val;
       }
     }
-    return layerMap[clean];
+    if(inLayerEntry) flushTableLayer();
+    // Register all table layers into ST.layers
+    Object.entries(tableLayerColors).forEach(([name,info])=>{
+      if(!ST.layers.find(l=>l.name===name)){
+        const id=++ST._eid*-1; // use negative IDs for table layers to avoid collision
+        ST.layers.push({id,name,color:info.color,vis:true,lock:false,frz:info.frozen,dis:false,ltype:info.ltype});
+      }
+    });
   }
 
-  // ── 4. Generic section parser (ENTITIES + BLOCKS sub-blocks) ──
+  // ── 6. Layer map: name → ST layer id (null-safe, always valid) ─
+  const layerMap=Object.create(null);
+  function getLayId(name){
+    const clean=(name||'0').trim();
+    if(layerMap[clean]!==undefined) return layerMap[clean];
+    // Find existing (pre-loaded from TABLES or previous draws)
+    let existing=ST.layers.find(l=>l.name===clean);
+    if(existing){layerMap[clean]=existing.id;return existing.id;}
+    // Create new layer on the fly
+    const cols=['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060','#4488ff','#ff8844','#44ffaa','#ff44ff'];
+    const tableInfo=tableLayerColors[clean];
+    const id=Date.now()+(Object.keys(layerMap).length*997)|0; // unique, stable
+    layerMap[clean]=id;
+    ST.layers.push({id,name:clean,color:tableInfo?tableInfo.color:cols[ST.layers.length%cols.length],vis:true,lock:false,frz:false,dis:false});
+    return id;
+  }
+  // Pre-seed the map with already-existing layers
+  ST.layers.forEach(l=>{if(layerMap[l.name]===undefined)layerMap[l.name]=l.id;});
+
+  // ── 7. Entity builder ─────────────────────────────────────────
+  const ents=[];
+  const blockDefs={};
+
   function parsePairsRange(startP,endP,outArr){
     let cur=null;
-    function flush(){
+    const flush=()=>{
       if(!cur)return;
-      const built=buildDXFEnt(cur,getLayId,blockDefs);
-      if(!built){cur=null;return;}
-      if(Array.isArray(built)) built.forEach(e=>{e._id=++ST._eid;outArr.push(e);});
-      else{built._id=++ST._eid;outArr.push(built);}
+      try{
+        const built=buildDXFEnt(cur,getLayId,blockDefs);
+        if(!built){cur=null;return;}
+        if(Array.isArray(built)) built.forEach(e=>{if(e){e._id=++ST._eid;outArr.push(e);}});
+        else{built._id=++ST._eid;outArr.push(built);}
+      }catch(e){/* skip malformed entity */}
       cur=null;
-    }
+    };
     for(let p=startP;p<endP;p++){
       const [gc,val]=pairs[p];
       if(gc==='0'){
         flush();
-        if(val==='SEQEND'||val==='ENDBLK'||val==='ENDSEC') continue;
+        if(val==='SEQEND'||val==='ENDBLK'||val==='ENDSEC'||val==='EOF') continue;
         cur={type:val,d:{}};
       } else if(cur){
         if(!cur.d[gc]) cur.d[gc]=[];
@@ -2886,38 +2966,16 @@ function parseDXF(txt,filename){
     flush();
   }
 
-  // ── 5. Walk all sections, collect BLOCKS defs + ENTITIES ──────
-  let entStart=-1,entEnd=-1;
-  // Block parsing state
-  const blockRanges=[];       // [{name, start, end}] within BLOCKS section
-  let inBlocks=false, curBlockName=null, curBlockStart=-1;
-
-  for(let p=0;p<pairs.length;p++){
-    const [gc,val]=pairs[p];
-
-    // Detect section starts
-    if(gc==='0'&&val==='SECTION'){
-      if(p+1<pairs.length&&pairs[p+1][0]==='2'){
-        const secName=pairs[p+1][1];
-        if(secName==='ENTITIES') entStart=p+2;
-        if(secName==='BLOCKS'){inBlocks=true;p++;}
-      }
-      continue;
-    }
-    if(gc==='0'&&val==='ENDSEC'){
-      if(inBlocks) inBlocks=false;
-      if(entStart>=0&&entEnd<0) entEnd=p;
-      continue;
-    }
-
-    // Inside BLOCKS: track individual BLOCK … ENDBLK ranges
-    if(inBlocks){
+  // ── 8. Walk BLOCKS section ────────────────────────────────────
+  const blockRanges=[];
+  let inBlocks=false,curBlockName=null,curBlockStart=-1;
+  const blocksB=secBounds.BLOCKS;
+  if(blocksB){
+    for(let p=blocksB.start;p<blocksB.end;p++){
+      const [gc,val]=pairs[p];
       if(gc==='0'&&val==='BLOCK'){
-        // Name is GC 2 in next few pairs
         let nm='?';
-        for(let k=p+1;k<Math.min(p+12,pairs.length);k++){
-          if(pairs[k][0]==='2'){nm=pairs[k][1];break;}
-        }
+        for(let k=p+1;k<Math.min(p+16,P);k++){if(pairs[k][0]==='2'){nm=pairs[k][1];break;}}
         curBlockName=nm; curBlockStart=p+1;
       }
       if(gc==='0'&&val==='ENDBLK'&&curBlockName!==null){
@@ -2927,16 +2985,16 @@ function parseDXF(txt,filename){
     }
   }
 
-  // ── 6. Build block definitions (skipping internal-use blocks) ─
-  const skipBlocks=/^\*(?!Model_Space|MODEL_SPACE)/i;
+  // Build named block defs (skip Paper_Space variants, keep Model_Space)
+  const skipBlockRx=/^\*(?!Model_Space|MODEL_SPACE|paper_space)/i;
   for(const br of blockRanges){
-    if(skipBlocks.test(br.name)) continue;   // skip *Paper_Space, unnamed etc
+    if(skipBlockRx.test(br.name)) continue;
     const bEnts=[];
     parsePairsRange(br.start,br.end,bEnts);
     if(bEnts.length) blockDefs[br.name]=bEnts;
   }
 
-  // ── 7. Parse *Model_Space block (geometry lives here in Civil3D files) ──
+  // ── 9. Parse *Model_Space ──────────────────────────────────────
   let modelSpaceCount=0;
   for(const br of blockRanges){
     if(/^\*Model_Space$|^\*MODEL_SPACE$/i.test(br.name)){
@@ -2945,23 +3003,44 @@ function parseDXF(txt,filename){
     }
   }
 
-  // ── 8. Parse ENTITIES section (standard DXF geometry) ─────────
+  // ── 10. Parse ENTITIES section ────────────────────────────────
   const entsBefore=ents.length;
-  if(entStart>=0&&entEnd>entStart) parsePairsRange(entStart,entEnd,ents);
+  const entsB=secBounds.ENTITIES;
+  if(entsB) parsePairsRange(entsB.start,entsB.end,ents);
   const entSecCount=ents.length-entsBefore;
 
-  // ── 9. Extract tile rectangles from LWPOLYLINE layer-0 entities ──
-  // These are the georeferenced bounding boxes for external image tiles
+  // ── 11. If still empty, try *Paper_Space (layout drawings) ────
+  let paperSpaceCount=0;
+  if(ents.length===0){
+    for(const br of blockRanges){
+      if(/^\*Paper_Space/i.test(br.name)){
+        parsePairsRange(br.start,br.end,ents);
+        paperSpaceCount+=ents.length-paperSpaceCount;
+      }
+    }
+  }
+
+  // ── 12. If STILL empty, parse ALL named blocks as geometry ────
+  if(ents.length===0){
+    for(const br of blockRanges){
+      if(!/^\*/.test(br.name)){
+        parsePairsRange(br.start,br.end,ents);
+      }
+    }
+  }
+
+  // ── 13. Extract tile rectangles from LWPOLYLINE on layer '0' ────
+  // These are georeferenced image bounding boxes (e.g. SCATEC layout sheets)
   const tileBounds=[];
-  // Also collect MTEXT labels near tile centers to name them
-  const tileTexts=[];  // {x,y,txt}
+  const tileTexts=[];
   for(const e of ents){
     if(e.type==='text') tileTexts.push({x:e.x,y:e.y,txt:e.txt});
   }
-  // Walk pairs again to collect LWPOLYLINE entities directly (before seg expansion)
+  // Scan ENTITIES section pairs for raw LWPOLYLINE data (before seg expansion)
+  const scanRange=entsB?[entsB.start,entsB.end]:[0,P];
   {
     let cur2=null;
-    for(let p=entStart;p<entEnd;p++){
+    for(let p=scanRange[0];p<scanRange[1];p++){
       const [gc,val]=pairs[p];
       if(gc==='0'){
         if(cur2&&cur2.type==='LWPOLYLINE'){
@@ -2969,19 +3048,21 @@ function parseDXF(txt,filename){
           const xs2=(d2['10']||[]).map(Number);
           const ys2=(d2['20']||[]).map(Number);
           const layName=(d2['8']||['0'])[0];
-          const vcount=parseInt((d2['90']||['0'])[0]);
-          if(xs2.length>=3&&layName==='0'){
+          if(xs2.length>=3&&(layName==='0'||layName==='Defpoints')){
             const minX2=Math.min(...xs2),maxX2=Math.max(...xs2);
             const minY2=Math.min(...ys2),maxY2=Math.max(...ys2);
-            const cx=(minX2+maxX2)/2,cy=(minY2+maxY2)/2;
-            // Find nearest MTEXT label
-            let label='Tile '+(tileBounds.length+1);
-            let bestD=Infinity;
-            for(const t of tileTexts){
-              const d=Math.hypot(t.x-cx,t.y-cy);
-              if(d<bestD&&d<3000){bestD=d;label=t.txt||label;}
+            const w=maxX2-minX2,h=maxY2-minY2;
+            // Only treat as tile if it's a reasonable bounding box (not tiny symbol)
+            if(w>100&&h>100){
+              const cx=(minX2+maxX2)/2,cy=(minY2+maxY2)/2;
+              let label='Tile '+(tileBounds.length+1);
+              let bestD=Infinity;
+              for(const t of tileTexts){
+                const d=Math.hypot(t.x-cx,t.y-cy);
+                if(d<bestD&&d<Math.max(w,h)){bestD=d;label=t.txt||label;}
+              }
+              tileBounds.push({minX:minX2,minY:minY2,maxX:maxX2,maxY:maxY2,label});
             }
-            tileBounds.push({minX:minX2,minY:minY2,maxX:maxX2,maxY:maxY2,label});
           }
         }
         cur2=null;
@@ -2993,7 +3074,7 @@ function parseDXF(txt,filename){
     }
   }
 
-  // ── 10. Diagnostic detection ───────────────────────────────────
+  // ── 14. Diagnostics ────────────────────────────────────────────
   const blockEntCount=Object.values(blockDefs).reduce((s,a)=>s+a.length,0);
   const totalVectorInFile=modelSpaceCount+entSecCount+blockEntCount;
   const warnings=[];
@@ -3038,33 +3119,91 @@ function parseDXF(txt,filename){
     });
   }
 
+  if(imagePaths.length&&tileBounds.length){
+    warnings.push({
+      icon:'🖼️',
+      label:`${imagePaths.length} External PNG Image${imagePaths.length>1?'s':''} Referenced — ${tileBounds.length} Tile Bounds Found`,
+      pill:'warn',pillTxt:'LOAD PNGs',
+      desc:`This drawing is a tiled layout sheet. The vector tile boundaries (${tileBounds.length} grid cells) are rendered. Drop the original PNG files onto each tile cell using "🖼️ Load PNG Tiles" below.`,
+      files:imagePaths
+    });
+  } else if(imagePaths.length){
+    warnings.push({
+      icon:'🖼️',
+      label:`${imagePaths.length} External Raster Image${imagePaths.length>1?'s':''} (missing)`,
+      pill:'err',pillTxt:'NOT LOADABLE',
+      desc:`This DXF references ${imagePaths.length} external PNG/TIFF file${imagePaths.length>1?'s':''} that were on the original author's machine. They cannot be loaded without the source files.`,
+      files:imagePaths
+    });
+  }
+
+  if(isCivil&&ents.length===0){
+    warnings.push({
+      icon:'🏗️',
+      label:'AutoCAD Civil 3D Proxy Objects Detected',
+      pill:'warn',pillTxt:'PROXY DATA',
+      desc:'Civil 3D stores surfaces, corridors, and contours as proprietary proxy objects (AeccDbSurfaceTin, AeccDbAlignment, etc.) that are invisible to standard DXF parsers. Use AECCEXPORTTOAUTOCAD in Civil 3D to explode to standard entities, then re-export as DXF.',
+      files:[]
+    });
+  }
+
+  if(modelSpaceCount>0&&entSecCount===0){
+    warnings.push({
+      icon:'📦',
+      label:`Geometry was in *Model_Space block (${modelSpaceCount} entities recovered)`,
+      pill:'ok',pillTxt:'AUTO-FIXED',
+      desc:'The drawing stored its entities inside the BLOCKS section *Model_Space definition rather than the ENTITIES section. Strata automatically extracted them.',
+      files:[]
+    });
+  }
+
+  if(paperSpaceCount>0&&modelSpaceCount===0&&entSecCount===0){
+    warnings.push({
+      icon:'📐',
+      label:`Layout sheet detected — ${paperSpaceCount} entities recovered from *Paper_Space`,
+      pill:'ok',pillTxt:'AUTO-FIXED',
+      desc:'This DXF is a paper space layout sheet, not a model space drawing. Strata extracted the geometry from the *Paper_Space block.',
+      files:[]
+    });
+  }
+
+  if(blockEntCount>0&&ents.length===0){
+    warnings.push({
+      icon:'📋',
+      label:`${blockEntCount} entities found only in named block definitions`,
+      pill:'warn',pillTxt:'NOT SHOWN',
+      desc:'Geometry exists inside named block definitions but the drawing has no INSERT commands placing them on screen. Blocks: '+Object.keys(blockDefs).slice(0,10).join(', ')+(Object.keys(blockDefs).length>10?'…':''),
+      files:[]
+    });
+  }
+
   // Show diagnostic if warnings exist OR entity count suspiciously low
   const showDiag=warnings.length>0||(ents.length<5&&totalVectorInFile>ents.length);
 
-  if(!ents.length&&!warnings.length){
+  if(!ents.length&&!warnings.length&&!tileBounds.length){
     toast('No renderable entities found in DXF','warn');
     return;
   }
 
-  if(ents.length){
-    pushUndo();
-    ST.entities=ents;
-    ST.tileBounds=tileBounds;
-    ST.imageDefs=imagePaths;
-    renderLayers();
-    setTimeout(()=>{zoomExt();},100);
-  }
+  // ── Commit to state ────────────────────────────────────────────
+  pushUndo();
+  if(ents.length) ST.entities=ents;
+  ST.tileBounds=tileBounds;
+  ST.imageDefs=imagePaths;
+  renderLayers();
+  setTimeout(()=>zoomExt(),100);
 
-  if(showDiag){
+  if(showDiag||tileBounds.length){
     _dxfDiagData={
       filename, ents:ents.length, modelSpace:modelSpaceCount,
       entSec:entSecCount, blockDefs:blockEntCount, imagePaths,
       isCivil, warnings, totalVector:totalVectorInFile,
-      tileBounds
+      tileBounds, paperSpace:paperSpaceCount,
+      layerCount:Object.keys(layerMap).length
     };
     setTimeout(()=>showDxfDiag(),200);
   } else {
-    const msg=`${filename}: ${ents.length} entities`;
+    const msg=`${filename}: ${ents.length} entities, ${Object.keys(layerMap).length} layers`;
     toast(msg,'ok'); setMsg(msg);
   }
 }
@@ -3309,32 +3448,48 @@ function showDxfDiag(){
 
 function buildDXFEnt(cur,getLayId,blockDefs){
   if(!cur||!cur.type) return null;
-  const d=cur.d;
+  const d=cur.d||{};
   const g=k=>(d[k]&&d[k][0])||'';
-  const gf=k=>parseFloat(g(k))||0;
-  const ga=k=>d[k]?d[k].map(Number):[];
-  const layerName=g('8')||'0';
-  const layer=getLayId(layerName);
-  const color=null;
+  const gf=k=>{const v=parseFloat(g(k));return isNaN(v)?0:v;};
+  const ga=k=>d[k]?d[k].map(v=>{const n=parseFloat(v);return isNaN(n)?0:n;}):[];
 
-  switch(cur.type.toUpperCase()){
-    case 'LINE':
-      if(gf('10')===0&&gf('20')===0&&gf('11')===0&&gf('21')===0) return null; // skip zero-length
-      return{type:'line',x1:gf('10'),y1:gf('20'),x2:gf('11'),y2:gf('21'),layer};
+  const layerName=(g('8')||'0').trim()||'0';
+  const layer=getLayId(layerName);
+
+  // Entity-level ACI color (GC 62), overrides layer color
+  const aciVal=g('62');
+  const entColor=aciVal&&aciVal!=='256'&&aciVal!=='0'?aciToHex(aciVal):null;
+
+  const base={layer};
+  if(entColor) base.color=entColor;
+
+  const typU=cur.type.toUpperCase();
+
+  switch(typU){
+    case 'LINE':{
+      const x1=gf('10'),y1=gf('20'),x2=gf('11'),y2=gf('21');
+      if(x1===0&&y1===0&&x2===0&&y2===0) return null;
+      if(Math.abs(x2-x1)<1e-12&&Math.abs(y2-y1)<1e-12) return null;
+      return{...base,type:'line',x1,y1,x2,y2};
+    }
 
     case 'CIRCLE':{
       const r=gf('40');
-      if(r<=0) return null;
-      return{type:'circle',cx:gf('10'),cy:gf('20'),r,layer};
+      if(r<=0||isNaN(r)) return null;
+      return{...base,type:'circle',cx:gf('10'),cy:gf('20'),r};
     }
-    case 'ARC':
-      return{type:'arc',cx:gf('10'),cy:gf('20'),r:gf('40'),sa:gf('50'),ea:gf('51'),layer};
+
+    case 'ARC':{
+      const r=gf('40');
+      if(r<=0||isNaN(r)) return null;
+      return{...base,type:'arc',cx:gf('10'),cy:gf('20'),r,sa:gf('50'),ea:gf('51')};
+    }
 
     case 'ELLIPSE':{
       const mx=gf('11'),my=gf('21');
       const rx=Math.hypot(mx,my)||10;
-      const ratio=gf('40')||0.5;
-      return{type:'ellipse',cx:gf('10'),cy:gf('20'),rx,ry:rx*ratio,layer};
+      const ratio=Math.max(0.001,gf('40')||0.5);
+      return{...base,type:'ellipse',cx:gf('10'),cy:gf('20'),rx,ry:rx*ratio};
     }
 
     case 'LWPOLYLINE':{
@@ -3342,27 +3497,32 @@ function buildDXFEnt(cur,getLayId,blockDefs){
       if(xs.length<2) return null;
       const flag=parseInt(g('70'))||0;
       const closed=!!(flag&1);
-      const pts=xs.map((x,i)=>({x,y:ys[i]||0}));
-      const segs=[];
-      for(let i=0;i<pts.length-1;i++)
-        segs.push({type:'line',x1:pts[i].x,y1:pts[i].y,x2:pts[i+1].x,y2:pts[i+1].y,layer});
-      if(closed&&pts.length>2)
-        segs.push({type:'line',x1:pts[pts.length-1].x,y1:pts[pts.length-1].y,x2:pts[0].x,y2:pts[0].y,layer});
-      return segs.length?segs:null;
+      const lw=gf('43')||0;
+      const pts=xs.map((x,i)=>({x,y:isNaN(ys[i])?0:ys[i]}));
+      // Return as polyline entity (preserves structure, renders as connected lines)
+      return{...base,type:'polyline',pts,closed,lw:Math.max(0.1,lw||0.25)};
     }
 
-    case 'POLYLINE': return null; // vertices come as VERTEX
+    case 'POLYLINE':{
+      // 3D polyline / mesh — vertices follow as VERTEX entities.
+      // We can't accumulate them here (they come as separate entities in the parser).
+      // Return a placeholder that parsePairsRange will populate; for now return null,
+      // the VERTEX entities below handle the dots.
+      return null;
+    }
 
-    case 'VERTEX':
-      return{type:'circle',cx:gf('10'),cy:gf('20'),r:0.5,layer};
+    case 'VERTEX':{
+      const x=gf('10'),y=gf('20');
+      if(x===0&&y===0) return null;
+      return{...base,type:'circle',cx:x,cy:y,r:0.3};
+    }
 
     case 'SPLINE':{
       const xs=ga('10'),ys=ga('20');
       if(xs.length<2) return null;
-      const segs=[];
-      for(let i=0;i<xs.length-1;i++)
-        segs.push({type:'line',x1:xs[i],y1:ys[i],x2:xs[i+1],y2:ys[i+1],layer});
-      return segs;
+      // Render control points as polyline
+      const pts=xs.map((x,i)=>({x,y:isNaN(ys[i])?0:ys[i]}));
+      return{...base,type:'polyline',pts,closed:false};
     }
 
     case 'TEXT':
@@ -3370,86 +3530,120 @@ function buildDXFEnt(cur,getLayId,blockDefs){
     case 'ATTRIB':{
       let txt=(g('1')||g('2')||'').trim();
       if(!txt) return null;
-      txt=txt.replace(/\\P/gi,' ').replace(/\\[a-zA-Z];/g,'');
+      // Strip DXF format codes
+      txt=txt.replace(/%%[cCdDpP]/g,'°').replace(/\\P/gi,'\n').replace(/\\[a-zA-Z][^;]*;/g,'').replace(/[{}]/g,'');
       const sz=Math.max(0.5,gf('40')||2);
-      return{type:'text',x:gf('10'),y:gf('20'),txt,sz,layer};
+      return{...base,type:'text',x:gf('10'),y:gf('20'),txt,sz};
     }
 
     case 'MTEXT':{
-      let txt=(g('1')||g('3')||'');
-      // Strip \cmd; sequences (font/para format codes), then strip { } wrappers
-      txt=txt.replace(/\\[a-zA-Z~][^;\\}]*;/g,'').replace(/[{}]/g,'');
-      txt=txt.replace(/\\P/gi,' ').replace(/\\n/gi,' ').replace(/\\[a-zA-Z]/g,'').trim();
+      // Collect all GC 1 and GC 3 chunks
+      const chunks=[...(d['1']||[]),...(d['3']||[])].join('');
+      let txt=chunks
+        .replace(/\\pxsm[^;]*;/g,'')   // paragraph margin
+        .replace(/\{\\f[^}]*\}/g,'')    // font overrides
+        .replace(/\\[a-zA-Z~][^;\\}]*;/g,'') // other codes
+        .replace(/[{}]/g,'')
+        .replace(/\\P/gi,' ')
+        .replace(/\\n/gi,' ')
+        .replace(/\\[a-zA-Z]/g,'')
+        .trim();
       if(!txt) return null;
       const sz=Math.max(0.5,gf('40')||2);
-      return{type:'text',x:gf('10'),y:gf('20'),txt,sz,layer};
+      return{...base,type:'text',x:gf('10'),y:gf('20'),txt,sz};
     }
 
     case 'INSERT':{
-      // Expand block reference if definition is available
       const bname=g('2');
+      if(!bname) return null;
       const ix=gf('10'),iy=gf('20');
       const sx=gf('41')||1, sy=gf('42')||1;
       const rot=(gf('50')||0)*Math.PI/180;
-      const cos=Math.cos(rot),sin=Math.sin(rot);
+      const cosR=Math.cos(rot),sinR=Math.sin(rot);
+      const txPt=(x,y)=>({x:ix+(x*cosR-y*sinR)*sx, y:iy+(x*sinR+y*cosR)*sy});
+
       if(blockDefs&&blockDefs[bname]){
-        // Transform each entity in the block
         return blockDefs[bname].map(be=>{
-          const ne=JSON.parse(JSON.stringify(be));
-          ne.layer=layer; // inherit insert's layer
-          ne._id=undefined;
-          function txPt(x,y){return{x:ix+(x*cos-y*sin)*sx, y:iy+(x*sin+y*cos)*sy};}
-          switch(ne.type){
-            case 'line':{const p1=txPt(ne.x1,ne.y1),p2=txPt(ne.x2,ne.y2);ne.x1=p1.x;ne.y1=p1.y;ne.x2=p2.x;ne.y2=p2.y;break;}
-            case 'circle':{const p=txPt(ne.cx,ne.cy);ne.cx=p.x;ne.cy=p.y;ne.r*=Math.max(sx,sy);break;}
-            case 'arc':{const p=txPt(ne.cx,ne.cy);ne.cx=p.x;ne.cy=p.y;ne.r*=Math.max(sx,sy);break;}
-            case 'text':{const p=txPt(ne.x,ne.y);ne.x=p.x;ne.y=p.y;break;}
-          }
-          return ne;
+          try{
+            const ne=JSON.parse(JSON.stringify(be));
+            ne.layer=layer;
+            ne._id=undefined;
+            if(entColor) ne.color=entColor;
+            switch(ne.type){
+              case 'line':{const p1=txPt(ne.x1,ne.y1),p2=txPt(ne.x2,ne.y2);ne.x1=p1.x;ne.y1=p1.y;ne.x2=p2.x;ne.y2=p2.y;break;}
+              case 'circle':{const p=txPt(ne.cx,ne.cy);ne.cx=p.x;ne.cy=p.y;ne.r*=Math.max(Math.abs(sx),Math.abs(sy));break;}
+              case 'arc':{const p=txPt(ne.cx,ne.cy);ne.cx=p.x;ne.cy=p.y;ne.r*=Math.max(Math.abs(sx),Math.abs(sy));break;}
+              case 'text':{const p=txPt(ne.x,ne.y);ne.x=p.x;ne.y=p.y;break;}
+              case 'polyline':
+              case 'ellipse':
+                if(ne.pts) ne.pts=ne.pts.map(pp=>{const p=txPt(pp.x,pp.y);return{x:p.x,y:p.y};});
+                break;
+            }
+            return ne;
+          }catch(e){return null;}
         }).filter(Boolean);
       }
-      // Fallback: draw a small cross marker at insert point
+      // Fallback: cross marker
       return[
-        {type:'line',x1:ix-5,y1:iy,x2:ix+5,y2:iy,layer},
-        {type:'line',x1:ix,y1:iy-5,x2:ix,y2:iy+5,layer}
+        {...base,type:'line',x1:ix-2,y1:iy,x2:ix+2,y2:iy},
+        {...base,type:'line',x1:ix,y1:iy-2,x2:ix,y2:iy+2}
       ];
     }
 
     case 'SOLID':
     case 'TRACE':{
-      const segs=[];
-      const pts=[[gf('10'),gf('20')],[gf('11'),gf('21')],[gf('13'),gf('23')],[gf('12'),gf('22')]];
-      for(let i=0;i<4;i++){const n=(i+1)%4;segs.push({type:'line',x1:pts[i][0],y1:pts[i][1],x2:pts[n][0],y2:pts[n][1],layer});}
-      return segs;
+      const p0=[gf('10'),gf('20')],p1=[gf('11'),gf('21')];
+      const p2=[gf('12'),gf('22')],p3=[gf('13'),gf('23')];
+      // DXF SOLID winding: 10-11-13-12
+      const pts=[{x:p0[0],y:p0[1]},{x:p1[0],y:p1[1]},{x:p3[0],y:p3[1]},{x:p2[0],y:p2[1]}];
+      return{...base,type:'polyline',pts,closed:true};
     }
 
-    case 'POINT':
-      return{type:'circle',cx:gf('10'),cy:gf('20'),r:Math.max(0.3,gf('39')||0.5),layer};
+    case 'POINT':{
+      const r=Math.max(0.3,gf('39')||0.5);
+      return{...base,type:'circle',cx:gf('10'),cy:gf('20'),r};
+    }
+
+    case '3DFACE':{
+      const p=[
+        [gf('10'),gf('20')],[gf('11'),gf('21')],
+        [gf('12'),gf('22')],[gf('13'),gf('23')]
+      ];
+      const segs=[];
+      for(let i=0;i<4;i++){
+        const n=(i+1)%4;
+        if(Math.hypot(p[i][0]-p[n][0],p[i][1]-p[n][1])>1e-6)
+          segs.push({...base,type:'line',x1:p[i][0],y1:p[i][1],x2:p[n][0],y2:p[n][1]});
+      }
+      return segs.length?segs:null;
+    }
 
     case 'HATCH':{
-      // Render boundary loops as polylines (GC 10/20 = boundary vertices)
+      // Render each boundary loop as a polyline
+      // GC 10/20 pairs are boundary vertices (multiple loops)
       const xs=ga('10'),ys=ga('20');
       if(xs.length<2) return null;
       const segs=[];
       for(let i=0;i<xs.length-1;i++)
-        segs.push({type:'line',x1:xs[i],y1:ys[i],x2:xs[i+1],y2:ys[i+1],layer});
+        segs.push({...base,type:'line',x1:xs[i],y1:ys[i],x2:xs[i+1],y2:ys[i+1]});
       if(xs.length>2)
-        segs.push({type:'line',x1:xs[xs.length-1],y1:ys[ys.length-1],x2:xs[0],y2:ys[0],layer});
+        segs.push({...base,type:'line',x1:xs[xs.length-1],y1:ys[ys.length-1],x2:xs[0],y2:ys[0]});
       return segs.length?segs:null;
     }
 
     case 'DIMENSION':{
       const x1=gf('13'),y1=gf('23'),x2=gf('14'),y2=gf('24');
       if(Math.hypot(x2-x1,y2-y1)<0.01) return null;
-      return{type:'dim-lin',x1,y1,x2,y2,dy:Math.max(y1,y2)+20,layer};
+      return{...base,type:'dim-lin',x1,y1,x2,y2,dy:Math.max(y1,y2)+20};
     }
 
-    case 'LEADER':{
+    case 'LEADER':
+    case 'MULTILEADER':{
       const xs=ga('10'),ys=ga('20');
       if(xs.length<2) return null;
       const segs=[];
       for(let i=0;i<xs.length-1;i++)
-        segs.push({type:'line',x1:xs[i],y1:ys[i],x2:xs[i+1],y2:ys[i+1],layer});
+        segs.push({...base,type:'line',x1:xs[i],y1:ys[i],x2:xs[i+1],y2:ys[i+1]});
       return segs;
     }
 
@@ -3457,8 +3651,33 @@ function buildDXFEnt(cur,getLayId,blockDefs){
     case 'RAY':{
       const bx=gf('10'),by=gf('20'),dx=gf('11'),dy=gf('21');
       const L=1e6;
-      return{type:'line',x1:bx-dx*L,y1:by-dy*L,x2:bx+dx*L,y2:by+dy*L,layer};
+      return{...base,type:'line',x1:bx-dx*L,y1:by-dy*L,x2:bx+dx*L,y2:by+dy*L};
     }
+
+    // Silently skip non-geometry entities
+    case 'IMAGE':
+    case 'WIPEOUT':
+    case 'VIEWPORT':
+    case 'OLE2FRAME':
+    case 'ACAD_PROXY_ENTITY':
+    case 'ACDBPLACEHOLDER':
+    case 'SECTION':
+    case 'ENDSEC':
+    case 'EOF':
+    case 'DICTIONARY':
+    case 'XRECORD':
+    case 'IMAGEDEF':
+    case 'IMAGEDEF_REACTOR':
+    case 'RASTERVARIABLES':
+    case 'SORTENTSTABLE':
+    case 'LAYOUT':
+    case 'PLOTSETTINGS':
+    case 'MATERIAL':
+    case 'VISUALSTYLE':
+    case 'SCALE':
+    case 'GEODATA':
+    case 'DICTIONARYVAR':
+      return null;
 
     default: return null;
   }
@@ -3538,40 +3757,62 @@ function parseSVGPath(d,ents,mk){
 // ── EXPORT ───────────────────────────────────────────────────────
 function doExport(){
   closeMo('moExport');
-  // Build a simple DXF string
-  let dxf='0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n';
+
+  // Build proper DXF with HEADER + TABLES (layer defs) + ENTITIES
+  let dxf='  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1015\n  0\nENDSEC\n';
+
+  // TABLES — layer definitions
+  dxf+='  0\nSECTION\n  2\nTABLES\n  0\nTABLE\n  2\nLAYER\n';
+  ST.layers.forEach(l=>{
+    dxf+=`  0\nLAYER\n  2\n${l.name}\n 70\n0\n 62\n7\n  6\nContinuous\n`;
+  });
+  dxf+='  0\nENDTAB\n  0\nENDSEC\n';
+
+  // ENTITIES
+  dxf+='  0\nSECTION\n  2\nENTITIES\n';
   ST.entities.forEach(e=>{
     const lay=ST.layers.find(l=>l.id===e.layer);
-    const lname=lay?lay.name:'0';
+    const lname=(lay?lay.name:'0').replace(/\n/g,' ');
     switch(e.type){
-      case 'line': dxf+=`0\nLINE\n8\n${lname}\n10\n${e.x1}\n20\n${e.y1}\n11\n${e.x2}\n21\n${e.y2}\n`;break;
-      case 'circle': dxf+=`0\nCIRCLE\n8\n${lname}\n10\n${e.cx}\n20\n${e.cy}\n40\n${e.r}\n`;break;
-      case 'arc': dxf+=`0\nARC\n8\n${lname}\n10\n${e.cx}\n20\n${e.cy}\n40\n${e.r}\n50\n${e.sa||0}\n51\n${e.ea||180}\n`;break;
-      case 'text': dxf+=`0\nTEXT\n8\n${lname}\n10\n${e.x}\n20\n${e.y}\n40\n${e.sz||12}\n1\n${e.txt||''}\n`;break;
-      case 'rect': {
+      case 'line':
+        dxf+=`  0\nLINE\n  8\n${lname}\n 10\n${e.x1.toFixed(6)}\n 20\n${e.y1.toFixed(6)}\n 30\n0.0\n 11\n${e.x2.toFixed(6)}\n 21\n${e.y2.toFixed(6)}\n 31\n0.0\n`;
+        break;
+      case 'circle':
+        dxf+=`  0\nCIRCLE\n  8\n${lname}\n 10\n${e.cx.toFixed(6)}\n 20\n${e.cy.toFixed(6)}\n 30\n0.0\n 40\n${e.r.toFixed(6)}\n`;
+        break;
+      case 'arc':
+        dxf+=`  0\nARC\n  8\n${lname}\n 10\n${e.cx.toFixed(6)}\n 20\n${e.cy.toFixed(6)}\n 30\n0.0\n 40\n${e.r.toFixed(6)}\n 50\n${(e.sa||0).toFixed(4)}\n 51\n${(e.ea||180).toFixed(4)}\n`;
+        break;
+      case 'text':
+        dxf+=`  0\nTEXT\n  8\n${lname}\n 10\n${e.x.toFixed(6)}\n 20\n${e.y.toFixed(6)}\n 30\n0.0\n 40\n${(e.sz||2).toFixed(4)}\n  1\n${(e.txt||'').replace(/\n/g,' ')}\n`;
+        break;
+      case 'rect':{
         const x1=e.x,y1=e.y,x2=e.x+e.w,y2=e.y+e.h;
-        dxf+=`0\nLINE\n8\n${lname}\n10\n${x1}\n20\n${y1}\n11\n${x2}\n21\n${y1}\n`;
-        dxf+=`0\nLINE\n8\n${lname}\n10\n${x2}\n20\n${y1}\n11\n${x2}\n21\n${y2}\n`;
-        dxf+=`0\nLINE\n8\n${lname}\n10\n${x2}\n20\n${y2}\n11\n${x1}\n21\n${y2}\n`;
-        dxf+=`0\nLINE\n8\n${lname}\n10\n${x1}\n20\n${y2}\n11\n${x1}\n21\n${y1}\n`;
+        dxf+=`  0\nLWPOLYLINE\n  8\n${lname}\n 90\n4\n 70\n1\n 10\n${x1.toFixed(6)}\n 20\n${y1.toFixed(6)}\n 10\n${x2.toFixed(6)}\n 20\n${y1.toFixed(6)}\n 10\n${x2.toFixed(6)}\n 20\n${y2.toFixed(6)}\n 10\n${x1.toFixed(6)}\n 20\n${y2.toFixed(6)}\n`;
         break;
       }
-      case 'polyline': {
+      case 'polyline':
         if(e.pts&&e.pts.length>=2){
-          dxf+=`0\nLWPOLYLINE\n8\n${lname}\n90\n${e.pts.length}\n`;
-          e.pts.forEach(p=>dxf+=`10\n${p.x}\n20\n${p.y}\n`);
+          const flag=e.closed?1:0;
+          dxf+=`  0\nLWPOLYLINE\n  8\n${lname}\n 90\n${e.pts.length}\n 70\n${flag}\n`;
+          e.pts.forEach(p=>dxf+=` 10\n${p.x.toFixed(6)}\n 20\n${p.y.toFixed(6)}\n`);
         }
+        break;
+      case 'ellipse':{
+        const ang=Math.atan2(e.ry,e.rx)||0;
+        dxf+=`  0\nELLIPSE\n  8\n${lname}\n 10\n${e.cx.toFixed(6)}\n 20\n${e.cy.toFixed(6)}\n 30\n0.0\n 11\n${(e.rx||1).toFixed(6)}\n 21\n0.0\n 31\n0.0\n 40\n${((e.ry||1)/(e.rx||1)).toFixed(6)}\n 41\n0.0\n 42\n${(Math.PI*2).toFixed(6)}\n`;
         break;
       }
     }
   });
-  dxf+='0\nENDSEC\n0\nEOF\n';
-  const blob=new Blob([dxf],{type:'text/plain'});
+  dxf+='  0\nENDSEC\n  0\nEOF\n';
+
+  const blob=new Blob([dxf],{type:'text/plain;charset=utf-8'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download='strata_export.dxf';
   a.click();
-  toast('DXF exported','ok');
+  toast(`DXF exported — ${ST.entities.length} entities`,'ok');
 }
 function exportLayers(){
   closeMo('moExportLayers');
