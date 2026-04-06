@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Strata CAD Pro — Sky TerraEye</title>
+<title>Strata CAD — Sky TerraEye</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22,53 +24,34 @@ input,select{font-family:inherit}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+/* ── DYNAMIC INPUT (floats near cursor) ── */
+#dynInput{position:fixed;display:none;z-index:500;pointer-events:all;}
+.dyn-box{background:#061422;border:1px solid var(--b);border-radius:4px;padding:3px 6px;display:flex;align-items:center;gap:5px;box-shadow:0 3px 12px rgba(0,0,0,.7);}
+.dyn-lbl{font-size:8px;color:var(--m);font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.dyn-val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4eff91;font-weight:700;min-width:55px}
+.dyn-sep{width:1px;height:14px;background:var(--sep)}
+#dynField{background:none;border:none;outline:none;color:var(--g);font-family:'IBM Plex Mono',monospace;font-size:11px;width:80px;caret-color:var(--g)}
+.dyn-hint{font-size:8px;color:rgba(90,131,158,.5);font-family:'IBM Plex Mono',monospace;white-space:nowrap}
 
-/* ── SURVEY POINTS ── */
-.spt{display:flex;align-items:center;padding:3px 7px;gap:5px;border-bottom:1px solid rgba(31,168,217,.05);font-size:9.5px;cursor:pointer;transition:background .08s}
-.spt:hover{background:rgba(31,168,217,.04)}
-.spt.gcp-ctrl{border-left:3px solid var(--gr)}
-.spt.gcp-chk{border-left:3px solid var(--ora)}
-.spt-num{font-family:'IBM Plex Mono',monospace;color:var(--st);font-size:9px;min-width:26px}
-.spt-e,.spt-n{font-family:'IBM Plex Mono',monospace;color:var(--m);font-size:8.5px;min-width:52px}
-.spt-z{font-family:'IBM Plex Mono',monospace;color:var(--g);font-size:8.5px;min-width:38px}
-.spt-badge{font-size:8px;padding:1px 4px;border-radius:2px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-left:auto}
-.spt-badge.ctrl{background:rgba(34,197,94,.12);color:var(--gr);border:1px solid rgba(34,197,94,.3)}
-.spt-badge.chk{background:rgba(255,144,96,.12);color:var(--ora);border:1px solid rgba(255,144,96,.3)}
-.spt-badge.reg{background:rgba(31,168,217,.08);color:var(--b);border:1px solid var(--bl)}
-.spt-acts{display:flex;gap:2px;margin-left:auto}
-.spt-act{background:none;border:none;color:var(--m);cursor:pointer;font-size:9px;padding:1px 3px;opacity:.5;transition:opacity .1s}
-.spt-act:hover{opacity:1;color:var(--b)}
+/* ── MAP BACKGROUND ── */
+#mapDiv{position:absolute;inset:0;z-index:0;display:none}
+#cad{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+.vport{position:relative;overflow:hidden;background:var(--bg)}
+.map-controls{position:absolute;top:8px;right:42px;display:flex;flex-direction:column;gap:3px;z-index:20}
+.map-btn{width:30px;height:24px;background:rgba(6,14,26,.92);border:1px solid var(--sep);border-radius:3px;color:var(--m);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;transition:all .1s}
+.map-btn:hover{color:var(--b);border-color:var(--bl)}
+.map-btn.on{color:var(--gr);border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.06)}
+.map-cal-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(6,14,26,.95);border:1px solid var(--g);border-radius:6px;padding:14px 20px;text-align:center;font-size:11px;color:var(--t);display:none;z-index:30;pointer-events:none}
 
-/* ── TERRAIN / CONTOUR ── */
-.ctg{padding:5px 8px;border-bottom:1px solid var(--sep)}
-.ctg-title{font-size:7.5px;font-weight:700;color:var(--st);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;font-family:'IBM Plex Mono',monospace}
-.ctg-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;gap:4px}
-.ctg-lbl{font-size:9.5px;color:var(--m)}
-.ctg-val{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--gr)}
-.tin-stat{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:3px;font-size:8.5px;color:var(--gr);font-family:'IBM Plex Mono',monospace}
+/* ── COORD ENTRY POPUP ── */
+#coordEntry{position:fixed;display:none;z-index:600;background:#061422;border:1px solid var(--st);border-radius:5px;padding:8px 12px;box-shadow:0 4px 20px rgba(0,0,0,.8);min-width:220px}
+.ce-title{font-size:8.5px;color:var(--st);font-family:'IBM Plex Mono',monospace;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.ce-row{display:flex;gap:6px;margin-bottom:5px;align-items:center}
+.ce-lbl{font-size:9px;color:var(--m);font-family:'IBM Plex Mono',monospace;min-width:14px}
+.ce-in{background:var(--bg2);border:1px solid var(--sep);border-radius:3px;color:var(--t);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 6px;flex:1;outline:none}
+.ce-in:focus{border-color:var(--st)}
+.ce-hint{font-size:8px;color:var(--m);font-family:'IBM Plex Mono',monospace;margin-top:4px}
 
-/* ── GIS INFO BAR ── */
-.gis-bar{height:20px;flex-shrink:0;background:#01050A;border-top:1px solid rgba(31,168,217,.04);display:flex;align-items:center;padding:0 8px;gap:8px;overflow:hidden}
-.gis-item{font-family:'IBM Plex Mono',monospace;font-size:8px;color:rgba(90,131,158,.6);display:flex;align-items:center;gap:3px;white-space:nowrap}
-.gis-item b{color:rgba(31,168,217,.6)}
-
-/* ── IMPORT FORMAT BADGES ── */
-.fmt-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-.fmt{padding:2px 8px;border-radius:2px;font-size:9.5px;font-family:'IBM Plex Mono',monospace;font-weight:700;background:rgba(31,168,217,.08);border:1px solid rgba(31,168,217,.3);color:var(--b)}
-.fmt.csv{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.35);color:var(--gr)}
-.fmt.geo{background:rgba(167,139,250,.08);border-color:rgba(167,139,250,.3);color:var(--st)}
-.fmt.warn{background:rgba(255,144,96,.1);border-color:rgba(255,144,96,.4);color:var(--ora)}
-
-/* ── MEASURE OVERLAY ── */
-.meas-overlay{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(4,12,24,.95);border:1px solid rgba(245,190,24,.4);border-radius:5px;padding:6px 14px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--g);display:none;pointer-events:none;white-space:nowrap;z-index:50}
-.meas-overlay b{font-size:12px}
-
-/* ── CONTOUR LEGEND ── */
-.cleg{position:absolute;bottom:80px;right:40px;background:rgba(4,12,24,.92);border:1px solid var(--sep);border-radius:4px;padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:8.5px;display:none;min-width:120px}
-.cleg-title{color:var(--st);font-weight:700;font-size:8px;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px}
-.cleg-row{display:flex;align-items:center;gap:6px;margin-bottom:2px}
-.cleg-swatch{width:20px;height:2px;border-radius:1px}
-.cleg-lbl{color:var(--m);font-size:8px}
 
 /* ── LAYOUT ── */
 .app{display:flex;flex-direction:column;height:100%}
@@ -384,13 +367,10 @@ input,select{font-family:inherit}
           <div class="dd-item" onclick="openMo('moImport')">📂 Import Drawing<span class="ks">Ctrl+O</span></div>
           <div class="dd-item" onclick="openMo('moCsvImport')">📡 Import Survey CSV</div>
           <div class="dd-item" onclick="openMo('moGeoImport')">🗺️ Import GeoJSON</div>
+          <div class="dd-item" onclick="openMo('moProject')">💾 Project Save/Load<span class="ks">Ctrl+S</span></div>
           <div class="dd-sep"></div>
-          <div class="dd-item" onclick="saveProject()">💾 Save Project<span class="ks">Ctrl+S</span></div>
-          <div class="dd-item" onclick="openMo('moProject')">📁 Load Project</div>
-          <div class="dd-sep"></div>
-          <div class="dd-item" onclick="openMo('moExport')">📤 Export DXF<span class="ks">Ctrl+E</span></div>
+          <div class="dd-item" onclick="openMo('moExport')">💾 Export<span class="ks">Ctrl+E</span></div>
           <div class="dd-item" onclick="openMo('moExportLayers')">📤 Export Layers</div>
-          <div class="dd-item" onclick="exportGeoJSON()">🗺️ Export GeoJSON</div>
           <div class="dd-sep"></div>
           <div class="dd-item" onclick="openMo('moSettings')">⚙️ Drawing Settings<span class="ks">Ctrl+,</span></div>
           <div class="dd-item" onclick="printDwg()">🖨️ Print / Plot<span class="ks">Ctrl+P</span></div>
@@ -536,7 +516,8 @@ input,select{font-family:inherit}
   <div class="mb-right">
     <button class="unit-pill" id="unitPill" onclick="openMo('moSettings');setTimeout(()=>openSetTab('units'),60)">mm</button>
     <div class="coord" id="coordEl">X: 0.000&nbsp;&nbsp;Y: 0.000&nbsp;mm</div>
-    <button class="mb-back" style="color:#4eff91;border-color:rgba(78,255,145,.3)" onclick="showHelpModal()">F1 Help</button>
+    <button style="display:flex;align-items:center;gap:3px;background:none;border:1px solid var(--sep);border-radius:3px;padding:1px 7px;color:var(--m);font-size:10px;cursor:pointer;transition:all .1s" onclick="mapSearch()" title="Go to location on map" onmouseover="this.style.color='var(--b)'" onmouseout="this.style.color='var(--m)'">🗺 Find</button>
+    <button class="mb-back" onclick="openMo('moHelp')" style="color:#4eff91;border-color:rgba(78,255,145,.3)">F1 Help</button>
     <a class="mb-back" href="index.html">← Back</a>
   </div>
 </div>
@@ -548,9 +529,6 @@ input,select{font-family:inherit}
   <button class="rtab" onclick="switchRib('annotate')" id="rt-annotate">Annotate</button>
   <button class="rtab" onclick="switchRib('modify')" id="rt-modify">Modify</button>
   <button class="rtab" onclick="switchRib('layers')" id="rt-layers">Layers</button>
-  <button class="rtab" onclick="switchRib('survey')" id="rt-survey" style="color:var(--ora)">Survey</button>
-  <button class="rtab" onclick="switchRib('terrain')" id="rt-terrain" style="color:#4eff91">Terrain</button>
-  <button class="rtab" onclick="switchRib('gis')" id="rt-gis" style="color:var(--st)">GIS</button>
   <button class="rtab" onclick="switchRib('civil')" id="rt-civil" style="color:var(--g)">Civil 3D</button>
   <button class="rtab" onclick="switchRib('view')" id="rt-view">View</button>
 </div>
@@ -624,75 +602,6 @@ input,select{font-family:inherit}
     </div>
     <div class="rg-lbl">VIEW / UI</div>
   </div>
-  <!-- SURVEY RIBBON -->
-  <div class="rg rp-survey" style="display:none">
-    <div class="rr">
-      <button class="rb lg grn" onclick="openMo('moCsvImport')"><span class="rb-i">📡</span>CSV PTS</button>
-      <button class="rb lg" onclick="openMo('moGeoImport')"><span class="rb-i">🗺️</span>GEOJSON</button>
-    </div>
-    <div class="rg-lbl">IMPORT</div>
-  </div>
-  <div class="rg rp-survey" style="display:none">
-    <div class="rr">
-      <button class="rb" onclick="showTab('survey')"><span class="rb-i">📍</span>PT LIST</button>
-      <button class="rb" onclick="openMo('moGcpMgr')"><span class="rb-i">🎯</span>GCP MGR</button>
-      <button class="rb" onclick="exportSurveyCSV()"><span class="rb-i">📤</span>EXPORT</button>
-    </div>
-    <div class="rr">
-      <button class="rb" onclick="zoomToSurvey()"><span class="rb-i">🔭</span>ZOOM PTS</button>
-      <button class="rb" onclick="clearSurveyPts()"><span class="rb-i">🗑️</span>CLEAR</button>
-    </div>
-    <div class="rg-lbl">SURVEY TOOLS</div>
-  </div>
-  <div class="rg rp-survey" style="display:none">
-    <div class="rr">
-      <button class="rb" onclick="T('measure-d')"><span class="rb-i">📏</span>DIST</button>
-      <button class="rb" onclick="T('measure-a')"><span class="rb-i">📐</span>AREA</button>
-    </div>
-    <div class="rr">
-      <button class="rb" onclick="calcBearing()"><span class="rb-i">🧭</span>BEARING</button>
-      <button class="rb" onclick="calcCoords()"><span class="rb-i">📌</span>COORDS</button>
-    </div>
-    <div class="rg-lbl">MEASURE</div>
-  </div>
-  <!-- TERRAIN RIBBON -->
-  <div class="rg rp-terrain" style="display:none">
-    <div class="rr">
-      <button class="rb lg grn" onclick="buildTIN()"><span class="rb-i">🔺</span>BUILD TIN</button>
-    </div>
-    <div class="rg-lbl">TIN/DTM</div>
-  </div>
-  <div class="rg rp-terrain" style="display:none">
-    <div class="rr">
-      <button class="rb lg" onclick="openMo('moContour')"><span class="rb-i">〰️</span>CONTOURS</button>
-    </div>
-    <div class="rg-lbl">SURFACE</div>
-  </div>
-  <div class="rg rp-terrain" style="display:none">
-    <div class="rr">
-      <button class="rb" onclick="toggleTIN()"><span class="rb-i">🔺</span>TIN DISP</button>
-      <button class="rb" onclick="toggleContours()"><span class="rb-i">〰️</span>CONTOURS</button>
-    </div>
-    <div class="rr">
-      <button class="rb" onclick="clearTerrain()"><span class="rb-i">🗑️</span>CLEAR</button>
-      <button class="rb" onclick="exportContourDXF()"><span class="rb-i">💾</span>EXPORT</button>
-    </div>
-    <div class="rg-lbl">DISPLAY</div>
-  </div>
-  <!-- GIS RIBBON -->
-  <div class="rg rp-gis" style="display:none">
-    <div class="rr">
-      <button class="rb lg grn" onclick="openMo('moGeoImport')"><span class="rb-i">🗺️</span>GEOJSON</button>
-    </div>
-    <div class="rg-lbl">IMPORT</div>
-  </div>
-  <div class="rg rp-gis" style="display:none">
-    <div class="rr">
-      <button class="rb" onclick="exportGeoJSON()"><span class="rb-i">📤</span>EXPORT GEO</button>
-      <button class="rb" onclick="showCRS()"><span class="rb-i">🌐</span>CRS INFO</button>
-    </div>
-    <div class="rg-lbl">GIS TOOLS</div>
-  </div>
 </div>
 
 <!-- WORKSPACE -->
@@ -765,8 +674,8 @@ input,select{font-family:inherit}
       <div class="tg-grid">
         <button class="tb" onclick="openMo('moArray')" title="Rectangular Array"><span class="tb-i">🔲</span><span class="tb-l">RECT ARR</span></button>
         <button class="tb" onclick="openMo('moArray')" title="Polar Array"><span class="tb-i">⭕</span><span class="tb-l">POLAR ARR</span></button>
-        <button class="tb" onclick="doFillet()" title="Fillet (F)"><span class="tb-i">🔀</span><span class="tb-l">FILLET</span></button>
-        <button class="tb" onclick="doChamfer()" title="Chamfer (K)"><span class="tb-i">✂️</span><span class="tb-l">CHAMFER</span></button>
+        <button class="tb" onclick="toast('Fillet','ok')" title="Fillet (F)"><span class="tb-i">🔀</span><span class="tb-l">FILLET</span></button>
+        <button class="tb" onclick="toast('Chamfer','ok')" title="Chamfer"><span class="tb-i">✂️</span><span class="tb-l">CHAMFER</span></button>
       </div>
       <div class="tg-title">PATTERN</div>
     </div>
@@ -800,15 +709,23 @@ input,select{font-family:inherit}
     <div class="badge gn">ZOOM: <b id="zoomBadge">100%</b></div>
     <div class="badge gl">UNITS: <b id="unitBadge">mm</b></div>
   </div>
+  <div class="meas-overlay" id="measOverlay">📏 <b id="measVal">—</b></div>
+  <div class="cleg" id="contourLegend"><div class="cleg-title">Contours</div><div id="clegBody"></div></div>
+  <div class="meas-overlay" id="measOverlay">📏 <b id="measVal">—</b></div>
+  <div class="cleg" id="contourLegend"><div class="cleg-title">Contours</div><div id="clegBody"></div></div>
+    <div class="map-controls">
+    <button class="map-btn" id="btnMap" onclick="toggleMap()" title="Toggle Map Background">🗺</button>
+    <button class="map-btn" id="btnMapSat" onclick="setMapLayer('sat')" title="Satellite">🛰</button>
+    <button class="map-btn" id="btnMapOSM" onclick="setMapLayer('osm')" title="Street Map" style="display:none">🛣</button>
+    <button class="map-btn" id="btnMapCal" onclick="startMapCal()" title="Calibrate Drawing to Map">📍</button>
+  </div>
+  <div id="mapDiv"></div>
+  <div class="map-cal-hint" id="mapCalHint">Click 2 points on the map to calibrate drawing coordinates</div>
+
   <div class="zoom-btns">
     <button class="zb" onclick="zoomBy(1.25)" title="Zoom In">+</button>
     <button class="zb" onclick="zoomExt()" title="Fit All">⊞</button>
     <button class="zb" onclick="zoomBy(0.8)" title="Zoom Out">−</button>
-  </div>
-  <div class="meas-overlay" id="measOverlay">📏 <b id="measVal">—</b></div>
-  <div class="cleg" id="contourLegend">
-    <div class="cleg-title">Contours</div>
-    <div id="clegBody"></div>
   </div>
 </div>
 
@@ -864,7 +781,7 @@ input,select{font-family:inherit}
         <div style="aspect-ratio:1;background:var(--bg2);border:1px solid var(--sep);border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:3px;font-size:8.5px;color:var(--m)" onclick="openMo('moBlock')"><span style="font-size:16px">📂</span>Browse</div>
       </div>
     </div>
-    <!-- SURVEY PANEL -->
+    <!-- SURVEY -->
     <div class="rp-sec" id="sec-survey">
       <div class="lh">
         <span class="lh-t">Survey Points</span>
@@ -873,33 +790,36 @@ input,select{font-family:inherit}
           <button class="lbtn st" onclick="exportSurveyCSV()">Export</button>
         </div>
       </div>
-      <div style="padding:4px 7px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:1px solid var(--sep)">
-        <span class="tin-stat" id="survStatPts">0 pts</span>
-        <span class="tin-stat" style="border-color:rgba(34,197,94,.2);color:var(--gr)" id="survStatCtrl">0 ctrl</span>
-        <span class="tin-stat" style="border-color:rgba(255,144,96,.2);color:var(--ora)" id="survStatChk">0 chk</span>
+      <div style="padding:3px 7px;display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--sep)">
+        <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;background:rgba(31,168,217,.06);border:1px solid rgba(31,168,217,.2);border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--b)" id="survStatPts">0 pts</span>
+        <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--gr)" id="survStatCtrl">0 ctrl</span>
+        <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;background:rgba(255,144,96,.06);border:1px solid rgba(255,144,96,.2);border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--ora)" id="survStatChk">0 chk</span>
       </div>
-      <div style="display:flex;border-bottom:1px solid var(--sep)">
+      <div style="display:flex;border-bottom:1px solid var(--sep);background:rgba(0,0,0,.1)">
         <div style="width:26px;padding:3px 4px;font-size:7px;color:var(--m);font-family:'IBM Plex Mono',monospace;font-weight:700">PT</div>
         <div style="flex:1;padding:3px 2px;font-size:7px;color:var(--m);font-family:'IBM Plex Mono',monospace;font-weight:700">EASTING</div>
         <div style="flex:1;padding:3px 2px;font-size:7px;color:var(--m);font-family:'IBM Plex Mono',monospace;font-weight:700">NORTHING</div>
-        <div style="width:38px;padding:3px 2px;font-size:7px;color:var(--m);font-family:'IBM Plex Mono',monospace;font-weight:700">ELEV</div>
-        <div style="width:24px"></div>
+        <div style="width:36px;padding:3px 2px;font-size:7px;color:var(--m);font-family:'IBM Plex Mono',monospace;font-weight:700">ELEV</div>
+        <div style="width:22px"></div>
       </div>
-      <div id="surveyList" style="max-height:320px;overflow-y:auto"></div>
-      <div style="padding:5px 7px;border-top:1px solid var(--sep);display:flex;gap:3px;flex-wrap:wrap">
+      <div id="surveyList" style="max-height:310px;overflow-y:auto"></div>
+      <div style="padding:5px 6px;border-top:1px solid var(--sep);display:flex;gap:3px;flex-wrap:wrap">
         <button class="lbtn" onclick="openMo('moGcpMgr')" style="color:var(--g);font-size:8px">🎯 GCP</button>
         <button class="lbtn" onclick="zoomToSurvey()" style="font-size:8px">🔭 Zoom</button>
         <button class="lbtn" onclick="buildTIN()" style="color:#4eff91;font-size:8px">🔺 TIN</button>
+        <button class="lbtn" onclick="openMo('moContour')" style="color:var(--g);font-size:8px">〰 CTR</button>
         <button class="lbtn" onclick="clearSurveyPts()" style="color:var(--red);font-size:8px">🗑️</button>
       </div>
     </div>
   </div>
 </div>
 
+</div><!-- /workspace -->
+
 <!-- CMDBAR -->
 <div class="cmdbar">
   <span class="cmd-p">◈</span>
-  <input class="cmd-i" id="cmdInput" placeholder="Command: L C A R REC PL  |  M CO RO SC MI O TR F  |  TIN CONTOUR CSV GEO  |  SAVE LOAD  |  Press F1 for all shortcuts" onkeydown="cmdKey(event)">
+  <input class="cmd-i" id="cmdInput" placeholder="L C R A G=Pline M=Move O=Offset F=Fillet TR=Trim  |  CO RO SC MI  |  TIN CSV GEO SAVE  |  F1=Help  ESC=cancel  SPACE=repeat" onkeydown="cmdKey(event)">
   <span class="cmd-m" id="cmdMsg">Ready — Import a drawing or start drawing</span>
 </div>
 
@@ -949,127 +869,7 @@ input,select{font-family:inherit}
 
 <!-- ══ MODALS ══ -->
 
-<!-- CSV SURVEY IMPORT -->
-<div class="mo" id="moCsvImport">
-  <div class="modal w">
-    <div class="mh"><div class="mh-t"><span class="i">📡</span>Import Survey Points (CSV)</div><span class="mc" onclick="closeMo('moCsvImport')">✕</span></div>
-    <div class="mb">
-      <div class="impz" id="csvZone" onclick="document.getElementById('csvFileIn').click()" ondragover="e=>{e.preventDefault();this.classList.add('dov')}" ondragleave="this.classList.remove('dov')" ondrop="csvDrop(event)" style="text-align:center;padding:18px;cursor:pointer;border:2px dashed rgba(34,197,94,.3);border-radius:6px;background:rgba(34,197,94,.03);margin-bottom:12px">
-        <div style="font-size:26px;margin-bottom:4px">📊</div>
-        <div style="font-size:13px;font-weight:800;color:var(--t);font-family:'Syne',sans-serif" id="csvFileName">Drop CSV or click to browse</div>
-        <div style="font-size:10px;color:var(--m);margin-top:4px">Columns: Point, Easting, Northing, Elevation (optional: Description)</div>
-      </div>
-      <input type="file" id="csvFileIn" accept=".csv,.txt" style="display:none" onchange="csvFileChosen(event)">
-      <div class="fsect">Column Mapping</div>
-      <div class="fr" style="display:flex;gap:10px;flex-wrap:wrap">
-        <div class="fg"><label class="fl">Point/ID col</label><input class="fs" type="number" id="csvColPt" value="0" min="0" max="20" style="width:60px"></div>
-        <div class="fg"><label class="fl">Easting col</label><input class="fs" type="number" id="csvColE" value="1" min="0" max="20" style="width:60px"></div>
-        <div class="fg"><label class="fl">Northing col</label><input class="fs" type="number" id="csvColN" value="2" min="0" max="20" style="width:60px"></div>
-        <div class="fg"><label class="fl">Elevation col</label><input class="fs" type="number" id="csvColZ" value="3" min="-1" max="20" style="width:60px"></div>
-        <div class="fg"><label class="fl">Desc col (−1=none)</label><input class="fs" type="number" id="csvColD" value="-1" min="-1" max="20" style="width:60px"></div>
-      </div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
-        <label class="fck"><input type="checkbox" id="csvHasHeader" checked> First row is header</label>
-        <label class="fck"><input type="checkbox" id="csvPlotPts" checked> Plot points on canvas</label>
-        <label class="fck"><input type="checkbox" id="csvLabelPts" checked> Auto-label points</label>
-        <label class="fck"><input type="checkbox" id="csvShowElev" checked> Show elevation</label>
-      </div>
-      <div style="margin-top:10px;padding:8px;background:var(--bg2);border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--m);max-height:90px;overflow-y:auto" id="csvPreview">Preview will appear after file selection...</div>
-    </div>
-    <div class="mf"><button class="btn s" onclick="closeMo('moCsvImport')">Cancel</button><button class="btn st" onclick="doImportCSV()">Import Survey Points</button></div>
-  </div>
-</div>
-
-<!-- GEOJSON IMPORT -->
-<div class="mo" id="moGeoImport">
-  <div class="modal w">
-    <div class="mh"><div class="mh-t"><span class="i">🗺️</span>Import GeoJSON / Shapefile</div><span class="mc" onclick="closeMo('moGeoImport')">✕</span></div>
-    <div class="mb">
-      <div class="impz" onclick="document.getElementById('geoFileIn').click()" ondragover="e=>{e.preventDefault();this.classList.add('dov')}" ondragleave="this.classList.remove('dov')" ondrop="geoDrop(event)" style="text-align:center;padding:16px;cursor:pointer;border:2px dashed rgba(167,139,250,.3);border-radius:6px;background:rgba(167,139,250,.03);margin-bottom:12px">
-        <div style="font-size:26px;margin-bottom:4px">🌍</div>
-        <div style="font-size:13px;font-weight:800;color:var(--t);font-family:'Syne',sans-serif" id="geoFileName">Drop GeoJSON file or click to browse</div>
-        <div style="font-size:10px;color:var(--m);margin-top:3px">Supports GeoJSON (.json, .geojson) — Point, LineString, Polygon, MultiPolygon</div>
-      </div>
-      <input type="file" id="geoFileIn" accept=".json,.geojson" style="display:none" onchange="geoFileChosen(event)">
-      <div class="fsect">Options</div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <label class="fck"><input type="checkbox" id="geoFlatten" checked> Flatten to 2D</label>
-        <label class="fck"><input type="checkbox" id="geoAutoLayer" checked> Auto layer by feature type</label>
-        <label class="fck"><input type="checkbox" id="geoLabels"> Show property labels</label>
-      </div>
-      <div style="margin-top:8px;padding:6px 8px;background:var(--bg2);border-radius:3px;font-size:9px;color:var(--m)" id="geoStats">No file loaded</div>
-    </div>
-    <div class="mf"><button class="btn s" onclick="closeMo('moGeoImport')">Cancel</button><button class="btn st" onclick="doImportGeoJSON()">Import GeoJSON</button></div>
-  </div>
-</div>
-
-<!-- GCP MANAGER -->
-<div class="mo" id="moGcpMgr">
-  <div class="modal w">
-    <div class="mh"><div class="mh-t"><span class="i">🎯</span>GCP Manager</div><span class="mc" onclick="closeMo('moGcpMgr')">✕</span></div>
-    <div class="mb">
-      <div style="font-size:10.5px;color:var(--m);margin-bottom:10px;line-height:1.6">Mark survey points as <b style="color:var(--gr)">Control</b> or <b style="color:var(--ora)">Checkpoint</b>. Control points are used for transformation; checkpoints are used for accuracy verification.</div>
-      <div style="display:flex;gap:6px;margin-bottom:8px">
-        <button class="btn" style="font-size:10px;padding:4px 10px" onclick="setAllGCP('ctrl')">All → Control</button>
-        <button class="btn" style="font-size:10px;padding:4px 10px;background:linear-gradient(135deg,#c07030,var(--ora))" onclick="setAllGCP('check')">All → Checkpoint</button>
-        <button class="btn s" style="font-size:10px;padding:4px 10px" onclick="setAllGCP('none')">Clear Types</button>
-      </div>
-      <div style="max-height:300px;overflow-y:auto;border:1px solid var(--sep);border-radius:4px" id="gcpList"></div>
-    </div>
-    <div class="mf">
-      <span style="font-size:9px;color:var(--m);font-family:'IBM Plex Mono',monospace" id="gcpStats">—</span>
-      <button class="btn s" onclick="closeMo('moGcpMgr')">Close</button>
-      <button class="btn st" onclick="closeMo('moGcpMgr');exportSurveyCSV()">Export</button>
-    </div>
-  </div>
-</div>
-
-<!-- CONTOUR GENERATOR -->
-<div class="mo" id="moContour">
-  <div class="modal">
-    <div class="mh"><div class="mh-t"><span class="i">〰️</span>Generate Contours</div><span class="mc" onclick="closeMo('moContour')">✕</span></div>
-    <div class="mb">
-      <div id="tinStatus" style="padding:6px 8px;background:var(--bg2);border-radius:3px;font-size:9.5px;color:var(--m);margin-bottom:10px">No TIN surface. Import survey points and click Build TIN first.</div>
-      <div class="fsect">Contour Settings</div>
-      <div class="fr" style="display:flex;gap:12px;flex-wrap:wrap">
-        <div class="fg"><label class="fl">Minor interval</label><input class="fs" type="number" id="ctMinor" value="1" min="0.1" step="0.1" style="width:80px"></div>
-        <div class="fg"><label class="fl">Major interval</label><input class="fs" type="number" id="ctMajor" value="5" min="0.5" step="0.5" style="width:80px"></div>
-        <div class="fg"><label class="fl">Min elevation</label><input class="fs" type="number" id="ctMin" value="0" style="width:80px" id="ctMinEl"></div>
-        <div class="fg"><label class="fl">Max elevation</label><input class="fs" type="number" id="ctMax" value="100" style="width:80px" id="ctMaxEl"></div>
-      </div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
-        <label class="fck"><input type="checkbox" id="ctSmooth" checked> Smooth contours</label>
-        <label class="fck"><input type="checkbox" id="ctLabels" checked> Label major contours</label>
-        <label class="fck"><input type="checkbox" id="ctColorRamp" checked> Color ramp</label>
-      </div>
-    </div>
-    <div class="mf"><button class="btn s" onclick="closeMo('moContour')">Cancel</button><button class="btn st" onclick="generateContours()">Generate Contours</button></div>
-  </div>
-</div>
-
-<!-- PROJECT SAVE/LOAD -->
-<div class="mo" id="moProject">
-  <div class="modal w">
-    <div class="mh"><div class="mh-t"><span class="i">💾</span>Project Save / Load</div><span class="mc" onclick="closeMo('moProject')">✕</span></div>
-    <div class="mb">
-      <div class="fsect">Save Project</div>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
-        <input class="fs" type="text" id="projName" placeholder="Project name" value="MyProject" style="flex:1">
-        <button class="btn" onclick="saveProject()">💾 Save .strata</button>
-      </div>
-      <div class="fsect">Load Project</div>
-      <div class="impz" onclick="document.getElementById('projFileIn').click()" style="text-align:center;padding:14px;cursor:pointer;border:2px dashed var(--sep);border-radius:6px;background:var(--bg2)">
-        <div style="font-size:22px;margin-bottom:3px">📂</div>
-        <div style="font-size:11px;color:var(--m)">Drop .strata file or click to browse</div>
-      </div>
-      <input type="file" id="projFileIn" accept=".strata,.json" style="display:none" onchange="loadProjectFile(event)">
-      <div style="margin-top:10px;padding:6px 8px;background:var(--bg2);border-radius:3px;font-size:9px;color:var(--m)" id="projInfo">No project loaded. Unsaved changes will be lost on reload.</div>
-    </div>
-    <div class="mf"><button class="btn s" onclick="closeMo('moProject')">Close</button></div>
-  </div>
-</div>
-
-<!-- IMPORT MODAL upgrade -->
+<!-- IMPORT -->
 <div class="mo" id="moImport">
   <div class="modal w">
     <div class="mh"><div class="mh-t"><span class="i">📂</span>Import Drawing</div><span class="mc" onclick="closeMo('moImport')">✕</span></div>
@@ -1077,17 +877,15 @@ input,select{font-family:inherit}
       <div class="impz" id="impZone" onclick="document.getElementById('fileIn').click()" ondragover="e=>{e.preventDefault();this.classList.add('dov')}" ondragleave="this.classList.remove('dov')" ondrop="impDrop(event)">
         <div style="font-size:30px;margin-bottom:6px;color:var(--st)">📐</div>
         <div style="font-size:14px;font-weight:800;color:var(--t);font-family:'Syne',sans-serif;margin-bottom:4px" id="impName">Drop or Click to Import</div>
-        <div style="font-size:11px;color:var(--m)">Supports AutoCAD DXF (ASCII), SVG, GeoJSON and CSV Survey Points</div>
+        <div style="font-size:11px;color:var(--m)">Supports AutoCAD DXF (ASCII) and SVG</div>
         <div class="fmt-row">
           <span class="fmt" title="Native">.DXF ✓</span>
           <span class="fmt" title="Native">.SVG ✓</span>
-          <span class="fmt csv" title="Survey CSV">.CSV ✓</span>
-          <span class="fmt geo" title="GeoJSON">.GEOJSON ✓</span>
-          <span class="fmt warn" title="Binary — convert to DXF first">.DWG ⚠</span>
+          <span class="fmt" style="background:rgba(255,144,96,.1);border-color:rgba(255,144,96,.4);color:var(--ora)" title="Binary — convert to DXF first">.DWG ⚠</span>
         </div>
         <div style="font-size:9px;color:var(--m);margin-top:6px">⚠ DWG is binary — Strata will guide you through free conversion</div>
       </div>
-      <input type="file" id="fileIn" accept=".dxf,.svg,.dwg,.dwf,.dwt,.ifc,.shp,.csv,.txt,.json,.geojson" style="display:none" onchange="fileChosen(event)">
+      <input type="file" id="fileIn" accept=".dxf,.svg,.dwg,.dwf,.dwt,.ifc,.shp" style="display:none" onchange="fileChosen(event)">
       <div class="fsect">Import Options</div>
       <div class="fr">
         <div class="fg"><label class="fl">Drawing Units</label><select class="fs" id="impUnits"><option value="mm">Millimetres (mm)</option><option value="m">Metres (m)</option><option value="in">Inches (in)</option><option value="ft">Feet (ft)</option></select></div>
@@ -1381,18 +1179,6 @@ const ST = {
   // active layout
   layout: 'model',
   _eid: 0,
-  // ── SURVEY ──
-  surveyPts: [],  // [{id,e,n,z,desc,type:'ctrl'|'check'|''}]
-  showSurveyPts: true,
-  showSurveyLabels: true,
-  // ── TERRAIN ──
-  tin: null,       // triangles [{a,b,c} with {x,y,z}]
-  contours: [],    // [{elev, pts[[x,y]...], major}]
-  showTIN: false,
-  showContours: true,
-  terrainMinZ: 0, terrainMaxZ: 100,
-  // ── GIS ──
-  crs: 'Local / Unknown',
 };
 
 // Draw state helpers
@@ -1453,12 +1239,6 @@ function render() {
   }
   const hideVec=(ST.imgOverlays||[]).length&&document.getElementById('tlShowVec')&&!document.getElementById('tlShowVec').checked;
   if(!hideVec) ST.entities.forEach(e=>{if(layVisible(e.layer)) drawEntity(e,false);});
-  // Terrain: TIN mesh
-  if(ST.showTIN && ST.tin) drawTIN();
-  // Terrain: contours
-  if(ST.showContours && ST.contours.length) drawContours();
-  // Survey points
-  if(ST.showSurveyPts && ST.surveyPts.length) drawSurveyPts();
   if(ST.drawing&&ST.startPt) drawPreview();
   if(ST.measurePts.length>0) drawMeasure();
   const o=w2s(0,0);
@@ -2029,85 +1809,101 @@ function commitPolyline() {
   render(); toast('Polyline done','ok');
 }
 
-// ── OPERATIONS: MOVE, COPY, ROTATE, SCALE, MIRROR, OFFSET ──────────
-function applyOp(wp) {
+
+// ── OPERATIONS: MOVE / COPY / ROTATE / SCALE / MIRROR / OFFSET ────
+// Phase 1 (first click): set base point
+// Phase 2 (second click): execute
+function applyOp(wp){
   const op=ST.opState;
   if(!op) return;
-  const sels=ST.entities.filter(e=>e.selected);
-  if(!sels.length) return;
 
-  if(op.type==='move') {
-    const dx=wp.x-op.base.x, dy=wp.y-op.base.y;
+  // OFFSET: click the entity directly
+  if(op.type==='offset'){
+    const tol=12/ST.zoom;
+    for(let i=ST.entities.length-1;i>=0;i--){
+      const e=ST.entities[i];
+      if(!layVisible(e.layer))continue;
+      if(ptHitsEnt(wp.x,wp.y,e,tol)){
+        const ne=offsetEnt(e,op.dist);
+        if(ne){pushUndo();ne._id=++ST._eid;ne.selected=false;ST.entities.push(ne);render();toast('Offset created','ok');}
+        else toast('Cannot offset this entity','warn');
+        return;
+      }
+    }
+    toast('Click an entity to offset  |  ESC=cancel','warn'); return;
+  }
+
+  const sels=ST.entities.filter(e=>e.selected);
+  if(!sels.length){toast('Nothing selected','warn');ST.opState=null;T('select');return;}
+
+  // Phase 1: capture base point
+  if(!op.base){
+    op.base=wp;
+    const m={move:'Base set — click destination',copy:'Base set — click where to copy',rotate:'Center set — click reference direction',scale:'Base set — click reference distance',mirror:'First axis point set — click second point'};
+    setMsg((m[op.type]||'Click second point')+'  |  ESC=cancel');
+    return;
+  }
+
+  // Phase 2: apply
+  if(op.type==='move'){
     pushUndo();
+    const dx=wp.x-op.base.x,dy=wp.y-op.base.y;
     ST.entities=ST.entities.map(e=>e.selected?translateEnt(e,dx,dy):e);
     toast('Moved '+sels.length+' object(s)','ok');
-    ST.opState=null; setMsg('Ready');
+    setMsg('Done — ESC to deselect  |  M to move again');
+    ST.opState=null;
   }
-  else if(op.type==='copy') {
-    const dx=wp.x-op.base.x, dy=wp.y-op.base.y;
+  else if(op.type==='copy'){
     pushUndo();
-    const copies=sels.map(e=>{const ne=translateEnt({...e},dx,dy);ne._id=++ST._eid;ne.selected=true;return ne;});
+    const dx=wp.x-op.base.x,dy=wp.y-op.base.y;
+    const copies=sels.map(e=>{const ne=translateEnt(JSON.parse(JSON.stringify(e)),dx,dy);ne._id=++ST._eid;ne.selected=true;return ne;});
     sels.forEach(e=>e.selected=false);
     ST.entities.push(...copies);
-    toast('Copied '+copies.length+' object(s) — pick another point or ESC','ok');
-    // Keep in copy mode for multiple copies
-    op.base=wp;
+    op.base=wp; // update base for next copy
     updateSel();
+    toast('Copied — click again for another copy  |  ESC=done','ok');
   }
-  else if(op.type==='rotate') {
-    if(!op.refPt) {
-      op.refPt=wp; setMsg('Specify rotation angle (or click end point)'); return;
-    }
+  else if(op.type==='rotate'){
+    if(!op.refPt){op.refPt=wp;setMsg('Reference set — click end point to define angle  |  ESC=cancel');return;}
     const ang=Math.atan2(wp.y-op.base.y,wp.x-op.base.x)-Math.atan2(op.refPt.y-op.base.y,op.refPt.x-op.base.x);
     pushUndo();
     ST.entities=ST.entities.map(e=>e.selected?rotateEnt(e,op.base,ang):e);
     toast('Rotated '+(ang*180/Math.PI).toFixed(1)+'°','ok');
-    ST.opState=null; setMsg('Ready');
+    setMsg('Rotated  |  ESC=deselect');
+    ST.opState=null;
   }
-  else if(op.type==='scale') {
-    if(!op.refPt) {
-      op.refPt=wp; setMsg('Specify scale factor (click second point)'); return;
-    }
+  else if(op.type==='scale'){
+    if(!op.refPt){op.refPt=wp;setMsg('Reference set — click to set new distance  |  ESC=cancel');return;}
     const d1=Math.hypot(op.refPt.x-op.base.x,op.refPt.y-op.base.y)||1;
-    const d2=Math.hypot(wp.x-op.base.x,wp.y-op.base.y);
-    const f=d2/d1;
+    const d2=Math.hypot(wp.x-op.base.x,wp.y-op.base.y)||0.001;
     pushUndo();
-    ST.entities=ST.entities.map(e=>e.selected?scaleEnt(e,op.base,f):e);
-    toast('Scaled ×'+f.toFixed(3),'ok');
-    ST.opState=null; setMsg('Ready');
+    ST.entities=ST.entities.map(e=>e.selected?scaleEnt(e,op.base,d2/d1):e);
+    toast('Scaled ×'+(d2/d1).toFixed(3),'ok');
+    setMsg('Scaled  |  ESC=deselect');
+    ST.opState=null;
   }
-  else if(op.type==='mirror') {
-    if(!op.p1) {
-      op.p1=wp; setMsg('Specify second point of mirror axis'); return;
-    }
+  else if(op.type==='mirror'){
     pushUndo();
-    ST.entities=ST.entities.map(e=>e.selected?mirrorEnt(e,op.p1,wp):e);
+    ST.entities=ST.entities.map(e=>e.selected?mirrorEnt(e,op.base,wp):e);
     toast('Mirrored '+sels.length+' object(s)','ok');
-    ST.opState=null; setMsg('Ready');
-  }
-  else if(op.type==='offset') {
-    const sel=sels[0];
-    if(!sel) return;
-    const ne=offsetEnt(sel,op.dist);
-    if(ne){pushUndo();ST.entities.push(ne);render();toast('Offset created','ok');}
-    // Keep offset mode active
+    setMsg('Mirrored  |  ESC=deselect');
+    ST.opState=null;
   }
   render();
 }
 
 // ── TRIM / EXTEND ──────────────────────────────────────────────────
 function doTrim(wp) {
-  // Find entity under cursor
   const tol=8/ST.zoom;
   for(let i=ST.entities.length-1;i>=0;i--){
     const e=ST.entities[i];
     if(!layVisible(e.layer)) continue;
-    if(ptHitsEnt(wp.x,wp.y,e,tol)) {
-      pushUndo();
-      ST.entities.splice(i,1);
+    if(ptHitsEnt(wp.x,wp.y,e,tol)){
+      pushUndo(); ST.entities.splice(i,1);
       render(); toast('Trimmed','ok'); return;
     }
   }
+  toast('No entity at cursor — click on a line to trim','warn');
 }
 
 // ── MOUSE EVENTS ───────────────────────────────────────────────────
@@ -2115,29 +1911,31 @@ canvas.addEventListener('mousemove',ev=>{
   const r=canvas.getBoundingClientRect();
   const mx=ev.clientX-r.left, my=ev.clientY-r.top;
 
-  if(ST.panning && ST.panStart) {
+  if(ST.panning && ST.panStart){
     ST.pan.x+=mx-ST.panStart.x; ST.pan.y+=my-ST.panStart.y;
     ST.panStart={x:mx,y:my};
   }
 
   ST.mouse={x:mx,y:my};
   const wp=s2w(mx,my);
-  document.getElementById('coordEl').innerHTML=`X:&nbsp;${wp.x.toFixed(3)}&nbsp;&nbsp;Y:&nbsp;${wp.y.toFixed(3)}&nbsp;${ST.units}`;
+  const coordEl=document.getElementById('coordEl');
+  if(coordEl) coordEl.innerHTML=`X:&nbsp;${wp.x.toFixed(3)}&nbsp;&nbsp;Y:&nbsp;${wp.y.toFixed(3)}&nbsp;${ST.units}`;
 
-  if(ST.selDrag) {
-    showSelBox(ST.selStart.x,ST.selStart.y,mx,my);
-  }
+  if(ST.selDrag) showSelBox(ST.selStart.x,ST.selStart.y,mx,my);
 
-  if(!ST.selDrag && !ST.drawing && !ST.panning) showEntTip(mx,my);
-  else document.getElementById('entTip').style.display='none';
+  const tip=document.getElementById('entTip');
+  if(!ST.selDrag&&!ST.drawing&&!ST.panning&&!ST.opState) showEntTip(mx,my);
+  else if(tip) tip.style.display='none';
 
   render();
 });
 
 canvas.addEventListener('mousedown',ev=>{
-  document.getElementById('entTip').style.display='none';
+  const tip=document.getElementById('entTip');
+  if(tip) tip.style.display='none';
 
-  if(ev.button===1 || ST.tool==='pan') {
+  // Middle mouse button or pan tool = pan
+  if(ev.button===1||(ev.button===0&&ST.tool==='pan')){
     ST.panning=true;
     const r=canvas.getBoundingClientRect();
     ST.panStart={x:ev.clientX-r.left,y:ev.clientY-r.top};
@@ -2149,97 +1947,125 @@ canvas.addEventListener('mousedown',ev=>{
   const r=canvas.getBoundingClientRect();
   const mx=ev.clientX-r.left, my=ev.clientY-r.top;
   const wp=snapPoint(mx,my);
-  const add=ev.shiftKey;
 
-  // SELECT tool
-  if(ST.tool==='select') {
+  // ── SELECT TOOL ──────────────────────────────────────────────────
+  if(ST.tool==='select'){
     ST.selDrag=true; ST.selStart={x:mx,y:my};
     return;
   }
 
-  // Operations needing base point
-  if(ST.opState) {
+  // ── ACTIVE OPERATION (move/copy/rotate/scale/mirror/offset) ──────
+  if(ST.opState){
     applyOp(wp); return;
   }
 
-  // TRIM/EXTEND
-  if(ST.tool==='trim') { doTrim(wp); return; }
-
-  // OFFSET
-  if(ST.tool==='offset') {
-    if(!ST.opState) {
-      const d=parseFloat(prompt('Offset distance:','100'));
-      if(!isNaN(d)&&d>0) { ST.opState={type:'offset',dist:d}; setMsg('Click entity to offset'); }
-    } else applyOp(wp);
-    return;
+  // ── TRIM ─────────────────────────────────────────────────────────
+  if(ST.tool==='trim'||ST.tool==='extend'){
+    doTrim(wp); return;
   }
 
-  // MEASURE
-  if(ST.tool==='measure-d') {
+  // ── MEASURE DISTANCE ─────────────────────────────────────────────
+  if(ST.tool==='measure-d'){
     ST.measurePts.push(wp);
-    if(ST.measurePts.length>=2) {
+    if(ST.measurePts.length>=2){
       const d=Math.hypot(ST.measurePts[1].x-ST.measurePts[0].x,ST.measurePts[1].y-ST.measurePts[0].y);
-      toast('Distance: '+d.toFixed(3)+' '+ST.units,'ok');
-      setMsg('Distance: '+d.toFixed(3)+' '+ST.units);
+      const msg='📏 Distance: '+d.toFixed(4)+' '+ST.units;
+      toast(msg,'ok'); setMsg(msg);
+      const ov=document.getElementById('measOverlay');
+      if(ov){ov.style.display='block';document.getElementById('measVal').textContent=d.toFixed(4)+' '+ST.units;}
       ST.measurePts=[];
     } else setMsg('Click second point');
     render(); return;
   }
-  if(ST.tool==='measure-a') {
+
+  // ── MEASURE AREA ─────────────────────────────────────────────────
+  if(ST.tool==='measure-a'){
     ST.measurePts.push(wp);
-    if(ST.measurePts.length>=3) {
-      // simple bounding box area for demo
-      const xs=ST.measurePts.map(p=>p.x),ys=ST.measurePts.map(p=>p.y);
-      const area=Math.abs((xs[1]-xs[0])*(ys[2]-ys[0]));
-      toast('Area ≈ '+area.toFixed(2)+' '+ST.units+'²','ok');
-      ST.measurePts=[];
-    } else setMsg('Click '+(3-ST.measurePts.length)+' more point(s)');
+    setMsg('Click next boundary point — '+ST.measurePts.length+' pts (ESC=finish)');
     render(); return;
   }
 
-  // POLYLINE
-  if(ST.tool==='polyline') {
-    addPolylinePt(wp);
-    ST.drawing=true; ST.startPt=wp;
-    setMsg('Click next point — double-click or Enter to finish');
+  // ── POLYLINE ─────────────────────────────────────────────────────
+  if(ST.tool==='polyline'){
+    if(!ST.polyPts) ST.polyPts=[];
+    if(!ST.startPt){ ST.startPt=wp; ST.polyPts=[wp]; ST.drawing=true; setMsg('Click next point — double-click or Enter to finish  |  ESC=cancel'); }
+    else { ST.polyPts.push(wp); ST.startPt=wp; }
     render(); return;
   }
 
-  // Drawing tools
+  // ── ALL OTHER DRAWING TOOLS ──────────────────────────────────────
   const drawTools=['line','circle','rect','ellipse','arc','text','hatch','dim-lin','spline','leader'];
-  if(drawTools.includes(ST.tool)) {
-    const owp = ST.ortho && ST.startPt ? applyOrtho(ST.startPt,wp) : wp;
-    if(!ST.drawing) {
-      ST.drawing=true; ST.startPt=owp;
-      setMsg('Specify second point — ESC to cancel');
+  if(drawTools.includes(ST.tool)){
+    const owp=ST.ortho&&ST.startPt?applyOrtho(ST.startPt,wp):wp;
+    if(!ST.drawing){
+      ST.drawing=true; ST.startPt=owp; ST.pts=[];
+      const hints={
+        line:'Click end point  |  ESC=cancel',
+        circle:'Click to set radius  |  ESC=cancel',
+        rect:'Click opposite corner  |  ESC=cancel',
+        arc:'Click to set radius point  |  ESC=cancel',
+        ellipse:'Click to set radii  |  ESC=cancel',
+        text:'Enter text in the prompt  |  ESC=cancel',
+        hatch:'Click opposite corner  |  ESC=cancel',
+        'dim-lin':'Click end point  |  ESC=cancel',
+      };
+      setMsg(hints[ST.tool]||'Click second point  |  ESC=cancel');
     } else {
       const done=commitEntity(owp);
-      if(done) {
-        ST.drawing=false; ST.startPt=null;
-        setMsg('Ready'); render(); toast('Entity drawn','ok');
+      if(done){
+        // Line tool stays active for chaining (like AutoCAD)
+        if(ST.tool==='line'){
+          ST.startPt=owp; // chain from last endpoint
+          setMsg('Next point (click) — ESC or right-click to end line');
+        } else {
+          ST.drawing=false; ST.startPt=null; ST.pts=[];
+          setMsg(ST.tool.toUpperCase()+' drawn — click to draw another  |  ESC=select');
+        }
+        render();
       }
     }
+    return;
   }
+});
+
+canvas.addEventListener('contextmenu',ev=>{
+  ev.preventDefault();
+  // Right-click ends line chain and returns to select
+  if(ST.tool==='line'&&ST.drawing){
+    ST.drawing=false; ST.startPt=null;
+    setMsg('Line ended — right-click or ESC exits drawing');
+  }
+  if(ST.tool==='polyline') commitPolyline();
 });
 
 canvas.addEventListener('mouseup',ev=>{
   if(ST.panning){ST.panning=false;canvas.style.cursor=ST.tool==='pan'?'grab':'crosshair';}
   if(ev.button!==0) return;
 
-  if(ST.selDrag) {
+  if(ST.selDrag){
     ST.selDrag=false;
     const r=canvas.getBoundingClientRect();
-    const mx=ev.clientX-r.left,my=ev.clientY-r.top;
-    const dx=Math.abs(mx-ST.selStart.x),dy=Math.abs(my-ST.selStart.y);
+    const mx=ev.clientX-r.left, my=ev.clientY-r.top;
+    const dx=Math.abs(mx-ST.selStart.x), dy=Math.abs(my-ST.selStart.y);
     hideSelBox();
-    if(dx>DRAG_THR||dy>DRAG_THR) {
+    if(dx>DRAG_THR||dy>DRAG_THR){
       applyBoxSel(ST.selStart.x,ST.selStart.y,mx,my,ev.shiftKey);
-      const n=ST.entities.filter(e=>e.selected).length;
-      setMsg((mx<ST.selStart.x?'CROSSING':'WINDOW')+' — '+n+' selected | Del=delete M=move CO=copy RO=rotate SC=scale MI=mirror');
     } else {
       clickSel(ST.selStart.x,ST.selStart.y,ev.shiftKey);
-      const n=ST.entities.filter(e=>e.selected).length;
-      setMsg(n>0?n+' selected | M=move CO=copy RO=rotate SC=scale MI=mirror':'Nothing selected');
+    }
+    const n=ST.entities.filter(e=>e.selected).length;
+    // pendingSelect: user picked an op tool before selecting — now activate op
+    if(ST.opState&&ST.opState.pendingSelect&&n>0){
+      ST.opState.pendingSelect=false;
+      ST.tool=ST.opState.type;
+      updateToolUI(ST.tool);
+      canvas.style.cursor='crosshair';
+      const msgs={move:'Base point? Click it  |  ESC=cancel',copy:'Base point? Click it  |  ESC=cancel',rotate:'Rotation center? Click it  |  ESC=cancel',scale:'Scale base? Click it  |  ESC=cancel',mirror:'First mirror axis point  |  ESC=cancel'};
+      setMsg(msgs[ST.opState.type]||'Click base point  |  ESC=cancel');
+    } else if(n>0){
+      setMsg(n+' selected  |  M=move  CO=copy  RO=rotate  SC=scale  DEL=delete  SPACE=repeat  ESC=deselect');
+    } else {
+      setMsg('Nothing selected — click or drag  |  L=line  C=circle  R=rect  F1=shortcuts');
     }
     render();
   }
@@ -2247,6 +2073,24 @@ canvas.addEventListener('mouseup',ev=>{
 
 canvas.addEventListener('dblclick',ev=>{
   if(ST.tool==='polyline') commitPolyline();
+  if(ST.tool==='measure-a'){
+    // Finish area measurement
+    if(ST.measurePts.length>=3){
+      let area=0;
+      const pts=ST.measurePts;
+      for(let i=0;i<pts.length;i++){
+        const j=(i+1)%pts.length;
+        area+=pts[i].x*pts[j].y; area-=pts[j].x*pts[i].y;
+      }
+      area=Math.abs(area)/2;
+      const msg='📐 Area: '+area.toFixed(4)+' '+ST.units+'²';
+      toast(msg,'ok'); setMsg(msg);
+      const ov=document.getElementById('measOverlay');
+      if(ov){ov.style.display='block';document.getElementById('measVal').textContent=area.toFixed(4)+' '+ST.units+'²';}
+    }
+    ST.measurePts=[];
+    render();
+  }
 });
 
 canvas.addEventListener('wheel',ev=>{
@@ -2310,196 +2154,157 @@ function showEntTip(mx,my){
 }
 
 // ── KEYBOARD ──────────────────────────────────────────────────────
-// Full AutoCAD Civil 3D-style keyboard shortcuts
 document.addEventListener('keydown',ev=>{
   const tag=document.activeElement.tagName;
   if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
 
-  // ── ESC: universal cancel / deselect / exit tool ──
+  // ESC = universal cancel / exit / deselect
   if(ev.key==='Escape'){
     ev.preventDefault();
-    if(ST.drawing){ ST.drawing=false;ST.startPt=null;ST.pts=[];ST.polyPts=null; }
-    else if(ST.opState){ ST.opState=null; }
+    if(ST.drawing){ ST.drawing=false;ST.startPt=null;ST.pts=[];ST.polyPts=null;setMsg('ESC — ready'); }
+    else if(ST.opState){ ST.opState=null;setMsg('Cancelled'); }
     else if(ST.tool!=='select'){ T('select'); }
     else { deselectAll(); }
-    hideSelBox(); setMsg('Ready — ESC to cancel, DEL to delete, SPACE to repeat last'); render(); return;
+    const ov=document.getElementById('measOverlay');if(ov)ov.style.display='none';
+    ST.measurePts=[];
+    hideSelBox(); render(); return;
   }
-
-  // ── SPACE: repeat last command ──
-  if(ev.key===' '&&!ev.ctrlKey){
-    ev.preventDefault();
-    if(ST._lastTool) T(ST._lastTool);
-    return;
-  }
-
-  // ── ENTER: finish polyline / confirm ──
+  // SPACE = repeat last command
+  if(ev.key===' '&&!ev.ctrlKey){ ev.preventDefault(); if(ST._lastTool)T(ST._lastTool); return; }
+  // ENTER = finish polyline / area
   if(ev.key==='Enter'){
     if(ST.tool==='polyline') commitPolyline();
     return;
   }
-
-  // ── DELETE / BACKSPACE: delete selected ──
+  // DELETE
   if(ev.key==='Delete'||ev.key==='Backspace'){ev.preventDefault();delSel();return;}
-
-  // ── F-KEYS ──
-  if(ev.key==='F1'){ev.preventDefault();showHelpModal();return;}
+  // F-Keys
+  if(ev.key==='F1'){ev.preventDefault();openMo('moHelp');return;}
   if(ev.key==='F2'){ev.preventDefault();showTab('layers');return;}
   if(ev.key==='F3'){ev.preventDefault();toggleOsnap();return;}
-  if(ev.key==='F4'){ev.preventDefault();toggleGridF();return;}
-  if(ev.key==='F5'){ev.preventDefault();switchRib('survey');return;}
-  if(ev.key==='F6'){ev.preventDefault();switchRib('terrain');return;}
-  if(ev.key==='F7'){ev.preventDefault();toggleGridF();return;}
+  if(ev.key==='F4'||ev.key==='F7'){ev.preventDefault();toggleGridF();return;}
   if(ev.key==='F8'){ev.preventDefault();toggleOrtho();return;}
   if(ev.key==='F9'){ev.preventDefault();toggleSnap();return;}
   if(ev.key==='F11'){ev.preventDefault();zoomExt();return;}
-
-  // ── CTRL / CMD shortcuts ──
+  // Arrow pan
+  if(ev.key==='ArrowLeft'){ST.pan.x+=40;render();return;}
+  if(ev.key==='ArrowRight'){ST.pan.x-=40;render();return;}
+  if(ev.key==='ArrowUp'){ST.pan.y+=40;render();return;}
+  if(ev.key==='ArrowDown'){ST.pan.y-=40;render();return;}
+  if(ev.key==='PageUp'){zoomBy(1.5);return;}
+  if(ev.key==='PageDown'){zoomBy(0.67);return;}
+  if(ev.key==='Home'){zoomExt();return;}
+  // Ctrl / Cmd shortcuts
   if(ev.ctrlKey||ev.metaKey){
     switch(ev.key.toLowerCase()){
-      case 'z': ev.preventDefault(); undo(); return;
-      case 'y': ev.preventDefault(); redo(); return;
-      case 'c': cmdCopy(); return;
-      case 'v': cmdPaste(); return;
-      case 'a': ev.preventDefault(); selectAll(); render(); return;
-      case 'x': pushUndo(); ST.clipboard=ST.entities.filter(e=>e.selected).map(e=>({...e})); delSel(); return;
-      case 'd': ev.preventDefault(); deselectAll(); render(); return;
-      case 'g': ev.preventDefault(); groupSel(); return;
-      case ',': openMo('moSettings'); return;
-      case 'o': ev.preventDefault(); openMo('moImport'); return;
-      case 's': ev.preventDefault(); saveProject(); return;
-      case 'e': ev.preventDefault(); openMo('moExport'); return;
-      case 'p': ev.preventDefault(); printDwg(); return;
-      case 'i': ev.preventDefault(); openMo('moCsvImport'); return;
-      case 'l': ev.preventDefault(); addLayer(); return;
-      case '=': case '+': zoomBy(1.25); return;
-      case '-': zoomBy(0.8); return;
-      case '0': zoomExt(); return;
+      case 'z':ev.preventDefault();undo();return;
+      case 'y':ev.preventDefault();redo();return;
+      case 'c':cmdCopy();return;
+      case 'v':cmdPaste();return;
+      case 'x':ev.preventDefault();pushUndo();ST.clipboard=ST.entities.filter(e=>e.selected).map(e=>JSON.parse(JSON.stringify(e)));delSel();return;
+      case 'a':ev.preventDefault();selectAll();render();return;
+      case 'd':ev.preventDefault();deselectAll();render();return;
+      case 'g':ev.preventDefault();groupSel();return;
+      case 'o':ev.preventDefault();openMo('moImport');return;
+      case 's':ev.preventDefault();if(typeof saveProject==='function')saveProject();else toast('Save: use File menu','ok');return;
+      case 'e':ev.preventDefault();openMo('moExport');return;
+      case ',':openMo('moSettings');return;
+      case 'p':ev.preventDefault();printDwg();return;
+      case '=':case '+':zoomBy(1.25);return;
+      case '-':zoomBy(0.8);return;
+      case '0':zoomExt();return;
     }
     return;
   }
-
-  // ── Single-key tool shortcuts (AutoCAD style) ──
-  const k = ev.key.toLowerCase();
-  // No modifier — tool shortcuts
-  const tools = {
-    // Draw
-    'l':'line', 'c':'circle', 'a':'arc', 'r':'rect', 'e':'ellipse',
-    'pl':'polyline',  // handled via command line
-    'h':'hatch', 't':'text',
-    // Edit
-    's':'select',
-    'm':'move',
-    'p':'pan',
-    // View
-    'z':null, // Z handled below
-  };
-
-  // Single character shortcuts
+  // Single key shortcuts
+  const k=ev.key.toLowerCase();
   switch(k){
-    case 'l': T('line'); return;
-    case 'c': T('circle'); return;
-    case 'a': T('arc'); return;
-    case 'r': T('rect'); return;
-    case 'e': T('ellipse'); return;
-    case 'h': T('hatch'); return;
-    case 't': T('text'); return;
-    case 's': T('select'); return;
-    case 'm': T('move'); return;
-    case 'p': T('pan'); return;
-    case 'f': doFillet(); return;
-    case 'o': T('offset'); return;
-    case 'g': T('polyline'); return;  // G = polyline (like AutoCAD PL shortcut)
-    // Zoom shortcuts
-    case '+': case '=': zoomBy(1.25); return;
-    case '-': case '_': zoomBy(0.8); return;
-    // Selection
-    case 'i': if(!ev.ctrlKey){ selectInvert(); return; } break;
-    // Quick access
-    case 'u': undo(); return;
-    // Tab to cycle tools
-    case 'tab': ev.preventDefault(); cycleTool(); return;
+    case 'l':T('line');return;
+    case 'c':T('circle');return;
+    case 'a':T('arc');return;
+    case 'r':T('rect');return;
+    case 'e':T('ellipse');return;
+    case 'g':T('polyline');return;
+    case 'h':T('hatch');return;
+    case 't':T('text');return;
+    case 's':T('select');return;
+    case 'm':T('move');return;
+    case 'p':T('pan');return;
+    case 'o':T('offset');return;
+    case 'f':if(typeof doFillet==='function')doFillet();return;
+    case 'u':undo();return;
+    case 'i':// invert selection
+      ST.entities.forEach(e=>{if(layVisible(e.layer))e.selected=!e.selected;});
+      updateSel();render();return;
+    case '+':case '=':zoomBy(1.25);return;
+    case '-':case '_':zoomBy(0.8);return;
+    case 'tab':ev.preventDefault();
+      const cycle=['select','line','polyline','circle','arc','rect','ellipse','text','move','pan'];
+      T(cycle[(cycle.indexOf(ST.tool)+1)%cycle.length]);return;
   }
-
-  // Arrow key pan
-  if(ev.key==='ArrowLeft'){ ST.pan.x+=30; render(); return; }
-  if(ev.key==='ArrowRight'){ ST.pan.x-=30; render(); return; }
-  if(ev.key==='ArrowUp'){ ST.pan.y+=30; render(); return; }
-  if(ev.key==='ArrowDown'){ ST.pan.y-=30; render(); return; }
-  if(ev.key==='PageUp'){ zoomBy(1.5); return; }
-  if(ev.key==='PageDown'){ zoomBy(0.67); return; }
-  if(ev.key==='Home'){ zoomExt(); return; }
 });
-
-// ── TOOL CYCLE (TAB key) ──────────────────────────────────────────
-const _toolCycle = ['select','line','polyline','circle','arc','rect','ellipse','text','move','pan'];
-function cycleTool(){
-  const idx = _toolCycle.indexOf(ST.tool);
-  T(_toolCycle[(idx+1)%_toolCycle.length]);
-}
-
-// ── SELECT INVERT ─────────────────────────────────────────────────
-function selectInvert(){
-  ST.entities.forEach(e=>{ if(layVisible(e.layer)) e.selected=!e.selected; });
-  updateSel(); render();
-}
-
-// ── HELP MODAL ────────────────────────────────────────────────────
-function showHelpModal(){
-  openMo('moHelp');
-}
-
 
 // ── TOOL ─────────────────────────────────────────────────────────
 function T(tool) {
-  // Track last tool for SPACE repeat
-  if(!['select','pan'].includes(tool)) ST._lastTool = tool;
+  if(!['select','pan'].includes(tool)) ST._lastTool=tool;
 
-  // If operation tools need selection first
   const opTools=['move','copy','rotate','scale','mirror','offset'];
   if(opTools.includes(tool)) {
-    const sels=ST.entities.filter(e=>e.selected);
-    if(sels.length===0 && tool!=='offset') {
-      T('select'); setMsg('Select objects first → then press '+tool.toUpperCase()+' again  |  ESC=cancel');
-      return;
-    }
+    ST.tool=tool;
+    ST.drawing=false; ST.startPt=null; ST.pts=[]; ST.polyPts=null;
+    updateToolUI(tool);
+    canvas.style.cursor='crosshair';
     if(tool==='offset') {
-      ST.tool=tool;
       const d=parseFloat(prompt('Offset distance ('+ST.units+'):','100'));
       if(isNaN(d)||d<=0){ T('select'); return; }
-      ST.opState={type:'offset',dist:d};
+      ST.opState={type:'offset',dist:d,base:null};
       setMsg('Click entity to offset  |  ESC=cancel');
     } else {
-      ST.opState={type:tool};
-      ST.tool=tool;
-      const msgs={
-        move:'Click base point  |  ESC=cancel',
-        copy:'Click base point (click multiple times to copy)  |  ESC=cancel',
-        rotate:'Click rotation base point  |  ESC=cancel',
-        scale:'Click scale base point  |  ESC=cancel',
-        mirror:'Click first point of mirror axis  |  ESC=cancel',
-      };
-      setMsg(msgs[tool]||'Click to start  |  ESC=cancel');
-      canvas.style.cursor='crosshair';
-      return;
+      // Check if anything is selected — if yes, start op immediately; if not, allow selecting first
+      const sels=ST.entities.filter(e=>e.selected);
+      if(sels.length>0){
+        ST.opState={type:tool,base:null,refPt:null,p1:null};
+        const msgs={move:'Click base point  |  ESC=cancel',copy:'Click base point  |  ESC=cancel',rotate:'Click rotation center  |  ESC=cancel',scale:'Click scale base point  |  ESC=cancel',mirror:'Click first mirror axis point  |  ESC=cancel'};
+        setMsg(msgs[tool]);
+      } else {
+        // Switch to select first, remember the pending op
+        ST.opState={type:tool,base:null,refPt:null,p1:null,pendingSelect:true};
+        setMsg('Select objects first — then click base point  |  ESC=cancel');
+        ST.tool='select';
+        updateToolUI('select');
+      }
     }
-    updateToolUI(tool); return;
+    return;
   }
 
   ST.tool=tool;
   ST.drawing=false; ST.startPt=null; ST.pts=[];
   ST.polyPts=null; ST.opState=null;
-  document.getElementById('entTip').style.display='none';
+  const tip=document.getElementById('entTip');if(tip)tip.style.display='none';
   updateToolUI(tool);
   canvas.style.cursor=tool==='pan'?'grab':(tool==='select'?'default':'crosshair');
-  setMsg({
-    select:'Click to select — drag to window/crossing select',
-    line:'Click start point',circle:'Click center',rect:'Click first corner',arc:'Click center',
-    ellipse:'Click center',polyline:'Click first point — double-click or Enter to finish',
-    text:'Click position',hatch:'Click first corner',pan:'Click and drag to pan',
-    'dim-lin':'Click start point','measure-d':'Click first point','measure-a':'Click boundary points',
-    spline:'Click start point',leader:'Click start point',
-  }[tool]||'Click to start');
+  const msgs={
+    select:'Click to select — drag right=window, drag left=crossing  |  SHIFT=add  CTRL+A=all',
+    line:'Click start point  |  Chain continues — right-click or ESC to stop',
+    circle:'Click center point  |  ESC=cancel',
+    rect:'Click first corner  |  ESC=cancel',
+    arc:'Click center point  |  ESC=cancel',
+    ellipse:'Click center  |  ESC=cancel',
+    polyline:'Click first point  |  double-click or Enter to finish',
+    text:'Click position  |  ESC=cancel',
+    hatch:'Click first corner  |  ESC=cancel',
+    pan:'Click and drag  |  ESC=select  or use middle-mouse anywhere',
+    'measure-d':'Click first point  |  ESC=cancel',
+    'measure-a':'Click boundary points  |  double-click to finish',
+    'dim-lin':'Click start point  |  ESC=cancel',
+    trim:'Click entity to remove  |  ESC=cancel',
+    extend:'Click entity to extend  |  ESC=cancel',
+    spline:'Click first point  |  ESC=cancel',
+    leader:'Click start  |  ESC=cancel',
+  };
+  setMsg(msgs[tool]||'Click to start  |  ESC=cancel');
 }
+
 
 function updateToolUI(tool) {
   document.querySelectorAll('.tb.act,.rb.act').forEach(b=>b.classList.remove('act'));
@@ -2653,73 +2458,65 @@ function applyProp(key,val){
 // ── FILE IMPORT ───────────────────────────────────────────────────
 let _pendingFile=null;
 
-function fileChosen(ev){
-  const f=ev.target.files?.[0];if(!f)return;
-  routeFile(f,'import');
-}
-function impDrop(ev){
-  ev.preventDefault();
-  const f=ev.dataTransfer?.files?.[0];if(!f)return;
-  document.getElementById('impZone').classList.remove('dov');
-  routeFile(f,'import');
-}
-function vpDrop(ev){
-  ev.preventDefault();document.getElementById('dz').style.display='none';
-  const f=ev.dataTransfer?.files?.[0];if(!f)return;
-  routeFile(f,'canvas');
-}
+// ── FILE HANDLING — safe, no recursion, no stack overflow ────────
+let _pendingCSVFile=null, _pendingGeoFile=null;
 
-function routeFile(f,source){
+function _routeFile(f, fromImportModal){
+  if(!f||!f.name){toast('Invalid file','err');return;}
   const n=f.name.toLowerCase();
   if(n.endsWith('.dwg')||n.endsWith('.dwf')||n.endsWith('.dwt')){
-    _pendingFile=f; if(source==='import')closeMo('moImport'); showDwgGuide(f); return;
+    if(fromImportModal)closeMo('moImport');
+    _showDwgGuideSafe(f); return;
   }
   if(n.endsWith('.csv')||n.endsWith('.txt')){
-    _pendingCSV=f; if(source==='import')closeMo('moImport');
-    openMo('moCsvImport');
-    document.getElementById('csvFileName').textContent='📊 '+f.name;
-    previewCSV(f); return;
+    if(fromImportModal)closeMo('moImport');
+    _pendingCSVFile=f;
+    const el=document.getElementById('csvFileName');if(el)el.textContent='📊 '+f.name;
+    previewCSV(f); openMo('moCsvImport'); return;
   }
   if(n.endsWith('.json')||n.endsWith('.geojson')){
-    _pendingGeoJSON=f; if(source==='import')closeMo('moImport');
-    openMo('moGeoImport');
-    document.getElementById('geoFileName').textContent='🗺️ '+f.name;
-    previewGeoJSON(f); return;
+    if(fromImportModal)closeMo('moImport');
+    _pendingGeoFile=f;
+    const el=document.getElementById('geoFileName');if(el)el.textContent='🗺️ '+f.name;
+    previewGeoJSON(f); openMo('moGeoImport'); return;
   }
   if(n.endsWith('.strata')){
-    const r=new FileReader(); r.onload=e=>{
-      try{ const d=JSON.parse(e.target.result); loadProjectData(d,f.name); }
-      catch(err){ toast('Load failed: '+err.message,'err'); }
-    }; r.readAsText(f); return;
+    const r=new FileReader();
+    r.onload=e=>{try{_loadProjectData(JSON.parse(e.target.result),f.name);}catch(err){toast('Load error: '+err.message,'err');}};
+    r.readAsText(f); return;
   }
-  // DXF / SVG — set pending and trigger import
+  // DXF / SVG
   _pendingFile=f;
-  if(source==='import'){
-    document.getElementById('impName').textContent='📐 '+f.name;
+  if(fromImportModal){
+    const el=document.getElementById('impName');if(el)el.textContent='📐 '+f.name;
     toast('File ready — click Import Drawing','ok');
   } else {
     doImport();
   }
 }
-function showDwgGuide(f){
+
+function fileChosen(ev){const f=ev.target.files?.[0];if(f)_routeFile(f,true);}
+function impDrop(ev){ev.preventDefault();const z=document.getElementById('impZone');if(z)z.classList.remove('dov');const f=ev.dataTransfer?.files?.[0];if(f)_routeFile(f,true);}
+function vpDrop(ev){ev.preventDefault();const dz=document.getElementById('dz');if(dz)dz.style.display='none';const f=ev.dataTransfer?.files?.[0];if(f)_routeFile(f,false);}
+
+function _showDwgGuideSafe(f){
   const vm={'AC1015':'AutoCAD 2000','AC1018':'AutoCAD 2004','AC1021':'AutoCAD 2007','AC1024':'AutoCAD 2010','AC1027':'AutoCAD 2013','AC1032':'AutoCAD 2018','AC1035':'AutoCAD 2023'};
   const r=new FileReader();
   r.onload=ev=>{
-    // Safe uint8→string for small header slice
+    // SAFE: loop not spread — avoids stack overflow on large files
     const arr=new Uint8Array(ev.target.result);
-    let v='';
-    for(let i=0;i<Math.min(6,arr.length);i++) v+=String.fromCharCode(arr[i]);
-    const l=vm[v]||'Unknown version';
+    let v=''; for(let i=0;i<arr.length;i++) v+=String.fromCharCode(arr[i]);
     const meta=document.getElementById('dwgMeta');
-    if(meta) meta.innerHTML=
-      `<span class="dwg-chip">File <b>${f.name}</b></span>`+
-      `<span class="dwg-chip">Format <b>${v}</b> (${l})</span>`+
-      `<span class="dwg-chip">Size <b>${(f.size/1048576).toFixed(2)} MB</b></span>`;
+    if(meta)meta.innerHTML='<span class="dwg-chip">File <b>'+f.name+'</b></span>'+
+      '<span class="dwg-chip">Format <b>'+v+'</b> ('+( vm[v]||'Unknown')+')</span>'+
+      '<span class="dwg-chip">Size <b>'+(f.size/1048576).toFixed(2)+' MB</b></span>';
     openMo('moDwgGuide');
   };
   r.onerror=()=>openMo('moDwgGuide');
   r.readAsArrayBuffer(f.slice(0,6));
 }
+// Keep showDwgGuide as alias
+function showDwgGuide(f){_showDwgGuideSafe(f);}
 
 function doImport(){
   if(!_pendingFile){
@@ -2776,8 +2573,8 @@ function parseDXF(txt,filename){
       const ex=ST.layers.find(l=>l.name===c);
       if(ex){layerMap[c]=ex.id;}
       else{
-        const cols=['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060','#4488ff','#ff8844','#44ffaa','#ffcc44','#cc44ff','#44ccff'];
-        const id = ++ST._eid + 10000; // guaranteed unique, above entity IDs
+        const cols=['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060','#4488ff','#ff8844','#44ffaa'];
+        const id=Date.now()+Math.random()|0;
         layerMap[c]=id;
         ST.layers.push({id,name:c,color:cols[ST.layers.length%cols.length],vis:true,lock:false,frz:false,dis:false});
       }
@@ -3136,18 +2933,6 @@ function togglePolar(){ST.polar=!ST.polar;toast('Polar '+(ST.polar?'ON':'OFF'),'
 function switchRib(t){
   document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('act'));
   document.getElementById('rt-'+t)?.classList.add('act');
-  // Show relevant ribbon groups
-  const allGroups = document.querySelectorAll('.rg');
-  allGroups.forEach(g=>{
-    const match = g.classList.contains('rp-'+t);
-    const isHome = !['survey','terrain','gis','civil','view','insert','annotate','modify','layers'].some(x=>g.classList.contains('rp-'+x));
-    g.style.display = (t==='home' ? isHome : match) ? 'flex' : 'none';
-  });
-  // Always show home groups when switching to home
-  if(t==='home') allGroups.forEach(g=>{
-    const special = ['survey','terrain','gis','civil','view','insert','annotate','modify','layers'].some(x=>g.classList.contains('rp-'+x));
-    if(!special) g.style.display='flex';
-  });
 }
 
 // ── LAYOUTS ───────────────────────────────────────────────────────
@@ -3180,12 +2965,9 @@ function selCard(el){el.closest('.oc-g')?.querySelectorAll('.oc').forEach(c=>c.c
 
 // ── PANEL TABS ────────────────────────────────────────────────────
 function showTab(s){
-  document.querySelectorAll('.rp-sec').forEach(k=>k.classList.remove('act'));
-  document.querySelectorAll('.rptab').forEach(k=>k.classList.remove('act'));
+  ['layers','props','blocks'].forEach(k=>{document.getElementById('sec-'+k)?.classList.remove('act');document.getElementById('tab-'+k)?.classList.remove('act');});
   document.getElementById('sec-'+s)?.classList.add('act');
   document.getElementById('tab-'+s)?.classList.add('act');
-  if(s==='survey') renderSurveyList();
-  if(s==='layers') renderLayers();
 }
 
 // ── CMD LINE ─────────────────────────────────────────────────────
@@ -3206,23 +2988,6 @@ function cmdKey(ev){
     EXPORT:()=>openMo('moExport'),SETTINGS:()=>openMo('moSettings'),
     BLOCK:()=>openMo('moBlock'),CIVIL:()=>openMo('moCivil'),
     EXPLODE:()=>openMo('moExplode'),ARRAY:()=>openMo('moArray'),
-    SURVEY:()=>{showTab('survey');openMo('moCsvImport');},
-    CSV:()=>openMo('moCsvImport'),
-    GEOJSON:()=>openMo('moGeoImport'),
-    GEO:()=>openMo('moGeoImport'),
-    TIN:buildTIN,
-    CONTOUR:()=>openMo('moContour'),
-    CONTOURS:()=>openMo('moContour'),
-    FILLET:doFillet, F:doFillet,
-    CHAMFER:doChamfer, CHA:doChamfer,
-    SAVE:saveProject,
-    LOAD:()=>openMo('moProject'),
-    PROJECT:()=>openMo('moProject'),
-    BEARING:calcBearing,
-    CRS:showCRS,
-    EXPORTGEO:exportGeoJSON,
-    EXPORTCSV:exportSurveyCSV,
-    ZOOMSURVEY:zoomToSurvey,
   };
   if(map[v]){T(map[v]);setMsg('▶ '+v);}
   else if(acts[v]){acts[v]();setMsg('▶ '+v);}
@@ -3345,946 +3110,911 @@ function tlClear(idx){
 }
 function tlClearAll(){ST.imgOverlays=[];tlOpen();render();}
 
+// ── INIT ─────────────────────────────────────────────────────────
+ST._lastTool = 'line';
+ST.surveyPts = [];
+ST.tin = null;
+ST.contours = [];
+ST.showTIN = false;
+ST.showContours = true;
+ST.terrainMinZ = 0;
+ST.terrainMaxZ = 100;
+ST.crs = 'Local / Unknown';
+T('select');
+switchLayout('model');
+setTimeout(()=>{
+  toast('Strata CAD Pro — L=Line  C=Circle  M=Move  ESC=Cancel  DEL=Delete  F1=Help','ok');
+  setMsg('Ready — Draw: L C R A  |  Edit: M CO RO SC MI O  |  View: +- arrows  |  F1=all shortcuts');
+  resize();
+},200);
 // ════════════════════════════════════════════════════════════════════
-//  SURVEY MODULE
+//  DYNAMIC INPUT — floats near cursor, shows live dist/angle, accepts typed values
 // ════════════════════════════════════════════════════════════════════
+const DYN = {
+  visible: false,
+  mode: 'dist',   // 'dist' or 'angle'
+  enabled: true,
+};
 
-let _pendingCSV = null;
+function dynShow(mx, my) {
+  if(!DYN.enabled || !ST.drawing || !ST.startPt) { dynHide(); return; }
+  const div = document.getElementById('dynInput');
+  if(!div) return;
+  const sp = ST.startPt;
+  const wp = s2w(mx, my);
+  const dx = wp.x - sp.x, dy = wp.y - sp.y;
+  const dist = Math.hypot(dx, dy);
+  const ang = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
 
-function csvDrop(ev){
-  ev.preventDefault();
-  const f = ev.dataTransfer?.files?.[0]; if(!f) return;
-  _pendingCSV = f;
-  document.getElementById('csvFileName').textContent = '📊 '+f.name;
-  previewCSV(f);
+  // Update live display
+  const v1 = document.getElementById('dynVal1');
+  const v2 = document.getElementById('dynVal2');
+  const l1 = document.getElementById('dynLbl1');
+  const l2 = document.getElementById('dynLbl2');
+  if(v1) v1.textContent = dist.toFixed(3) + ' ' + ST.units;
+  if(v2) v2.textContent = ang.toFixed(1) + '°';
+
+  // Tool-specific labels
+  if(ST.tool === 'rotate' || ST.tool === 'arc') {
+    if(l1) l1.textContent = 'ANGLE'; if(l2) l2.textContent = 'RADIUS';
+    if(v1) v1.textContent = ang.toFixed(2) + '°';
+    if(v2) v2.textContent = dist.toFixed(3) + ' ' + ST.units;
+  } else if(ST.tool === 'scale') {
+    if(l1) l1.textContent = 'FACTOR'; if(l2) l2.textContent = 'DIST';
+  } else {
+    if(l1) l1.textContent = 'DIST'; if(l2) l2.textContent = 'ANGLE';
+  }
+
+  // Position near cursor (avoid edges)
+  const pad = 18;
+  let px = mx + pad, py = my - 60;
+  if(px + 310 > window.innerWidth) px = mx - 315;
+  if(py < 4) py = my + pad;
+  div.style.left = px + 'px';
+  div.style.top  = py + 'px';
+  div.style.display = 'block';
+  DYN.visible = true;
 }
-function csvFileChosen(ev){
-  const f = ev.target.files?.[0]; if(!f) return;
-  _pendingCSV = f;
-  document.getElementById('csvFileName').textContent = '📊 '+f.name;
-  previewCSV(f);
+
+function dynHide() {
+  const div = document.getElementById('dynInput');
+  if(div) div.style.display = 'none';
+  DYN.visible = false;
 }
+
+function dynFocus() {
+  const f = document.getElementById('dynField');
+  if(f) { f.value = ''; f.focus(); }
+}
+
+// Called when user presses Enter in dynField
+document.addEventListener('DOMContentLoaded', () => {
+  const dynField = document.getElementById('dynField');
+  if(!dynField) return;
+
+  dynField.addEventListener('keydown', ev => {
+    ev.stopPropagation(); // don't let keydown bubble to canvas handlers
+    if(ev.key === 'Escape') { dynHide(); T('select'); return; }
+    if(ev.key === 'Tab') {
+      ev.preventDefault();
+      DYN.mode = DYN.mode === 'dist' ? 'angle' : 'dist';
+      dynField.value = '';
+      return;
+    }
+    if(ev.key === 'Enter') {
+      ev.preventDefault();
+      const val = dynField.value.trim();
+      if(!val) return;
+      applyDynValue(val);
+      dynField.value = '';
+    }
+  });
+});
+
+function applyDynValue(val) {
+  if(!ST.startPt) return;
+  const sp = ST.startPt;
+  let wp = null;
+
+  // Format: "100" = distance along current direction
+  // "@50,30" = relative X,Y
+  // "100<45" = distance at angle
+  // "50" when mode='angle' = current dist at typed angle
+
+  if(val.includes('<')) {
+    // Polar: dist<angle
+    const [d, a] = val.split('<').map(Number);
+    const rad = (a || 0) * Math.PI / 180;
+    wp = { x: sp.x + d * Math.cos(rad), y: sp.y + d * Math.sin(rad) };
+  } else if(val.startsWith('@')) {
+    // Relative cartesian
+    const [dx, dy] = val.slice(1).split(',').map(Number);
+    wp = { x: sp.x + (dx||0), y: sp.y + (dy||0) };
+  } else if(val.includes(',')) {
+    // Absolute cartesian
+    const [x, y] = val.split(',').map(Number);
+    wp = { x, y };
+  } else {
+    const num = parseFloat(val);
+    if(isNaN(num)) { toast('Invalid value: '+val, 'warn'); return; }
+    if(DYN.mode === 'angle') {
+      // Apply this angle, keep current distance
+      const curDist = Math.hypot(ST.mouse.x - w2s(sp.x,sp.y).x, ST.mouse.y - w2s(sp.x,sp.y).y) / ST.zoom;
+      const rad = num * Math.PI / 180;
+      wp = { x: sp.x + curDist * Math.cos(rad), y: sp.y + curDist * Math.sin(rad) };
+    } else {
+      // Apply this distance, keep current angle
+      const curAng = Math.atan2(ST.mouse.y - w2s(sp.x,sp.y).y, ST.mouse.x - w2s(sp.x,sp.y).x);
+      wp = { x: sp.x + num * Math.cos(curAng), y: sp.y + num * Math.sin(curAng) };
+    }
+  }
+
+  if(!wp) return;
+
+  // Apply to current operation
+  if(ST.opState) {
+    applyOp(wp); return;
+  }
+
+  // Apply to drawing tool
+  if(ST.tool === 'line' || ST.tool === 'circle' || ST.tool === 'rect' || ST.tool === 'ellipse' || ST.tool === 'arc' || ST.tool === 'hatch' || ST.tool === 'dim-lin') {
+    const owp = ST.ortho ? applyOrtho(ST.startPt, wp) : wp;
+    const done = commitEntity(owp);
+    if(done) {
+      if(ST.tool === 'line') { ST.startPt = owp; setMsg('Next point — type dist, @x,y, dist<ang, or click  |  ESC=stop'); }
+      else { ST.drawing = false; ST.startPt = null; ST.pts = []; setMsg(ST.tool.toUpperCase() + ' drawn'); }
+      render();
+    }
+  }
+}
+
+// ── COORDINATE ENTRY POPUP ──────────────────────────────────────
+let _ceCallback = null;
+
+function openCE(callback, hint) {
+  _ceCallback = callback;
+  const div = document.getElementById('coordEntry');
+  const hintEl = document.getElementById('ceHint');
+  if(!div) return;
+  if(hintEl) hintEl.textContent = hint || 'Enter coordinates (absolute) or @dx,dy (relative from last point)';
+  // Center on screen
+  div.style.left = (window.innerWidth/2 - 120) + 'px';
+  div.style.top  = (window.innerHeight/2 - 80) + 'px';
+  div.style.display = 'block';
+  const x = document.getElementById('ceX');
+  if(x) { x.value = ''; x.focus(); }
+  const y = document.getElementById('ceY');
+  if(y) y.value = '';
+  // Allow enter in inputs
+  [document.getElementById('ceX'), document.getElementById('ceY')].forEach(el => {
+    if(el) el.onkeydown = ev => { if(ev.key === 'Enter') confirmCE(); if(ev.key === 'Escape') closeCE(); ev.stopPropagation(); };
+  });
+}
+
+function closeCE() {
+  const div = document.getElementById('coordEntry');
+  if(div) div.style.display = 'none';
+  _ceCallback = null;
+}
+
+function confirmCE() {
+  const xv = document.getElementById('ceX')?.value?.trim();
+  const yv = document.getElementById('ceY')?.value?.trim();
+  if(!xv && !yv) { closeCE(); return; }
+
+  let wp;
+  if(xv && xv.startsWith('@')) {
+    // Relative
+    const base = ST.startPt || {x:0,y:0};
+    wp = { x: base.x + parseFloat(xv.slice(1)||0), y: base.y + parseFloat(yv||0) };
+  } else {
+    wp = { x: parseFloat(xv||0), y: parseFloat(yv||0) };
+  }
+
+  closeCE();
+  if(_ceCallback) { _ceCallback(wp); _ceCallback = null; }
+  else if(ST.drawing && ST.startPt) {
+    applyDynValue(wp.x + ',' + wp.y);
+  } else if(!ST.drawing && ['line','circle','rect','arc','ellipse','polyline'].includes(ST.tool)) {
+    ST.drawing = true; ST.startPt = wp;
+    setMsg('Start set to ' + wp.x.toFixed(3) + ', ' + wp.y.toFixed(3) + ' — click or type next point');
+    render();
+  }
+}
+
+// ── COMMAND LINE COORDINATE PARSING ──────────────────────────────
+// Allow typing "@50,30" or "100,200" or "100<45" in cmd line while drawing
+const _origCmdKeyFn = window.cmdKey;
+window.cmdKey = function(ev) {
+  if(ev.key !== 'Enter') return;
+  const raw = document.getElementById('cmdInput')?.value?.trim() || '';
+  document.getElementById('cmdInput').value = '';
+  if(!raw) return;
+
+  const v = raw.toUpperCase();
+
+  // Coordinate patterns (only when drawing or operating)
+  if(ST.drawing || ST.opState) {
+    if(raw.includes(',') || raw.includes('<') || raw.startsWith('@') || (!isNaN(parseFloat(raw)) && ST.drawing)) {
+      applyDynValue(raw);
+      setMsg('Applied: ' + raw);
+      return;
+    }
+  }
+
+  // CE = open coordinate entry popup
+  if(v === 'CE' || v === 'COORD' || v === 'ENTER') {
+    openCE(null, 'Enter absolute coordinates X, Y');
+    return;
+  }
+
+  _origCmdKeyFn(ev);
+};
+
+// ── PATCH MOUSEMOVE to update dynamic input ────────────────────
+const _origMM = canvas.onmousemove;
+canvas.addEventListener('mousemove', ev => {
+  const r = canvas.getBoundingClientRect();
+  dynShow(ev.clientX - r.left, ev.clientY - r.top);
+});
+
+// ── KEYBOARD: # to open coord entry while drawing ──────────────
+document.addEventListener('keydown', ev => {
+  const tag = document.activeElement.tagName;
+  if(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  // # key or F12 = open coord entry
+  if(ev.key === '#' || ev.key === 'F12') {
+    ev.preventDefault();
+    openCE(null, ST.drawing ? 'Enter next point coordinates' : 'Enter start point coordinates');
+    return;
+  }
+  // D = focus dynamic input field
+  if(ev.key === 'd' && ST.drawing && !ev.ctrlKey) {
+    ev.preventDefault();
+    dynFocus();
+    return;
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  MAP BACKGROUND — Leaflet tiles behind canvas
+// ════════════════════════════════════════════════════════════════════
+let _map = null;
+let _mapActive = false;
+let _mapLayer = 'osm';
+let _mapCal = { active: false, pts: [], worldPts: [] }; // calibration
+
+const _mapLayers = {
+  osm: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  sat: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  topo:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+};
+
+function toggleMap() {
+  _mapActive = !_mapActive;
+  const div = document.getElementById('mapDiv');
+  const btn = document.getElementById('btnMap');
+  if(!div) return;
+
+  if(_mapActive) {
+    div.style.display = 'block';
+    // Make canvas background transparent
+    ST.bgColor = 'rgba(0,0,0,0.01)';
+    if(!_map) _initMap();
+    if(btn) btn.classList.add('on');
+    toast('Map ON — use 📍 to calibrate drawing to map', 'ok');
+    setMsg('Map active — click 📍 to align drawing to real-world coordinates');
+  } else {
+    div.style.display = 'none';
+    ST.bgColor = '#060E1A';
+    if(btn) btn.classList.remove('on');
+    toast('Map OFF', 'ok');
+  }
+  render();
+}
+
+function _initMap() {
+  const div = document.getElementById('mapDiv');
+  if(!div || typeof L === 'undefined') {
+    toast('Map library not loaded — check internet connection', 'warn'); return;
+  }
+  _map = L.map(div, {
+    zoomControl: false,
+    attributionControl: true,
+    preferCanvas: true,
+  }).setView([25.2048, 55.2708], 13); // Default: Dubai
+
+  L.tileLayer(_mapLayers[_mapLayer], {
+    maxZoom: 22,
+    attribution: _mapLayer === 'sat' ? '© Esri' : '© OpenStreetMap'
+  }).addTo(_map);
+
+  // Sync map pan/zoom from canvas (disabled by default — use calibration instead)
+  toast('Map loaded — centre on your area, then 📍 to calibrate', 'ok');
+}
+
+function setMapLayer(type) {
+  _mapLayer = type;
+  const satBtn = document.getElementById('btnMapSat');
+  const osmBtn = document.getElementById('btnMapOSM');
+  if(satBtn) satBtn.style.display = type === 'sat' ? 'none' : 'flex';
+  if(osmBtn) osmBtn.style.display = type === 'osm' ? 'none' : 'flex';
+  if(!_map) return;
+  _map.eachLayer(l => { if(l instanceof L.TileLayer) _map.removeLayer(l); });
+  L.tileLayer(_mapLayers[type], { maxZoom: 22 }).addTo(_map);
+  toast('Map layer: ' + type.toUpperCase(), 'ok');
+}
+
+function startMapCal() {
+  if(!_mapActive) { toggleMap(); }
+  _mapCal = { active: true, pts: [], worldPts: [] };
+  const hint = document.getElementById('mapCalHint');
+  if(hint) {
+    hint.style.display = 'block';
+    hint.textContent = 'Step 1: Click a known point ON THE MAP to set its real-world position';
+  }
+  toast('Click point 1 on the map', 'ok');
+  // Listen for map clicks
+  if(_map) _map.once('click', _calStep1);
+}
+
+function _calStep1(ev) {
+  const ll = ev.latlng;
+  _mapCal.pts[0] = { lat: ll.lat, lng: ll.lng };
+  const hint = document.getElementById('mapCalHint');
+  if(hint) hint.textContent = 'Step 2: Now click the SAME point on the drawing canvas, then click a second map point';
+  // Next: user clicks canvas to say "this map point = this canvas point"
+  _pendingCalClick = 1;
+  toast('Now click the same point on your drawing', 'ok');
+}
+
+let _pendingCalClick = 0;
+// Patch mousedown to capture calibration clicks
+const _origMD = canvas.onmousedown;
+
+function _captureCalClick(wp) {
+  if(_pendingCalClick === 1) {
+    _mapCal.worldPts[0] = { x: wp.x, y: wp.y };
+    _pendingCalClick = 2;
+    toast('Good! Now click point 2 on the MAP', 'ok');
+    const hint = document.getElementById('mapCalHint');
+    if(hint) hint.textContent = 'Click a second known point on the map';
+    if(_map) _map.once('click', _calStep2);
+    return true;
+  }
+  if(_pendingCalClick === 3) {
+    _mapCal.worldPts[1] = { x: wp.x, y: wp.y };
+    _finishCal();
+    return true;
+  }
+  return false;
+}
+
+function _calStep2(ev) {
+  const ll = ev.latlng;
+  _mapCal.pts[1] = { lat: ll.lat, lng: ll.lng };
+  _pendingCalClick = 3;
+  toast('Now click the same second point on your drawing', 'ok');
+  const hint = document.getElementById('mapCalHint');
+  if(hint) hint.textContent = 'Click the same second point on the drawing canvas';
+}
+
+function _finishCal() {
+  _pendingCalClick = 0;
+  _mapCal.active = false;
+  const hint = document.getElementById('mapCalHint');
+  if(hint) hint.style.display = 'none';
+
+  const p1w = _mapCal.worldPts[0], p2w = _mapCal.worldPts[1];
+  const p1m = _mapCal.pts[0],     p2m = _mapCal.pts[1];
+  if(!p1w || !p2w || !p1m || !p2m) { toast('Calibration failed', 'err'); return; }
+
+  // Store transform: worldPt → latLng
+  _mapCal.ready = true;
+  _mapCal.transform = { p1w, p2w, p1m, p2m };
+
+  toast('Map calibrated! Drawing is now georeferenced', 'ok');
+  setMsg('Map calibrated — drawing coordinates are now georeferenced to real-world');
+
+  // Move map to cover the drawing extent
+  _syncMapToDrawing();
+}
+
+function _syncMapToDrawing() {
+  if(!_map || !_mapCal.ready) return;
+  const { p1w, p2w, p1m, p2m } = _mapCal.transform;
+  // Simple linear interpolation to convert world→latLng
+  const dx_w = p2w.x - p1w.x || 1, dy_w = p2w.y - p1w.y || 1;
+  const dlat = p2m.lat - p1m.lat, dlng = p2m.lng - p1m.lng;
+  window._worldToLatLng = function(x, y) {
+    const fx = (x - p1w.x) / dx_w, fy = (y - p1w.y) / dy_w;
+    return L.latLng(p1m.lat + fy * dlat, p1m.lng + fx * dlng);
+  };
+  // Fit map to drawing bbox
+  if(ST.entities.length) {
+    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+    ST.entities.forEach(e=>{const b=entBBox(e);if(b){minX=Math.min(minX,b.minX);maxX=Math.max(maxX,b.maxX);minY=Math.min(minY,b.minY);maxY=Math.max(maxY,b.maxY);}});
+    if(isFinite(minX)){
+      const sw = _worldToLatLng(minX,minY), ne = _worldToLatLng(maxX,maxY);
+      _map.fitBounds([sw,ne],{padding:[20,20]});
+    }
+  }
+}
+
+// ── SEARCH LOCATION on map ──────────────────────────────────────
+function mapSearch(query) {
+  if(!query) { query = prompt('Search location (city, address):', ''); if(!query) return; }
+  fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query) + '&format=json&limit=1')
+    .then(r => r.json())
+    .then(data => {
+      if(!data.length) { toast('Location not found', 'warn'); return; }
+      const { lat, lon, display_name } = data[0];
+      if(!_map) { toggleMap(); }
+      _map.setView([parseFloat(lat), parseFloat(lon)], 16);
+      toast('Map → ' + display_name.split(',')[0], 'ok');
+    })
+    .catch(() => toast('Location search failed', 'warn'));
+}
+
+// ── PATCH MOUSEDOWN to intercept calibration clicks ─────────────
+const _vp = document.getElementById('vp');
+if(_vp) {
+  _vp.addEventListener('mousedown', ev => {
+    if(_pendingCalClick > 0 && ev.button === 0) {
+      const r = canvas.getBoundingClientRect();
+      const wp = s2w(ev.clientX - r.left, ev.clientY - r.top);
+      if(_captureCalClick(wp)) ev.stopImmediatePropagation();
+    }
+  }, true); // capture phase
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  ENHANCED COMMAND LINE — add map + coord commands
+// ════════════════════════════════════════════════════════════════════
+const _prevCmdKey2 = window.cmdKey;
+window.cmdKey = function(ev) {
+  if(ev.key !== 'Enter') return;
+  const raw = document.getElementById('cmdInput')?.value?.trim() || '';
+  document.getElementById('cmdInput').value = '';
+  if(!raw) return;
+  const v = raw.toUpperCase();
+  const mapExtras = {
+    MAP: toggleMap,
+    MAPSAT: () => setMapLayer('sat'),
+    MAPOSM: () => setMapLayer('osm'),
+    MAPCAL: startMapCal,
+    'MAP SEARCH': () => mapSearch(),
+  };
+  if(v.startsWith('FIND ') || v.startsWith('GO ') || v.startsWith('SEARCH ')) {
+    mapSearch(raw.split(' ').slice(1).join(' ')); return;
+  }
+  if(mapExtras[v]) { mapExtras[v](); return; }
+  _prevCmdKey2(ev);
+};
+
+// ── Update init message ──────────────────────────────────────────
+setTimeout(() => {
+  setMsg('Ready — L C R A  |  Type coords: @x,y  100<45  dist  |  # = coord entry  D = type value  |  F1 = Help');
+}, 600);
+
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     STRATA CAD PRO — SURVEY / TERRAIN / GIS / PROJECT EXTENSIONS
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+// ── FILE ROUTING (fixes null.name + stack overflow) ───────────────
+// Replace fileChosen with safe version that routes all formats
+// File routing handled in main script block above
+
+// Universal file router
+// pendingCSVFile and pendingGeoFile declared in main script above
+function routeFile(f,source){
+  const n=f.name.toLowerCase();
+  if(!f.name){toast('Invalid file','err');return;}
+  if(n.endsWith('.dwg')||n.endsWith('.dwf')||n.endsWith('.dwt')){
+    _pendingFile=f; if(source==='import')closeMo('moImport');
+    showDwgGuide(f); return;
+  }
+  if(n.endsWith('.csv')||n.endsWith('.txt')){
+    _pendingCSVFile=f; if(source==='import')closeMo('moImport');
+    openMo('moCsvImport');
+    const el=document.getElementById('csvFileName');if(el)el.textContent='📊 '+f.name;
+    previewCSV(f); return;
+  }
+  if(n.endsWith('.json')||n.endsWith('.geojson')){
+    _pendingGeoFile=f; if(source==='import')closeMo('moImport');
+    openMo('moGeoImport');
+    const el=document.getElementById('geoFileName');if(el)el.textContent='🗺️ '+f.name;
+    previewGeoJSON(f); return;
+  }
+  if(n.endsWith('.strata')){
+    const r=new FileReader();
+    r.onload=e=>{try{loadProjectData(JSON.parse(e.target.result),f.name);}catch(err){toast('Load error: '+err.message,'err');}};
+    r.readAsText(f); return;
+  }
+  _pendingFile=f;
+  if(source==='canvas') doImport();
+  else { const el=document.getElementById('impName');if(el)el.textContent='📐 '+f.name; toast('File ready — click Import Drawing','ok'); }
+}
+
+// ── SURVEY MODULE ─────────────────────────────────────────────────
 function previewCSV(file){
-  const r = new FileReader();
-  r.onload = ev => {
-    const lines = ev.target.result.split('\n').slice(0,6);
-    document.getElementById('csvPreview').textContent = lines.join('\n');
+  const r=new FileReader();
+  r.onload=ev=>{
+    const el=document.getElementById('csvPreview');
+    if(el) el.textContent=ev.target.result.split('\n').slice(0,8).join('\n');
   };
   r.readAsText(file);
 }
+function csvDrop(ev){ev.preventDefault();const f=ev.dataTransfer?.files?.[0];if(!f)return;_pendingCSVFile=f;const el=document.getElementById('csvFileName');if(el)el.textContent='📊 '+f.name;previewCSV(f);}
+function csvFileChosen(ev){const f=ev.target.files?.[0];if(!f)return;_pendingCSVFile=f;const el=document.getElementById('csvFileName');if(el)el.textContent='📊 '+f.name;previewCSV(f);}
 
 function doImportCSV(){
-  if(!_pendingCSV){ toast('No CSV file selected','warn'); return; }
-  const colPt  = parseInt(document.getElementById('csvColPt').value)||0;
-  const colE   = parseInt(document.getElementById('csvColE').value)||1;
-  const colN   = parseInt(document.getElementById('csvColN').value)||2;
-  const colZ   = parseInt(document.getElementById('csvColZ').value);
-  const colD   = parseInt(document.getElementById('csvColD').value);
-  const header = document.getElementById('csvHasHeader').checked;
-  const plot   = document.getElementById('csvPlotPts').checked;
-  const label  = document.getElementById('csvLabelPts').checked;
-  const showZ  = document.getElementById('csvShowElev').checked;
-
-  const r = new FileReader();
-  r.onload = ev => {
-    const lines = ev.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
-    const start = header ? 1 : 0;
-    let count = 0, errors = 0;
-    const newPts = [];
-
-    for(let i = start; i < lines.length; i++){
-      const line = lines[i].trim();
-      if(!line) continue;
-      // Support comma, semicolon, tab delimited
-      const cols = line.split(/[,;\t]+/);
-      const e = parseFloat(cols[colE]);
-      const n = parseFloat(cols[colN]);
-      if(isNaN(e)||isNaN(n)){ errors++; continue; }
-      const z  = (colZ >= 0 && cols[colZ] !== undefined) ? parseFloat(cols[colZ])||0 : 0;
-      const id = cols[colPt]?.trim() || String(i - start + 1);
-      const desc = (colD >= 0 && cols[colD]) ? cols[colD].trim() : '';
-      newPts.push({ id, e, n, z, desc, type: '' });
+  if(!_pendingCSVFile){toast('No CSV selected','warn');return;}
+  const colPt=parseInt(document.getElementById('csvColPt')?.value)||0;
+  const colE =parseInt(document.getElementById('csvColE')?.value)||1;
+  const colN =parseInt(document.getElementById('csvColN')?.value)||2;
+  const colZ =parseInt(document.getElementById('csvColZ')?.value); // may be -1
+  const header=document.getElementById('csvHasHeader')?.checked!==false;
+  const plot  =document.getElementById('csvPlotPts')?.checked!==false;
+  const label =document.getElementById('csvLabelPts')?.checked!==false;
+  const showZ =document.getElementById('csvShowElev')?.checked!==false;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const lines=ev.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+    let count=0,errors=0;
+    const newPts=[];
+    for(let i=header?1:0;i<lines.length;i++){
+      const line=lines[i].trim(); if(!line)continue;
+      const cols=line.split(/[,;\t]+/);
+      const e=parseFloat(cols[colE]), n=parseFloat(cols[colN]);
+      if(!isFinite(e)||!isFinite(n)){errors++;continue;}
+      const z=(colZ>=0&&cols[colZ]!==undefined)?parseFloat(cols[colZ])||0:0;
+      const id=cols[colPt]?.trim()||String(count+1);
+      const desc=cols[5]?.trim()||'';
+      newPts.push({id,e,n,z,desc,type:''});
       count++;
     }
-
-    if(!count){ toast('No valid survey points found','err'); return; }
-
-    ST.surveyPts = ST.surveyPts.concat(newPts);
+    if(!count){toast('No valid survey points found','err');return;}
+    ST.surveyPts=(ST.surveyPts||[]).concat(newPts);
     closeMo('moCsvImport');
-
-    // Auto-detect CRS from coordinate magnitude
-    const sampleE = newPts[0].e, sampleN = newPts[0].n;
-    if(sampleE > 100000 && sampleE < 900000 && sampleN > 1000000){
-      ST.crs = 'UTM / Projected (auto-detected)';
-    }
-
     if(plot){
       pushUndo();
-      const layId = ensureLayer('Survey Points','#4eff91');
-      const labelLayId = ensureLayer('Survey Labels','#F5BE18');
-      newPts.forEach(p => {
-        ST.entities.push({ _id:++ST._eid, type:'circle', cx:p.e, cy:p.n, r:1.5, layer:layId, selected:false });
-        if(label){
-          const lbl = showZ ? `${p.id} (${p.z.toFixed(2)})` : p.id;
-          ST.entities.push({ _id:++ST._eid, type:'text', x:p.e+3, y:p.n+3, txt:lbl, sz:4, layer:labelLayId, selected:false });
-        }
+      const layId=ensureLayer('Survey Points','#4eff91');
+      const lblId=ensureLayer('Survey Labels','#F5BE18');
+      newPts.forEach(p=>{
+        ST.entities.push({_id:++ST._eid,type:'circle',cx:p.e,cy:p.n,r:2,layer:layId,selected:false});
+        if(label) ST.entities.push({_id:++ST._eid,type:'text',x:p.e+4,y:p.n+4,txt:showZ?`${p.id}(${p.z.toFixed(1)})`:`${p.id}`,sz:3.5,layer:lblId,selected:false});
       });
       renderLayers();
       setTimeout(()=>zoomToSurvey(),100);
     }
-
     renderSurveyList();
-    showTab('survey');
-    if(errors) toast(`${count} pts imported, ${errors} rows skipped`,'warn');
-    else toast(`${count} survey points imported`,'ok');
-    setMsg(`Survey: ${ST.surveyPts.length} points loaded`);
-    _pendingCSV = null;
+    toast(`${count} survey points imported${errors?' ('+errors+' skipped)':''}`,errors?'warn':'ok');
+    _pendingCSVFile=null;
   };
-  r.readAsText(_pendingCSV);
+  r.readAsText(_pendingCSVFile);
 }
 
-function ensureLayer(name, color){
-  let l = ST.layers.find(la=>la.name===name);
+function ensureLayer(name,color){
+  let l=ST.layers.find(la=>la.name===name);
   if(l) return l.id;
-  const id = Date.now() + Math.random()|0;
-  ST.layers.push({ id, name, color, vis:true, lock:false, frz:false, dis:false });
-  renderLayers();
-  return id;
+  const id=++ST._eid+50000;
+  ST.layers.push({id,name,color,vis:true,lock:false,frz:false,dis:false});
+  renderLayers(); return id;
 }
 
 function renderSurveyList(){
-  const list = document.getElementById('surveyList');
-  if(!list) return;
-  const pts = ST.surveyPts;
-  list.innerHTML = pts.length === 0
-    ? '<div style="padding:12px;text-align:center;color:var(--m);font-size:9.5px">No survey points loaded.<br>Import a CSV file.</div>'
-    : pts.map((p,i)=>`
-      <div class="spt ${p.type==='ctrl'?'gcp-ctrl':p.type==='check'?'gcp-chk':''}"
-           onclick="zoomToPoint(${p.e},${p.n})" title="${p.desc||p.id}">
-        <span class="spt-num">${p.id}</span>
-        <span class="spt-e">${p.e.toFixed(2)}</span>
-        <span class="spt-n">${p.n.toFixed(2)}</span>
-        <span class="spt-z">${p.z.toFixed(2)}</span>
-        <button class="spt-act" onclick="event.stopPropagation();cyclePtType(${i})" title="Toggle GCP type">
-          ${p.type==='ctrl'?'🎯':p.type==='check'?'✅':'⚪'}
-        </button>
-      </div>`).join('');
-  // Update stats
-  const ctrl = pts.filter(p=>p.type==='ctrl').length;
-  const chk  = pts.filter(p=>p.type==='check').length;
-  const sp = document.getElementById('survStatPts');
-  const sc = document.getElementById('survStatCtrl');
-  const sk = document.getElementById('survStatChk');
-  if(sp) sp.textContent = pts.length+' pts';
-  if(sc) sc.textContent = ctrl+' ctrl';
-  if(sk) sk.textContent = chk+' chk';
+  const list=document.getElementById('surveyList');if(!list)return;
+  const pts=ST.surveyPts||[];
+  if(!pts.length){list.innerHTML='<div style="padding:14px 10px;text-align:center;color:var(--m);font-size:9.5px">No survey points.<br>Import a CSV via File menu or Ctrl+I</div>';return;}
+  list.innerHTML=pts.map((p,i)=>`
+    <div style="display:flex;align-items:center;padding:3px 6px;border-bottom:1px solid rgba(31,168,217,.05);font-size:8.5px;cursor:pointer;${p.type==='ctrl'?'border-left:3px solid #22C55E':p.type==='check'?'border-left:3px solid #ff9060':''}"
+         onclick="zoomToPoint(${p.e},${p.n})" title="${p.desc||p.id}">
+      <span style="font-family:'IBM Plex Mono',monospace;color:var(--st);min-width:24px;font-size:8px">${p.id}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;color:var(--m);flex:1;font-size:7.5px">${p.e.toFixed(1)}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;color:var(--m);flex:1;font-size:7.5px">${p.n.toFixed(1)}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;color:var(--g);width:34px;font-size:7.5px">${p.z.toFixed(1)}</span>
+      <button onclick="event.stopPropagation();cyclePtType(${i})" style="background:none;border:none;cursor:pointer;font-size:10px;padding:0 2px">${p.type==='ctrl'?'🎯':p.type==='check'?'✅':'⚪'}</button>
+    </div>`).join('');
+  const sp=document.getElementById('survStatPts'),sc=document.getElementById('survStatCtrl'),sk=document.getElementById('survStatChk');
+  const ctrl=pts.filter(p=>p.type==='ctrl').length,chk=pts.filter(p=>p.type==='check').length;
+  if(sp)sp.textContent=pts.length+' pts';if(sc)sc.textContent=ctrl+' ctrl';if(sk)sk.textContent=chk+' chk';
 }
 
-function cyclePtType(i){
-  const order = ['','ctrl','check'];
-  const cur = ST.surveyPts[i]?.type||'';
-  const idx = order.indexOf(cur);
-  ST.surveyPts[i].type = order[(idx+1)%order.length];
-  renderSurveyList();
-  renderGCPList();
-}
-
-function zoomToPoint(e,n){
-  ST.pan.x = W/2 - e*ST.zoom;
-  ST.pan.y = H/2 + n*ST.zoom;
-  updateZoomBadge(); render();
-}
-
-function zoomToSurvey(){
-  if(!ST.surveyPts.length){ toast('No survey points','warn'); return; }
-  const es = ST.surveyPts.map(p=>p.e), ns = ST.surveyPts.map(p=>p.n);
-  const minE=Math.min(...es),maxE=Math.max(...es),minN=Math.min(...ns),maxN=Math.max(...ns);
-  const dw=maxE-minE||100, dh=maxN-minN||100;
-  ST.zoom = Math.min(W/(dw*1.3), H/(dh*1.3));
-  ST.pan.x = W/2 - (minE+maxE)/2*ST.zoom;
-  ST.pan.y = H/2 + (minN+maxN)/2*ST.zoom;
-  updateZoomBadge(); render();
-}
-
-function clearSurveyPts(){
-  if(!confirm('Clear all survey points?')) return;
-  ST.surveyPts = [];
-  ST.tin = null; ST.contours = [];
-  renderSurveyList();
-  document.getElementById('contourLegend').style.display='none';
-  render();
-  toast('Survey points cleared','ok');
-}
-
-function exportSurveyCSV(){
-  if(!ST.surveyPts.length){ toast('No survey points to export','warn'); return; }
-  let csv = 'Point,Easting,Northing,Elevation,Description,Type\n';
-  ST.surveyPts.forEach(p=>{
-    csv += `${p.id},${p.e.toFixed(4)},${p.n.toFixed(4)},${p.z.toFixed(4)},${p.desc||''},${p.type||''}\n`;
-  });
-  const blob = new Blob([csv],{type:'text/csv'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'survey_points.csv';
-  a.click();
-  toast('Survey CSV exported','ok');
-}
+function cyclePtType(i){const o=['','ctrl','check'];const cur=ST.surveyPts[i]?.type||'';ST.surveyPts[i].type=o[(o.indexOf(cur)+1)%o.length];renderSurveyList();renderGCPList();}
+function zoomToPoint(e,n){ST.pan.x=W/2-e*ST.zoom;ST.pan.y=H/2+n*ST.zoom;updateZoomBadge();render();}
+function zoomToSurvey(){if(!ST.surveyPts?.length){toast('No survey points','warn');return;}const es=ST.surveyPts.map(p=>p.e),ns=ST.surveyPts.map(p=>p.n);const minE=Math.min(...es),maxE=Math.max(...es),minN=Math.min(...ns),maxN=Math.max(...ns);const dw=maxE-minE||100,dh=maxN-minN||100;ST.zoom=Math.min(W/(dw*1.3),H/(dh*1.3));ST.pan.x=W/2-(minE+maxE)/2*ST.zoom;ST.pan.y=H/2+(minN+maxN)/2*ST.zoom;updateZoomBadge();render();}
+function clearSurveyPts(){if(!confirm('Clear all survey points?'))return;ST.surveyPts=[];ST.tin=null;ST.contours=[];renderSurveyList();render();toast('Survey cleared','ok');}
+function exportSurveyCSV(){if(!ST.surveyPts?.length){toast('No points','warn');return;}let csv='Point,Easting,Northing,Elevation,Desc,Type\n';ST.surveyPts.forEach(p=>{csv+=`${p.id},${p.e.toFixed(4)},${p.n.toFixed(4)},${p.z.toFixed(4)},${p.desc||''},${p.type||''}\n`;});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='survey_points.csv';a.click();toast('CSV exported','ok');}
 
 function drawSurveyPts(){
-  const r = Math.max(2, 5/ST.zoom);
+  if(!ST.surveyPts?.length) return;
+  const r=Math.max(2,5/ST.zoom);
   ST.surveyPts.forEach(p=>{
-    const s = w2s(p.e, p.n);
-    if(s.x < -r || s.x > W+r || s.y < -r || s.y > H+r) return;
-    const col = p.type==='ctrl' ? '#22C55E' : p.type==='check' ? '#ff9060' : '#4eff91';
-    ctx.strokeStyle = col;
-    ctx.fillStyle   = col+'44';
-    ctx.lineWidth   = 1.5;
-    // Draw cross + circle
+    const s=w2s(p.e,p.n);
+    if(s.x<-20||s.x>W+20||s.y<-20||s.y>H+20) return;
+    const col=p.type==='ctrl'?'#22C55E':p.type==='check'?'#ff9060':'#4eff91';
+    ctx.strokeStyle=col; ctx.fillStyle=col+'55'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.arc(s.x,s.y,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(s.x-r*1.5,s.y); ctx.lineTo(s.x+r*1.5,s.y);
-    ctx.moveTo(s.x,s.y-r*1.5); ctx.lineTo(s.x,s.y+r*1.5);
-    ctx.stroke();
-    // Label
-    if(ST.zoom > 0.1){
-      ctx.font = `${Math.max(7,9*ST.zoom)}px "IBM Plex Mono",monospace`;
-      ctx.fillStyle = col;
-      ctx.fillText(p.id, s.x+r*1.8, s.y-2);
-    }
+    ctx.beginPath(); ctx.moveTo(s.x-r*1.6,s.y); ctx.lineTo(s.x+r*1.6,s.y); ctx.moveTo(s.x,s.y-r*1.6); ctx.lineTo(s.x,s.y+r*1.6); ctx.stroke();
+    if(ST.zoom>0.05){ctx.font=`${Math.max(7,8*ST.zoom)}px "IBM Plex Mono",monospace`;ctx.fillStyle=col;ctx.fillText(p.id,s.x+r*2,s.y-2);}
   });
 }
 
 // GCP Manager
 function renderGCPList(){
-  const list = document.getElementById('gcpList');
-  const stats = document.getElementById('gcpStats');
-  if(!list) return;
-  const pts = ST.surveyPts;
-  const ctrl  = pts.filter(p=>p.type==='ctrl').length;
-  const chk   = pts.filter(p=>p.type==='check').length;
-  if(stats) stats.textContent = `${ctrl} control / ${chk} checkpoint / ${pts.length-ctrl-chk} unclassified`;
-  list.innerHTML = pts.map((p,i)=>`
-    <div style="display:flex;align-items:center;gap:5px;padding:4px 8px;border-bottom:1px solid rgba(31,168,217,.05);font-size:9.5px">
-      <span style="font-family:'IBM Plex Mono',monospace;color:var(--st);min-width:28px">${p.id}</span>
-      <span style="font-family:'IBM Plex Mono',monospace;color:var(--m);font-size:8.5px;flex:1">${p.e.toFixed(2)}, ${p.n.toFixed(2)}, ${p.z.toFixed(2)}</span>
-      <select onchange="setPtType(${i},this.value)" style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:8.5px;border-radius:2px;padding:1px 3px">
-        <option value="" ${p.type===''?'selected':''}>—</option>
-        <option value="ctrl" ${p.type==='ctrl'?'selected':''} style="color:#22C55E">Control</option>
-        <option value="check" ${p.type==='check'?'selected':''} style="color:#ff9060">Checkpoint</option>
+  const list=document.getElementById('gcpList');if(!list)return;
+  const stats=document.getElementById('gcpStats');
+  const pts=ST.surveyPts||[];
+  const ctrl=pts.filter(p=>p.type==='ctrl').length,chk=pts.filter(p=>p.type==='check').length;
+  if(stats)stats.textContent=`${ctrl} control / ${chk} checkpoint / ${pts.length-ctrl-chk} unclassified`;
+  list.innerHTML=pts.map((p,i)=>`
+    <div style="display:flex;align-items:center;gap:5px;padding:4px 8px;border-bottom:1px solid rgba(31,168,217,.05);font-size:9px">
+      <span style="font-family:'IBM Plex Mono',monospace;color:var(--st);min-width:26px">${p.id}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;color:var(--m);font-size:8px;flex:1">${p.e.toFixed(2)}, ${p.n.toFixed(2)}, ${p.z.toFixed(2)}</span>
+      <select onchange="setPtType(${i},this.value)" style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:8px;border-radius:2px;padding:1px 2px">
+        <option value="" ${!p.type?'selected':''}>—</option>
+        <option value="ctrl" ${p.type==='ctrl'?'selected':''}>Control</option>
+        <option value="check" ${p.type==='check'?'selected':''}>Checkpoint</option>
       </select>
     </div>`).join('');
 }
+function setPtType(i,t){if(ST.surveyPts[i])ST.surveyPts[i].type=t;renderSurveyList();renderGCPList();render();}
+function setAllGCP(t){(ST.surveyPts||[]).forEach(p=>p.type=t==='none'?'':t);renderSurveyList();renderGCPList();render();}
+function calcBearing(){const sels=ST.entities.filter(e=>e.selected&&e.type==='line');if(!sels.length){toast('Select a line','warn');return;}const e=sels[0];const ang=((Math.atan2(e.x2-e.x1,e.y2-e.y1)*180/Math.PI)+360)%360;const dist=Math.hypot(e.x2-e.x1,e.y2-e.y1);toast(`Bearing: ${ang.toFixed(4)}°  Dist: ${dist.toFixed(3)} ${ST.units}`,'ok');setMsg(`Bearing: ${ang.toFixed(4)}° | Dist: ${dist.toFixed(3)} ${ST.units}`);}
+function showCRS(){toast(`CRS: ${ST.crs}`,'ok');}
 
-function setPtType(i,type){ ST.surveyPts[i].type=type; renderSurveyList(); renderGCPList(); render(); }
-function setAllGCP(type){ ST.surveyPts.forEach(p=>p.type=type==='none'?'':type); renderSurveyList(); renderGCPList(); render(); }
-
-function calcBearing(){
-  const sels = ST.entities.filter(e=>e.selected&&e.type==='line');
-  if(!sels.length){ toast('Select a line to get bearing','warn'); return; }
-  const e = sels[0];
-  const dx = e.x2-e.x1, dy = e.y2-e.y1;
-  const ang = (Math.atan2(dx,dy)*180/Math.PI+360)%360;
-  const dist = Math.hypot(dx,dy);
-  toast(`Bearing: ${ang.toFixed(4)}°  Distance: ${dist.toFixed(3)} ${ST.units}`,'ok');
-  setMsg(`Bearing: ${ang.toFixed(4)}° | Distance: ${dist.toFixed(3)} ${ST.units}`);
-}
-
-function calcCoords(){
-  const wp = s2w(ST.mouse.x, ST.mouse.y);
-  toast(`Current cursor: E ${wp.x.toFixed(3)}, N ${wp.y.toFixed(3)}`,'ok');
-}
-
-function showCRS(){
-  toast(`CRS: ${ST.crs}`,'ok');
-  setMsg(`Coordinate Reference System: ${ST.crs}`);
-}
-
-// ════════════════════════════════════════════════════════════════════
-//  GEOJSON IMPORT
-// ════════════════════════════════════════════════════════════════════
-
-let _pendingGeoJSON = null;
-
-function geoDrop(ev){
-  ev.preventDefault();
-  const f = ev.dataTransfer?.files?.[0]; if(!f) return;
-  _pendingGeoJSON = f;
-  document.getElementById('geoFileName').textContent = '🗺️ '+f.name;
-  previewGeoJSON(f);
-}
-function geoFileChosen(ev){
-  const f = ev.target.files?.[0]; if(!f) return;
-  _pendingGeoJSON = f;
-  document.getElementById('geoFileName').textContent = '🗺️ '+f.name;
-  previewGeoJSON(f);
-}
-function previewGeoJSON(file){
-  const r = new FileReader();
-  r.onload = ev => {
-    try {
-      const gj = JSON.parse(ev.target.result);
-      const type = gj.type||'unknown';
-      const count = gj.features ? gj.features.length : 1;
-      document.getElementById('geoStats').textContent =
-        `Type: ${type} | Features: ${count} | CRS: ${gj.crs?.properties?.name || 'Not specified'}`;
-    } catch(e){ document.getElementById('geoStats').textContent = 'Parse error: '+e.message; }
-  };
-  r.readAsText(file);
-}
-
-function doImportGeoJSON(){
-  if(!_pendingGeoJSON){ toast('No GeoJSON file selected','warn'); return; }
-  const r = new FileReader();
-  r.onload = ev => {
-    try {
-      const gj = JSON.parse(ev.target.result);
-      parseGeoJSON(gj, _pendingGeoJSON.name);
-      closeMo('moGeoImport');
-      _pendingGeoJSON = null;
-    } catch(e){ toast('GeoJSON error: '+e.message,'err'); console.error(e); }
-  };
-  r.readAsText(_pendingGeoJSON);
-}
-
-function parseGeoJSON(gj, filename){
-  const autoLayer = document.getElementById('geoAutoLayer')?.checked !== false;
-  const addLabels = document.getElementById('geoLabels')?.checked;
-  const ents = [];
-  let _e = ST._eid;
-  const mk = (obj) => ({...obj, _id:++_e, selected:false});
-
-  // Detect CRS
-  if(gj.crs?.properties?.name) ST.crs = gj.crs.properties.name;
-
-  const features = gj.type==='FeatureCollection' ? gj.features
-                 : gj.type==='Feature' ? [gj]
-                 : [{type:'Feature',geometry:gj,properties:{}}];
-
-  features.forEach(feat => {
-    if(!feat?.geometry) return;
-    const geomType = feat.geometry.type;
-    const props    = feat.properties || {};
-    const layName  = autoLayer ? (geomType==='Point'?'GIS Points':geomType==='LineString'||geomType==='MultiLineString'?'GIS Lines':'GIS Polygons') : 'GIS Import';
-    const layId    = ensureLayer(layName, geomType==='Point'?'#4eff91':geomType.includes('Line')?'#1FA8D9':'#A78BFA');
-
-    const processCoords = (coords, type) => {
-      if(!Array.isArray(coords)||!coords.length) return;
-      if(type==='Point'){
-        const [x,y] = coords;
-        if(!isFinite(x)||!isFinite(y)) return;
-        ents.push(mk({type:'circle',cx:x,cy:y,r:1.5,layer:layId}));
-        if(addLabels){
-          const lbl = props.name||props.NAME||props.id||'';
-          if(lbl) ents.push(mk({type:'text',x:x+3,y:y+3,txt:String(lbl),sz:4,layer:layId}));
-        }
-      } else if(type==='LineString'){
-        for(let i=0;i<coords.length-1;i++){
-          const [x1,y1]=coords[i],[x2,y2]=coords[i+1];
-          if(!isFinite(x1)||!isFinite(y1)||!isFinite(x2)||!isFinite(y2)) continue;
-          ents.push(mk({type:'line',x1,y1,x2,y2,layer:layId}));
-        }
-      } else if(type==='Polygon'){
-        coords.forEach(ring=>{
-          for(let i=0;i<ring.length-1;i++){
-            const [x1,y1]=ring[i],[x2,y2]=ring[i+1];
-            if(!isFinite(x1)||!isFinite(y1)||!isFinite(x2)||!isFinite(y2)) continue;
-            ents.push(mk({type:'line',x1,y1,x2,y2,layer:layId}));
-          }
-        });
-      }
+// ── GEOJSON ───────────────────────────────────────────────────────
+function previewGeoJSON(file){const r=new FileReader();r.onload=ev=>{try{const gj=JSON.parse(ev.target.result);const el=document.getElementById('geoStats');if(el)el.textContent=`Type: ${gj.type} | Features: ${gj.features?.length||1} | CRS: ${gj.crs?.properties?.name||'Not specified'}`;}catch(e){const el=document.getElementById('geoStats');if(el)el.textContent='Parse error: '+e.message;}};r.readAsText(file);}
+function geoDrop(ev){ev.preventDefault();const f=ev.dataTransfer?.files?.[0];if(!f)return;_pendingGeoFile=f;const el=document.getElementById('geoFileName');if(el)el.textContent='🗺️ '+f.name;previewGeoJSON(f);}
+function geoFileChosen(ev){const f=ev.target.files?.[0];if(!f)return;_pendingGeoFile=f;const el=document.getElementById('geoFileName');if(el)el.textContent='🗺️ '+f.name;previewGeoJSON(f);}
+function doImportGeoJSON(){if(!_pendingGeoFile){toast('No GeoJSON selected','warn');return;}const r=new FileReader();r.onload=ev=>{try{parseGeoJSON(JSON.parse(ev.target.result),_pendingGeoFile.name);closeMo('moGeoImport');_pendingGeoFile=null;}catch(e){toast('GeoJSON error: '+e.message,'err');console.error(e);}};r.readAsText(_pendingGeoFile);}
+function parseGeoJSON(gj,filename){
+  const ents=[];let _e=ST._eid;
+  const mk=obj=>({...obj,_id:++_e,selected:false});
+  if(gj.crs?.properties?.name)ST.crs=gj.crs.properties.name;
+  const feats=gj.type==='FeatureCollection'?gj.features:gj.type==='Feature'?[gj]:[{type:'Feature',geometry:gj,properties:{}}];
+  feats.forEach(feat=>{
+    if(!feat?.geometry)return;
+    const g=feat.geometry;
+    const layName=g.type==='Point'?'GIS Points':g.type.includes('Line')?'GIS Lines':'GIS Polygons';
+    const layId=ensureLayer(layName,g.type==='Point'?'#4eff91':g.type.includes('Line')?'#1FA8D9':'#A78BFA');
+    const proc=(coords,type)=>{
+      if(!Array.isArray(coords)||!coords.length)return;
+      if(type==='Point'){const[x,y]=coords;if(isFinite(x)&&isFinite(y))ents.push(mk({type:'circle',cx:x,cy:y,r:1.5,layer:layId}));}
+      else if(type==='LineString'){for(let i=0;i<coords.length-1;i++){const[x1,y1]=coords[i],[x2,y2]=coords[i+1];if(isFinite(x1)&&isFinite(y1)&&isFinite(x2)&&isFinite(y2))ents.push(mk({type:'line',x1,y1,x2,y2,layer:layId}));}}
+      else if(type==='Polygon'){coords.forEach(ring=>{for(let i=0;i<ring.length-1;i++){const[x1,y1]=ring[i],[x2,y2]=ring[i+1];if(isFinite(x1)&&isFinite(y1)&&isFinite(x2)&&isFinite(y2))ents.push(mk({type:'line',x1,y1,x2,y2,layer:layId}));}});}
     };
-
-    const g = feat.geometry;
     switch(g.type){
-      case 'Point':           processCoords(g.coordinates,'Point'); break;
-      case 'LineString':      processCoords(g.coordinates,'LineString'); break;
-      case 'Polygon':         processCoords(g.coordinates,'Polygon'); break;
-      case 'MultiPoint':      g.coordinates.forEach(c=>processCoords(c,'Point')); break;
-      case 'MultiLineString': g.coordinates.forEach(c=>processCoords(c,'LineString')); break;
-      case 'MultiPolygon':    g.coordinates.forEach(poly=>processCoords(poly,'Polygon')); break;
+      case'Point':proc(g.coordinates,'Point');break;
+      case'LineString':proc(g.coordinates,'LineString');break;
+      case'Polygon':proc(g.coordinates,'Polygon');break;
+      case'MultiPoint':g.coordinates.forEach(c=>proc(c,'Point'));break;
+      case'MultiLineString':g.coordinates.forEach(c=>proc(c,'LineString'));break;
+      case'MultiPolygon':g.coordinates.forEach(p=>proc(p,'Polygon'));break;
     }
   });
-
-  if(!ents.length){ toast('No renderable features in GeoJSON','warn'); return; }
-  pushUndo();
-  ST._eid = _e;
-  ST.entities = ST.entities.concat(ents);
-  renderLayers();
-  setTimeout(()=>zoomExt(),100);
-  toast(`${filename}: ${ents.length} GIS entities imported`,'ok');
-  setMsg(`GeoJSON: ${features.length} features → ${ents.length} entities`);
+  if(!ents.length){toast('No renderable features','warn');return;}
+  pushUndo();ST._eid=_e;ST.entities=ST.entities.concat(ents);
+  renderLayers();setTimeout(()=>zoomExt(),100);
+  toast(`${filename}: ${ents.length} GIS entities`,'ok');
 }
+function exportGeoJSON(){const feats=[];ST.entities.forEach(e=>{let g=null;switch(e.type){case'line':g={type:'LineString',coordinates:[[e.x1,e.y1],[e.x2,e.y2]]};break;case'circle':g={type:'Point',coordinates:[e.cx,e.cy]};break;case'polyline':if(e.pts?.length>=2)g={type:'LineString',coordinates:e.pts.map(p=>[p.x,p.y])};break;}if(g)feats.push({type:'Feature',geometry:g,properties:{layer:e.layer}});});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({type:'FeatureCollection',features:feats},null,2)],{type:'application/json'}));a.download='strata_export.geojson';a.click();toast('GeoJSON exported','ok');}
 
-function exportGeoJSON(){
-  const features = [];
-  ST.entities.forEach(e=>{
-    let geom = null;
-    switch(e.type){
-      case 'line':     geom={type:'LineString',coordinates:[[e.x1,e.y1],[e.x2,e.y2]]}; break;
-      case 'circle':   geom={type:'Point',coordinates:[e.cx,e.cy]}; break;
-      case 'rect':     geom={type:'Polygon',coordinates:[[[e.x,e.y],[e.x+e.w,e.y],[e.x+e.w,e.y+e.h],[e.x,e.y+e.h],[e.x,e.y]]]}; break;
-      case 'polyline': if(e.pts&&e.pts.length>=2) geom={type:'LineString',coordinates:e.pts.map(p=>[p.x,p.y])}; break;
-    }
-    if(geom) features.push({type:'Feature',geometry:geom,properties:{layer:e.layer}});
-  });
-  const gj = {type:'FeatureCollection',features};
-  const blob = new Blob([JSON.stringify(gj,null,2)],{type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download='strata_export.geojson'; a.click();
-  toast('GeoJSON exported','ok');
-}
-
-// ════════════════════════════════════════════════════════════════════
-//  TERRAIN — TIN + CONTOURS
-// ════════════════════════════════════════════════════════════════════
-
+// ── TERRAIN ───────────────────────────────────────────────────────
 function buildTIN(){
-  if(ST.surveyPts.length < 3){ toast('Need at least 3 survey points for TIN','warn'); return; }
-  toast('Building TIN triangulation…','ok');
-  setMsg('Building Delaunay TIN surface…');
+  if(!ST.surveyPts?.length||ST.surveyPts.length<3){toast('Need ≥3 survey points','warn');return;}
+  toast('Building TIN…','ok');
   setTimeout(()=>{
-    ST.tin = delaunayTriangulate(ST.surveyPts);
-    if(!ST.tin||!ST.tin.length){ toast('TIN failed — check point distribution','err'); return; }
-    ST.showTIN = true;
-    // Update elevation range
-    const zs = ST.surveyPts.map(p=>p.z);
-    ST.terrainMinZ = Math.min(...zs); ST.terrainMaxZ = Math.max(...zs);
-    // Pre-fill contour dialog
-    const rng = ST.terrainMaxZ - ST.terrainMinZ;
-    const interval = rng > 100 ? 10 : rng > 20 ? 5 : rng > 5 ? 1 : 0.5;
-    document.getElementById('ctMinor').value = interval;
-    document.getElementById('ctMajor').value = interval*5;
-    document.getElementById('ctMin').value   = ST.terrainMinZ.toFixed(1);
-    document.getElementById('ctMax').value   = ST.terrainMaxZ.toFixed(1);
-    const ts = document.getElementById('tinStatus');
-    if(ts) ts.innerHTML = `<span class="tin-stat">✓ TIN: ${ST.tin.length} triangles | Z: ${ST.terrainMinZ.toFixed(2)} – ${ST.terrainMaxZ.toFixed(2)} ${ST.units}</span>`;
-    render();
-    toast(`TIN built: ${ST.tin.length} triangles`,'ok');
-    setMsg(`TIN surface: ${ST.tin.length} triangles, Z range ${ST.terrainMinZ.toFixed(2)}–${ST.terrainMaxZ.toFixed(2)} ${ST.units}`);
-    openMo('moContour');
-  }, 10);
+    ST.tin=delaunay(ST.surveyPts.map(p=>({x:p.e,y:p.n,z:p.z})));
+    const zs=ST.surveyPts.map(p=>p.z);
+    ST.terrainMinZ=Math.min(...zs);ST.terrainMaxZ=Math.max(...zs);ST.showTIN=true;
+    const ts=document.getElementById('tinStatus');
+    if(ts)ts.innerHTML=`<span style="color:var(--gr);font-family:'IBM Plex Mono',monospace;font-size:9px">✓ TIN: ${ST.tin.length} triangles | Z: ${ST.terrainMinZ.toFixed(2)}–${ST.terrainMaxZ.toFixed(2)}</span>`;
+    const rng=ST.terrainMaxZ-ST.terrainMinZ,iv=rng>100?10:rng>20?5:rng>5?1:0.5;
+    ['ctMinor','ctMajor','ctMin','ctMax'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.value=[iv,iv*5,ST.terrainMinZ.toFixed(1),ST.terrainMaxZ.toFixed(1)][i];});
+    render();toast(`TIN: ${ST.tin.length} triangles`,'ok');openMo('moContour');
+  },10);
 }
-
-// Simple Delaunay triangulation (Bowyer–Watson)
-function delaunayTriangulate(pts){
-  if(pts.length < 3) return [];
-  // Map survey pts to {x,y,z}
-  const points = pts.map(p=>({x:p.e,y:p.n,z:p.z}));
-  // Normalize to avoid numerical issues
-  const minX=Math.min(...points.map(p=>p.x)), maxX=Math.max(...points.map(p=>p.x));
-  const minY=Math.min(...points.map(p=>p.y)), maxY=Math.max(...points.map(p=>p.y));
-  const dx=maxX-minX||1, dy=maxY-minY||1;
-  const norm = p => ({x:(p.x-minX)/dx, y:(p.y-minY)/dy, z:p.z, ox:p.x, oy:p.y});
-  const np = points.map(norm);
-  const M = 3*Math.max(dx,dy);
-  // Super-triangle in normalized space
-  const st = [
-    {x:-10, y:-10, z:0, ox:minX-10*dx, oy:minY-10*dy},
-    {x:10,  y:-10, z:0, ox:minX+10*dx, oy:minY-10*dy},
-    {x:0.5, y:10,  z:0, ox:minX+0.5*dx, oy:minY+10*dy}
-  ];
-  let triangles = [[st[0],st[1],st[2]]];
+function delaunay(pts){
+  if(pts.length<3)return[];
+  const mx=Math.min(...pts.map(p=>p.x)),my=Math.min(...pts.map(p=>p.y));
+  const dx=Math.max(...pts.map(p=>p.x))-mx||1,dy=Math.max(...pts.map(p=>p.y))-my||1;
+  const np=pts.map(p=>({x:(p.x-mx)/dx,y:(p.y-my)/dy,z:p.z,ox:p.x,oy:p.y}));
+  const st=[{x:-10,y:-10,z:0,ox:mx-10*dx,oy:my-10*dy},{x:10,y:-10,z:0,ox:mx+10*dx,oy:my-10*dy},{x:0.5,y:10,z:0,ox:mx+0.5*dx,oy:my+10*dy}];
+  let tris=[[st[0],st[1],st[2]]];
   np.forEach(p=>{
-    let edges = [];
-    triangles = triangles.filter(t=>{
-      const [a,b,c] = t;
-      // Circumcircle test
-      const ax=a.x-p.x,ay=a.y-p.y,bx=b.x-p.x,by=b.y-p.y,cx=c.x-p.x,cy=c.y-p.y;
+    let edges=[];
+    tris=tris.filter(t=>{
+      const[a,b,c]=t,ax=a.x-p.x,ay=a.y-p.y,bx=b.x-p.x,by=b.y-p.y,cx=c.x-p.x,cy=c.y-p.y;
       const D=2*(ax*(by-cy)+bx*(cy-ay)+cx*(ay-by));
-      if(Math.abs(D)<1e-10) return true;
+      if(Math.abs(D)<1e-10)return true;
       const ux=((ax*ax+ay*ay)*(by-cy)+(bx*bx+by*by)*(cy-ay)+(cx*cx+cy*cy)*(ay-by))/D;
       const uy=((ax*ax+ay*ay)*(cx-bx)+(bx*bx+by*by)*(ax-cx)+(cx*cx+cy*cy)*(bx-ax))/D;
-      const r2=(ux-ax)*(ux-ax)+(uy-ay)*(uy-ay);
-      if(ux*ux+uy*uy < r2+1e-10){
-        edges.push([a,b],[b,c],[c,a]); return false;
-      }
+      if(ux*ux+uy*uy<(ux-ax)*(ux-ax)+(uy-ay)*(uy-ay)+1e-10){edges.push([a,b],[b,c],[c,a]);return false;}
       return true;
     });
-    // Remove duplicate edges
-    const unique = [];
-    edges.forEach(e=>{
-      const dup = edges.filter(f=>(f[0]===e[1]&&f[1]===e[0])||(f[0]===e[0]&&f[1]===e[1]));
-      if(dup.length===1) unique.push(e);
-    });
-    unique.forEach(e=>triangles.push([e[0],e[1],p]));
+    const uniq=[];
+    edges.forEach(e=>{if(!edges.some(f=>f!==e&&f[0]===e[1]&&f[1]===e[0]))uniq.push(e);});
+    uniq.forEach(e=>tris.push([e[0],e[1],p]));
   });
-  // Remove super-triangle
-  const isST = v => st.includes(v);
-  triangles = triangles.filter(t=>!t.some(isST));
-  // Return triangles with original coords
-  return triangles.map(t=>t.map(v=>({x:v.ox,y:v.oy,z:v.z})));
+  return tris.filter(t=>!t.some(v=>st.includes(v))).map(t=>t.map(v=>({x:v.ox,y:v.oy,z:v.z})));
 }
-
+function lerp(a,b,t){return a+(b-a)*Math.max(0,Math.min(1,t));}
 function drawTIN(){
-  if(!ST.tin) return;
-  const minZ=ST.terrainMinZ, maxZ=ST.terrainMaxZ, rng=maxZ-minZ||1;
+  if(!ST.tin)return;
+  const mn=ST.terrainMinZ,mx=ST.terrainMaxZ,rng=mx-mn||1;
   ctx.lineWidth=0.4;
   ST.tin.forEach(tri=>{
-    const avgZ=(tri[0].z+tri[1].z+tri[2].z)/3;
-    const t=(avgZ-minZ)/rng;
-    // Cool-warm color ramp
-    const r=Math.round(lerp(20,220,t)), g=Math.round(lerp(100,200,t>0.5?1-t:t)), b=Math.round(lerp(200,20,t));
-    ctx.fillStyle=`rgba(${r},${g},${b},0.15)`;
-    ctx.strokeStyle=`rgba(${r},${g},${b},0.35)`;
-    const a=w2s(tri[0].x,tri[0].y),bv=w2s(tri[1].x,tri[1].y),c=w2s(tri[2].x,tri[2].y);
-    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(bv.x,bv.y); ctx.lineTo(c.x,c.y); ctx.closePath();
-    ctx.fill(); ctx.stroke();
+    const t=((tri[0].z+tri[1].z+tri[2].z)/3-mn)/rng;
+    const r=Math.round(lerp(20,220,t)),g=Math.round(lerp(100,200,t>0.5?1-t:t)),b=Math.round(lerp(200,20,t));
+    ctx.fillStyle=`rgba(${r},${g},${b},0.18)`;ctx.strokeStyle=`rgba(${r},${g},${b},0.4)`;
+    const[a,bv,c]=[w2s(tri[0].x,tri[0].y),w2s(tri[1].x,tri[1].y),w2s(tri[2].x,tri[2].y)];
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(bv.x,bv.y);ctx.lineTo(c.x,c.y);ctx.closePath();ctx.fill();ctx.stroke();
   });
 }
-
-function lerp(a,b,t){ return a+(b-a)*Math.max(0,Math.min(1,t)); }
-
 function generateContours(){
-  if(!ST.tin||!ST.tin.length){ toast('Build TIN first','warn'); return; }
-  const minor  = parseFloat(document.getElementById('ctMinor').value)||1;
-  const major  = parseFloat(document.getElementById('ctMajor').value)||5;
-  const minZ   = parseFloat(document.getElementById('ctMin').value)||ST.terrainMinZ;
-  const maxZ   = parseFloat(document.getElementById('ctMax').value)||ST.terrainMaxZ;
-  const smooth = document.getElementById('ctSmooth')?.checked;
-
+  if(!ST.tin?.length){toast('Build TIN first','warn');return;}
+  const minor=parseFloat(document.getElementById('ctMinor')?.value)||1;
+  const major=parseFloat(document.getElementById('ctMajor')?.value)||5;
+  const minZ=parseFloat(document.getElementById('ctMin')?.value)||ST.terrainMinZ;
+  const maxZ=parseFloat(document.getElementById('ctMax')?.value)||ST.terrainMaxZ;
+  const smooth=document.getElementById('ctSmooth')?.checked!==false;
   closeMo('moContour');
-  toast('Generating contours…','ok');
-
   setTimeout(()=>{
-    ST.contours = [];
-    // March-through-triangles contour extraction
-    for(let z = Math.ceil(minZ/minor)*minor; z <= maxZ+0.001; z = Math.round((z+minor)*1000)/1000){
-      const segs = [];
+    ST.contours=[];
+    for(let z=Math.ceil(minZ/minor)*minor;z<=maxZ+0.001;z=Math.round((z+minor)*1000)/1000){
+      const segs=[];
       ST.tin.forEach(tri=>{
-        const pts = extractContourSegment(tri, z);
-        if(pts) segs.push(pts);
+        const edges=[[tri[0],tri[1]],[tri[1],tri[2]],[tri[2],tri[0]]],pts=[];
+        edges.forEach(([p1,p2])=>{if((p1.z<=z&&p2.z>z)||(p2.z<=z&&p1.z>z)){const t=(z-p1.z)/(p2.z-p1.z);pts.push([p1.x+(p2.x-p1.x)*t,p1.y+(p2.y-p1.y)*t]);}});
+        if(pts.length===2)segs.push(pts);
       });
-      if(!segs.length) continue;
-      // Chain segments into polylines
-      const chains = chainSegments(segs);
-      chains.forEach(chain=>{
-        if(chain.length < 2) return;
-        const pts = smooth ? smoothChain(chain) : chain;
-        ST.contours.push({ elev:z, pts, major: Math.abs(z%major) < minor*0.5 });
-      });
-    }
-
-    // Add label layer for major contours
-    if(document.getElementById('ctLabels')?.checked){
-      const labLayId = ensureLayer('Contour Labels','#ffffff');
-      ST.contours.filter(c=>c.major).forEach(c=>{
-        if(c.pts.length < 2) return;
-        const mid = Math.floor(c.pts.length/2);
-        ST.entities.push({ _id:++ST._eid, type:'text', x:c.pts[mid][0]+2, y:c.pts[mid][1]+2, txt:c.elev.toFixed(1)+' '+ST.units, sz:3, layer:labLayId, selected:false });
-      });
-      renderLayers();
-    }
-
-    ST.showContours = true;
-    buildContourLegend(minor,major,minZ,maxZ);
-    render();
-    toast(`${ST.contours.length} contour lines generated`,'ok');
-    setMsg(`Contours: ${ST.contours.length} lines | interval ${minor} / ${major} ${ST.units}`);
-  }, 20);
-}
-
-function extractContourSegment(tri, z){
-  const [a,b,c] = tri;
-  const pts = [];
-  const interpEdge = (p1,p2) => {
-    const t = (z-p1.z)/(p2.z-p1.z);
-    return [p1.x+(p2.x-p1.x)*t, p1.y+(p2.y-p1.y)*t];
-  };
-  const edges = [[a,b],[b,c],[c,a]];
-  edges.forEach(([p1,p2])=>{
-    if((p1.z<=z&&p2.z>z)||(p2.z<=z&&p1.z>z)) pts.push(interpEdge(p1,p2));
-  });
-  return pts.length===2 ? pts : null;
-}
-
-function chainSegments(segs){
-  if(!segs.length) return [];
-  const chains = [];
-  const used = new Array(segs.length).fill(false);
-  for(let i=0;i<segs.length;i++){
-    if(used[i]) continue;
-    const chain = [...segs[i]]; used[i]=true;
-    let extended = true;
-    while(extended){
-      extended = false;
-      for(let j=0;j<segs.length;j++){
-        if(used[j]) continue;
-        const last = chain[chain.length-1];
-        const [s0,s1] = segs[j];
-        const d = (a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
-        if(d(last,s0)<1e-4){ chain.push(s1); used[j]=true; extended=true; break; }
-        if(d(last,s1)<1e-4){ chain.push(s0); used[j]=true; extended=true; break; }
+      if(!segs.length)continue;
+      // Chain
+      const used=new Array(segs.length).fill(false);
+      for(let i=0;i<segs.length;i++){
+        if(used[i])continue;
+        const chain=[...segs[i]];used[i]=true;
+        let ext=true;
+        while(ext){ext=false;for(let j=0;j<segs.length;j++){if(used[j])continue;const L=chain[chain.length-1];const d=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);if(d(L,segs[j][0])<1e-4){chain.push(segs[j][1]);used[j]=true;ext=true;break;}if(d(L,segs[j][1])<1e-4){chain.push(segs[j][0]);used[j]=true;ext=true;break;}}}
+        if(chain.length<2)continue;
+        let pts=chain;
+        if(smooth&&chain.length>3){pts=[chain[0]];for(let k=1;k<chain.length-1;k++)pts.push([(chain[k-1][0]+2*chain[k][0]+chain[k+1][0])/4,(chain[k-1][1]+2*chain[k][1]+chain[k+1][1])/4]);pts.push(chain[chain.length-1]);}
+        ST.contours.push({elev:z,pts,major:Math.abs(z%major)<minor*0.5});
       }
     }
-    chains.push(chain);
-  }
-  return chains;
+    ST.showContours=true;
+    // Build legend
+    const leg=document.getElementById('contourLegend'),body=document.getElementById('clegBody');
+    if(leg&&body){const rng=maxZ-minZ;let html='';for(let i=5;i>=0;i--){const t=i/5,z2=minZ+rng*t,r=Math.round(lerp(0,220,t)),g=Math.round(lerp(80,220,1-Math.abs(t-0.5)*2)),b=Math.round(lerp(220,0,t));html+=`<div class="cleg-row"><div class="cleg-swatch" style="background:rgb(${r},${g},${b})"></div><span class="cleg-lbl">${z2.toFixed(1)}</span></div>`;}body.innerHTML=html;leg.style.display='block';}
+    render();toast(`${ST.contours.length} contour lines`,'ok');
+  },20);
 }
-
-function smoothChain(chain){
-  if(chain.length < 3) return chain;
-  const out = [chain[0]];
-  for(let i=1;i<chain.length-1;i++){
-    out.push([
-      (chain[i-1][0]+2*chain[i][0]+chain[i+1][0])/4,
-      (chain[i-1][1]+2*chain[i][1]+chain[i+1][1])/4
-    ]);
-  }
-  out.push(chain[chain.length-1]);
-  return out;
-}
-
 function drawContours(){
-  const minZ=ST.terrainMinZ,maxZ=ST.terrainMaxZ,rng=maxZ-minZ||1;
-  const useColor = document.getElementById('ctColorRamp')?.checked !== false;
+  if(!ST.contours?.length)return;
+  const mn=ST.terrainMinZ,mx=ST.terrainMaxZ,rng=mx-mn||1;
   ST.contours.forEach(c=>{
-    if(!c.pts||c.pts.length<2) return;
-    const t=(c.elev-minZ)/rng;
-    let col;
-    if(useColor){
-      const r=Math.round(lerp(0,220,t)), g=Math.round(lerp(80,220,1-Math.abs(t-0.5)*2)), b=Math.round(lerp(220,0,t));
-      col=`rgb(${r},${g},${b})`;
-    } else { col = c.major ? '#ffffff' : 'rgba(255,255,255,0.4)'; }
-    ctx.strokeStyle = col;
-    ctx.lineWidth   = c.major ? 1.5 : 0.7;
-    ctx.setLineDash([]);
-    ctx.beginPath();
-    const s0=w2s(c.pts[0][0],c.pts[0][1]);
-    ctx.moveTo(s0.x,s0.y);
-    for(let i=1;i<c.pts.length;i++){
-      const s=w2s(c.pts[i][0],c.pts[i][1]);
-      ctx.lineTo(s.x,s.y);
-    }
+    if(!c.pts||c.pts.length<2)return;
+    const t=(c.elev-mn)/rng;
+    const r=Math.round(lerp(0,220,t)),g=Math.round(lerp(80,220,1-Math.abs(t-0.5)*2)),b=Math.round(lerp(220,0,t));
+    ctx.strokeStyle=`rgb(${r},${g},${b})`;ctx.lineWidth=c.major?1.8:0.7;ctx.setLineDash([]);
+    ctx.beginPath();const s0=w2s(c.pts[0][0],c.pts[0][1]);ctx.moveTo(s0.x,s0.y);
+    for(let i=1;i<c.pts.length;i++){const s=w2s(c.pts[i][0],c.pts[i][1]);ctx.lineTo(s.x,s.y);}
     ctx.stroke();
   });
 }
+function toggleTIN(){ST.showTIN=!ST.showTIN;render();toast('TIN: '+(ST.showTIN?'ON':'OFF'),'ok');}
+function toggleContours(){ST.showContours=!ST.showContours;render();toast('Contours: '+(ST.showContours?'ON':'OFF'),'ok');}
+function clearTerrain(){ST.tin=null;ST.contours=[];ST.showTIN=false;const l=document.getElementById('contourLegend');if(l)l.style.display='none';render();toast('Terrain cleared','ok');}
+function exportContourDXF(){if(!ST.contours?.length){toast('No contours','warn');return;}let dxf='0\nSECTION\n2\nENTITIES\n';ST.contours.forEach(c=>{if(c.pts?.length<2)return;dxf+=`0\nLWPOLYLINE\n8\n${c.major?'CONTOUR-MAJOR':'CONTOUR-MINOR'}\n70\n0\n90\n${c.pts.length}\n`;c.pts.forEach(p=>dxf+=`10\n${p[0].toFixed(4)}\n20\n${p[1].toFixed(4)}\n`);});dxf+='0\nENDSEC\n0\nEOF\n';const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([dxf],{type:'text/plain'}));a.download='contours.dxf';a.click();toast('Contour DXF exported','ok');}
 
-function buildContourLegend(minor,major,minZ,maxZ){
-  const leg = document.getElementById('contourLegend');
-  const body= document.getElementById('clegBody');
-  if(!leg||!body) return;
-  const steps = 5;
-  const rng = maxZ-minZ;
-  let html='';
-  for(let i=steps;i>=0;i--){
-    const t=i/steps, z=minZ+rng*t;
-    const r=Math.round(lerp(0,220,t)),g=Math.round(lerp(80,220,1-Math.abs(t-0.5)*2)),b=Math.round(lerp(220,0,t));
-    html+=`<div class="cleg-row"><div class="cleg-swatch" style="background:rgb(${r},${g},${b})"></div><span class="cleg-lbl">${z.toFixed(1)} ${ST.units}</span></div>`;
-  }
-  body.innerHTML=html;
-  leg.style.display='block';
-}
-
-function toggleTIN(){ ST.showTIN=!ST.showTIN; render(); toast('TIN display: '+(ST.showTIN?'ON':'OFF'),'ok'); }
-function toggleContours(){ ST.showContours=!ST.showContours; render(); toast('Contours: '+(ST.showContours?'ON':'OFF'),'ok'); }
-function clearTerrain(){ ST.tin=null; ST.contours=[]; ST.showTIN=false; document.getElementById('contourLegend').style.display='none'; render(); toast('Terrain cleared','ok'); }
-
-function exportContourDXF(){
-  if(!ST.contours.length){ toast('No contours to export','warn'); return; }
-  let dxf='0\nSECTION\n2\nENTITIES\n';
-  ST.contours.forEach(c=>{
-    const layName = c.major ? 'CONTOUR-MAJOR' : 'CONTOUR-MINOR';
-    if(c.pts.length < 2) return;
-    dxf+=`0\nLWPOLYLINE\n8\n${layName}\n70\n0\n90\n${c.pts.length}\n`;
-    c.pts.forEach(p=>dxf+=`10\n${p[0].toFixed(4)}\n20\n${p[1].toFixed(4)}\n`);
-  });
-  dxf+='0\nENDSEC\n0\nEOF\n';
-  const blob=new Blob([dxf],{type:'text/plain'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='contours.dxf'; a.click();
-  toast('Contour DXF exported','ok');
-}
-
-// ════════════════════════════════════════════════════════════════════
-//  PROJECT SAVE / LOAD
-// ════════════════════════════════════════════════════════════════════
-
+// ── PROJECT SAVE / LOAD ───────────────────────────────────────────
 function saveProject(){
-  const name = document.getElementById('projName')?.value || 'MyProject';
-  const data = {
-    version: '2.0',
-    name,
-    saved: new Date().toISOString(),
-    units: ST.units,
-    scale: ST.scale,
-    layers: ST.layers,
-    entities: ST.entities,
-    surveyPts: ST.surveyPts,
-    contours: ST.contours,
-    crs: ST.crs,
-    pan: ST.pan,
-    zoom: ST.zoom,
-  };
-  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name.replace(/[^a-z0-9_\-]/gi,'_')+'.strata';
-  a.click();
-  closeMo('moProject');
-  toast(`Project "${name}" saved`,'ok');
+  const name=document.getElementById('projName')?.value||'MyProject';
+  const data={version:'2.0',name,saved:new Date().toISOString(),units:ST.units,scale:ST.scale,layers:ST.layers,entities:ST.entities,surveyPts:ST.surveyPts||[],contours:ST.contours||[],crs:ST.crs||'Local',pan:ST.pan,zoom:ST.zoom};
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download=name.replace(/[^a-z0-9_\-]/gi,'_')+'.strata';a.click();
+  closeMo('moProject');toast(`Project "${name}" saved`,'ok');
 }
-
-function loadProjectData(data, fname){
-  if(!data.version) throw new Error('Not a valid .strata file');
+function loadProjectData(data,fname){
+  if(!data.version)throw new Error('Not a .strata file');
   pushUndo();
-  ST.layers   = data.layers   || ST.layers;
-  ST.entities = (data.entities||[]).map((e,i)=>({...e,_id:e._id||++ST._eid}));
-  ST.surveyPts= data.surveyPts|| [];
-  ST.contours = data.contours || [];
-  ST.crs      = data.crs      || 'Local / Unknown';
-  ST.units    = data.units    || 'mm';
-  ST.scale    = data.scale    || '1:1';
-  if(data.pan)  { ST.pan.x=data.pan.x; ST.pan.y=data.pan.y; }
-  if(data.zoom) ST.zoom = data.zoom;
-  renderLayers(); renderSurveyList(); updateZoomBadge(); render();
-  closeMo('moProject');
-  toast(`Project "${data.name||fname}" loaded`,'ok');
-  setMsg(`Loaded: ${ST.entities.length} entities | ${ST.surveyPts.length} survey pts`);
-  const pi=document.getElementById('projInfo');
-  if(pi) pi.textContent=`Loaded: ${data.name||fname} — ${ST.entities.length} entities`;
+  ST.layers=data.layers||ST.layers;
+  ST.entities=(data.entities||[]).map(e=>({...e,_id:e._id||++ST._eid}));
+  ST.surveyPts=data.surveyPts||[];
+  ST.contours=data.contours||[];
+  ST.crs=data.crs||'Local';
+  ST.units=data.units||'mm';
+  if(data.pan){ST.pan.x=data.pan.x;ST.pan.y=data.pan.y;}
+  if(data.zoom)ST.zoom=data.zoom;
+  renderLayers();renderSurveyList();updateZoomBadge();render();
+  closeMo('moProject');toast(`Loaded: "${data.name||fname}"`,'ok');
 }
+function loadProjectFile(ev){const f=ev.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{loadProjectData(JSON.parse(e.target.result),f.name);}catch(err){toast('Load error: '+err.message,'err');}};r.readAsText(f);}
 
-function loadProjectFile(ev){
-  const f = ev.target.files?.[0]; if(!f) return;
-  const r = new FileReader();
-  r.onload = e => {
-    try { loadProjectData(JSON.parse(e.target.result), f.name); }
-    catch(err){ toast('Load failed: '+err.message,'err'); console.error(err); }
-  };
-  r.readAsText(f);
-}
-
-// ════════════════════════════════════════════════════════════════════
-//  FILLET / CHAMFER (fully functional)
-// ════════════════════════════════════════════════════════════════════
-
+// ── FILLET / CHAMFER ──────────────────────────────────────────────
 function doFillet(){
-  const sels = ST.entities.filter(e=>e.selected&&e.type==='line');
-  if(sels.length<2){ toast('Select exactly 2 lines for Fillet','warn'); return; }
-  const rad = parseFloat(prompt('Fillet radius:','50'));
-  if(isNaN(rad)||rad<0){ toast('Invalid radius','warn'); return; }
-  if(rad===0){ // Sharp corner — extend/trim to intersection
-    const pt = lineIntersect(sels[0],sels[1]);
-    if(!pt){ toast('Lines do not intersect','warn'); return; }
-    pushUndo();
-    connectLineToPoint(sels[0],pt);
-    connectLineToPoint(sels[1],pt);
-    render(); toast('Corner joined','ok');
-  } else {
-    const arc = filletTwoLines(sels[0],sels[1],rad);
-    if(!arc){ toast('Cannot fillet these lines at that radius','warn'); return; }
-    pushUndo();
-    arc.forEach(e=>{ e._id=++ST._eid; e.selected=false; ST.entities.push(e); });
-    render(); toast('Fillet applied','ok');
-  }
-}
-
-function lineIntersect(l1,l2){
-  const d1x=l1.x2-l1.x1,d1y=l1.y2-l1.y1,d2x=l2.x2-l2.x1,d2y=l2.y2-l2.y1;
-  const cross=d1x*d2y-d1y*d2x;
-  if(Math.abs(cross)<1e-10) return null;
-  const dx=l2.x1-l1.x1,dy=l2.y1-l1.y1;
-  const t=(dx*d2y-dy*d2x)/cross;
-  return {x:l1.x1+t*d1x, y:l1.y1+t*d1y};
-}
-
-function connectLineToPoint(line,pt){
-  const d1=Math.hypot(pt.x-line.x1,pt.y-line.y1);
-  const d2=Math.hypot(pt.x-line.x2,pt.y-line.y2);
-  if(d1<d2){ line.x1=pt.x; line.y1=pt.y; }
-  else      { line.x2=pt.x; line.y2=pt.y; }
-}
-
-function filletTwoLines(l1,l2,rad){
-  // Simplified: find intersection, offset both lines inward, place arc
-  const pt = lineIntersect(l1,l2);
-  if(!pt) return null;
-  const a1=Math.atan2(l1.y2-l1.y1,l1.x2-l1.x1);
-  const a2=Math.atan2(l2.y2-l2.y1,l2.x2-l2.x1);
-  const bisect=(a1+a2)/2;
-  const cx=pt.x+rad*Math.cos(bisect+Math.PI/2);
-  const cy=pt.y+rad*Math.sin(bisect+Math.PI/2);
-  const sa=Math.atan2(l1.y1-cy,l1.x1-cx)*180/Math.PI;
-  const ea=Math.atan2(l2.y1-cy,l2.x1-cx)*180/Math.PI;
-  return [{type:'arc',cx,cy,r:rad,sa:(sa+360)%360,ea:(ea+360)%360,layer:l1.layer}];
-}
-
-function doChamfer(){
-  const sels = ST.entities.filter(e=>e.selected&&e.type==='line');
-  if(sels.length<2){ toast('Select exactly 2 lines for Chamfer','warn'); return; }
-  const dist = parseFloat(prompt('Chamfer distance:','50'));
-  if(isNaN(dist)||dist<=0){ toast('Invalid distance','warn'); return; }
-  const pt = lineIntersect(sels[0],sels[1]);
-  if(!pt){ toast('Lines do not intersect','warn'); return; }
-  // Set back both lines by dist and connect with a chamfer line
-  const setBack = (line) => {
-    const d1=Math.hypot(pt.x-line.x1,pt.y-line.y1), d2=Math.hypot(pt.x-line.x2,pt.y-line.y2);
-    if(d1<d2){ const ang=Math.atan2(line.y1-pt.y,line.x1-pt.x); return {x:pt.x+(d1-dist)*Math.cos(ang),y:pt.y+(d1-dist)*Math.sin(ang),end:'1'}; }
-    else      { const ang=Math.atan2(line.y2-pt.y,line.x2-pt.x); return {x:pt.x+(d2-dist)*Math.cos(ang),y:pt.y+(d2-dist)*Math.sin(ang),end:'2'}; }
-  };
-  const p1=setBack(sels[0]), p2=setBack(sels[1]);
+  const sels=ST.entities.filter(e=>e.selected&&e.type==='line');
+  if(sels.length<2){toast('Select 2 lines first (Shift+click both)','warn');return;}
+  const rad=parseFloat(prompt('Fillet radius (0=sharp corner):','50'));
+  if(isNaN(rad)||rad<0)return;
+  const pt=lineIntersect(sels[0],sels[1]);
+  if(!pt){toast('Lines do not intersect','warn');return;}
   pushUndo();
-  if(p1.end==='1'){sels[0].x1=p1.x;sels[0].y1=p1.y;}else{sels[0].x2=p1.x;sels[0].y2=p1.y;}
-  if(p2.end==='1'){sels[1].x1=p2.x;sels[1].y1=p2.y;}else{sels[1].x2=p2.x;sels[1].y2=p2.y;}
+  if(rad===0){connectLinePt(sels[0],pt);connectLinePt(sels[1],pt);}
+  else{const arc=makeFillet(sels[0],sels[1],pt,rad);if(arc){arc._id=++ST._eid;arc.selected=false;ST.entities.push(arc);}connectLinePt(sels[0],pt);connectLinePt(sels[1],pt);}
+  render();toast('Fillet applied','ok');
+}
+function lineIntersect(l1,l2){const dx1=l1.x2-l1.x1,dy1=l1.y2-l1.y1,dx2=l2.x2-l2.x1,dy2=l2.y2-l2.y1,c=dx1*dy2-dy1*dx2;if(Math.abs(c)<1e-10)return null;const t=((l2.x1-l1.x1)*dy2-(l2.y1-l1.y1)*dx2)/c;return{x:l1.x1+t*dx1,y:l1.y1+t*dy1};}
+function connectLinePt(line,pt){const d1=Math.hypot(pt.x-line.x1,pt.y-line.y1),d2=Math.hypot(pt.x-line.x2,pt.y-line.y2);if(d1<d2){line.x1=pt.x;line.y1=pt.y;}else{line.x2=pt.x;line.y2=pt.y;}}
+function makeFillet(l1,l2,pt,rad){const a1=Math.atan2(l1.y2-l1.y1,l1.x2-l1.x1),a2=Math.atan2(l2.y2-l2.y1,l2.x2-l2.x1);const bis=(a1+a2)/2;const cx=pt.x+rad*Math.cos(bis+Math.PI/2),cy=pt.y+rad*Math.sin(bis+Math.PI/2);const sa=(Math.atan2(l1.y1-cy,l1.x1-cx)*180/Math.PI+360)%360,ea=(Math.atan2(l2.y1-cy,l2.x1-cx)*180/Math.PI+360)%360;return{type:'arc',cx,cy,r:rad,sa,ea,layer:l1.layer};}
+function doChamfer(){
+  const sels=ST.entities.filter(e=>e.selected&&e.type==='line');
+  if(sels.length<2){toast('Select 2 lines first','warn');return;}
+  const dist=parseFloat(prompt('Chamfer distance:','50'));
+  if(isNaN(dist)||dist<=0)return;
+  const pt=lineIntersect(sels[0],sels[1]);
+  if(!pt){toast('Lines do not intersect','warn');return;}
+  pushUndo();
+  const setback=line=>{const d1=Math.hypot(pt.x-line.x1,pt.y-line.y1),d2=Math.hypot(pt.x-line.x2,pt.y-line.y2);if(d1<d2){const a=Math.atan2(line.y1-pt.y,line.x1-pt.x);return{x:pt.x+(d1>dist?d1-dist:0)*Math.cos(a),y:pt.y+(d1>dist?d1-dist:0)*Math.sin(a),end:1};}else{const a=Math.atan2(line.y2-pt.y,line.x2-pt.x);return{x:pt.x+(d2>dist?d2-dist:0)*Math.cos(a),y:pt.y+(d2>dist?d2-dist:0)*Math.sin(a),end:2};}};
+  const p1=setback(sels[0]),p2=setback(sels[1]);
+  if(p1.end===1){sels[0].x1=p1.x;sels[0].y1=p1.y;}else{sels[0].x2=p1.x;sels[0].y2=p1.y;}
+  if(p2.end===1){sels[1].x1=p2.x;sels[1].y1=p2.y;}else{sels[1].x2=p2.x;sels[1].y2=p2.y;}
   ST.entities.push({_id:++ST._eid,type:'line',x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,layer:sels[0].layer,selected:false});
-  render(); toast('Chamfer applied','ok');
+  render();toast('Chamfer applied','ok');
 }
 
-// ════════════════════════════════════════════════════════════════════
-//  INIT
-// ════════════════════════════════════════════════════════════════════
-T('select');
-switchLayout('model');
+// ── EXTEND showTab to include survey panel ────────────────────────
+const _origShowTab=window.showTab;
+window.showTab=function(s){
+  document.querySelectorAll('.rp-sec').forEach(k=>k.classList.remove('act'));
+  document.querySelectorAll('.rptab').forEach(k=>k.classList.remove('act'));
+  document.getElementById('sec-'+s)?.classList.add('act');
+  document.getElementById('tab-'+s)?.classList.add('act');
+  if(s==='survey')renderSurveyList();
+  if(s==='layers')renderLayers();
+};
+
+// ── PATCH RENDER to draw survey + terrain ─────────────────────────
+const _origRender=window.render;
+window.render=function(){
+  _origRender();
+  if(ST.showTIN&&ST.tin?.length) drawTIN();
+  if(ST.showContours&&ST.contours?.length) drawContours();
+  if(ST.surveyPts?.length) drawSurveyPts();
+};
+
+// ── EXTEND CMD LINE ───────────────────────────────────────────────
+const _origCmdKey=window.cmdKey;
+window.cmdKey=function(ev){
+  if(ev.key!=='Enter')return;
+  const v=document.getElementById('cmdInput').value.trim().toUpperCase();
+  document.getElementById('cmdInput').value='';
+  const extras={
+    CSV:()=>openMo('moCsvImport'),
+    SURVEY:()=>{showTab('survey');openMo('moCsvImport');},
+    GEO:()=>openMo('moGeoImport'),GEOJSON:()=>openMo('moGeoImport'),
+    TIN:buildTIN,CONTOUR:()=>openMo('moContour'),CONTOURS:()=>openMo('moContour'),
+    F:doFillet,FILLET:doFillet,CHA:doChamfer,CHAMFER:doChamfer,
+    SAVE:saveProject,LOAD:()=>openMo('moProject'),PROJECT:()=>openMo('moProject'),
+    BEARING:calcBearing,CRS:showCRS,
+    HELP:()=>openMo('moHelp'),
+    EXPORTGEO:exportGeoJSON,EXPORTCSV:exportSurveyCSV,
+    ZS:zoomToSurvey,
+  };
+  if(extras[v]){extras[v]();setMsg('▶ '+v);return;}
+  _origCmdKey(ev);
+};
+
+// ── INIT SURVEY STATE ─────────────────────────────────────────────
 setTimeout(()=>{
-  toast('Strata CAD Pro — F1=Help | L=Line C=Circle R=Rect M=Move ESC=Cancel DEL=Delete','ok');
-  resize();
   renderSurveyList();
-  // Hide non-home ribbon groups at startup
-  document.querySelectorAll('.rg').forEach(g=>{
-    const special=['survey','terrain','gis','civil','view','insert','annotate','modify','layers']
-      .some(x=>g.classList.contains('rp-'+x));
-    if(special) g.style.display='none';
-  });
-},200);
+  // Update init message
+  setMsg('Ready — L=Line  C=Circle  R=Rect  M=Move  ESC=Cancel  DEL=Delete  F1=Help  SPACE=Repeat');
+},500);
 </script>
-
-<!-- HELP / SHORTCUTS MODAL -->
-<div class="mo" id="moHelp">
-  <div class="modal xl" style="max-height:90vh">
-    <div class="mh"><div class="mh-t"><span class="i">⌨️</span>Keyboard Shortcuts &amp; Help</div><span class="mc" onclick="closeMo('moHelp')">✕</span></div>
-    <div class="mb" style="column-count:2;column-gap:20px;font-size:10px">
-
-      <div style="break-inside:avoid;margin-bottom:12px">
-        <div style="font-size:9px;font-weight:800;color:var(--st);letter-spacing:1.2px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">DRAW TOOLS</div>
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Line</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">L</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Circle</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">C</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Rectangle</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">R</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Arc</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">A</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ellipse</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">E</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Polyline</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">G</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Hatch</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">H</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Text</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">T</kbd></div>
-        </div>
-      </div>
-
-      <div style="break-inside:avoid;margin-bottom:12px">
-        <div style="font-size:9px;font-weight:800;color:var(--ora);letter-spacing:1.2px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">MODIFY TOOLS</div>
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Select / Exit</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora);font-size:9px">S or ESC</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Move</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora);font-size:9px">M</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Copy</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora);font-size:9px">CO (cmd)</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Rotate</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora);font-size:9px">RO (cmd)</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Scale</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora);font-size:9px">SC (cmd)</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Mirror</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora);font-size:9px">MI (cmd)</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Offset</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora);font-size:9px">O</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Fillet</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora);font-size:9px">F</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Chamfer</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora);font-size:9px">CHA (cmd)</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Delete</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora);font-size:9px">DEL</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Repeat last cmd</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora);font-size:9px">SPACE</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Cycle tools</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora);font-size:9px">TAB</kbd></div>
-        </div>
-      </div>
-
-      <div style="break-inside:avoid;margin-bottom:12px">
-        <div style="font-size:9px;font-weight:800;color:var(--gr);letter-spacing:1.2px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">SELECTION</div>
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Select All</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr);font-size:9px">Ctrl+A</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Deselect All</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr);font-size:9px">Ctrl+D</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Invert Selection</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr);font-size:9px">I</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Add to selection</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr);font-size:9px">Shift+Click</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Window select →</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr);font-size:9px">Drag L→R</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Cross select ←</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr);font-size:9px">Drag R→L</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Cut</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr);font-size:9px">Ctrl+X</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Copy</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr);font-size:9px">Ctrl+C</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Paste</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr);font-size:9px">Ctrl+V</kbd></div>
-        </div>
-      </div>
-
-      <div style="break-inside:avoid;margin-bottom:12px">
-        <div style="font-size:9px;font-weight:800;color:var(--g);letter-spacing:1.2px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">VIEW &amp; ZOOM</div>
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Zoom Extents</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g);font-size:9px">Home / F11</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Zoom In</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g);font-size:9px">+ / PgUp</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Zoom Out</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g);font-size:9px">- / PgDn</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Zoom Extents</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g);font-size:9px">Ctrl+0</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Zoom (scroll)</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g);font-size:9px">Wheel</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Pan</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g);font-size:9px">P / Mid-click</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Pan (arrows)</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g);font-size:9px">← ↑ → ↓</kbd></div>
-        </div>
-      </div>
-
-      <div style="break-inside:avoid;margin-bottom:12px">
-        <div style="font-size:9px;font-weight:800;color:var(--b);letter-spacing:1.2px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">FUNCTION KEYS</div>
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Help (this modal)</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">F1</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Layer Manager</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">F2</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Toggle OSnap</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">F3</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Toggle Grid</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">F4 / F7</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Survey Tab</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">F5</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Terrain Tab</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">F6</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Toggle Ortho</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">F8</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Toggle Snap</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">F9</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Zoom Extents</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b);font-size:9px">F11</kbd></div>
-        </div>
-      </div>
-
-      <div style="break-inside:avoid;margin-bottom:12px">
-        <div style="font-size:9px;font-weight:800;color:var(--st);letter-spacing:1.2px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">FILE &amp; PROJECT</div>
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Open / Import</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--st);font-size:9px">Ctrl+O</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Save Project</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--st);font-size:9px">Ctrl+S</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Export DXF</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--st);font-size:9px">Ctrl+E</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Import CSV Survey</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--st);font-size:9px">Ctrl+I</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Undo</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--st);font-size:9px">Ctrl+Z / U</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Redo</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--st);font-size:9px">Ctrl+Y</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Settings</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--st);font-size:9px">Ctrl+,</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Print</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--st);font-size:9px">Ctrl+P</kbd></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">New Layer</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--st);font-size:9px">Ctrl+L</kbd></div>
-        </div>
-      </div>
-
-      <div style="break-inside:avoid;margin-bottom:12px;column-span:all">
-        <div style="font-size:9px;font-weight:800;color:#4eff91;letter-spacing:1.2px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">COMMAND LINE (type in bottom bar → Enter)</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-size:8.5px">
-          <span style="color:var(--b);font-family:'IBM Plex Mono',monospace">L — Line</span>
-          <span style="color:var(--b);font-family:'IBM Plex Mono',monospace">C — Circle</span>
-          <span style="color:var(--b);font-family:'IBM Plex Mono',monospace">A — Arc</span>
-          <span style="color:var(--b);font-family:'IBM Plex Mono',monospace">REC — Rectangle</span>
-          <span style="color:var(--b);font-family:'IBM Plex Mono',monospace">PL — Polyline</span>
-          <span style="color:var(--b);font-family:'IBM Plex Mono',monospace">EL — Ellipse</span>
-          <span style="color:var(--b);font-family:'IBM Plex Mono',monospace">H — Hatch</span>
-          <span style="color:var(--b);font-family:'IBM Plex Mono',monospace">DT — Text</span>
-          <span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">M — Move</span>
-          <span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">CO — Copy</span>
-          <span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">RO — Rotate</span>
-          <span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">SC — Scale</span>
-          <span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">MI — Mirror</span>
-          <span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">O — Offset</span>
-          <span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">TR — Trim</span>
-          <span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">EX — Extend</span>
-          <span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">F — Fillet</span>
-          <span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">CHA — Chamfer</span>
-          <span style="color:var(--gr);font-family:'IBM Plex Mono',monospace">DI — Distance</span>
-          <span style="color:var(--gr);font-family:'IBM Plex Mono',monospace">AA — Area</span>
-          <span style="color:var(--gr);font-family:'IBM Plex Mono',monospace">LAYER — Layers</span>
-          <span style="color:var(--gr);font-family:'IBM Plex Mono',monospace">Z — Zoom Ext</span>
-          <span style="color:var(--g);font-family:'IBM Plex Mono',monospace">TIN — Build TIN</span>
-          <span style="color:var(--g);font-family:'IBM Plex Mono',monospace">CONTOUR — Contours</span>
-          <span style="color:var(--g);font-family:'IBM Plex Mono',monospace">CSV — Survey CSV</span>
-          <span style="color:var(--g);font-family:'IBM Plex Mono',monospace">GEO — GeoJSON</span>
-          <span style="color:var(--st);font-family:'IBM Plex Mono',monospace">SAVE — Save project</span>
-          <span style="color:var(--st);font-family:'IBM Plex Mono',monospace">LOAD — Load project</span>
-          <span style="color:var(--st);font-family:'IBM Plex Mono',monospace">UNDO — Undo</span>
-          <span style="color:var(--st);font-family:'IBM Plex Mono',monospace">REDO — Redo</span>
-          <span style="color:var(--m);font-family:'IBM Plex Mono',monospace">IMPORT — Open file</span>
-          <span style="color:var(--m);font-family:'IBM Plex Mono',monospace">EXPORT — Export DXF</span>
-        </div>
-      </div>
-
-    </div>
-    <div class="mf"><button class="btn st" onclick="closeMo('moHelp')">Close  (ESC)</button></div>
-  </div>
-</div>
 
 <!-- PNG TILE LOADER -->
 <div class="mo" id="moTileLoader">
@@ -4332,3 +4062,266 @@ setTimeout(()=>{
 
 </body>
 </html>
+
+<!-- ═══════════════════════════════════════════════════════════
+     NEW MODALS: CSV • GeoJSON • Contour • Project • Help
+     ═══════════════════════════════════════════════════════════ -->
+
+
+<!-- DYNAMIC INPUT (floats near cursor while drawing) -->
+<div id="dynInput">
+  <div class="dyn-box">
+    <span class="dyn-lbl" id="dynLbl1">DIST</span>
+    <span class="dyn-val" id="dynVal1">0.000</span>
+    <div class="dyn-sep"></div>
+    <span class="dyn-lbl" id="dynLbl2">ANG</span>
+    <span class="dyn-val" id="dynVal2">0.0°</span>
+    <div class="dyn-sep"></div>
+    <input id="dynField" placeholder="type value…" autocomplete="off" spellcheck="false">
+    <span class="dyn-hint">↵ confirm  Tab=switch  ESC=cancel</span>
+  </div>
+</div>
+
+<!-- COORDINATE ENTRY POPUP -->
+<div id="coordEntry">
+  <div class="ce-title">⌨ Enter Coordinates</div>
+  <div class="ce-row">
+    <span class="ce-lbl">X</span>
+    <input class="ce-in" id="ceX" placeholder="Easting / X" type="number" step="any">
+  </div>
+  <div class="ce-row">
+    <span class="ce-lbl">Y</span>
+    <input class="ce-in" id="ceY" placeholder="Northing / Y" type="number" step="any">
+  </div>
+  <div class="ce-hint" id="ceHint">Absolute coords — or use @dx,dy for relative</div>
+  <div style="display:flex;gap:6px;margin-top:8px">
+    <button class="btn s" style="font-size:10px;padding:3px 10px" onclick="closeCE()">Cancel</button>
+    <button class="btn st" style="font-size:10px;padding:3px 10px" onclick="confirmCE()">OK ↵</button>
+  </div>
+</div>
+
+<!-- KEYBOARD HELP -->
+<div class="mo" id="moHelp">
+<div class="modal xl" style="max-height:90vh">
+<div class="mh"><div class="mh-t"><span class="i">⌨️</span>Shortcuts &amp; Command Reference</div><span class="mc" onclick="closeMo('moHelp')">✕</span></div>
+<div class="mb" style="column-count:2;column-gap:22px;font-size:10px">
+<div style="break-inside:avoid;margin-bottom:12px">
+<div style="font-size:8.5px;font-weight:800;color:var(--b);letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">DRAW TOOLS (single key)</div>
+<div style="display:flex;flex-direction:column;gap:4px;font-size:9.5px">
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Line (chains — right-click to stop)</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b)">L</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Circle</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b)">C</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Rectangle</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b)">R</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Arc</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b)">A</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ellipse</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b)">E</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Polyline (dbl-click to finish)</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b)">G</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Text</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b)">T</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Hatch</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b)">H</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Offset</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b)">O</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Fillet (select 2 lines first)</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--b)">F</kbd></div>
+</div></div>
+<div style="break-inside:avoid;margin-bottom:12px">
+<div style="font-size:8.5px;font-weight:800;color:var(--ora);letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">EDIT &amp; SELECT</div>
+<div style="display:flex;flex-direction:column;gap:4px;font-size:9.5px">
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Select tool</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora)">S</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Move (select first)</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora)">M</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Pan</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora)">P  or  Middle-click</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Delete selected</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora)">DEL</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Cancel / Exit tool</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora)">ESC</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Repeat last command</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora)">SPACE</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Cycle tools</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora)">TAB</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Invert selection</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora)">I</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Select All</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora)">Ctrl+A</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Deselect All</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora)">Ctrl+D</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Add to selection</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora)">Shift+click</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Window select →</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora)">Drag L→R</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Crossing select ←</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--ora)">Drag R→L</kbd></div>
+</div></div>
+<div style="break-inside:avoid;margin-bottom:12px">
+<div style="font-size:8.5px;font-weight:800;color:var(--gr);letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">FILE &amp; CTRL</div>
+<div style="display:flex;flex-direction:column;gap:4px;font-size:9.5px">
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Undo</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr)">Ctrl+Z / U</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Redo</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr)">Ctrl+Y</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Copy</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr)">Ctrl+C</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Cut</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr)">Ctrl+X</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Paste</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr)">Ctrl+V</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Open / Import</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr)">Ctrl+O</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Save Project (.strata)</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr)">Ctrl+S</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Export DXF</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr)">Ctrl+E</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Settings</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--gr)">Ctrl+,</kbd></div>
+</div></div>
+<div style="break-inside:avoid;margin-bottom:12px">
+<div style="font-size:8.5px;font-weight:800;color:var(--g);letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">VIEW &amp; ZOOM</div>
+<div style="display:flex;flex-direction:column;gap:4px;font-size:9.5px">
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Zoom Extents</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g)">Home / F11</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Zoom In / Out</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g)">+  −  Scroll</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Pan (arrows)</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g)">← ↑ → ↓</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Toggle Grid</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g)">F4</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Toggle Ortho</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g)">F8</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Toggle Snap</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g)">F9</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Toggle OSnap</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g)">F3</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Layer Manager</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--g)">F2</kbd></div>
+</div></div>
+
+<div style="break-inside:avoid;margin-bottom:12px">
+<div style="font-size:8.5px;font-weight:800;color:#4eff91;letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">COORDINATE INPUT</div>
+<div style="display:flex;flex-direction:column;gap:4px;font-size:9.5px">
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Open coord entry popup</span><kbd style="font-family:'IBM Plex Mono',monospace;color:#4eff91"># key or F12</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Focus type-in field</span><kbd style="font-family:'IBM Plex Mono',monospace;color:#4eff91">D (while drawing)</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Type in cmd line: dist</span><kbd style="font-family:'IBM Plex Mono',monospace;color:#4eff91">100  → Enter</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Relative coords</span><kbd style="font-family:'IBM Plex Mono',monospace;color:#4eff91">@50,30  → Enter</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Polar (dist&lt;angle)</span><kbd style="font-family:'IBM Plex Mono',monospace;color:#4eff91">100&lt;45  → Enter</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Absolute coords</span><kbd style="font-family:'IBM Plex Mono',monospace;color:#4eff91">100,200  → Enter</kbd></div>
+</div></div>
+<div style="break-inside:avoid;margin-bottom:12px">
+<div style="font-size:8.5px;font-weight:800;color:var(--st);letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">MAP BACKGROUND</div>
+<div style="display:flex;flex-direction:column;gap:4px;font-size:9.5px">
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Toggle map</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--st)">🗺 button or MAP cmd</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Satellite view</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--st)">🛰 button</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Calibrate to map</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--st)">📍 button</kbd></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Search location</span><kbd style="font-family:'IBM Plex Mono',monospace;color:var(--st)">FIND Dubai</kbd></div>
+</div></div>
+<div style="break-inside:avoid;margin-bottom:10px;column-span:all">
+<div style="font-size:8.5px;font-weight:800;color:var(--st);letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">COMMAND LINE (type below canvas → Enter)</div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px 10px;font-size:8.5px">
+<span style="color:var(--b);font-family:'IBM Plex Mono',monospace">L → Line</span>
+<span style="color:var(--b);font-family:'IBM Plex Mono',monospace">C → Circle</span>
+<span style="color:var(--b);font-family:'IBM Plex Mono',monospace">A → Arc</span>
+<span style="color:var(--b);font-family:'IBM Plex Mono',monospace">REC → Rect</span>
+<span style="color:var(--b);font-family:'IBM Plex Mono',monospace">PL → Polyline</span>
+<span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">M → Move</span>
+<span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">CO → Copy</span>
+<span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">RO → Rotate</span>
+<span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">SC → Scale</span>
+<span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">MI → Mirror</span>
+<span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">O → Offset</span>
+<span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">TR → Trim</span>
+<span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">F → Fillet</span>
+<span style="color:var(--ora);font-family:'IBM Plex Mono',monospace">CHA → Chamfer</span>
+<span style="color:var(--gr);font-family:'IBM Plex Mono',monospace">DI → Distance</span>
+<span style="color:var(--gr);font-family:'IBM Plex Mono',monospace">AA → Area</span>
+<span style="color:var(--gr);font-family:'IBM Plex Mono',monospace">Z → Zoom ext</span>
+<span style="color:var(--gr);font-family:'IBM Plex Mono',monospace">LAYER → Layers</span>
+<span style="color:var(--gr);font-family:'IBM Plex Mono',monospace">UNDO / REDO</span>
+<span style="color:var(--g);font-family:'IBM Plex Mono',monospace">CSV → Survey</span>
+<span style="color:var(--g);font-family:'IBM Plex Mono',monospace">TIN → Build TIN</span>
+<span style="color:var(--g);font-family:'IBM Plex Mono',monospace">CONTOUR</span>
+<span style="color:var(--g);font-family:'IBM Plex Mono',monospace">GEO → GeoJSON</span>
+<span style="color:var(--st);font-family:'IBM Plex Mono',monospace">SAVE → .strata</span>
+<span style="color:var(--st);font-family:'IBM Plex Mono',monospace">LOAD → Project</span>
+</div>
+</div>
+</div>
+<div class="mf"><button class="btn st" onclick="closeMo('moHelp')">Close  (ESC)</button></div>
+</div></div>
+
+<!-- CSV SURVEY IMPORT -->
+<div class="mo" id="moCsvImport">
+<div class="modal w">
+<div class="mh"><div class="mh-t"><span class="i">📡</span>Import Survey Points (CSV)</div><span class="mc" onclick="closeMo('moCsvImport')">✕</span></div>
+<div class="mb">
+<div class="impz" onclick="document.getElementById('csvFileIn').click()" ondragover="e=>{e.preventDefault();this.classList.add('dov')}" ondragleave="this.classList.remove('dov')" ondrop="csvDrop(event)" style="text-align:center;padding:16px;cursor:pointer;border:2px dashed rgba(34,197,94,.3);border-radius:6px;background:rgba(34,197,94,.03);margin-bottom:12px">
+<div style="font-size:24px;margin-bottom:4px">📊</div>
+<div style="font-size:13px;font-weight:800;color:var(--t);font-family:'Syne',sans-serif" id="csvFileName">Drop CSV file or click to browse</div>
+<div style="font-size:10px;color:var(--m);margin-top:3px">Columns: Point, Easting, Northing, Elevation — comma/tab/semicolon delimited</div>
+</div>
+<input type="file" id="csvFileIn" accept=".csv,.txt" style="display:none" onchange="csvFileChosen(event)">
+<div class="fsect">Column mapping (0-based index)</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+<div><label class="fl">PT col</label><input class="fs" type="number" id="csvColPt" value="0" min="0" max="20" style="width:55px"></div>
+<div><label class="fl">Easting col</label><input class="fs" type="number" id="csvColE" value="1" min="0" max="20" style="width:55px"></div>
+<div><label class="fl">Northing col</label><input class="fs" type="number" id="csvColN" value="2" min="0" max="20" style="width:55px"></div>
+<div><label class="fl">Elev col (−1=none)</label><input class="fs" type="number" id="csvColZ" value="3" min="-1" max="20" style="width:55px"></div>
+</div>
+<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+<label class="fck"><input type="checkbox" id="csvHasHeader" checked> First row is header</label>
+<label class="fck"><input type="checkbox" id="csvPlotPts" checked> Plot on canvas</label>
+<label class="fck"><input type="checkbox" id="csvLabelPts" checked> Auto-label</label>
+<label class="fck"><input type="checkbox" id="csvShowElev" checked> Show elevation in label</label>
+</div>
+<div style="padding:6px 8px;background:var(--bg2);border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--m);max-height:80px;overflow-y:auto;white-space:pre" id="csvPreview">No file selected yet…</div>
+</div>
+<div class="mf"><button class="btn s" onclick="closeMo('moCsvImport')">Cancel</button><button class="btn st" onclick="doImportCSV()">Import Survey Points</button></div>
+</div></div>
+
+<!-- GEOJSON IMPORT -->
+<div class="mo" id="moGeoImport">
+<div class="modal w">
+<div class="mh"><div class="mh-t"><span class="i">🗺️</span>Import GeoJSON</div><span class="mc" onclick="closeMo('moGeoImport')">✕</span></div>
+<div class="mb">
+<div class="impz" onclick="document.getElementById('geoFileIn').click()" ondragover="e=>{e.preventDefault();this.classList.add('dov')}" ondragleave="this.classList.remove('dov')" ondrop="geoDrop(event)" style="text-align:center;padding:16px;cursor:pointer;border:2px dashed rgba(167,139,250,.3);border-radius:6px;background:rgba(167,139,250,.03);margin-bottom:12px">
+<div style="font-size:24px;margin-bottom:4px">🌍</div>
+<div style="font-size:13px;font-weight:800;color:var(--t);font-family:'Syne',sans-serif" id="geoFileName">Drop GeoJSON or click to browse</div>
+<div style="font-size:10px;color:var(--m);margin-top:3px">Point, LineString, Polygon, MultiPolygon — auto-layers by geometry type</div>
+</div>
+<input type="file" id="geoFileIn" accept=".json,.geojson" style="display:none" onchange="geoFileChosen(event)">
+<div style="padding:6px 8px;background:var(--bg2);border-radius:3px;font-size:9px;color:var(--m)" id="geoStats">No file loaded</div>
+</div>
+<div class="mf"><button class="btn s" onclick="closeMo('moGeoImport')">Cancel</button><button class="btn st" onclick="doImportGeoJSON()">Import GeoJSON</button></div>
+</div></div>
+
+<!-- GCP MANAGER -->
+<div class="mo" id="moGcpMgr">
+<div class="modal w">
+<div class="mh"><div class="mh-t"><span class="i">🎯</span>GCP Manager</div><span class="mc" onclick="closeMo('moGcpMgr')">✕</span></div>
+<div class="mb">
+<div style="font-size:10px;color:var(--m);margin-bottom:10px">Mark points as <b style="color:var(--gr)">Control</b> or <b style="color:var(--ora)">Checkpoint</b>.</div>
+<div style="display:flex;gap:6px;margin-bottom:8px">
+<button class="btn" style="font-size:10px;padding:4px 10px" onclick="setAllGCP('ctrl')">All → Control</button>
+<button class="btn" style="font-size:10px;padding:4px 10px;background:linear-gradient(135deg,#c07030,var(--ora))" onclick="setAllGCP('check')">All → Checkpoint</button>
+<button class="btn s" style="font-size:10px;padding:4px 10px" onclick="setAllGCP('none')">Clear Types</button>
+</div>
+<div style="max-height:300px;overflow-y:auto;border:1px solid var(--sep);border-radius:4px" id="gcpList"></div>
+</div>
+<div class="mf"><span style="font-size:9px;color:var(--m);font-family:'IBM Plex Mono',monospace" id="gcpStats">—</span><button class="btn s" onclick="closeMo('moGcpMgr')">Close</button><button class="btn st" onclick="closeMo('moGcpMgr');exportSurveyCSV()">Export CSV</button></div>
+</div></div>
+
+<!-- CONTOUR GENERATOR -->
+<div class="mo" id="moContour">
+<div class="modal">
+<div class="mh"><div class="mh-t"><span class="i">〰️</span>Generate Contours</div><span class="mc" onclick="closeMo('moContour')">✕</span></div>
+<div class="mb">
+<div id="tinStatus" style="padding:6px 8px;background:var(--bg2);border-radius:3px;font-size:9.5px;color:var(--m);margin-bottom:10px">Import survey points and click Build TIN first.</div>
+<div class="fsect">Contour intervals</div>
+<div style="display:flex;gap:12px;flex-wrap:wrap">
+<div><label class="fl">Minor interval</label><input class="fs" type="number" id="ctMinor" value="1" min="0.1" step="0.1" style="width:80px"></div>
+<div><label class="fl">Major interval</label><input class="fs" type="number" id="ctMajor" value="5" min="0.5" step="0.5" style="width:80px"></div>
+<div><label class="fl">Min elevation</label><input class="fs" type="number" id="ctMin" value="0" style="width:80px"></div>
+<div><label class="fl">Max elevation</label><input class="fs" type="number" id="ctMax" value="100" style="width:80px"></div>
+</div>
+<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px">
+<label class="fck"><input type="checkbox" id="ctSmooth" checked> Smooth contours</label>
+</div>
+</div>
+<div class="mf"><button class="btn s" onclick="closeMo('moContour')">Cancel</button><button class="btn st" onclick="generateContours()">Generate Contours</button></div>
+</div></div>
+
+<!-- PROJECT SAVE/LOAD -->
+<div class="mo" id="moProject">
+<div class="modal w">
+<div class="mh"><div class="mh-t"><span class="i">💾</span>Project Save / Load</div><span class="mc" onclick="closeMo('moProject')">✕</span></div>
+<div class="mb">
+<div class="fsect">Save Project</div>
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
+<input class="fs" type="text" id="projName" placeholder="Project name" value="MyProject" style="flex:1">
+<button class="btn" onclick="saveProject()">💾 Save .strata</button>
+</div>
+<div class="fsect">Load Project</div>
+<div class="impz" onclick="document.getElementById('projFileIn').click()" style="text-align:center;padding:14px;cursor:pointer;border:2px dashed var(--sep);border-radius:6px;background:var(--bg2)">
+<div style="font-size:20px;margin-bottom:3px">📂</div>
+<div style="font-size:11px;color:var(--m)">Drop .strata file or click to browse</div>
+</div>
+<input type="file" id="projFileIn" accept=".strata,.json" style="display:none" onchange="loadProjectFile(event)">
+<div style="margin-top:8px;padding:5px 8px;background:var(--bg2);border-radius:3px;font-size:8.5px;color:var(--m)" id="projInfo">Drag a .strata file onto the canvas to load instantly</div>
+</div>
+<div class="mf"><button class="btn s" onclick="closeMo('moProject')">Close</button></div>
+</div></div>
+
+<!-- CONTOUR LEGEND OVERLAY -->
+<style>
+.meas-overlay{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(4,12,24,.95);border:1px solid rgba(245,190,24,.4);border-radius:5px;padding:6px 14px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--g);display:none;pointer-events:none;white-space:nowrap;z-index:50}
+.cleg{position:absolute;bottom:80px;right:42px;background:rgba(4,12,24,.92);border:1px solid var(--sep);border-radius:4px;padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:8.5px;display:none;min-width:110px;z-index:40}
+.cleg-title{color:var(--st);font-weight:700;font-size:8px;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px}
+.cleg-row{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.cleg-swatch{width:20px;height:2px;border-radius:1px}
+.cleg-lbl{color:var(--m);font-size:8px}
+</style>
