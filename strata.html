@@ -816,6 +816,63 @@ input,select{font-family:inherit}
 
 </div><!-- /workspace -->
 
+<!-- INPUT BAR — always visible, direct coordinate + map access -->
+<div class="inputbar" id="inputBar">
+  <!-- Coordinates -->
+  <div class="ib-sect">
+    <span class="ib-lbl">X</span>
+    <span class="ib-val" id="ibX">0.000</span>
+  </div>
+  <div class="ib-sect">
+    <span class="ib-lbl">Y</span>
+    <span class="ib-val" id="ibY">0.000</span>
+  </div>
+
+  <!-- Drawing inputs (shown when drawing active) -->
+  <div class="ib-sect" id="ibDrawSect" style="display:none">
+    <span class="ib-lbl" id="ibDistLbl">DIST</span>
+    <input class="ib-in" id="ibDist" placeholder="distance…" autocomplete="off" title="Type distance — or polar as 100<45">
+    <span class="ib-lbl" style="margin-left:4px" id="ibAngLbl">ANG°</span>
+    <input class="ib-in" id="ibAng" placeholder="angle…" autocomplete="off" title="Type angle in degrees">
+    <button class="ib-btn" id="ibApplyBtn" onclick="ibApply()" title="Apply typed values (Enter)">✓ Apply</button>
+    <button class="ib-btn" onclick="ibOpenCoord()" title="Enter absolute coordinates">📍 Abs</button>
+  </div>
+
+  <!-- Op inputs (shown during move/rotate/scale/copy) -->
+  <div class="ib-sect" id="ibOpSect" style="display:none">
+    <span class="ib-mode" id="ibOpMode">MOVE</span>
+    <span class="ib-lbl" style="margin-left:6px" id="ibOpLbl1">ΔX</span>
+    <input class="ib-in" id="ibOpV1" placeholder="0" autocomplete="off" style="width:70px">
+    <span class="ib-lbl" id="ibOpLbl2">ΔY</span>
+    <input class="ib-in" id="ibOpV2" placeholder="0" autocomplete="off" style="width:70px">
+    <span class="ib-lbl" id="ibOpLbl3" style="display:none">VAL</span>
+    <input class="ib-in" id="ibOpV3" placeholder="0" autocomplete="off" style="width:70px;display:none">
+    <button class="ib-btn" onclick="ibOpApply()" title="Apply (Enter)">✓ Apply</button>
+  </div>
+
+  <div style="flex:1"></div>
+
+  <!-- Map controls — always visible -->
+  <div class="ib-sect" style="gap:4px">
+    <span class="ib-lbl">MAP</span>
+    <button class="ib-btn" id="ibBtnMapToggle" onclick="toggleMap()" title="Toggle map background (OSM/Satellite)">🗺 Map</button>
+    <button class="ib-btn" id="ibBtnSat" onclick="setMapLayer('sat')" title="Satellite imagery">🛰 Sat</button>
+    <button class="ib-btn" id="ibBtnOSM" onclick="setMapLayer('osm')" title="Street map">🛣 OSM</button>
+    <button class="ib-btn" id="ibBtnCal" onclick="startMapCal()" title="Calibrate drawing to real-world map coords">📍 Calibrate</button>
+    <input class="ib-in" id="ibMapSearch" placeholder="search city…" style="width:100px" autocomplete="off"
+           onkeydown="if(event.key==='Enter'){mapSearch(this.value);this.value='';event.stopPropagation()}"
+           title="Type city/address + Enter to go there on map">
+    <button class="ib-btn" onclick="mapSearch(document.getElementById('ibMapSearch').value);document.getElementById('ibMapSearch').value=''" title="Go to location">Go</button>
+  </div>
+
+  <!-- Quick toggle buttons -->
+  <div class="ib-sect" style="gap:3px">
+    <button class="ib-btn on" id="ib-ortho" onclick="toggleOrtho()" title="Ortho mode — constrain to 0/45/90° (F8)">⊢ ORTHO</button>
+    <button class="ib-btn on" id="ib-snap" onclick="toggleSnap()" title="Grid snap (F9)">⊞ SNAP</button>
+    <button class="ib-btn on" id="ib-osnap" onclick="toggleOsnap()" title="Object snap endpoints/midpoints (F3)">◎ OSNAP</button>
+  </div>
+</div>
+
 <!-- CMDBAR -->
 <div class="cmdbar">
   <span class="cmd-p">◈</span>
@@ -4008,6 +4065,447 @@ window.cmdKey=function(ev){
   _origCmdKey(ev);
 };
 
+// ════════════════════════════════════════════════════════════════════
+//  INPUT BAR ENGINE — coordinate entry, drawing inputs, map
+// ════════════════════════════════════════════════════════════════════
+
+// Keep input bar in sync with cursor and drawing state
+function ibUpdate(mx, my) {
+  const wp = s2w(mx, my);
+  const xEl = document.getElementById('ibX');
+  const yEl = document.getElementById('ibY');
+  if(xEl) xEl.textContent = wp.x.toFixed(3);
+  if(yEl) yEl.textContent = wp.y.toFixed(3);
+
+  // Show draw section when drawing
+  const drawSect = document.getElementById('ibDrawSect');
+  const opSect   = document.getElementById('ibOpSect');
+
+  if(ST.opState && !ST.opState.pendingSelect) {
+    if(drawSect) drawSect.style.display = 'none';
+    if(opSect)   opSect.style.display   = 'flex';
+    ibUpdateOpSect(wp);
+  } else if(ST.drawing && ST.startPt) {
+    if(opSect)   opSect.style.display   = 'none';
+    if(drawSect) drawSect.style.display = 'flex';
+    ibUpdateDrawSect(wp);
+  } else {
+    if(drawSect) drawSect.style.display = 'none';
+    if(opSect)   opSect.style.display   = 'none';
+  }
+}
+
+function ibUpdateDrawSect(wp) {
+  if(!ST.startPt) return;
+  const dx = wp.x - ST.startPt.x, dy = wp.y - ST.startPt.y;
+  const dist = Math.hypot(dx, dy);
+  const ang  = ((Math.atan2(dy, dx) * 180 / Math.PI) + 360) % 360;
+
+  const dl = document.getElementById('ibDistLbl');
+  const al = document.getElementById('ibAngLbl');
+  const dv = document.getElementById('ibDist');
+  const av = document.getElementById('ibAng');
+
+  if(document.activeElement !== dv && dv) dv.placeholder = dist.toFixed(3) + ' ' + ST.units;
+  if(document.activeElement !== av && av) av.placeholder = ang.toFixed(2) + '°';
+
+  // Tool-specific labels
+  if(ST.tool === 'circle') { if(dl) dl.textContent='RADIUS'; if(al) al.textContent='—'; }
+  else if(ST.tool === 'arc') { if(dl) dl.textContent='RADIUS'; if(al) al.textContent='ANG°'; }
+  else if(ST.tool === 'rect') { if(dl) dl.textContent='WIDTH'; if(al) al.textContent='HEIGHT'; }
+  else if(ST.tool === 'ellipse') { if(dl) dl.textContent='RX'; if(al) al.textContent='RY'; }
+  else { if(dl) dl.textContent='DIST'; if(al) al.textContent='ANG°'; }
+}
+
+function ibUpdateOpSect(wp) {
+  const op = ST.opState;
+  if(!op) return;
+  const modeEl = document.getElementById('ibOpMode');
+  const l1 = document.getElementById('ibOpLbl1');
+  const l2 = document.getElementById('ibOpLbl2');
+  const l3 = document.getElementById('ibOpLbl3');
+  const v3 = document.getElementById('ibOpV3');
+
+  if(modeEl) modeEl.textContent = op.type.toUpperCase();
+
+  if(op.type === 'move' || op.type === 'copy') {
+    if(l1) l1.textContent = 'ΔX'; if(l2) l2.textContent = 'ΔY';
+    if(l3) l3.style.display='none'; if(v3) v3.style.display='none';
+    if(op.base) {
+      const dv1 = document.getElementById('ibOpV1'), dv2 = document.getElementById('ibOpV2');
+      if(document.activeElement !== dv1 && dv1) dv1.placeholder = (wp.x - op.base.x).toFixed(2);
+      if(document.activeElement !== dv2 && dv2) dv2.placeholder = (wp.y - op.base.y).toFixed(2);
+    }
+  } else if(op.type === 'rotate') {
+    if(l1) l1.textContent = 'ANG°'; if(l2) l2.textContent = '';
+    if(l3) l3.style.display='none'; if(v3) v3.style.display='none';
+    const dv1 = document.getElementById('ibOpV1');
+    if(op.base && document.activeElement !== dv1 && dv1) {
+      const ang = ((Math.atan2(wp.y-op.base.y, wp.x-op.base.x)*180/Math.PI)+360)%360;
+      dv1.placeholder = ang.toFixed(2)+'°';
+    }
+  } else if(op.type === 'scale') {
+    if(l1) l1.textContent = 'FACTOR'; if(l2) l2.textContent = '';
+    if(l3) l3.style.display='none'; if(v3) v3.style.display='none';
+  } else if(op.type === 'offset') {
+    if(l1) l1.textContent = 'DIST'; if(l2) l2.textContent = '';
+  }
+}
+
+// Apply typed values in draw section
+function ibApply() {
+  const distEl = document.getElementById('ibDist');
+  const angEl  = document.getElementById('ibAng');
+  const dv = distEl?.value?.trim();
+  const av = angEl?.value?.trim();
+  if(!ST.startPt) return;
+  const sp = ST.startPt;
+
+  // Live placeholders contain current dist/angle
+  const curDistStr = distEl?.placeholder?.replace(/[^0-9.]/g,'') || '0';
+  const curAngStr  = angEl?.placeholder?.replace(/[^0-9.]/g,'') || '0';
+  const curDist = parseFloat(curDistStr) || 0;
+  const curAng  = parseFloat(curAngStr) || 0;
+
+  let dist = dv ? parseFloat(dv) : curDist;
+  let ang  = av ? parseFloat(av) : curAng;
+
+  // Rect/ellipse: width, height
+  if(ST.tool === 'rect') {
+    const w = dv ? parseFloat(dv) : null;
+    const h = av ? parseFloat(av) : null;
+    if(w !== null && h !== null) {
+      const wp = {x: sp.x + w, y: sp.y + h};
+      const done = commitEntity(wp);
+      if(done) { ST.drawing = false; ST.startPt = null; ST.pts = []; render(); }
+      if(distEl) distEl.value = ''; if(angEl) angEl.value = '';
+      return;
+    }
+  }
+  if(ST.tool === 'ellipse') {
+    const rx = dv ? Math.abs(parseFloat(dv)) : null;
+    const ry = av ? Math.abs(parseFloat(av)) : null;
+    if(rx !== null && ry !== null) {
+      const wp = {x: sp.x + rx, y: sp.y + ry};
+      const done = commitEntity(wp);
+      if(done) { ST.drawing = false; ST.startPt = null; ST.pts = []; render(); }
+      if(distEl) distEl.value = ''; if(angEl) angEl.value = '';
+      return;
+    }
+  }
+
+  if(isNaN(dist) || dist <= 0) { toast('Enter a valid distance', 'warn'); return; }
+  const rad = ang * Math.PI / 180;
+  const wp = { x: sp.x + dist * Math.cos(rad), y: sp.y + dist * Math.sin(rad) };
+
+  if(distEl) distEl.value = ''; if(angEl) angEl.value = '';
+
+  if(ST.opState) { applyOp(wp); return; }
+  const done = commitEntity(wp);
+  if(done) {
+    if(ST.tool === 'line') {
+      ST.startPt = wp;
+      setMsg('Next point — type dist+angle above or click  |  ESC=stop');
+    } else {
+      ST.drawing = false; ST.startPt = null; ST.pts = [];
+      setMsg(ST.tool.toUpperCase() + ' drawn');
+    }
+    render();
+  }
+}
+
+// Apply op section values
+function ibOpApply() {
+  const op = ST.opState; if(!op || !op.base) { toast('Click a base point first', 'warn'); return; }
+  const v1 = parseFloat(document.getElementById('ibOpV1')?.value);
+  const v2 = parseFloat(document.getElementById('ibOpV2')?.value);
+
+  let wp;
+  if(op.type === 'move' || op.type === 'copy') {
+    if(isNaN(v1) || isNaN(v2)) { toast('Enter ΔX and ΔY values', 'warn'); return; }
+    wp = { x: op.base.x + v1, y: op.base.y + v2 };
+  } else if(op.type === 'rotate') {
+    if(isNaN(v1)) { toast('Enter angle in degrees', 'warn'); return; }
+    const rad = v1 * Math.PI / 180;
+    // Apply direct angle from base
+    const sels = ST.entities.filter(e=>e.selected);
+    pushUndo();
+    ST.entities = ST.entities.map(e=>e.selected ? rotateEnt(e, op.base, rad) : e);
+    toast('Rotated ' + v1.toFixed(2) + '°', 'ok');
+    setMsg('Rotated  |  ESC=deselect'); ST.opState = null;
+    ['ibOpV1','ibOpV2'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    render(); return;
+  } else if(op.type === 'scale') {
+    const factor = isNaN(v1) ? 1 : v1;
+    const sels = ST.entities.filter(e=>e.selected);
+    pushUndo();
+    ST.entities = ST.entities.map(e=>e.selected ? scaleEnt(e, op.base, factor) : e);
+    toast('Scaled ×' + factor.toFixed(3), 'ok');
+    setMsg('Scaled  |  ESC=deselect'); ST.opState = null;
+    ['ibOpV1','ibOpV2'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    render(); return;
+  }
+
+  ['ibOpV1','ibOpV2'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  if(wp) applyOp(wp);
+}
+
+function ibOpenCoord() {
+  const popup = document.getElementById('coordEntry');
+  if(!popup) { openCE && openCE(null, 'Enter absolute X, Y coordinates'); return; }
+  const r = canvas.getBoundingClientRect();
+  popup.style.left = (r.left + 20) + 'px';
+  popup.style.top  = (r.bottom - 160) + 'px';
+  popup.style.display = 'block';
+  const x = document.getElementById('ceX'); if(x) { x.value=''; x.focus(); }
+  const y = document.getElementById('ceY'); if(y) y.value='';
+}
+
+// Enter key in input bar fields
+function _ibKeydown(ev, nextId) {
+  ev.stopPropagation();
+  if(ev.key === 'Escape') {
+    ST.drawing = false; ST.startPt = null; ST.pts = []; ST.opState = null;
+    setMsg('Cancelled'); render();
+    document.getElementById('cmdInput')?.focus();
+    return;
+  }
+  if(ev.key === 'Enter') {
+    ev.preventDefault();
+    if(nextId) {
+      const next = document.getElementById(nextId);
+      if(next && next.value === '') { next.focus(); return; }
+    }
+    ibApply();
+  }
+  if(ev.key === 'Tab') {
+    ev.preventDefault();
+    const next = document.getElementById(nextId);
+    if(next) next.focus();
+  }
+}
+
+// Wire up Enter/Tab keys in input bar
+document.addEventListener('DOMContentLoaded', () => {
+  const dist = document.getElementById('ibDist');
+  const ang  = document.getElementById('ibAng');
+  const v1   = document.getElementById('ibOpV1');
+  const v2   = document.getElementById('ibOpV2');
+  if(dist) dist.addEventListener('keydown', ev => _ibKeydown(ev, 'ibAng'));
+  if(ang)  ang.addEventListener('keydown',  ev => _ibKeydown(ev, null));
+  if(v1)   v1.addEventListener('keydown',   ev => { ev.stopPropagation(); if(ev.key==='Enter'){if(document.getElementById('ibOpV2')?.style.display!=='none'){document.getElementById('ibOpV2').focus();}else ibOpApply();} if(ev.key==='Tab'){ev.preventDefault();document.getElementById('ibOpV2')?.focus();} if(ev.key==='Escape'){ST.opState=null;render();} });
+  if(v2)   v2.addEventListener('keydown',   ev => { ev.stopPropagation(); if(ev.key==='Enter') ibOpApply(); if(ev.key==='Escape'){ST.opState=null;render();} });
+
+  // Map search
+  const ms = document.getElementById('ibMapSearch');
+  if(ms) ms.addEventListener('keydown', ev => ev.stopPropagation());
+});
+
+// ── Patch mousemove to call ibUpdate ─────────────────────────────
+const _ibOrigMM = canvas.addEventListener;
+canvas.addEventListener('mousemove', ev => {
+  const r = canvas.getBoundingClientRect();
+  ibUpdate(ev.clientX - r.left, ev.clientY - r.top);
+});
+
+// ── Patch toggleOrtho to update ib-ortho button ───────────────────
+const _origToggleOrtho = toggleOrtho;
+toggleOrtho = function() {
+  _origToggleOrtho();
+  const btn = document.getElementById('ib-ortho');
+  if(btn) btn.classList.toggle('on', ST.ortho);
+};
+const _origToggleSnap = toggleSnap;
+toggleSnap = function() {
+  _origToggleSnap();
+  const btn = document.getElementById('ib-snap');
+  if(btn) btn.classList.toggle('on', ST.snap);
+};
+const _origToggleOsnap = toggleOsnap;
+toggleOsnap = function() {
+  _origToggleOsnap();
+  const btn = document.getElementById('ib-osnap');
+  if(btn) btn.classList.toggle('on', ST.osnap);
+};
+
+// ── Patch toggleMap to update ib button ──────────────────────────
+const _origToggleMap = typeof toggleMap === 'function' ? toggleMap : null;
+if(_origToggleMap) {
+  toggleMap = function() {
+    _origToggleMap();
+    const btn = document.getElementById('ibBtnMapToggle');
+    if(btn) btn.classList.toggle('map-on', _mapActive);
+  };
+}
+
+// ── Enhanced ortho: snap to 0/45/90/135/180/225/270/315 ─────────
+const _origApplyOrtho = applyOrtho;
+applyOrtho = function(base, wp) {
+  if(!ST.ortho) return wp;
+  const dx = wp.x - base.x, dy = wp.y - base.y;
+  const dist = Math.hypot(dx, dy);
+  const ang  = Math.atan2(dy, dx);
+  // Snap to nearest 45°
+  const snap45 = Math.round(ang / (Math.PI/4)) * (Math.PI/4);
+  return { x: base.x + dist * Math.cos(snap45), y: base.y + dist * Math.sin(snap45) };
+};
+
+// ── ANGLE LOCK: hold Shift to lock current angle ─────────────────
+let _shiftAngleLocked = false, _shiftAngle = 0;
+document.addEventListener('keydown', ev => {
+  if(ev.key === 'Shift' && ST.drawing && ST.startPt) {
+    const wp = s2w(ST.mouse.x, ST.mouse.y);
+    _shiftAngle = Math.atan2(wp.y - ST.startPt.y, wp.x - ST.startPt.x);
+    _shiftAngleLocked = true;
+  }
+});
+document.addEventListener('keyup', ev => { if(ev.key === 'Shift') _shiftAngleLocked = false; });
+
+// ── Patch snapPoint to apply shift-angle lock ────────────────────
+const _origSnapPoint = snapPoint;
+snapPoint = function(sx, sy) {
+  let wp = _origSnapPoint(sx, sy);
+  if(_shiftAngleLocked && ST.startPt) {
+    const sp = ST.startPt;
+    const dx = wp.x - sp.x, dy = wp.y - sp.y;
+    const proj = dx * Math.cos(_shiftAngle) + dy * Math.sin(_shiftAngle);
+    wp = { x: sp.x + proj * Math.cos(_shiftAngle), y: sp.y + proj * Math.sin(_shiftAngle) };
+  }
+  return wp;
+};
+
+// ── Patch render to show angle lock indicator ────────────────────
+const _ibOrigRender = render;
+render = function() {
+  _ibOrigRender();
+  if(_shiftAngleLocked && ST.startPt) {
+    const sp = w2s(ST.startPt.x, ST.startPt.y);
+    const len = Math.max(W, H) * 2;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(245,190,24,0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([6, 5]);
+    ctx.beginPath();
+    ctx.moveTo(sp.x - len * Math.cos(_shiftAngle), sp.y - len * Math.sin(_shiftAngle));
+    ctx.lineTo(sp.x + len * Math.cos(_shiftAngle), sp.y + len * Math.sin(_shiftAngle));
+    ctx.stroke();
+    ctx.restore();
+    ctx.setLineDash([]);
+  }
+};
+
+// ── STRAIGHT LINE with angle ─────────────────────────────────────
+// "Enter angle in deg, draw precise line" via input bar
+
+// ── PRECISE RECTANGLE from input bar ─────────────────────────────
+function drawPreciseRect() {
+  const w = parseFloat(prompt('Width (' + ST.units + '):', '100'));
+  if(isNaN(w) || w <= 0) return;
+  const h = parseFloat(prompt('Height (' + ST.units + '):', '100'));
+  if(isNaN(h) || h <= 0) return;
+  const wp = s2w(W/2, H/2);
+  pushUndo();
+  ST.entities.push({_id:++ST._eid, type:'rect', x:wp.x-w/2, y:wp.y-h/2, w, h, layer:ST.curLayer, selected:false});
+  render(); toast('Rectangle ' + w + ' × ' + h + ' ' + ST.units, 'ok');
+}
+
+// ── PRECISE CIRCLE ───────────────────────────────────────────────
+function drawPreciseCircle() {
+  const r = parseFloat(prompt('Radius (' + ST.units + '):', '50'));
+  if(isNaN(r) || r <= 0) return;
+  const wp = s2w(W/2, H/2);
+  pushUndo();
+  ST.entities.push({_id:++ST._eid, type:'circle', cx:wp.x, cy:wp.y, r, layer:ST.curLayer, selected:false});
+  render(); toast('Circle R=' + r + ' ' + ST.units, 'ok');
+}
+
+// ── PRECISE LINE (from/to point entry) ───────────────────────────
+function drawPreciseLine() {
+  const input = prompt('Line from X1,Y1 to X2,Y2 (e.g. 0,0,100,50):', '0,0,100,0');
+  if(!input) return;
+  const pts = input.split(',').map(Number);
+  if(pts.length < 4 || pts.some(isNaN)) { toast('Format: x1,y1,x2,y2', 'warn'); return; }
+  pushUndo();
+  ST.entities.push({_id:++ST._eid, type:'line', x1:pts[0], y1:pts[1], x2:pts[2], y2:pts[3], layer:ST.curLayer, selected:false});
+  render(); toast('Line drawn', 'ok'); zoomExt();
+}
+
+// ── CMD extras ───────────────────────────────────────────────────
+const _ibPrevCmd = window.cmdKey;
+window.cmdKey = function(ev) {
+  if(ev.key !== 'Enter') return;
+  const raw = document.getElementById('cmdInput')?.value?.trim() || '';
+  document.getElementById('cmdInput').value = '';
+  if(!raw) return;
+  const v = raw.toUpperCase();
+  const ibExtras = {
+    'LINE': drawPreciseLine,
+    'LL': drawPreciseLine,
+    'PRECT': drawPreciseRect,
+    'PCIRC': drawPreciseCircle,
+    'IBRECT': drawPreciseRect,
+    'IBCIRC': drawPreciseCircle,
+  };
+  if(ibExtras[v]) { ibExtras[v](); return; }
+
+  // Coordinate shortcut while drawing: just a number = distance
+  if(ST.drawing && ST.startPt) {
+    // "@dx,dy"
+    if(raw.startsWith('@') && raw.includes(',')) {
+      const parts = raw.slice(1).split(',');
+      const dx = parseFloat(parts[0])||0, dy = parseFloat(parts[1])||0;
+      const wp = {x: ST.startPt.x + dx, y: ST.startPt.y + dy};
+      const done = commitEntity(wp);
+      if(done) { if(ST.tool==='line') ST.startPt=wp; else {ST.drawing=false;ST.startPt=null;} render(); }
+      return;
+    }
+    // "dist<angle"
+    if(raw.includes('<')) {
+      const [d,a] = raw.split('<').map(Number);
+      if(!isNaN(d)&&!isNaN(a)){
+        const rad = a*Math.PI/180;
+        const wp = {x: ST.startPt.x + d*Math.cos(rad), y: ST.startPt.y + d*Math.sin(rad)};
+        const done = commitEntity(wp);
+        if(done){if(ST.tool==='line') ST.startPt=wp;else{ST.drawing=false;ST.startPt=null;}render();}
+        return;
+      }
+    }
+    // "x,y" absolute
+    if(raw.includes(',')) {
+      const [x,y] = raw.split(',').map(Number);
+      if(!isNaN(x)&&!isNaN(y)){
+        const wp={x,y};
+        const done=commitEntity(wp);
+        if(done){if(ST.tool==='line') ST.startPt=wp;else{ST.drawing=false;ST.startPt=null;}render();}
+        return;
+      }
+    }
+    // Just a number = distance at current angle
+    const num = parseFloat(raw);
+    if(!isNaN(num) && num > 0) {
+      const curAng = Math.atan2(ST.mouse.y - w2s(ST.startPt.x,ST.startPt.y).y, ST.mouse.x - w2s(ST.startPt.x,ST.startPt.y).x);
+      const wp = {x: ST.startPt.x + num*Math.cos(curAng), y: ST.startPt.y + num*Math.sin(curAng)};
+      const done = commitEntity(wp);
+      if(done){if(ST.tool==='line') ST.startPt=wp;else{ST.drawing=false;ST.startPt=null;}render();}
+      return;
+    }
+  }
+
+  _ibPrevCmd(ev);
+};
+
+// ── Final init ────────────────────────────────────────────────────
+setTimeout(() => {
+  // Sync button states
+  const ob = document.getElementById('ib-ortho');
+  const sb = document.getElementById('ib-snap');
+  const nb = document.getElementById('ib-osnap');
+  if(ob) ob.classList.toggle('on', ST.ortho);
+  if(sb) sb.classList.toggle('on', ST.snap);
+  if(nb) nb.classList.toggle('on', ST.osnap);
+  setMsg('Ready — Draw: L C R  |  Input bar above shows coordinates — type dist+angle while drawing  |  F1=Help');
+}, 800);
+
 // ── INIT SURVEY STATE ─────────────────────────────────────────────
 setTimeout(()=>{
   renderSurveyList();
@@ -4324,4 +4822,21 @@ setTimeout(()=>{
 .cleg-row{display:flex;align-items:center;gap:6px;margin-bottom:2px}
 .cleg-swatch{width:20px;height:2px;border-radius:1px}
 .cleg-lbl{color:var(--m);font-size:8px}
+
+/* ── INPUT BAR (always visible above cmdbar) ── */
+.inputbar{height:36px;flex-shrink:0;background:#030D1A;border-top:1px solid rgba(31,168,217,.15);display:flex;align-items:center;gap:0;overflow:hidden}
+.ib-sect{display:flex;align-items:center;gap:5px;padding:0 10px;border-right:1px solid rgba(31,168,217,.1);height:100%;flex-shrink:0}
+.ib-lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;color:rgba(90,131,158,.6);text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
+.ib-val{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:#4eff91;min-width:50px}
+.ib-in{background:rgba(31,168,217,.06);border:1px solid rgba(31,168,217,.18);border-radius:3px;color:var(--g);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:2px 7px;width:80px;outline:none;caret-color:var(--g)}
+.ib-in:focus{border-color:var(--g);background:rgba(245,190,24,.06)}
+.ib-in::placeholder{color:rgba(90,131,158,.4);font-size:9px}
+.ib-divider{width:1px;height:20px;background:rgba(31,168,217,.1);margin:0 2px;flex-shrink:0}
+.ib-btn{display:flex;align-items:center;gap:4px;padding:3px 9px;background:none;border:1px solid rgba(31,168,217,.12);border-radius:3px;color:var(--m);font-size:9.5px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-weight:700;letter-spacing:.3px;transition:all .1s;white-space:nowrap;flex-shrink:0}
+.ib-btn:hover{color:var(--t);border-color:var(--bl);background:var(--bdim)}
+.ib-btn.on{color:var(--gr);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.07)}
+.ib-btn.map-on{color:#4eff91;border-color:rgba(78,255,145,.35);background:rgba(78,255,145,.06)}
+.ib-sep{width:1px;height:22px;background:rgba(31,168,217,.08);margin:0 3px;flex-shrink:0}
+.ib-mode{font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--st);background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0}
+
 </style>
