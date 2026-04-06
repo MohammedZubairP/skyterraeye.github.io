@@ -35,7 +35,7 @@ input,select{font-family:inherit}
 
 /* ── MAP BACKGROUND ── */
 #mapDiv{position:absolute;inset:0;z-index:0;display:none}
-#cad{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+#cad{position:absolute;inset:0;width:100%;height:100%;z-index:1;transition:opacity .2s}
 .vport{position:relative;overflow:hidden;background:var(--bg)}
 .map-controls{position:absolute;top:8px;right:42px;display:flex;flex-direction:column;gap:3px;z-index:20}
 .map-btn{width:30px;height:24px;background:rgba(6,14,26,.92);border:1px solid var(--sep);border-radius:3px;color:var(--m);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;transition:all .1s}
@@ -371,6 +371,8 @@ input,select{font-family:inherit}
           <div class="dd-sep"></div>
           <div class="dd-item" onclick="openMo('moExport')">💾 Export<span class="ks">Ctrl+E</span></div>
           <div class="dd-item" onclick="openMo('moExportLayers')">📤 Export Layers</div>
+          <div class="dd-item" onclick="openAttrTable()">📋 Attribute Table</div>
+          <div class="dd-item" onclick="showStats()">📊 Layer Statistics</div>
           <div class="dd-sep"></div>
           <div class="dd-item" onclick="openMo('moSettings')">⚙️ Drawing Settings<span class="ks">Ctrl+,</span></div>
           <div class="dd-item" onclick="printDwg()">🖨️ Print / Plot<span class="ks">Ctrl+P</span></div>
@@ -450,6 +452,8 @@ input,select{font-family:inherit}
           <div class="dd-item" onclick="delSel()">🗑️ Delete<span class="ks">Del</span></div>
           <div class="dd-item" onclick="openMo('moExplode')">💥 Explode</div>
           <div class="dd-item" onclick="openMo('moArray')">🔲 Array</div>
+          <div class="dd-item" onclick="doBuffer()">🔵 Buffer</div>
+          <div class="dd-item" onclick="measureSelected()">📐 Measure Selected</div>
         </div>
       </div>
     </div>
@@ -470,6 +474,8 @@ input,select{font-family:inherit}
           <div class="dd-item" onclick="openMo('moBlock')">🧱 Insert Block<span class="ks">I</span></div>
           <div class="dd-item" onclick="openMo('moBlockEdit')">✏️ Block Editor</div>
           <div class="dd-item" onclick="openMo('moArray')">🔲 Array</div>
+          <div class="dd-item" onclick="doBuffer()">🔵 Buffer</div>
+          <div class="dd-item" onclick="measureSelected()">📐 Measure Selected</div>
         </div>
       </div>
     </div>
@@ -719,8 +725,8 @@ input,select{font-family:inherit}
     <button class="map-btn" id="btnMapOSM" onclick="setMapLayer('osm')" title="Street Map" style="display:none">🛣</button>
     <button class="map-btn" id="btnMapCal" onclick="startMapCal()" title="Calibrate Drawing to Map">📍</button>
   </div>
-  <div id="mapDiv"></div>
-  <div class="map-cal-hint" id="mapCalHint">Click 2 points on the map to calibrate drawing coordinates</div>
+  <div id="mapDiv" style="position:absolute;inset:0;z-index:0;display:none"></div>
+  <div id="mapCalHint" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(6,14,26,.97);border:2px solid var(--g);border-radius:8px;padding:18px 24px;text-align:center;font-size:13px;color:var(--t);z-index:30;min-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.8)"></div>
 
   <div class="zoom-btns">
     <button class="zb" onclick="zoomBy(1.25)" title="Zoom In">+</button>
@@ -834,7 +840,7 @@ input,select{font-family:inherit}
     <input class="ib-in" id="ibDist" placeholder="distance…" autocomplete="off" title="Type distance — or polar as 100<45">
     <span class="ib-lbl" style="margin-left:4px" id="ibAngLbl">ANG°</span>
     <input class="ib-in" id="ibAng" placeholder="angle…" autocomplete="off" title="Type angle in degrees">
-    <button class="ib-btn" id="ibApplyBtn" onclick="ibApply()" title="Apply typed values (Enter)">✓ Apply</button>
+    <button class="ib-btn" id="ibApply" onclick="ibApply()" title="Apply typed values (Enter)">✓ Apply</button>
     <button class="ib-btn" onclick="ibOpenCoord()" title="Enter absolute coordinates">📍 Abs</button>
   </div>
 
@@ -855,10 +861,12 @@ input,select{font-family:inherit}
   <!-- Map controls — always visible -->
   <div class="ib-sect" style="gap:4px">
     <span class="ib-lbl">MAP</span>
-    <button class="ib-btn" id="ibBtnMapToggle" onclick="toggleMap()" title="Toggle map background (OSM/Satellite)">🗺 Map</button>
-    <button class="ib-btn" id="ibBtnSat" onclick="setMapLayer('sat')" title="Satellite imagery">🛰 Sat</button>
+    <button class="ib-btn" id="ibBtnMapToggle" onclick="toggleMap()" title="Toggle map background">🗺 Map</button>
+    <button class="ib-btn" id="ibBtnMapMode" onclick="if(_mapActive)setMapDrawMode(_mapMode==='map'?'draw':'map')" title="Toggle: draw on map vs navigate map" style="display:none">🗺 Pan Map</button>
+    <button class="ib-btn" id="ibBtnSat" onclick="setMapLayer('sat')" title="Satellite view">🛰 Sat</button>
     <button class="ib-btn" id="ibBtnOSM" onclick="setMapLayer('osm')" title="Street map">🛣 OSM</button>
-    <button class="ib-btn" id="ibBtnCal" onclick="startMapCal()" title="Calibrate drawing to real-world map coords">📍 Calibrate</button>
+    <button class="ib-btn" id="ibBtnTopo" onclick="setMapLayer('topo')" title="Topographic map">⛰ Topo</button>
+    <button class="ib-btn" id="ibBtnCal" onclick="startMapCal()" title="Calibrate drawing coordinates to real-world map">📍 Calibrate</button>
     <input class="ib-in" id="ibMapSearch" placeholder="search city…" style="width:100px" autocomplete="off"
            onkeydown="if(event.key==='Enter'){mapSearch(this.value);this.value='';event.stopPropagation()}"
            title="Type city/address + Enter to go there on map">
@@ -2004,6 +2012,11 @@ canvas.addEventListener('mousedown',ev=>{
   const r=canvas.getBoundingClientRect();
   const mx=ev.clientX-r.left, my=ev.clientY-r.top;
   const wp=snapPoint(mx,my);
+
+  // ── MAP CALIBRATION INTERCEPT ────────────────────────────────────
+  if(_mapCal && _mapCal.step > 0 && typeof _checkCalCanvasClick === 'function') {
+    if(_checkCalCanvasClick(wp)) return;
+  }
 
   // ── SELECT TOOL ──────────────────────────────────────────────────
   if(ST.tool==='select'){
@@ -3246,6 +3259,15 @@ function dynFocus() {
 
 // Called when user presses Enter in dynField
 document.addEventListener('DOMContentLoaded', () => {
+  // Wire ibUpdate to canvas mousemove (canvas is in first script block)
+  const _cvs = document.getElementById('cad');
+  if(_cvs) {
+    _cvs.addEventListener('mousemove', ev => {
+      const r = _cvs.getBoundingClientRect();
+      if(typeof ibUpdate === 'function') ibUpdate(ev.clientX - r.left, ev.clientY - r.top);
+    });
+  }
+
   const dynField = document.getElementById('dynField');
   if(!dynField) return;
 
@@ -3436,194 +3458,293 @@ document.addEventListener('keydown', ev => {
 // ════════════════════════════════════════════════════════════════════
 //  MAP BACKGROUND — Leaflet tiles behind canvas
 // ════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════
+//  MAP ENGINE — Leaflet with proper canvas event routing
+// ════════════════════════════════════════════════════════════════════
 let _map = null;
 let _mapActive = false;
+let _mapMode = 'draw';  // 'draw' = canvas events active, 'map' = map events active
 let _mapLayer = 'osm';
-let _mapCal = { active: false, pts: [], worldPts: [] }; // calibration
+let _mapMarkers = [];
+let _mapCal = { step: 0, pts: [], worldPts: [] };
 
 const _mapLayers = {
-  osm: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  sat: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  topo:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+  osm: { url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attr:'© OpenStreetMap', label:'Street' },
+  sat: { url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr:'© Esri', label:'Satellite' },
+  topo:{ url:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attr:'© OpenTopoMap', label:'Topo' },
+  hybrid:{ url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr:'© Esri', label:'Hybrid' },
 };
+
+// Ensure mapDiv + cal hint exist in viewport
+(function ensureMapDivs() {
+  const vp = document.getElementById('vp');
+  if(!vp) return;
+  if(!document.getElementById('mapDiv')) {
+    const md = document.createElement('div');
+    md.id = 'mapDiv';
+    md.style.cssText = 'position:absolute;inset:0;z-index:0;display:none';
+    vp.insertBefore(md, vp.firstChild);
+  }
+  if(!document.getElementById('mapCalHint')) {
+    const ch = document.createElement('div');
+    ch.id = 'mapCalHint';
+    ch.style.cssText = 'display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(6,14,26,.97);border:2px solid var(--g);border-radius:8px;padding:18px 24px;text-align:center;font-size:13px;color:var(--t);z-index:30;min-width:280px;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.8)';
+    vp.appendChild(ch);
+  }
+})();
 
 function toggleMap() {
   _mapActive = !_mapActive;
-  const div = document.getElementById('mapDiv');
-  const btn = document.getElementById('btnMap');
-  if(!div) return;
+  const mapDiv = document.getElementById('mapDiv');
+  const cad    = document.getElementById('cad');
 
   if(_mapActive) {
-    div.style.display = 'block';
-    // Make canvas background transparent
-    ST.bgColor = 'rgba(0,0,0,0.01)';
+    mapDiv.style.display = 'block';
+    ST.bgColor = 'rgba(6,14,26,0.02)';  // near-transparent so map shows
     if(!_map) _initMap();
-    if(btn) btn.classList.add('on');
-    toast('Map ON — use 📍 to calibrate drawing to map', 'ok');
-    setMsg('Map active — click 📍 to align drawing to real-world coordinates');
+    else _map.invalidateSize();
+    // Canvas stays on top for drawing — map mode toggle controls routing
+    setMapDrawMode('draw');
+    // Update buttons
+    ['ibBtnMapToggle','btnMap'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.add('map-on','on');}); const pm=document.getElementById('ibBtnMapMode');if(pm)pm.style.display='flex';
+    toast('Map ON — 🖱 Pan Map button to navigate map | Draw button to draw on top', 'ok');
+    setMsg('Map active — use "Pan Map" in input bar to navigate. "Draw" mode = draw on map. 📍 = calibrate coords.');
   } else {
-    div.style.display = 'none';
+    mapDiv.style.display = 'none';
     ST.bgColor = '#060E1A';
-    if(btn) btn.classList.remove('on');
+    _mapMode = 'draw';
+    if(cad) { cad.style.pointerEvents = ''; cad.style.opacity = '1'; }
+    ['ibBtnMapToggle','btnMap','ibBtnMapMode'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('map-on','on');}); const pm=document.getElementById('ibBtnMapMode');if(pm)pm.style.display='none';
+    cancelMapCal();
     toast('Map OFF', 'ok');
   }
   render();
 }
 
+function setMapDrawMode(mode) {
+  // 'draw' = canvas captures events (draw on map)
+  // 'map'  = canvas is transparent (pan/zoom map)
+  _mapMode = mode;
+  const cad = document.getElementById('cad');
+  const modeBtn = document.getElementById('ibBtnMapMode');
+  if(mode === 'map') {
+    if(cad) { cad.style.pointerEvents = 'none'; cad.style.opacity = '0.7'; }
+    if(modeBtn) { modeBtn.textContent = '✏️ Draw'; modeBtn.title = 'Switch back to draw mode'; modeBtn.classList.add('on'); }
+    setMsg('MAP PAN mode — scroll/drag to navigate map | Click "Draw" button to draw again');
+    toast('Map pan mode — scroll to zoom, drag to pan', 'ok');
+  } else {
+    if(cad) { cad.style.pointerEvents = ''; cad.style.opacity = '1'; }
+    if(modeBtn) { modeBtn.textContent = '🗺 Pan Map'; modeBtn.title = 'Switch to map navigation mode'; modeBtn.classList.remove('on'); }
+    setMsg('Draw mode on map — draw normally. Click "Pan Map" to navigate the map beneath.');
+    toast('Draw mode — draw on top of map', 'ok');
+  }
+}
+
 function _initMap() {
   const div = document.getElementById('mapDiv');
-  if(!div || typeof L === 'undefined') {
-    toast('Map library not loaded — check internet connection', 'warn'); return;
+  if(!div) return;
+  if(typeof L === 'undefined') {
+    toast('Leaflet not loaded — check internet connection', 'warn');
+    return;
   }
   _map = L.map(div, {
-    zoomControl: false,
+    zoomControl: true,   // Built-in +/- buttons
     attributionControl: true,
+    scrollWheelZoom: true,
     preferCanvas: true,
-  }).setView([25.2048, 55.2708], 13); // Default: Dubai
+  }).setView([25.2048, 55.2708], 13);
 
-  L.tileLayer(_mapLayers[_mapLayer], {
-    maxZoom: 22,
-    attribution: _mapLayer === 'sat' ? '© Esri' : '© OpenStreetMap'
-  }).addTo(_map);
+  // Add zoom control to top-left
+  _map.zoomControl.setPosition('topleft');
 
-  // Sync map pan/zoom from canvas (disabled by default — use calibration instead)
-  toast('Map loaded — centre on your area, then 📍 to calibrate', 'ok');
+  // Add layer switcher
+  const layers = {};
+  Object.entries(_mapLayers).forEach(([key, val]) => {
+    layers[val.label] = L.tileLayer(val.url, { maxZoom: 22, attribution: val.attr });
+  });
+  layers.Street.addTo(_map);
+  L.control.layers(layers, null, { position: 'topright', collapsed: true }).addTo(_map);
+
+  // Search control
+  _addMapSearch();
+
+  _map.on('load', () => { if(_map) _map.invalidateSize(); });
+  setTimeout(() => { if(_map) _map.invalidateSize(); }, 300);
+  toast('Map loaded — use +/- or scroll to zoom', 'ok');
+}
+
+function _addMapSearch() {
+  // Custom geocoder using Nominatim
+  const ctrl = L.Control.extend({
+    options: { position: 'topleft' },
+    onAdd: function() {
+      const div = L.DomUtil.create('div', 'leaflet-bar');
+      div.style.cssText = 'background:#061422;padding:3px;display:flex;gap:3px';
+      const inp = L.DomUtil.create('input', '', div);
+      inp.placeholder = 'Search location…';
+      inp.style.cssText = 'background:#0A1520;border:1px solid rgba(31,168,217,.3);color:#D0E8F5;font-size:11px;padding:2px 6px;border-radius:2px;width:160px;outline:none';
+      const btn = L.DomUtil.create('button', '', div);
+      btn.textContent = '🔍';
+      btn.style.cssText = 'background:rgba(31,168,217,.1);border:1px solid rgba(31,168,217,.2);color:#D0E8F5;cursor:pointer;border-radius:2px;padding:2px 5px';
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
+      const go = () => {
+        const q = inp.value.trim();
+        if(!q) return;
+        mapSearch(q);
+      };
+      inp.addEventListener('keydown', e => { if(e.key==='Enter') go(); e.stopPropagation(); });
+      btn.addEventListener('click', go);
+      return div;
+    }
+  });
+  _map.addControl(new ctrl());
 }
 
 function setMapLayer(type) {
   _mapLayer = type;
-  const satBtn = document.getElementById('btnMapSat');
-  const osmBtn = document.getElementById('btnMapOSM');
-  if(satBtn) satBtn.style.display = type === 'sat' ? 'none' : 'flex';
-  if(osmBtn) osmBtn.style.display = type === 'osm' ? 'none' : 'flex';
-  if(!_map) return;
+  if(!_map || typeof L === 'undefined') { toggleMap(); return; }
   _map.eachLayer(l => { if(l instanceof L.TileLayer) _map.removeLayer(l); });
-  L.tileLayer(_mapLayers[type], { maxZoom: 22 }).addTo(_map);
-  toast('Map layer: ' + type.toUpperCase(), 'ok');
+  const cfg = _mapLayers[type] || _mapLayers.osm;
+  L.tileLayer(cfg.url, { maxZoom: 22, attribution: cfg.attr }).addTo(_map);
+  // Update sat/osm button labels
+  const satBtn = document.getElementById('ibBtnSat');
+  const osmBtn = document.getElementById('ibBtnOSM');
+  if(satBtn) satBtn.classList.toggle('on', type==='sat');
+  if(osmBtn) osmBtn.classList.toggle('on', type==='osm');
+  toast('Map: ' + (cfg.label || type), 'ok');
 }
 
-function startMapCal() {
-  if(!_mapActive) { toggleMap(); }
-  _mapCal = { active: true, pts: [], worldPts: [] };
-  const hint = document.getElementById('mapCalHint');
-  if(hint) {
-    hint.style.display = 'block';
-    hint.textContent = 'Step 1: Click a known point ON THE MAP to set its real-world position';
+function mapSearch(query) {
+  if(!query) {
+    query = document.getElementById('ibMapSearch')?.value?.trim();
+    if(!query) query = prompt('Search location:', '');
+    if(!query) return;
   }
-  toast('Click point 1 on the map', 'ok');
-  // Listen for map clicks
-  if(_map) _map.once('click', _calStep1);
+  toast('Searching: ' + query + '…', 'ok');
+  fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query) + '&format=json&limit=1', {
+    headers: { 'Accept-Language': 'en' }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if(!data.length) { toast('Not found: ' + query, 'warn'); return; }
+    const { lat, lon, display_name } = data[0];
+    if(!_map) { toggleMap(); setTimeout(() => _goToLocation(lat, lon, display_name), 600); }
+    else _goToLocation(lat, lon, display_name);
+  })
+  .catch(() => toast('Search failed — check internet', 'warn'));
 }
 
-function _calStep1(ev) {
-  const ll = ev.latlng;
-  _mapCal.pts[0] = { lat: ll.lat, lng: ll.lng };
-  const hint = document.getElementById('mapCalHint');
-  if(hint) hint.textContent = 'Step 2: Now click the SAME point on the drawing canvas, then click a second map point';
-  // Next: user clicks canvas to say "this map point = this canvas point"
-  _pendingCalClick = 1;
-  toast('Now click the same point on your drawing', 'ok');
+function _goToLocation(lat, lon, name) {
+  if(!_mapActive) toggleMap();
+  if(!_map) { setTimeout(() => _goToLocation(lat, lon, name), 500); return; }
+  _map.setView([parseFloat(lat), parseFloat(lon)], 16);
+  // Add marker
+  const marker = L.circleMarker([parseFloat(lat), parseFloat(lon)], {
+    radius: 8, color: '#4eff91', fillColor: '#4eff91', fillOpacity: 0.7, weight: 2
+  }).addTo(_map).bindPopup('<b>' + name.split(',').slice(0,2).join(', ') + '</b>').openPopup();
+  _mapMarkers.push(marker);
+  toast('→ ' + name.split(',')[0], 'ok');
 }
 
-let _pendingCalClick = 0;
-// Patch mousedown to capture calibration clicks
-const _origMD = canvas.onmousedown;
+// ── MAP CALIBRATION (simplified, clean) ──────────────────────────
+function startMapCal() {
+  if(!_mapActive) toggleMap();
+  setTimeout(() => {
+    _mapCal = { step: 0, pts: [], worldPts: [] };
+    _showCalHint(1);
+    setMapDrawMode('map');  // switch to map mode so user can click map
+    // Listen for 2 map clicks
+    _map.once('click', ev => {
+      _mapCal.pts[0] = { lat: ev.latlng.lat, lng: ev.latlng.lng };
+      L.circleMarker(ev.latlng, { radius: 6, color: '#F5BE18', fillColor: '#F5BE18', fillOpacity: 0.8 }).addTo(_map);
+      _showCalHint(2);
+      toast('Point 1 set on map. Now switch to Draw mode and click the matching point on your drawing.', 'ok');
+      // Now user switches to draw mode to click canvas
+      setMapDrawMode('draw');
+      _mapCal.step = 1;  // waiting for canvas click 1
+    });
+  }, 300);
+}
 
-function _captureCalClick(wp) {
-  if(_pendingCalClick === 1) {
+function _showCalHint(step) {
+  const h = document.getElementById('mapCalHint');
+  if(!h) return;
+  const msgs = {
+    0: '',
+    1: '📍 Step 1 of 4 — Click a known point on the MAP
+(switch to Pan Map mode to click)',
+    2: '📍 Step 2 of 4 — Click the SAME point on your DRAWING
+(switched to Draw mode)',
+    3: '📍 Step 3 of 4 — Click a SECOND known point on the MAP
+(switching to Pan Map mode)',
+    4: '📍 Step 4 of 4 — Click the same second point on your DRAWING',
+    5: '✅ Calibration complete!
+Drawing is now georeferenced.',
+  };
+  if(step === 0) { h.style.display = 'none'; return; }
+  h.style.display = 'block';
+  h.innerHTML = msgs[step] ? msgs[step].replace(/
+/g,'<br>') + (step < 5 ? '<br><small style="color:var(--m);font-size:10px">Click "Pan Map" / "Draw" buttons in the input bar to switch modes</small>' : '') : '';
+  if(step === 5) setTimeout(() => { h.style.display = 'none'; }, 3000);
+}
+
+function cancelMapCal() {
+  _mapCal = { step: 0, pts: [], worldPts: [] };
+  _showCalHint(0);
+  setMapDrawMode('draw');
+}
+
+// Called from mousedown handler when in draw mode during calibration
+function _checkCalCanvasClick(wp) {
+  if(!_mapActive) return false;
+  if(_mapCal.step === 1) {
+    // Got first canvas point
     _mapCal.worldPts[0] = { x: wp.x, y: wp.y };
-    _pendingCalClick = 2;
-    toast('Good! Now click point 2 on the MAP', 'ok');
-    const hint = document.getElementById('mapCalHint');
-    if(hint) hint.textContent = 'Click a second known point on the map';
-    if(_map) _map.once('click', _calStep2);
+    _mapCal.step = 2;
+    _showCalHint(3);
+    toast('Point 1 matched! Now click point 2 on the MAP.', 'ok');
+    setMapDrawMode('map');
+    _map.once('click', ev => {
+      _mapCal.pts[1] = { lat: ev.latlng.lat, lng: ev.latlng.lng };
+      L.circleMarker(ev.latlng, { radius: 6, color: '#A78BFA', fillColor: '#A78BFA', fillOpacity: 0.8 }).addTo(_map);
+      _showCalHint(4);
+      toast('Point 2 set on map. Now click the matching point on your drawing.', 'ok');
+      setMapDrawMode('draw');
+      _mapCal.step = 3;
+    });
     return true;
   }
-  if(_pendingCalClick === 3) {
+  if(_mapCal.step === 3) {
+    // Got second canvas point
     _mapCal.worldPts[1] = { x: wp.x, y: wp.y };
+    _mapCal.step = 0;
     _finishCal();
     return true;
   }
   return false;
 }
 
-function _calStep2(ev) {
-  const ll = ev.latlng;
-  _mapCal.pts[1] = { lat: ll.lat, lng: ll.lng };
-  _pendingCalClick = 3;
-  toast('Now click the same second point on your drawing', 'ok');
-  const hint = document.getElementById('mapCalHint');
-  if(hint) hint.textContent = 'Click the same second point on the drawing canvas';
-}
-
 function _finishCal() {
-  _pendingCalClick = 0;
-  _mapCal.active = false;
-  const hint = document.getElementById('mapCalHint');
-  if(hint) hint.style.display = 'none';
-
-  const p1w = _mapCal.worldPts[0], p2w = _mapCal.worldPts[1];
-  const p1m = _mapCal.pts[0],     p2m = _mapCal.pts[1];
-  if(!p1w || !p2w || !p1m || !p2m) { toast('Calibration failed', 'err'); return; }
-
-  // Store transform: worldPt → latLng
+  const { pts, worldPts } = _mapCal;
+  if(!pts[0] || !pts[1] || !worldPts[0] || !worldPts[1]) { toast('Calibration failed', 'err'); return; }
   _mapCal.ready = true;
-  _mapCal.transform = { p1w, p2w, p1m, p2m };
-
-  toast('Map calibrated! Drawing is now georeferenced', 'ok');
-  setMsg('Map calibrated — drawing coordinates are now georeferenced to real-world');
-
-  // Move map to cover the drawing extent
-  _syncMapToDrawing();
+  _mapCal.transform = { p1w: worldPts[0], p2w: worldPts[1], p1m: pts[0], p2m: pts[1] };
+  const dxW = worldPts[1].x - worldPts[0].x || 1;
+  const dyW = worldPts[1].y - worldPts[0].y || 1;
+  const dLat = pts[1].lat - pts[0].lat;
+  const dLng = pts[1].lng - pts[0].lng;
+  window._worldToLatLng = (x, y) => L.latLng(
+    pts[0].lat + ((y - worldPts[0].y) / dyW) * dLat,
+    pts[0].lng + ((x - worldPts[0].x) / dxW) * dLng
+  );
+  _showCalHint(5);
+  toast('✅ Drawing georeferenced!', 'ok');
+  setMsg('Calibration done — drawing coordinates are now aligned to real-world map coordinates');
+  setMapDrawMode('draw');
 }
 
-function _syncMapToDrawing() {
-  if(!_map || !_mapCal.ready) return;
-  const { p1w, p2w, p1m, p2m } = _mapCal.transform;
-  // Simple linear interpolation to convert world→latLng
-  const dx_w = p2w.x - p1w.x || 1, dy_w = p2w.y - p1w.y || 1;
-  const dlat = p2m.lat - p1m.lat, dlng = p2m.lng - p1m.lng;
-  window._worldToLatLng = function(x, y) {
-    const fx = (x - p1w.x) / dx_w, fy = (y - p1w.y) / dy_w;
-    return L.latLng(p1m.lat + fy * dlat, p1m.lng + fx * dlng);
-  };
-  // Fit map to drawing bbox
-  if(ST.entities.length) {
-    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
-    ST.entities.forEach(e=>{const b=entBBox(e);if(b){minX=Math.min(minX,b.minX);maxX=Math.max(maxX,b.maxX);minY=Math.min(minY,b.minY);maxY=Math.max(maxY,b.maxY);}});
-    if(isFinite(minX)){
-      const sw = _worldToLatLng(minX,minY), ne = _worldToLatLng(maxX,maxY);
-      _map.fitBounds([sw,ne],{padding:[20,20]});
-    }
-  }
-}
-
-// ── SEARCH LOCATION on map ──────────────────────────────────────
-function mapSearch(query) {
-  if(!query) { query = prompt('Search location (city, address):', ''); if(!query) return; }
-  fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query) + '&format=json&limit=1')
-    .then(r => r.json())
-    .then(data => {
-      if(!data.length) { toast('Location not found', 'warn'); return; }
-      const { lat, lon, display_name } = data[0];
-      if(!_map) { toggleMap(); }
-      _map.setView([parseFloat(lat), parseFloat(lon)], 16);
-      toast('Map → ' + display_name.split(',')[0], 'ok');
-    })
-    .catch(() => toast('Location search failed', 'warn'));
-}
-
-// ── PATCH MOUSEDOWN to intercept calibration clicks ─────────────
-const _vp = document.getElementById('vp');
-if(_vp) {
-  _vp.addEventListener('mousedown', ev => {
-    if(_pendingCalClick > 0 && ev.button === 0) {
-      const r = canvas.getBoundingClientRect();
-      const wp = s2w(ev.clientX - r.left, ev.clientY - r.top);
-      if(_captureCalClick(wp)) ev.stopImmediatePropagation();
-    }
-  }, true); // capture phase
-}
+// Cal intercept now handled in mousedown via _checkCalCanvasClick
 
 // ════════════════════════════════════════════════════════════════════
 //  ENHANCED COMMAND LINE — add map + coord commands
@@ -4252,8 +4373,9 @@ function ibOpApply() {
 
 function ibOpenCoord() {
   const popup = document.getElementById('coordEntry');
-  if(!popup) { openCE && openCE(null, 'Enter absolute X, Y coordinates'); return; }
-  const r = canvas.getBoundingClientRect();
+  if(!popup) return;
+  const _c = document.getElementById('cad');
+  const r = _c ? _c.getBoundingClientRect() : {left:20, bottom:window.innerHeight-160};
   popup.style.left = (r.left + 20) + 'px';
   popup.style.top  = (r.bottom - 160) + 'px';
   popup.style.display = 'block';
@@ -4287,6 +4409,15 @@ function _ibKeydown(ev, nextId) {
 
 // Wire up Enter/Tab keys in input bar
 document.addEventListener('DOMContentLoaded', () => {
+  // Wire ibUpdate to canvas mousemove (canvas is in first script block)
+  const _cvs = document.getElementById('cad');
+  if(_cvs) {
+    _cvs.addEventListener('mousemove', ev => {
+      const r = _cvs.getBoundingClientRect();
+      if(typeof ibUpdate === 'function') ibUpdate(ev.clientX - r.left, ev.clientY - r.top);
+    });
+  }
+
   const dist = document.getElementById('ibDist');
   const ang  = document.getElementById('ibAng');
   const v1   = document.getElementById('ibOpV1');
@@ -4302,11 +4433,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Patch mousemove to call ibUpdate ─────────────────────────────
-const _ibOrigMM = canvas.addEventListener;
-canvas.addEventListener('mousemove', ev => {
-  const r = canvas.getBoundingClientRect();
-  ibUpdate(ev.clientX - r.left, ev.clientY - r.top);
-});
+// ibUpdate wired via document.getElementById in DOMContentLoaded
+// canvas mousemove for ibUpdate is added in DOMContentLoaded below
 
 // ── Patch toggleOrtho to update ib-ortho button ───────────────────
 const _origToggleOrtho = toggleOrtho;
@@ -4329,26 +4457,7 @@ toggleOsnap = function() {
 };
 
 // ── Patch toggleMap to update ib button ──────────────────────────
-const _origToggleMap = typeof toggleMap === 'function' ? toggleMap : null;
-if(_origToggleMap) {
-  toggleMap = function() {
-    _origToggleMap();
-    const btn = document.getElementById('ibBtnMapToggle');
-    if(btn) btn.classList.toggle('map-on', _mapActive);
-  };
-}
-
-// ── Enhanced ortho: snap to 0/45/90/135/180/225/270/315 ─────────
-const _origApplyOrtho = applyOrtho;
-applyOrtho = function(base, wp) {
-  if(!ST.ortho) return wp;
-  const dx = wp.x - base.x, dy = wp.y - base.y;
-  const dist = Math.hypot(dx, dy);
-  const ang  = Math.atan2(dy, dx);
-  // Snap to nearest 45°
-  const snap45 = Math.round(ang / (Math.PI/4)) * (Math.PI/4);
-  return { x: base.x + dist * Math.cos(snap45), y: base.y + dist * Math.sin(snap45) };
-};
+// toggleMap override removed (now in main map block)
 
 // ── ANGLE LOCK: hold Shift to lock current angle ─────────────────
 let _shiftAngleLocked = false, _shiftAngle = 0;
@@ -4512,6 +4621,315 @@ setTimeout(()=>{
   // Update init message
   setMsg('Ready — L=Line  C=Circle  R=Rect  M=Move  ESC=Cancel  DEL=Delete  F1=Help  SPACE=Repeat');
 },500);
+
+// ════════════════════════════════════════════════════════════════════
+//  QGIS-LIKE FEATURES — Attribute table, field calc, buffer, dissolve
+// ════════════════════════════════════════════════════════════════════
+
+// ── ATTRIBUTE TABLE ───────────────────────────────────────────────
+function openAttrTable() {
+  const ents = ST.entities.filter(e => layVisible(e.layer));
+  const div = document.getElementById('moAttrTable');
+  if(!div) return;
+  const tbody = document.getElementById('attrTableBody');
+  if(!tbody) return;
+  const rows = ents.slice(0, 1000).map((e, i) => {
+    const lay = ST.layers.find(l => l.id === e.layer);
+    const layName = lay ? lay.name : '0';
+    let geom = '', props = '';
+    switch(e.type) {
+      case 'line':     geom = `LINE (${e.x1.toFixed(1)},${e.y1.toFixed(1)})→(${e.x2.toFixed(1)},${e.y2.toFixed(1)})`; props = 'L=' + Math.hypot(e.x2-e.x1,e.y2-e.y1).toFixed(2); break;
+      case 'circle':   geom = `CIRCLE cx=${e.cx.toFixed(1)} cy=${e.cy.toFixed(1)} r=${e.r.toFixed(2)}`; props = 'A=' + (Math.PI*e.r*e.r).toFixed(2); break;
+      case 'rect':     geom = `RECT ${Math.abs(e.w).toFixed(1)}×${Math.abs(e.h).toFixed(1)}`; props = 'A=' + Math.abs(e.w*e.h).toFixed(2); break;
+      case 'polyline': geom = `POLYLINE ${(e.pts||[]).length} pts`; break;
+      case 'text':     geom = `TEXT "${(e.txt||'').slice(0,20)}"`; break;
+      default:         geom = e.type.toUpperCase();
+    }
+    return `<tr onclick="ST.entities.forEach(x=>x.selected=false);ST.entities[${i}].selected=true;updateSel();render();showTab('props')" style="cursor:pointer" onmouseover="this.style.background='rgba(31,168,217,.05)'" onmouseout="this.style.background=''">
+      <td style="padding:2px 5px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--b)">${e._id}</td>
+      <td style="padding:2px 5px;font-size:8.5px;color:var(--st)">${e.type.toUpperCase()}</td>
+      <td style="padding:2px 5px;font-size:8px;color:var(--m)">${layName}</td>
+      <td style="padding:2px 5px;font-size:8px;color:var(--t)">${geom}</td>
+      <td style="padding:2px 5px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--g)">${props}</td>
+    </tr>`;
+  }).join('');
+  tbody.innerHTML = rows || '<tr><td colspan="5" style="padding:14px;text-align:center;color:var(--m)">No entities</td></tr>';
+  document.getElementById('attrCount').textContent = ents.length + ' features';
+  openMo('moAttrTable');
+}
+
+// ── BUFFER ────────────────────────────────────────────────────────
+function doBuffer() {
+  const sels = ST.entities.filter(e=>e.selected);
+  if(!sels.length) { toast('Select objects first', 'warn'); return; }
+  const dist = parseFloat(prompt('Buffer distance (' + ST.units + '):', '10'));
+  if(isNaN(dist) || dist <= 0) return;
+  pushUndo();
+  const newEnts = [];
+  sels.forEach(e => {
+    if(e.type === 'line') {
+      // Parallel offset both sides
+      const ang = Math.atan2(e.y2-e.y1, e.x2-e.x1);
+      const px = Math.sin(ang)*dist, py = -Math.cos(ang)*dist;
+      newEnts.push({_id:++ST._eid,type:'polyline',pts:[{x:e.x1+px,y:e.y1+py},{x:e.x2+px,y:e.y2+py},{x:e.x2-px,y:e.y2-py},{x:e.x1-px,y:e.y1-py}],closed:true,layer:e.layer,selected:false});
+    } else if(e.type === 'circle') {
+      newEnts.push({_id:++ST._eid,type:'circle',cx:e.cx,cy:e.cy,r:e.r+dist,layer:e.layer,selected:false});
+    } else if(e.type === 'rect') {
+      newEnts.push({_id:++ST._eid,type:'rect',x:e.x-dist,y:e.y-dist,w:e.w+(e.w>0?2*dist:-2*dist),h:e.h+(e.h>0?2*dist:-2*dist),layer:e.layer,selected:false});
+    }
+  });
+  ST.entities.push(...newEnts);
+  toast('Buffer: ' + newEnts.length + ' features created', 'ok');
+  render();
+}
+
+// ── MEASURE ALL SELECTED ───────────────────────────────────────────
+function measureSelected() {
+  const sels = ST.entities.filter(e=>e.selected);
+  if(!sels.length) { toast('Select objects first', 'warn'); return; }
+  let totalLen = 0, totalArea = 0, count = 0;
+  sels.forEach(e => {
+    count++;
+    switch(e.type) {
+      case 'line':     totalLen += Math.hypot(e.x2-e.x1,e.y2-e.y1); break;
+      case 'circle':   totalArea += Math.PI*e.r*e.r; totalLen += 2*Math.PI*e.r; break;
+      case 'rect':     totalArea += Math.abs(e.w*e.h); totalLen += 2*(Math.abs(e.w)+Math.abs(e.h)); break;
+      case 'polyline': {
+        const pts = e.pts||[];
+        for(let i=0;i<pts.length-1;i++) totalLen += Math.hypot(pts[i+1].x-pts[i].x,pts[i+1].y-pts[i].y);
+        break;
+      }
+    }
+  });
+  const msg = count + ' selected | Length: ' + totalLen.toFixed(3) + ' ' + ST.units + ' | Area: ' + totalArea.toFixed(3) + ' ' + ST.units + '²';
+  toast(msg, 'ok');
+  setMsg(msg);
+}
+
+// ── SELECT BY LAYER ───────────────────────────────────────────────
+function selectByLayer(layId) {
+  ST.entities.forEach(e => e.selected = (e.layer === layId));
+  updateSel(); render();
+  const n = ST.entities.filter(e=>e.selected).length;
+  toast(n + ' objects selected on layer', 'ok');
+}
+
+// ── SELECT BY TYPE ────────────────────────────────────────────────
+function selectByType(type) {
+  ST.entities.forEach(e => e.selected = (e.type === type));
+  updateSel(); render();
+  toast(ST.entities.filter(e=>e.selected).length + ' ' + type + ' objects selected', 'ok');
+}
+
+// ── DISSOLVE (merge polylines on same layer) ─────────────────────
+function dissolveLayer() {
+  const lid = ST.curLayer;
+  const lines = ST.entities.filter(e=>e.type==='line'&&e.layer===lid);
+  if(lines.length < 2) { toast('Need at least 2 lines on current layer', 'warn'); return; }
+  pushUndo();
+  // Build a polyline from connected lines
+  const pts = [{ x: lines[0].x1, y: lines[0].y1 }];
+  lines.forEach(l => pts.push({ x: l.x2, y: l.y2 }));
+  ST.entities = ST.entities.filter(e=>!(e.type==='line'&&e.layer===lid));
+  ST.entities.push({_id:++ST._eid,type:'polyline',pts,closed:false,layer:lid,selected:false});
+  toast('Dissolved ' + lines.length + ' lines into 1 polyline', 'ok');
+  render();
+}
+
+// ── STATISTICS ────────────────────────────────────────────────────
+function showStats() {
+  const total = ST.entities.length;
+  const byType = {};
+  ST.entities.forEach(e => byType[e.type] = (byType[e.type]||0)+1);
+  const byLayer = {};
+  ST.entities.forEach(e => { const l=ST.layers.find(la=>la.id===e.layer); const n=l?l.name:'0'; byLayer[n]=(byLayer[n]||0)+1; });
+  let msg = total + ' entities total | ' + Object.entries(byType).map(([k,v])=>v+' '+k).join(', ');
+  toast(msg, 'ok');
+  setMsg(msg);
+}
+
+// ── ADD TO CMD LINE ────────────────────────────────────────────────
+const _qgisPrev = window.cmdKey;
+window.cmdKey = function(ev) {
+  if(ev.key !== 'Enter') return;
+  const raw = document.getElementById('cmdInput')?.value?.trim() || '';
+  document.getElementById('cmdInput').value = '';
+  if(!raw) return;
+  const v = raw.toUpperCase();
+  const qgisMap = {
+    AT: openAttrTable, ATTR: openAttrTable, TABLE: openAttrTable,
+    BUFFER: doBuffer, BUF: doBuffer,
+    STATS: showStats, INFO: showStats,
+    DISSOLVE: dissolveLayer,
+    MEASURE: measureSelected, MS: measureSelected,
+    'SELECT TYPE': () => { const t=prompt('Select by type (line/circle/rect/polyline/text):','line'); if(t) selectByType(t.toLowerCase()); },
+  };
+  if(qgisMap[v]) { qgisMap[v](); setMsg('▶ '+v); return; }
+  _qgisPrev(ev);
+};
+
+// ════════════════════════════════════════════════════════════════════
+//  IMPROVED DRAWING UX — precise input after first click
+// ════════════════════════════════════════════════════════════════════
+
+// After first point is set, auto-focus the DIST field in input bar
+const _ibOrigCommit = commitEntity;
+
+// Patch mousedown draw path to auto-focus input after first point
+// canvas mousedown patch for draw focus handled inline
+
+// ── Quick precise input modal ─────────────────────────────────────
+function openQuickInput(mode) {
+  // mode: 'dist-ang', 'xy', 'rel'
+  const popup = document.getElementById('coordEntry');
+  if(!popup) return;
+  const hintEl = document.getElementById('ceHint');
+  const xEl = document.getElementById('ceX');
+  const yEl = document.getElementById('ceY');
+  const xLbl = popup.querySelector('.ce-row:first-of-type .ce-lbl');
+  const yLbl = popup.querySelectorAll('.ce-row')[1]?.querySelector('.ce-lbl');
+
+  if(mode === 'dist-ang') {
+    if(xLbl) xLbl.textContent = 'DIST';
+    if(yLbl) yLbl.textContent = 'ANG°';
+    if(hintEl) hintEl.textContent = 'Distance + angle from last point (angle: 0=right, 90=up)';
+    if(xEl) xEl.placeholder = 'e.g. 100';
+    if(yEl) yEl.placeholder = 'e.g. 90';
+  } else if(mode === 'rel') {
+    if(xLbl) xLbl.textContent = 'ΔX';
+    if(yLbl) yLbl.textContent = 'ΔY';
+    if(hintEl) hintEl.textContent = 'Relative offset from last point';
+    if(xEl) xEl.placeholder = 'offset X';
+    if(yEl) yEl.placeholder = 'offset Y';
+  } else {
+    if(xLbl) xLbl.textContent = 'X';
+    if(yLbl) yLbl.textContent = 'Y';
+    if(hintEl) hintEl.textContent = 'Absolute coordinates';
+    if(xEl) xEl.placeholder = 'Easting / X';
+    if(yEl) yEl.placeholder = 'Northing / Y';
+  }
+  popup._mode = mode;
+
+  // Position near input bar
+  const ib = document.getElementById('inputBar');
+  if(ib) {
+    const r = ib.getBoundingClientRect();
+    popup.style.left = '50%';
+    popup.style.transform = 'translateX(-50%)';
+    popup.style.bottom = (window.innerHeight - r.top + 5) + 'px';
+    popup.style.top = 'auto';
+  }
+  popup.style.display = 'block';
+  if(xEl) { xEl.value = ''; xEl.focus(); }
+  if(yEl) yEl.value = '';
+}
+
+// Override confirmCE to handle modes
+const _origConfirmCE = typeof confirmCE === 'function' ? confirmCE : null;
+confirmCE = function() {
+  const popup = document.getElementById('coordEntry');
+  const xv = document.getElementById('ceX')?.value?.trim() || '';
+  const yv = document.getElementById('ceY')?.value?.trim() || '';
+  const mode = popup?._mode || 'xy';
+  const sp = ST.startPt || {x:0,y:0};
+  let wp;
+
+  if(mode === 'dist-ang') {
+    const dist = parseFloat(xv), ang = parseFloat(yv)||0;
+    if(isNaN(dist)) { toast('Enter a valid distance', 'warn'); return; }
+    const rad = ang * Math.PI / 180;
+    wp = { x: sp.x + dist * Math.cos(rad), y: sp.y + dist * Math.sin(rad) };
+  } else if(mode === 'rel') {
+    const dx = parseFloat(xv)||0, dy = parseFloat(yv)||0;
+    wp = { x: sp.x + dx, y: sp.y + dy };
+  } else {
+    const x = parseFloat(xv), y = parseFloat(yv);
+    if(isNaN(x)||isNaN(y)) { toast('Enter valid X, Y', 'warn'); return; }
+    wp = {x, y};
+  }
+
+  const closeFn = typeof closeCE === 'function' ? closeCE : () => { if(popup) popup.style.display='none'; };
+  closeFn();
+
+  if(ST.opState && ST.opState.base) {
+    applyOp(wp); return;
+  }
+  if(!ST.startPt && ['line','circle','rect','arc','ellipse','polyline'].includes(ST.tool)) {
+    ST.drawing = true; ST.startPt = wp; ST.pts = [];
+    setMsg('Start set to ' + wp.x.toFixed(2) + ', ' + wp.y.toFixed(2) + ' — type next point (D=dist+angle, R=relative, A=absolute)');
+    render();
+  } else if(ST.drawing && ST.startPt) {
+    const done = commitEntity(wp);
+    if(done) {
+      if(ST.tool === 'line') { ST.startPt = wp; setMsg('Next point — D/R/A for input, click, or ESC'); }
+      else { ST.drawing=false; ST.startPt=null; ST.pts=[]; setMsg('Done'); }
+      render();
+    }
+  }
+};
+
+// Keyboard shortcuts for quick input modes
+document.addEventListener('keydown', ev => {
+  const tag = document.activeElement.tagName;
+  if(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if(!ST.drawing && !ST.opState?.base) return;
+
+  // D = dist+angle input popup
+  if(ev.key.toLowerCase() === 'd' && !ev.ctrlKey) {
+    ev.preventDefault();
+    openQuickInput('dist-ang');
+    return;
+  }
+  // R = relative XY popup
+  if(ev.key.toLowerCase() === 'r' && !ev.ctrlKey && ST.drawing) {
+    ev.preventDefault();
+    openQuickInput('rel');
+    return;
+  }
+  // K = absolute coordinate popup (K since A is arc)
+  if(ev.key.toLowerCase() === 'k' && !ev.ctrlKey) {
+    ev.preventDefault();
+    openQuickInput('xy');
+    return;
+  }
+});
+
+// ── Update coord entry title and add mode buttons ─────────────────
+(function patchCoordEntry() {
+  const popup = document.getElementById('coordEntry');
+  if(!popup) return;
+  const title = popup.querySelector('.ce-title');
+  if(title) title.innerHTML = '⌨ Enter Coordinates <span style="font-size:8px;color:var(--m);font-weight:400">(D=dist/ang  R=relative  K=absolute)</span>';
+  // Add mode selector buttons
+  const modeRow = document.createElement('div');
+  modeRow.style.cssText = 'display:flex;gap:4px;margin-bottom:6px';
+  modeRow.innerHTML = `
+    <button onclick="openQuickInput('dist-ang')" style="flex:1;padding:3px;background:rgba(31,168,217,.06);border:1px solid var(--sep);border-radius:2px;color:var(--m);font-size:8.5px;cursor:pointer" title="D key">📏 Dist+Ang</button>
+    <button onclick="openQuickInput('rel')" style="flex:1;padding:3px;background:rgba(31,168,217,.06);border:1px solid var(--sep);border-radius:2px;color:var(--m);font-size:8.5px;cursor:pointer" title="R key">↗ Relative</button>
+    <button onclick="openQuickInput('xy')" style="flex:1;padding:3px;background:rgba(31,168,217,.06);border:1px solid var(--sep);border-radius:2px;color:var(--m);font-size:8.5px;cursor:pointer" title="K key">📌 Absolute</button>
+  `;
+  if(title) title.insertAdjacentElement('afterend', modeRow);
+})();
+
+// ── Also add quick input buttons to the input bar draw section ─────
+(function patchDrawSection() {
+  const sect = document.getElementById('ibDrawSect');
+  if(!sect) return;
+  const quickBtns = document.createElement('div');
+  quickBtns.style.cssText = 'display:flex;gap:3px;margin-left:4px';
+  quickBtns.innerHTML = `
+    <button class="ib-btn" onclick="openQuickInput('dist-ang')" title="D — Enter distance + angle">📏 D</button>
+    <button class="ib-btn" onclick="openQuickInput('rel')" title="R — Enter relative ΔX, ΔY">↗ R</button>
+    <button class="ib-btn" onclick="openQuickInput('xy')" title="K — Enter absolute X, Y">📌 K</button>
+  `;
+  sect.appendChild(quickBtns);
+  patchDrawSection._done = true;
+})();
+
+setTimeout(() => {
+  setMsg('Ready — L=Line  C=Circle  R=Rect  M=Move  |  While drawing: D=dist+ang  R=relative  K=absolute  |  🗺=Map  F1=Help');
+}, 1000);
+
 </script>
 
 <!-- PNG TILE LOADER -->
@@ -4557,6 +4975,33 @@ setTimeout(()=>{
     </div>
   </div>
 </div>
+
+
+<!-- ATTRIBUTE TABLE -->
+<div class="mo" id="moAttrTable">
+<div class="modal xl" style="max-height:90vh;width:800px">
+<div class="mh"><div class="mh-t"><span class="i">📋</span>Attribute Table <span id="attrCount" style="font-size:10px;color:var(--m);font-weight:400;margin-left:8px">0 features</span></div><span class="mc" onclick="closeMo('moAttrTable')">✕</span></div>
+<div class="mb" style="padding:0">
+<div style="overflow-x:auto">
+<table style="width:100%;border-collapse:collapse;font-size:8.5px">
+<thead><tr style="background:#030A14;position:sticky;top:0">
+<th style="padding:5px 8px;text-align:left;font-family:'IBM Plex Mono',monospace;color:var(--st);border-bottom:1px solid var(--sep)">ID</th>
+<th style="padding:5px 8px;text-align:left;font-family:'IBM Plex Mono',monospace;color:var(--st);border-bottom:1px solid var(--sep)">Type</th>
+<th style="padding:5px 8px;text-align:left;font-family:'IBM Plex Mono',monospace;color:var(--st);border-bottom:1px solid var(--sep)">Layer</th>
+<th style="padding:5px 8px;text-align:left;font-family:'IBM Plex Mono',monospace;color:var(--st);border-bottom:1px solid var(--sep)">Geometry</th>
+<th style="padding:5px 8px;text-align:left;font-family:'IBM Plex Mono',monospace;color:var(--st);border-bottom:1px solid var(--sep)">Properties</th>
+</tr></thead>
+<tbody id="attrTableBody" style="max-height:400px;overflow-y:auto"></tbody>
+</table>
+</div>
+</div>
+<div class="mf">
+<button class="btn s" onclick="closeMo('moAttrTable')">Close</button>
+<button class="btn" onclick="selectAll();closeMo('moAttrTable')">Select All</button>
+<button class="btn" onclick="measureSelected();closeMo('moAttrTable')">Measure Selected</button>
+<button class="btn st" onclick="exportGeoJSON();closeMo('moAttrTable')">Export GeoJSON</button>
+</div>
+</div></div>
 
 </body>
 </html>
