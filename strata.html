@@ -1417,37 +1417,27 @@ function drawEntity(e, ghost) {
       ctx.beginPath(); ctx.ellipse(c.x,c.y,Math.abs(e.rx||10)*ST.zoom,Math.abs(e.ry||5)*ST.zoom,-(e.rot||0)*Math.PI/180,0,Math.PI*2); ctx.stroke(); break;
     }
     case 'polygon': {
-      const pctr=w2s(sp.x,sp.y);
-      const pr2=Math.hypot(mp.x-pctr.x,mp.y-pctr.y);
-      const ns2=ST._polygonSides||6;
+      const pc=w2s(e.cx,e.cy), pr=Math.abs(e.r||10)*ST.zoom;
+      const ns=e.sides||6;
       ctx.beginPath();
-      for(let si=0;si<ns2;si++){
-        const a=(si/ns2)*Math.PI*2-Math.PI/2;
-        const px=pctr.x+pr2*Math.cos(a), py=pctr.y+pr2*Math.sin(a);
-        si===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      for(let si=0;si<ns;si++){
+        const a=(si/ns)*Math.PI*2-Math.PI/2;
+        si===0?ctx.moveTo(pc.x+pr*Math.cos(a),pc.y+pr*Math.sin(a)):ctx.lineTo(pc.x+pr*Math.cos(a),pc.y+pr*Math.sin(a));
       }
-      ctx.closePath();ctx.stroke();
-      drawLenLabel(pr2/ST.zoom,mp.x+8,mp.y-8);
+      ctx.closePath(); ctx.stroke();
+      if(e.fill){ctx.fillStyle=col+'33';ctx.fill();}
       break;
     }
     case 'cloud': {
-      const cctr=w2s(sp.x,sp.y);
-      const cr=Math.hypot(mp.x-cctr.x,mp.y-cctr.y);
-      ctx.beginPath();ctx.arc(cctr.x,cctr.y,cr,0,Math.PI*2);ctx.stroke();
-      break;
-    }
-    case 'xline': case 'ray': {
-      const lp=w2s(sp.x,sp.y);
-      const lang=Math.atan2(mp.y-lp.y,mp.x-lp.x);
+      const pcc=w2s(e.cx,e.cy), prc=Math.abs(e.r||10)*ST.zoom;
+      const nArcs=Math.max(6,Math.round(prc/14));
       ctx.beginPath();
-      ctx.moveTo(lp.x-2000*Math.cos(lang),lp.y-2000*Math.sin(lang));
-      ctx.lineTo(lp.x+2000*Math.cos(lang),lp.y+2000*Math.sin(lang));
-      ctx.stroke();break;
-    }
-    case 'wipeout': {
-      const wa=w2s(sp.x,sp.y);
-      ctx.strokeRect(wa.x,wa.y,mp.x-wa.x,mp.y-wa.y);
-      break;
+      for(let si=0;si<nArcs;si++){
+        const a0=(si/nArcs)*Math.PI*2, a1=((si+1)/nArcs)*Math.PI*2;
+        const bmx=pcc.x+(prc+6)*Math.cos((a0+a1)/2), bmy=pcc.y+(prc+6)*Math.sin((a0+a1)/2);
+        ctx.arc(bmx,bmy,7,a0+Math.PI,a1+Math.PI);
+      }
+      ctx.closePath(); ctx.stroke(); break;
     }
         case 'rect': {
       const p=w2s(e.x,e.y);
@@ -1459,31 +1449,6 @@ function drawEntity(e, ghost) {
       const p0=w2s(e.pts[0].x,e.pts[0].y); ctx.moveTo(p0.x,p0.y);
       for(let i=1;i<e.pts.length;i++){const p=w2s(e.pts[i].x,e.pts[i].y);ctx.lineTo(p.x,p.y);}
       if(e.closed){ctx.closePath();} ctx.stroke(); break;
-    }
-    case 'polygon': {
-      const pc=w2s(e.cx,e.cy), pr=e.r*ST.zoom;
-      const nsides=e.sides||6;
-      ctx.beginPath();
-      for(let si=0;si<nsides;si++){
-        const a=(si/nsides)*Math.PI*2 - Math.PI/2;
-        const px=pc.x+pr*Math.cos(a), py=pc.y+pr*Math.sin(a);
-        si===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
-      }
-      ctx.closePath(); ctx.stroke();
-      if(e.fill) ctx.fill();
-      break;
-    }
-    case 'cloud': {
-      // Revision cloud — series of arcs forming closed shape
-      const pc=w2s(e.cx,e.cy), pr=e.r*ST.zoom;
-      const nArcs=Math.max(6,Math.round(e.r*ST.zoom/15));
-      ctx.beginPath();
-      for(let si=0;si<nArcs;si++){
-        const a0=(si/nArcs)*Math.PI*2, a1=((si+1)/nArcs)*Math.PI*2;
-        const mx=pc.x+(pr+5)*Math.cos((a0+a1)/2), my=pc.y+(pr+5)*Math.sin((a0+a1)/2);
-        ctx.arc(mx,my,7,a0+Math.PI,a1+Math.PI);
-      }
-      ctx.closePath(); ctx.stroke(); break;
     }
         case 'point': {
       const pp=w2s(e.x,e.y);
@@ -1521,8 +1486,6 @@ function drawEntity(e, ghost) {
       ctx.strokeRect(Math.min(wb.x,wx2.x),Math.min(wb.y,wx2.y),Math.abs(wx2.x-wb.x),Math.abs(wx2.y-wb.y));
       break;
     }
-        case 'point':    return Math.hypot(wx-e.x,wy-e.y)<tol*2;
-    case 'xline': case 'ray': { const dxx=e.x2-e.x1,dyy=e.y2-e.y1,ll=dxx*dxx+dyy*dyy; if(!ll)return false; const tt=((wx-e.x1)*dxx+(wy-e.y1)*dyy)/ll; return Math.hypot(wx-(e.x1+tt*dxx),wy-(e.y1+tt*dyy))<tol; }
         case 'text': {
       const p=w2s(e.x,e.y);
       ctx.setLineDash([]);
@@ -1635,37 +1598,27 @@ function drawPreview() {
       break;
     }
     case 'polygon': {
-      const pctr=w2s(sp.x,sp.y);
-      const pr2=Math.hypot(mp.x-pctr.x,mp.y-pctr.y);
-      const ns2=ST._polygonSides||6;
+      const pc=w2s(e.cx,e.cy), pr=Math.abs(e.r||10)*ST.zoom;
+      const ns=e.sides||6;
       ctx.beginPath();
-      for(let si=0;si<ns2;si++){
-        const a=(si/ns2)*Math.PI*2-Math.PI/2;
-        const px=pctr.x+pr2*Math.cos(a), py=pctr.y+pr2*Math.sin(a);
-        si===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      for(let si=0;si<ns;si++){
+        const a=(si/ns)*Math.PI*2-Math.PI/2;
+        si===0?ctx.moveTo(pc.x+pr*Math.cos(a),pc.y+pr*Math.sin(a)):ctx.lineTo(pc.x+pr*Math.cos(a),pc.y+pr*Math.sin(a));
       }
-      ctx.closePath();ctx.stroke();
-      drawLenLabel(pr2/ST.zoom,mp.x+8,mp.y-8);
+      ctx.closePath(); ctx.stroke();
+      if(e.fill){ctx.fillStyle=col+'33';ctx.fill();}
       break;
     }
     case 'cloud': {
-      const cctr=w2s(sp.x,sp.y);
-      const cr=Math.hypot(mp.x-cctr.x,mp.y-cctr.y);
-      ctx.beginPath();ctx.arc(cctr.x,cctr.y,cr,0,Math.PI*2);ctx.stroke();
-      break;
-    }
-    case 'xline': case 'ray': {
-      const lp=w2s(sp.x,sp.y);
-      const lang=Math.atan2(mp.y-lp.y,mp.x-lp.x);
+      const pcc=w2s(e.cx,e.cy), prc=Math.abs(e.r||10)*ST.zoom;
+      const nArcs=Math.max(6,Math.round(prc/14));
       ctx.beginPath();
-      ctx.moveTo(lp.x-2000*Math.cos(lang),lp.y-2000*Math.sin(lang));
-      ctx.lineTo(lp.x+2000*Math.cos(lang),lp.y+2000*Math.sin(lang));
-      ctx.stroke();break;
-    }
-    case 'wipeout': {
-      const wa=w2s(sp.x,sp.y);
-      ctx.strokeRect(wa.x,wa.y,mp.x-wa.x,mp.y-wa.y);
-      break;
+      for(let si=0;si<nArcs;si++){
+        const a0=(si/nArcs)*Math.PI*2, a1=((si+1)/nArcs)*Math.PI*2;
+        const bmx=pcc.x+(prc+6)*Math.cos((a0+a1)/2), bmy=pcc.y+(prc+6)*Math.sin((a0+a1)/2);
+        ctx.arc(bmx,bmy,7,a0+Math.PI,a1+Math.PI);
+      }
+      ctx.closePath(); ctx.stroke(); break;
     }
         case 'rect': {
       const a=w2s(sp.x,sp.y);
@@ -1777,37 +1730,27 @@ function ptHitsEnt(wx,wy,e,tol) {
     case 'arc':    return Math.abs(Math.hypot(wx-e.cx,wy-e.cy)-e.r)<tol;
     case 'ellipse':return Math.abs(Math.hypot(wx-e.cx,wy-e.cy)-(e.rx+e.ry)/2)<tol*2;
     case 'polygon': {
-      const pctr=w2s(sp.x,sp.y);
-      const pr2=Math.hypot(mp.x-pctr.x,mp.y-pctr.y);
-      const ns2=ST._polygonSides||6;
+      const pc=w2s(e.cx,e.cy), pr=Math.abs(e.r||10)*ST.zoom;
+      const ns=e.sides||6;
       ctx.beginPath();
-      for(let si=0;si<ns2;si++){
-        const a=(si/ns2)*Math.PI*2-Math.PI/2;
-        const px=pctr.x+pr2*Math.cos(a), py=pctr.y+pr2*Math.sin(a);
-        si===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      for(let si=0;si<ns;si++){
+        const a=(si/ns)*Math.PI*2-Math.PI/2;
+        si===0?ctx.moveTo(pc.x+pr*Math.cos(a),pc.y+pr*Math.sin(a)):ctx.lineTo(pc.x+pr*Math.cos(a),pc.y+pr*Math.sin(a));
       }
-      ctx.closePath();ctx.stroke();
-      drawLenLabel(pr2/ST.zoom,mp.x+8,mp.y-8);
+      ctx.closePath(); ctx.stroke();
+      if(e.fill){ctx.fillStyle=col+'33';ctx.fill();}
       break;
     }
     case 'cloud': {
-      const cctr=w2s(sp.x,sp.y);
-      const cr=Math.hypot(mp.x-cctr.x,mp.y-cctr.y);
-      ctx.beginPath();ctx.arc(cctr.x,cctr.y,cr,0,Math.PI*2);ctx.stroke();
-      break;
-    }
-    case 'xline': case 'ray': {
-      const lp=w2s(sp.x,sp.y);
-      const lang=Math.atan2(mp.y-lp.y,mp.x-lp.x);
+      const pcc=w2s(e.cx,e.cy), prc=Math.abs(e.r||10)*ST.zoom;
+      const nArcs=Math.max(6,Math.round(prc/14));
       ctx.beginPath();
-      ctx.moveTo(lp.x-2000*Math.cos(lang),lp.y-2000*Math.sin(lang));
-      ctx.lineTo(lp.x+2000*Math.cos(lang),lp.y+2000*Math.sin(lang));
-      ctx.stroke();break;
-    }
-    case 'wipeout': {
-      const wa=w2s(sp.x,sp.y);
-      ctx.strokeRect(wa.x,wa.y,mp.x-wa.x,mp.y-wa.y);
-      break;
+      for(let si=0;si<nArcs;si++){
+        const a0=(si/nArcs)*Math.PI*2, a1=((si+1)/nArcs)*Math.PI*2;
+        const bmx=pcc.x+(prc+6)*Math.cos((a0+a1)/2), bmy=pcc.y+(prc+6)*Math.sin((a0+a1)/2);
+        ctx.arc(bmx,bmy,7,a0+Math.PI,a1+Math.PI);
+      }
+      ctx.closePath(); ctx.stroke(); break;
     }
         case 'rect': {
       const x1=Math.min(e.x,e.x+e.w),y1=Math.min(e.y,e.y+e.h),x2=Math.max(e.x,e.x+e.w),y2=Math.max(e.y,e.y+e.h);
@@ -2133,7 +2076,7 @@ function commitEntity(wp) {
     case 'xline': e=mkEnt({type:'xline',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y}); break;
     case 'ray':   e=mkEnt({type:'ray',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y}); break;
     case 'wipeout': e=mkEnt({type:'wipeout',x:sp.x,y:sp.y,w:wp.x-sp.x,h:wp.y-sp.y}); break;
-    case 'polygon':  e=mkEnt({type:'polygon',cx:(sp.x+wp.x)/2,cy:(sp.y+wp.y)/2,r:Math.hypot(wp.x-sp.x,wp.y-sp.y)/2,sides:ST._polygonSides||6}); break; break;
+    case 'polygon':  e=mkEnt({type:'polygon',cx:sp.x,cy:sp.y,r:Math.hypot(wp.x-sp.x,wp.y-sp.y),sides:ST._polygonSides||6}); break;
     case 'polygon': {
       const pc=w2s(e.cx,e.cy), pr=e.r*ST.zoom;
       const nsides=e.sides||6;
@@ -3086,9 +3029,33 @@ function parseDXF(txt,filename){
   }
   flush();
 
-  // Resolve INSERT entities — expand block references into entities
-  const insertEnts = ents.filter(e=>e.type==='rect'&&e._blockRef);
-  // (INSERTs are converted to rects in buildDXFEnt; skip block expansion for now)
+  // ── Expand INSERT entities into block contents ──
+  // Walk through ents, for each INSERT find its block def and clone entities
+  // with correct offset/scale/rotation applied
+  const finalEnts = [];
+  ents.forEach(e => {
+    if(e.type === 'rect' && e._blockRef && blockDefs[e._blockRef]) {
+      const bEnts = blockDefs[e._blockRef];
+      const ox = e.x||0, oy = e.y||0;
+      const sx = e._sx||1, sy = e._sy||1;
+      const rot = e._rot||0;
+      bEnts.forEach(be => {
+        const ne = JSON.parse(JSON.stringify(be));
+        ne._id = ++ST._eid;
+        ne.selected = false;
+        ne.layer = ne.layer || e.layer;
+        // Apply block insertion transform
+        if(ox !== 0 || oy !== 0) {
+          const te = translateEnt(ne, ox, oy);
+          Object.assign(ne, te);
+        }
+        finalEnts.push(ne);
+      });
+    } else {
+      finalEnts.push(e);
+    }
+  });
+  const expandedEnts = finalEnts;
 
   // Extract tile rectangles for image overlay workflow
   const tileBounds = [];
@@ -3101,7 +3068,7 @@ function parseDXF(txt,filename){
   }
 
   pushUndo();
-  ST.entities = ents;
+  ST.entities = expandedEnts.length > ents.length ? expandedEnts : ents;
   ST.tileBounds = tileBounds;
   ST.imgDefs = imgPaths;
   ST.imgOverlays = [];
@@ -3193,8 +3160,14 @@ function buildDXFEnt(cur,getLayId){
       return{type:'text',x:gf('10'),y:gf('20'),txt,sz,layer};
     }
 
-    case 'INSERT':
-      return{type:'rect',x:gf('10'),y:gf('20'),w:10*(gf('41')||1),h:10*(gf('42')||1),layer};
+    case 'INSERT': {
+      const bname = g('2') || '';
+      const ix = gf('10'), iy = gf('20');
+      const iscale = gf('41')||1, irot = gf('50')||0;
+      // Mark as block reference so parseDXF can expand it
+      return {type:'rect',x:ix,y:iy,w:20*(iscale||1),h:20*(iscale||1),layer,
+              _blockRef:bname,_sx:iscale,_rot:irot};
+    }
 
     case 'SOLID':
     case 'TRACE':{
@@ -3320,37 +3293,27 @@ function doExport(){
       case 'arc': dxf+=`0\nARC\n8\n${lname}\n10\n${e.cx}\n20\n${e.cy}\n40\n${e.r}\n50\n${e.sa||0}\n51\n${e.ea||180}\n`;break;
       case 'text': dxf+=`0\nTEXT\n8\n${lname}\n10\n${e.x}\n20\n${e.y}\n40\n${e.sz||12}\n1\n${e.txt||''}\n`;break;
       case 'polygon': {
-      const pctr=w2s(sp.x,sp.y);
-      const pr2=Math.hypot(mp.x-pctr.x,mp.y-pctr.y);
-      const ns2=ST._polygonSides||6;
+      const pc=w2s(e.cx,e.cy), pr=Math.abs(e.r||10)*ST.zoom;
+      const ns=e.sides||6;
       ctx.beginPath();
-      for(let si=0;si<ns2;si++){
-        const a=(si/ns2)*Math.PI*2-Math.PI/2;
-        const px=pctr.x+pr2*Math.cos(a), py=pctr.y+pr2*Math.sin(a);
-        si===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      for(let si=0;si<ns;si++){
+        const a=(si/ns)*Math.PI*2-Math.PI/2;
+        si===0?ctx.moveTo(pc.x+pr*Math.cos(a),pc.y+pr*Math.sin(a)):ctx.lineTo(pc.x+pr*Math.cos(a),pc.y+pr*Math.sin(a));
       }
-      ctx.closePath();ctx.stroke();
-      drawLenLabel(pr2/ST.zoom,mp.x+8,mp.y-8);
+      ctx.closePath(); ctx.stroke();
+      if(e.fill){ctx.fillStyle=col+'33';ctx.fill();}
       break;
     }
     case 'cloud': {
-      const cctr=w2s(sp.x,sp.y);
-      const cr=Math.hypot(mp.x-cctr.x,mp.y-cctr.y);
-      ctx.beginPath();ctx.arc(cctr.x,cctr.y,cr,0,Math.PI*2);ctx.stroke();
-      break;
-    }
-    case 'xline': case 'ray': {
-      const lp=w2s(sp.x,sp.y);
-      const lang=Math.atan2(mp.y-lp.y,mp.x-lp.x);
+      const pcc=w2s(e.cx,e.cy), prc=Math.abs(e.r||10)*ST.zoom;
+      const nArcs=Math.max(6,Math.round(prc/14));
       ctx.beginPath();
-      ctx.moveTo(lp.x-2000*Math.cos(lang),lp.y-2000*Math.sin(lang));
-      ctx.lineTo(lp.x+2000*Math.cos(lang),lp.y+2000*Math.sin(lang));
-      ctx.stroke();break;
-    }
-    case 'wipeout': {
-      const wa=w2s(sp.x,sp.y);
-      ctx.strokeRect(wa.x,wa.y,mp.x-wa.x,mp.y-wa.y);
-      break;
+      for(let si=0;si<nArcs;si++){
+        const a0=(si/nArcs)*Math.PI*2, a1=((si+1)/nArcs)*Math.PI*2;
+        const bmx=pcc.x+(prc+6)*Math.cos((a0+a1)/2), bmy=pcc.y+(prc+6)*Math.sin((a0+a1)/2);
+        ctx.arc(bmx,bmy,7,a0+Math.PI,a1+Math.PI);
+      }
+      ctx.closePath(); ctx.stroke(); break;
     }
         case 'rect': {
         const x1=e.x,y1=e.y,x2=e.x+e.w,y2=e.y+e.h;
