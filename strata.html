@@ -3672,20 +3672,15 @@ function _showCalHint(step) {
   if(!h) return;
   const msgs = {
     0: '',
-    1: '📍 Step 1 of 4 — Click a known point on the MAP
-(switch to Pan Map mode to click)',
-    2: '📍 Step 2 of 4 — Click the SAME point on your DRAWING
-(switched to Draw mode)',
-    3: '📍 Step 3 of 4 — Click a SECOND known point on the MAP
-(switching to Pan Map mode)',
-    4: '📍 Step 4 of 4 — Click the same second point on your DRAWING',
-    5: '✅ Calibration complete!
-Drawing is now georeferenced.',
+    1: '📍 Step 1/4 — Click a known point on the MAP (switch to Pan Map mode first)',
+    2: '📍 Step 2/4 — Now click the SAME point on your DRAWING',
+    3: '📍 Step 3/4 — Click a SECOND known point on the MAP',
+    4: '📍 Step 4/4 — Click the same second point on your DRAWING',
+    5: '✅ Calibration complete! Drawing is now georeferenced.',
   };
   if(step === 0) { h.style.display = 'none'; return; }
   h.style.display = 'block';
-  h.innerHTML = msgs[step] ? msgs[step].replace(/
-/g,'<br>') + (step < 5 ? '<br><small style="color:var(--m);font-size:10px">Click "Pan Map" / "Draw" buttons in the input bar to switch modes</small>' : '') : '';
+  h.innerHTML = msgs[step] ? msgs[step].replace(/\n/g,'<br>') + (step < 5 ? '<br><small style="color:var(--m);font-size:10px">Use Pan Map / Draw buttons to switch modes</small>' : '') : '';
   if(step === 5) setTimeout(() => { h.style.display = 'none'; }, 3000);
 }
 
@@ -3775,12 +3770,8 @@ setTimeout(() => {
   setMsg('Ready — L C R A  |  Type coords: @x,y  100<45  dist  |  # = coord entry  D = type value  |  F1 = Help');
 }, 600);
 
-</script>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     STRATA CAD PRO — SURVEY / TERRAIN / GIS / PROJECT EXTENSIONS
-     ═══════════════════════════════════════════════════════════════ -->
-<script>
+// ═══ EXTENSIONS MERGED FROM SCRIPT2 ═══
 // ── FILE ROUTING (fixes null.name + stack overflow) ───────────────
 // Replace fileChosen with safe version that routes all formats
 // File routing handled in main script block above
@@ -4931,6 +4922,10 @@ setTimeout(() => {
 }, 1000);
 
 </script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     STRATA CAD PRO — SURVEY / TERRAIN / GIS / PROJECT EXTENSIONS
+     ═══════════════════════════════════════════════════════════════ -->
 
 <!-- PNG TILE LOADER -->
 <div class="mo" id="moTileLoader">
