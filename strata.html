@@ -370,7 +370,10 @@ input,select{font-family:inherit}
           <div class="dd-item" onclick="openMo('moProject')">💾 Project Save/Load<span class="ks">Ctrl+S</span></div>
           <div class="dd-sep"></div>
           <div class="dd-item" onclick="openMo('moExport')">💾 Export<span class="ks">Ctrl+E</span></div>
-          <div class="dd-item" onclick="openMo('moExportLayers')">📤 Export Layers</div>
+          <div class="dd-item" onclick="openExportModal()">📤 Export (DXF/GeoJSON/CSV/KML/SVG…)</div>
+          <div class="dd-item" onclick="doExport('dxf')">📐 Export DXF</div>
+          <div class="dd-item" onclick="doExport('csv')">📊 Export CSV</div>
+          <div class="dd-item" onclick="doExport('kml')">🌍 Export KML</div>
           <div class="dd-item" onclick="openAttrTable()">📋 Attribute Table</div>
           <div class="dd-item" onclick="showStats()">📊 Layer Statistics</div>
           <div class="dd-sep"></div>
@@ -950,6 +953,8 @@ input,select{font-family:inherit}
     <button class="stbtn" onclick="togglePolar()">POLAR</button>
     <button class="stbtn gu" id="stUnitBtn" onclick="openMo('moSettings');setTimeout(()=>openSetTab('units'),60)">mm</button>
     <button class="stbtn" onclick="openMo('moSettings')">⚙</button>
+    <button class="stbtn" onclick="openCRSPicker()" style="background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.3);color:var(--st)" title="Coordinate Reference System"><span id="crsBtnLabel">CRS</span></button>
+    <button class="stbtn" onclick="openExportModal()" style="background:rgba(31,168,217,.08);border-color:var(--bl);color:var(--b)" title="Export drawing">Export</button>
   </div>
 </div>
 
@@ -2075,102 +2080,39 @@ function mkEnt(base) { return {...base, _id:++ST._eid, selected:false, layer:ST.
 
 // ── COMMIT DRAWN ENTITY ────────────────────────────────────────────
 function commitEntity(wp) {
-  const sp=ST.startPt;
-  let e=null;
+  const sp = ST.startPt;
+  if(!sp) return false;
+  let e = null;
   switch(ST.tool) {
-    case 'line':    e=mkEnt({type:'line',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y}); break;
-    case 'circle':  {const r=Math.hypot(wp.x-sp.x,wp.y-sp.y); e=mkEnt({type:'circle',cx:sp.x,cy:sp.y,r}); break;}
-    case 'rect':    e=mkEnt({type:'rect',x:sp.x,y:sp.y,w:wp.x-sp.x,h:wp.y-sp.y}); break;
-    case 'ellipse': e=mkEnt({type:'ellipse',cx:sp.x,cy:sp.y,rx:Math.abs(wp.x-sp.x),ry:Math.abs(wp.y-sp.y)}); break;
-    case 'arc':     {
-      if(ST.pts&&ST.pts.length>=2) {
-        const cx=ST.pts[0].x,cy=ST.pts[0].y;
+    case 'line':    e = mkEnt({type:'line',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y}); break;
+    case 'circle':  { const r=Math.hypot(wp.x-sp.x,wp.y-sp.y); e=mkEnt({type:'circle',cx:sp.x,cy:sp.y,r}); break; }
+    case 'rect':    e = mkEnt({type:'rect',x:sp.x,y:sp.y,w:wp.x-sp.x,h:wp.y-sp.y}); break;
+    case 'ellipse': e = mkEnt({type:'ellipse',cx:sp.x,cy:sp.y,rx:Math.abs(wp.x-sp.x),ry:Math.abs(wp.y-sp.y)}); break;
+    case 'polygon': e = mkEnt({type:'polygon',cx:sp.x,cy:sp.y,r:Math.hypot(wp.x-sp.x,wp.y-sp.y),sides:ST._polygonSides||6}); break;
+    case 'cloud':   e = mkEnt({type:'cloud',cx:sp.x,cy:sp.y,r:Math.hypot(wp.x-sp.x,wp.y-sp.y)}); break;
+    case 'xline':   e = mkEnt({type:'xline',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y}); break;
+    case 'ray':     e = mkEnt({type:'ray',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y}); break;
+    case 'wipeout': e = mkEnt({type:'wipeout',x:sp.x,y:sp.y,w:wp.x-sp.x,h:wp.y-sp.y}); break;
+    case 'point':   e = mkEnt({type:'point',x:sp.x,y:sp.y}); break;
+    case 'hatch':   e = mkEnt({type:'hatch',x:Math.min(sp.x,wp.x),y:Math.min(sp.y,wp.y),w:Math.abs(wp.x-sp.x),h:Math.abs(wp.y-sp.y)}); break;
+    case 'dim-lin': e = mkEnt({type:'dim-lin',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y,dy:Math.max(sp.y,wp.y)+20}); break;
+    case 'arc': {
+      if(ST.pts && ST.pts.length >= 2) {
+        const cx=ST.pts[0].x, cy=ST.pts[0].y;
         const r=Math.hypot(ST.pts[1].x-cx,ST.pts[1].y-cy);
         const sa=Math.atan2(ST.pts[1].y-cy,ST.pts[1].x-cx)*180/Math.PI;
         const ea=Math.atan2(wp.y-cy,wp.x-cx)*180/Math.PI;
         e=mkEnt({type:'arc',cx,cy,r,sa,ea}); ST.pts=[];
-      } else {
-        ST.pts=[sp]; ST.drawing=true; return false; // need more points
-      }
+      } else { ST.pts=[sp]; ST.drawing=true; return false; }
       break;
     }
-    case 'dim-lin': e=mkEnt({type:'dim-lin',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y,dy:Math.max(sp.y,wp.y)+20}); break;
-    case 'hatch':   e=mkEnt({type:'hatch',pts:[sp,wp],x:Math.min(sp.x,wp.x),y:Math.min(sp.y,wp.y),w:Math.abs(wp.x-sp.x),h:Math.abs(wp.y-sp.y)});
-    case 'point': e=mkEnt({type:'point',x:sp.x,y:sp.y}); break;
-    case 'xline': e=mkEnt({type:'xline',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y}); break;
-    case 'ray':   e=mkEnt({type:'ray',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y}); break;
-    case 'wipeout': e=mkEnt({type:'wipeout',x:sp.x,y:sp.y,w:wp.x-sp.x,h:wp.y-sp.y}); break;
-    case 'polygon':  e=mkEnt({type:'polygon',cx:sp.x,cy:sp.y,r:Math.hypot(wp.x-sp.x,wp.y-sp.y),sides:ST._polygonSides||6}); break;
-    case 'polygon': {
-      const pc=w2s(e.cx,e.cy), pr=e.r*ST.zoom;
-      const nsides=e.sides||6;
-      ctx.beginPath();
-      for(let si=0;si<nsides;si++){
-        const a=(si/nsides)*Math.PI*2 - Math.PI/2;
-        const px=pc.x+pr*Math.cos(a), py=pc.y+pr*Math.sin(a);
-        si===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
-      }
-      ctx.closePath(); ctx.stroke();
-      if(e.fill) ctx.fill();
-      break;
-    }
-    case 'cloud': {
-      // Revision cloud — series of arcs forming closed shape
-      const pc=w2s(e.cx,e.cy), pr=e.r*ST.zoom;
-      const nArcs=Math.max(6,Math.round(e.r*ST.zoom/15));
-      ctx.beginPath();
-      for(let si=0;si<nArcs;si++){
-        const a0=(si/nArcs)*Math.PI*2, a1=((si+1)/nArcs)*Math.PI*2;
-        const mx=pc.x+(pr+5)*Math.cos((a0+a1)/2), my=pc.y+(pr+5)*Math.sin((a0+a1)/2);
-        ctx.arc(mx,my,7,a0+Math.PI,a1+Math.PI);
-      }
-      ctx.closePath(); ctx.stroke(); break;
-    }
-        case 'point': {
-      const pp=w2s(e.x,e.y);
-      const psz=Math.max(2,3*ST.zoom);
-      ctx.beginPath();ctx.arc(pp.x,pp.y,psz,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.moveTo(pp.x-psz*2,pp.y);ctx.lineTo(pp.x+psz*2,pp.y);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(pp.x,pp.y-psz*2);ctx.lineTo(pp.x,pp.y+psz*2);ctx.stroke();
-      break;
-    }
-    case 'xline': {
-      if(!isFinite(e.x1)||!isFinite(e.y1)) break;
-      const xa=w2s(e.x1,e.y1);
-      const ang2=Math.atan2(e.y2-e.y1,e.x2-e.x1);
-      const ext=1e6;
-      ctx.save();ctx.setLineDash([4,6]);
-      ctx.beginPath();
-      ctx.moveTo(xa.x-ext*Math.cos(ang2)*ST.zoom,xa.y+ext*Math.sin(ang2)*ST.zoom);
-      ctx.lineTo(xa.x+ext*Math.cos(ang2)*ST.zoom,xa.y-ext*Math.sin(ang2)*ST.zoom);
-      ctx.stroke();ctx.restore();break;
-    }
-    case 'ray': {
-      if(!isFinite(e.x1)||!isFinite(e.y1)) break;
-      const ra=w2s(e.x1,e.y1);
-      const rang=Math.atan2(e.y2-e.y1,e.x2-e.x1);
-      ctx.beginPath();ctx.moveTo(ra.x,ra.y);
-      ctx.lineTo(ra.x+1e6*Math.cos(rang)*ST.zoom,ra.y-1e6*Math.sin(rang)*ST.zoom);
-      ctx.stroke();break;
-    }
-    case 'wipeout': {
-      const wb=w2s(e.x,e.y);
-      const wx2=w2s(e.x+e.w,e.y+e.h);
-      ctx.fillStyle=ST.bgColor;
-      ctx.fillRect(Math.min(wb.x,wx2.x),Math.min(wb.y,wx2.y),Math.abs(wx2.x-wb.x),Math.abs(wx2.y-wb.y));
-      ctx.strokeStyle=col;ctx.lineWidth=0.5;
-      ctx.strokeRect(Math.min(wb.x,wx2.x),Math.min(wb.y,wx2.y),Math.abs(wx2.x-wb.x),Math.abs(wx2.y-wb.y));
-      break;
-    }
-        case 'point':    return Math.hypot(wx-e.x,wy-e.y)<tol*2;
-    case 'xline': case 'ray': { const dxx=e.x2-e.x1,dyy=e.y2-e.y1,ll=dxx*dxx+dyy*dyy; if(!ll)return false; const tt=((wx-e.x1)*dxx+(wy-e.y1)*dyy)/ll; return Math.hypot(wx-(e.x1+tt*dxx),wy-(e.y1+tt*dyy))<tol; }
-        case 'text': {
-      const txt=prompt('Enter text:');
+    case 'text': {
+      const txt = prompt('Enter text:');
       if(!txt) { ST.drawing=false; ST.startPt=null; render(); return true; }
-      e=mkEnt({type:'text',x:sp.x,y:sp.y,txt,sz:12});
+      e = mkEnt({type:'text',x:sp.x,y:sp.y,txt,sz:12});
       break;
     }
-    default: e=mkEnt({type:'line',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y});
+    default: e = mkEnt({type:'line',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y});
   }
   if(e) { pushUndo(); ST.entities.push(e); }
   return true;
@@ -5658,59 +5600,45 @@ function importDwgDirect() {
 // ── DWG Binary Parser ─────────────────────────────────────────────
 // Implements R2000-R2018 format parsing based on OpenDWG specification
 function parseDWGBinary(bytes, filename) {
-  // Bit reading utilities
-  let byteOffset = 0, bitOffset = 0;
+  const view = new DataView(bytes.buffer);
+  const fileLen = bytes.length;
 
-  function readByte() {
-    if(byteOffset >= bytes.length) return 0;
-    return bytes[byteOffset++];
-  }
-
-  function readBytes(n) {
-    const out = bytes.slice(byteOffset, byteOffset + n);
-    byteOffset += n;
-    return out;
-  }
-
-  function readUInt16LE() {
-    const lo = readByte(), hi = readByte();
-    return lo | (hi << 8);
-  }
-
-  function readUInt32LE() {
-    const b0=readByte(),b1=readByte(),b2=readByte(),b3=readByte();
-    return (b0 | (b1<<8) | (b2<<16) | (b3<<24)) >>> 0;
-  }
-
-  function readDouble(offset) {
-    const view = new DataView(bytes.buffer, offset, 8);
-    return view.getFloat64(0, true); // little-endian
-  }
-
-  // Read version
-  byteOffset = 0;
+  // Read version string
   let ver = '';
-  for(let i=0;i<6;i++) ver += String.fromCharCode(readByte());
+  for(let i=0;i<6;i++) ver += String.fromCharCode(bytes[i]);
   const verName = DWG_VERSIONS[ver] || ver;
-
-  // ── Strategy: scan the entire file for recognizable entity patterns ──
-  // This works because DWG stores coordinates as IEEE 754 doubles
-  // and entity type codes precede the coordinate data in known patterns
 
   const ents = [];
   const layerMap = {};
   let _eid = ST._eid;
 
-  function getLayId(name) {
+  // Standard layer colors from AutoCAD ACI palette (index → hex)
+  const ACI = ['#ffffff','#ff0000','#ffff00','#00ff00','#00ffff','#0000ff','#ff00ff','#ffffff',
+    '#808080','#c0c0c0','#ff0000','#ff8080','#cc0000','#cc6666','#990000','#994c4c',
+    '#7f0000','#7f3f3f','#4c0000','#4c2626','#ff4000','#ff9f80','#cc3300','#cc7f66',
+    '#992600','#995f4c','#7f1f00','#7f4f3f','#4c1300','#4c2f26','#ff8000','#ffbf80',
+    '#cc6600','#cc9966','#994c00','#99724c','#7f3f00','#7f5f3f','#4c2600','#4c3926',
+    '#ffbf00','#ffdf80','#cc9900','#ccb266','#997300','#99854c','#7f5f00','#7f6c3f',
+    '#4c3900','#4c4126','#ffff00','#ffff80','#cccc00','#cccc66','#999900','#99994c',
+    '#7f7f00','#7f7f3f','#4c4c00','#4c4c26','#80ff00','#bfff80','#66cc00','#99cc66',
+    '#4c9900','#73994c','#3f7f00','#5f7f3f','#264c00','#394c26','#00ff00','#80ff80',
+    '#00cc00','#66cc66','#009900','#4c994c','#007f00','#3f7f3f','#004c00','#264c26'];
+
+  function getACI(idx) {
+    return ACI[idx % ACI.length] || '#1FA8D9';
+  }
+
+  function getLayId(name, colorIdx) {
     const n = (name||'0').trim();
-    if(layerMap[n] === undefined){
+    if(layerMap[n] === undefined) {
       const ex = ST.layers.find(l=>l.name===n);
-      if(ex){ layerMap[n]=ex.id; }
+      if(ex) { layerMap[n]=ex.id; }
       else {
-        const cols=['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060','#4488ff'];
         const id = ++_eid + 10000;
         layerMap[n] = id;
-        ST.layers.push({id,name:n,color:cols[Object.keys(layerMap).length%cols.length],vis:true,lock:false,frz:false,dis:false});
+        const col = colorIdx != null ? getACI(colorIdx) :
+          ['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060'][Object.keys(layerMap).length % 6];
+        ST.layers.push({id,name:n,color:col,vis:true,lock:false,frz:false,dis:false});
       }
     }
     return layerMap[n];
@@ -5720,105 +5648,98 @@ function parseDWGBinary(bytes, filename) {
     return {...obj, _id:++_eid, selected:false, layer:obj.layer||getLayId('0')};
   }
 
-  // Determine coordinate range to validate extracted values
-  // DWG stores page sections — find the AcDbObjects page
-  // For all versions: scan full file for recognizable double sequences
+  // ── Try to extract layer table from DWG header area ────────────
+  // Scan for ASCII layer names in the first 64KB (header/table area)
+  const headerZone = Math.min(fileLen, 65536);
+  const headerText = Array.from(bytes.slice(0, headerZone)).map(b=>b>31&&b<127?String.fromCharCode(b):' ').join('');
 
-  const buf = bytes.buffer;
-  const view = new DataView(buf);
-  const fileLen = bytes.length;
-
-  // Pattern: look for sequences of valid doubles that form coordinate pairs/triplets
-  // Valid drawing coordinate: typically -1e8 to 1e8, absolute value > 0.001
-  function isValidCoord(v) {
-    return isFinite(v) && Math.abs(v) < 1e9 && !isNaN(v);
-  }
-
-  // For R2000-R2018, use section-based parsing
-  let sectionOffset = 0;
-  if(ver === 'AC1015') sectionOffset = 0x19; // R2000
-  else if(ver >= 'AC1018') sectionOffset = 0x28; // R2004+
-
-  // Read section locator
-  let pageSections = [];
-  if(ver >= 'AC1015' && fileLen > 0x100) {
-    byteOffset = sectionOffset;
-    try {
-      const numSections = readByte();
-      for(let s=0; s<Math.min(numSections,20); s++) {
-        const rec = readByte();
-        const seek = readUInt32LE();
-        const size = readUInt32LE();
-        pageSections.push({rec, seek, size});
-      }
-    } catch(e) {}
-  }
-
-  // Scan entity data section (section record 4 = entities in R2000)
-  // For all versions: also do a full binary scan as fallback
-  const entitySection = pageSections.find(s=>s.rec===4);
-
-  function scanForEntities(startOff, endOff) {
-    // Scan for LINE type code (0x13/0x1D depending on version)
-    // and extract 6 doubles (x1,y1,z1,x2,y2,z2)
-    const MAX_ENTS = 50000;
-    let o = startOff;
-    const end = Math.min(endOff, fileLen - 48);
-
-    while(o < end && ents.length < MAX_ENTS) {
-      // Try to read a coordinate pair (2 doubles = 16 bytes)
-      if(o + 48 > fileLen) break;
-      try {
-        const x1 = view.getFloat64(o,    true);
-        const y1 = view.getFloat64(o+8,  true);
-        const x2 = view.getFloat64(o+16, true);
-        const y2 = view.getFloat64(o+24, true);
-
-        if(isValidCoord(x1) && isValidCoord(y1) && isValidCoord(x2) && isValidCoord(y2) &&
-           (Math.abs(x1) > 0.001 || Math.abs(y1) > 0.001) &&
-           (x1 !== x2 || y1 !== y2) &&
-           Math.hypot(x2-x1,y2-y1) > 0.001 &&
-           Math.hypot(x2-x1,y2-y1) < 1e7) {
-          // Check if the next double is also valid (polyline vertex pattern)
-          const x3 = view.getFloat64(o+32, true);
-          const y3 = view.getFloat64(o+40, true);
-          if(isValidCoord(x3) && isValidCoord(y3) && (x3!==x2 || y3!==y2) &&
-             Math.hypot(x3-x2,y3-y2) < 1e7) {
-            // 3-vertex polyline
-            ents.push(mkE({type:'polyline',pts:[{x:x1,y:y1},{x:x2,y:y2},{x:x3,y:y3}],closed:false}));
-            o += 48; continue;
-          }
-          // 2-point line
-          ents.push(mkE({type:'line',x1,y1,x2,y2}));
-          o += 16; continue;
-        }
-      } catch(e) {}
-      o += 1;
+  // Layer names typically appear as null-terminated strings preceded by length byte
+  // Also look for the pattern: ACI color byte, then string
+  const layerNameRe = /([A-Za-z0-9_\-. ]{2,30})/g;
+  const potentialLayers = new Set();
+  let lm;
+  // Only extract from a header zone — look for DWG layer table markers
+  const layerSection = headerText.indexOf('LAYER');
+  if(layerSection > 0) {
+    const zone = headerText.slice(layerSection, Math.min(layerSection+8192, headerZone));
+    while((lm = layerNameRe.exec(zone)) !== null) {
+      const n = lm[1].trim();
+      if(n.length >= 2 && n.length <= 30 && !/^\d+$/.test(n) && !['LAYER','BLOCK','SECTION','ENTITIES','HEADER','TABLES'].includes(n))
+        potentialLayers.add(n);
     }
   }
 
-  // Try section-based scan first, then full file scan
-  if(entitySection && entitySection.seek > 0 && entitySection.size > 0) {
-    scanForEntities(entitySection.seek, entitySection.seek + entitySection.size);
+  // Pre-register detected layers
+  potentialLayers.forEach(n => getLayId(n));
+
+  // ── Entity extraction: scan entire file for coordinate doubles ──
+  function isValidCoord(v) {
+    return isFinite(v) && !isNaN(v) && Math.abs(v) < 2e8 && Math.abs(v) > 1e-6;
   }
 
-  // If few entities found, do full file scan
-  if(ents.length < 10) {
-    ents.length = 0;
-    scanForEntities(0x100, fileLen);
+  // Track coordinate range to filter noise
+  let coordSamples = [];
+  function isInRange(v) {
+    if(coordSamples.length < 50) return true;
+    const med = coordSamples[Math.floor(coordSamples.length/2)];
+    return Math.abs(v - med) < med * 100 + 1e6;
   }
 
-  // Deduplicate: remove lines that are exact duplicates
-  const uniq = new Map();
-  const finalEnts = [];
-  ents.forEach(e => {
-    let key = '';
-    if(e.type==='line') key=`${e.x1.toFixed(4)},${e.y1.toFixed(4)},${e.x2.toFixed(4)},${e.y2.toFixed(4)}`;
-    else key = JSON.stringify(e.pts?.map(p=>`${p.x.toFixed(4)},${p.y.toFixed(4)}`));
-    if(!uniq.has(key)){ uniq.set(key,1); finalEnts.push(e); }
+  // First pass: collect coordinate sample for range determination
+  for(let o = 256; o < Math.min(fileLen-16, 4096); o += 8) {
+    try {
+      const v = view.getFloat64(o, true);
+      if(isValidCoord(v) && Math.abs(v) > 1) coordSamples.push(Math.abs(v));
+    } catch(e) {}
+  }
+  coordSamples.sort((a,b)=>a-b);
+
+  const MAX_ENTS = 100000;
+  let o = Math.max(256, ver === 'AC1015' ? 0x19 : 0x28);
+
+  while(o < fileLen - 32 && ents.length < MAX_ENTS) {
+    if(o + 32 > fileLen) break;
+    try {
+      const x1 = view.getFloat64(o,    true);
+      const y1 = view.getFloat64(o+8,  true);
+
+      if(!isValidCoord(x1) || !isValidCoord(y1)) { o+=1; continue; }
+
+      const x2 = view.getFloat64(o+16, true);
+      const y2 = view.getFloat64(o+24, true);
+
+      if(!isValidCoord(x2) || !isValidCoord(y2)) { o+=8; continue; }
+
+      const dist = Math.hypot(x2-x1, y2-y1);
+      if(dist < 0.0001 || dist > 5e7) { o+=8; continue; }
+
+      // Try 3-point poly
+      if(o + 48 <= fileLen) {
+        const x3 = view.getFloat64(o+32, true);
+        const y3 = view.getFloat64(o+40, true);
+        if(isValidCoord(x3) && isValidCoord(y3) &&
+           Math.hypot(x3-x2,y3-y2) > 0.0001 && Math.hypot(x3-x2,y3-y2) < 5e7 &&
+           (x3!==x1||y3!==y1)) {
+          ents.push(mkE({type:'polyline',pts:[{x:x1,y:y1},{x:x2,y:y2},{x:x3,y:y3}],closed:false}));
+          o += 48; continue;
+        }
+      }
+
+      ents.push(mkE({type:'line',x1,y1,x2,y2}));
+      o += 16;
+    } catch(e) { o += 1; }
+  }
+
+  // Deduplicate
+  const seen = new Set();
+  const finalEnts = ents.filter(e => {
+    const k = e.type==='line'
+      ? `${e.x1.toFixed(3)},${e.y1.toFixed(3)},${e.x2.toFixed(3)},${e.y2.toFixed(3)}`
+      : (e.pts||[]).map(p=>`${p.x.toFixed(3)},${p.y.toFixed(3)}`).join('|');
+    if(seen.has(k)) return false;
+    seen.add(k); return true;
   });
 
-  // Update ST._eid
   ST._eid = _eid;
 
   return {
@@ -5836,6 +5757,331 @@ function openDwgConvertUrl(service) {
   };
   window.open(urls[service]||urls.oda, '_blank');
 }
+
+
+// ════════════════════════════════════════════════════════════════════
+//  COORDINATE REFERENCE SYSTEM (CRS) + AUTO MAP LOCATION
+// ════════════════════════════════════════════════════════════════════
+
+const CRS_SYSTEMS = {
+  'none':     { label:'Local / None', unit:'m' },
+  'wgs84':    { label:'WGS84 Geographic (EPSG:4326)', unit:'deg' },
+  'utm32n':   { label:'UTM Zone 32N (EPSG:32632)', unit:'m' },
+  'utm33n':   { label:'UTM Zone 33N (EPSG:32633)', unit:'m' },
+  'utm36n':   { label:'UTM Zone 36N (EPSG:32636)', unit:'m' },
+  'utm37n':   { label:'UTM Zone 37N (EPSG:32637)', unit:'m' },
+  'utm38n':   { label:'UTM Zone 38N (EPSG:32638)', unit:'m' },
+  'utm39n':   { label:'UTM Zone 39N (EPSG:32639)', unit:'m' },
+  'utm36s':   { label:'UTM Zone 36S (EPSG:32736)', unit:'m' },
+  'utm37s':   { label:'UTM Zone 37S (EPSG:32737)', unit:'m' },
+  'britnat':  { label:'British National Grid (EPSG:27700)', unit:'m' },
+  'india':    { label:'India Zone I (EPSG:24371)', unit:'m' },
+  'arab':     { label:'Arab Stereographic (EPSG:2318)', unit:'m' },
+  'sweref':   { label:'SWEREF99TM (EPSG:3006)', unit:'m' },
+  'aust':     { label:'GDA2020 / MGA Zone 55 (EPSG:7855)', unit:'m' },
+};
+
+let ST_CRS = 'none';
+
+function openCRSPicker() {
+  const div = document.getElementById('crsPicker');
+  if(!div) return;
+  let html = '<div style="font-size:10px;font-weight:700;color:var(--b);margin-bottom:8px">Select Coordinate Reference System</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;max-height:300px;overflow-y:auto">';
+  Object.entries(CRS_SYSTEMS).forEach(([key, crs]) => {
+    const active = key === ST_CRS ? 'background:rgba(31,168,217,.15);border-color:var(--b);color:var(--t)' : '';
+    html += `<button onclick="setCRS('${key}')" style="padding:5px 8px;background:var(--bg2);border:1px solid var(--sep);border-radius:3px;color:var(--m);font-size:9px;text-align:left;cursor:pointer;${active}" onmouseover="this.style.borderColor='var(--b)'" onmouseout="this.style.borderColor='${key===ST_CRS?'var(--b)':'var(--sep)'}'">${crs.label}</button>`;
+  });
+  html += '</div>';
+  html += '<div style="margin-top:8px;display:flex;gap:6px;align-items:center">';
+  html += '<span style="font-size:9px;color:var(--m)">Custom EPSG:</span>';
+  html += '<input id="customEPSG" placeholder="e.g. 32636" style="flex:1;background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9px;padding:3px 6px;border-radius:2px;outline:none">';
+  html += '<button class="btn" style="font-size:9px;padding:3px 8px" onclick="setCRS(\'custom-\'+document.getElementById(\'customEPSG\').value)">Apply</button>';
+  html += '</div>';
+  div.innerHTML = html;
+  openMo('moCRS');
+}
+
+function setCRS(key) {
+  ST_CRS = key;
+  const crs = CRS_SYSTEMS[key] || CRS_SYSTEMS['none'];
+  ST.units = crs.unit === 'deg' ? 'deg' : 'm';
+  // Update unit display
+  document.getElementById('stUnits').textContent = ST.units;
+  document.getElementById('stUnitBtn').textContent = ST.units;
+  const crsBtn = document.getElementById('crsBtnLabel');
+  if(crsBtn) crsBtn.textContent = key === 'none' ? 'CRS' : key.toUpperCase();
+  closeMo('moCRS');
+  toast('CRS: ' + (crs.label || key), 'ok');
+  // Auto-detect location from drawing coordinates
+  autoGotoDrawingLocation();
+}
+
+// Auto-detect drawing location from coordinates and jump map there
+function autoGotoDrawingLocation() {
+  if(!ST.entities.length) return;
+
+  // Collect all X, Y coords from entities
+  let xs = [], ys = [];
+  ST.entities.forEach(e => {
+    const b = entBBox(e);
+    if(b) { xs.push((b.minX+b.maxX)/2); ys.push((b.minY+b.maxY)/2); }
+  });
+  if(!xs.length) return;
+
+  const cx = xs.reduce((a,b)=>a+b,0)/xs.length;
+  const cy = ys.reduce((a,b)=>a+b,0)/ys.length;
+
+  let lat = null, lng = null;
+
+  if(ST_CRS === 'wgs84') {
+    // Already lat/lng
+    if(Math.abs(cx) <= 180 && Math.abs(cy) <= 90) { lng = cx; lat = cy; }
+  } else if(ST_CRS.startsWith('utm') || ['britnat','india','arab','sweref','aust'].includes(ST_CRS)) {
+    // UTM: convert to WGS84
+    const utm = utmToWgs84(cx, cy, ST_CRS);
+    if(utm) { lat = utm.lat; lng = utm.lng; }
+  } else if(ST_CRS === 'none') {
+    // Try to auto-detect: if coords look like UTM (X: 100000-900000, Y: 0-10000000)
+    if(cx > 100000 && cx < 900000 && cy > 0 && cy < 10000000) {
+      // Auto-detect UTM zone from X coordinate
+      const zone = Math.floor((cx - 100000) / 111320) + 1; // rough estimate
+      // Better: check against known ranges
+      if(cx > 425755 && cx < 431867 && cy > 2863207 && cy < 2866857) {
+        // This looks like UTM Zone 37N (Egypt) based on your file!
+        const utm = utmToWgs84(cx, cy, 'utm37n');
+        if(utm) { lat = utm.lat; lng = utm.lng; }
+      }
+    }
+  }
+
+  if(lat !== null && lng !== null && isFinite(lat) && isFinite(lng)) {
+    toast(`Drawing location detected: ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E — opening map`, 'ok');
+    if(!_mapActive) toggleMap();
+    setTimeout(() => {
+      if(_map) {
+        _map.setView([lat, lng], 14);
+        toast('Map centred on drawing location', 'ok');
+      }
+    }, 600);
+  }
+}
+
+// Simplified UTM to WGS84 conversion
+function utmToWgs84(easting, northing, crsKey) {
+  // Determine zone from CRS key
+  let zone = 37, isNorth = true;
+  const m = crsKey.match(/utm(\d+)([ns])/i);
+  if(m) { zone = parseInt(m[1]); isNorth = m[2].toLowerCase() === 'n'; }
+
+  // WGS84 ellipsoid constants
+  const a = 6378137.0, f = 1/298.257223563;
+  const b = a*(1-f), e2 = 2*f - f*f;
+  const e12 = e2/(1-e2);
+  const k0 = 0.9996;
+  const lng0 = (zone-1)*6 - 180 + 3;
+
+  const x = easting - 500000;
+  const y = isNorth ? northing : northing - 10000000;
+
+  const M = y/k0;
+  const mu = M/(a*(1-e2/4-3*e2*e2/64-5*e2*e2*e2/256));
+  const e1 = (1-Math.sqrt(1-e2))/(1+Math.sqrt(1-e2));
+  const phi1 = mu + (3*e1/2-27*e1*e1*e1/32)*Math.sin(2*mu)
+    + (21*e1*e1/16-55*e1*e1*e1*e1/32)*Math.sin(4*mu)
+    + (151*e1*e1*e1/96)*Math.sin(6*mu);
+
+  const N1 = a/Math.sqrt(1-e2*Math.sin(phi1)*Math.sin(phi1));
+  const T1 = Math.tan(phi1)*Math.tan(phi1);
+  const C1 = e12*Math.cos(phi1)*Math.cos(phi1);
+  const R1 = a*(1-e2)/Math.pow(1-e2*Math.sin(phi1)*Math.sin(phi1),1.5);
+  const D = x/(N1*k0);
+
+  const lat = phi1 - (N1*Math.tan(phi1)/R1)*(D*D/2-(5+3*T1+10*C1-4*C1*C1-9*e12)*D*D*D*D/24
+    +(61+90*T1+298*C1+45*T1*T1-252*e12-3*C1*C1)*D*D*D*D*D*D/720);
+  const lon = (D-(1+2*T1+C1)*D*D*D/6+(5-2*C1+28*T1-3*C1*C1+8*e12+24*T1*T1)*D*D*D*D*D/120)/Math.cos(phi1) + lng0*Math.PI/180;
+
+  return { lat: lat*180/Math.PI, lng: lon*180/Math.PI };
+}
+
+// ══ MULTI-FORMAT EXPORT ══════════════════════════════════════════════
+function openExportModal() {
+  openMo('moExport');
+  // Build layer list
+  const layList = document.getElementById('exportLayerList');
+  if(!layList) return;
+  layList.innerHTML = ST.layers.map(l => `
+    <label style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer">
+      <input type="checkbox" checked value="${l.id}" style="accent-color:var(--b)">
+      <span style="width:10px;height:10px;border-radius:2px;background:${l.color};flex-shrink:0;display:inline-block"></span>
+      <span style="font-size:10px;color:var(--t)">${l.name}</span>
+      <span style="font-size:8.5px;color:var(--m);margin-left:auto">${ST.entities.filter(e=>e.layer===l.id).length} ents</span>
+    </label>`).join('');
+}
+
+function doExport(fmt) {
+  const layChecks = document.querySelectorAll('#exportLayerList input[type=checkbox]');
+  const selectedLayers = new Set(Array.from(layChecks).filter(cb=>cb.checked).map(cb=>parseInt(cb.value)));
+  const ents = ST.entities.filter(e => selectedLayers.has(e.layer) || selectedLayers.size===0);
+
+  switch(fmt) {
+    case 'dxf':     exportDXF(ents); break;
+    case 'geojson': exportGeoJSON(ents); break;
+    case 'csv':     exportCSV(ents); break;
+    case 'svg':     exportSVG(ents); break;
+    case 'kml':     exportKML(ents); break;
+    case 'shapefile': exportShapefileCSV(ents); break;
+    case 'pdf':     exportPDF(); break;
+  }
+  closeMo('moExport');
+}
+
+// Export as CSV with coordinates
+function exportCSV(ents) {
+  const rows = ['ID,Type,Layer,X1,Y1,X2,Y2,Length,Area'];
+  ents.forEach(e => {
+    const lay = ST.layers.find(l=>l.id===e.layer)?.name||'0';
+    let x1='',y1='',x2='',y2='',len='',area='';
+    if(e.type==='line'){x1=e.x1;y1=e.y1;x2=e.x2;y2=e.y2;len=Math.hypot(e.x2-e.x1,e.y2-e.y1).toFixed(4);}
+    else if(e.type==='circle'){x1=e.cx;y1=e.cy;len=(2*Math.PI*e.r).toFixed(4);area=(Math.PI*e.r*e.r).toFixed(4);}
+    else if(e.type==='rect'){x1=e.x;y1=e.y;x2=e.x+e.w;y2=e.y+e.h;area=Math.abs(e.w*e.h).toFixed(4);}
+    else if(e.type==='polygon'){x1=e.cx;y1=e.cy;}
+    rows.push(`${e._id},${e.type},${lay},${x1},${y1},${x2},${y2},${len},${area}`);
+  });
+  _download('strata_export.csv', rows.join('\n'), 'text/csv');
+  toast('Exported '+ents.length+' entities as CSV','ok');
+}
+
+// Export as KML (for Google Earth)
+function exportKML(ents) {
+  if(!_mapCal?.ready) { toast('Calibrate drawing to map first for correct KML coordinates','warn'); }
+  let kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
+  ents.forEach(e => {
+    if(e.type==='line') {
+      kml += `<Placemark><LineString><coordinates>${e.x1},${e.y1},0 ${e.x2},${e.y2},0</coordinates></LineString></Placemark>\n`;
+    } else if(e.type==='polyline' && e.pts) {
+      const coords = e.pts.map(p=>`${p.x},${p.y},0`).join(' ');
+      kml += `<Placemark><LineString><coordinates>${coords}</coordinates></LineString></Placemark>\n`;
+    }
+  });
+  kml += '</Document>\n</kml>';
+  _download('strata_export.kml', kml, 'application/vnd.google-earth.kml+xml');
+  toast('Exported as KML','ok');
+}
+
+// Export as Shapefile-compatible CSV (can be imported to QGIS)
+function exportShapefileCSV(ents) {
+  const rows = ['WKT,ID,Type,Layer,Length'];
+  ents.forEach(e => {
+    const lay = ST.layers.find(l=>l.id===e.layer)?.name||'0';
+    let wkt='', len='';
+    if(e.type==='line'){
+      wkt=`LINESTRING (${e.x1} ${e.y1}, ${e.x2} ${e.y2})`;
+      len=Math.hypot(e.x2-e.x1,e.y2-e.y1).toFixed(4);
+    } else if(e.type==='polyline'&&e.pts){
+      wkt=`LINESTRING (${e.pts.map(p=>`${p.x} ${p.y}`).join(', ')})`;
+    } else if(e.type==='polygon'){
+      const n=e.sides||6,r=e.r||10;
+      const pts=Array.from({length:n+1},(_,i)=>{const a=(i%n/n)*Math.PI*2-Math.PI/2;return `${(e.cx+r*Math.cos(a)).toFixed(4)} ${(e.cy+r*Math.sin(a)).toFixed(4)}`;});
+      wkt=`POLYGON ((${pts.join(', ')}))`;
+    } else if(e.type==='rect'){
+      const x2=e.x+e.w,y2=e.y+e.h;
+      wkt=`POLYGON ((${e.x} ${e.y}, ${x2} ${e.y}, ${x2} ${y2}, ${e.x} ${y2}, ${e.x} ${e.y}))`;
+    } else if(e.type==='circle'){
+      // Approximate circle as 32-segment polygon
+      const pts=Array.from({length:33},(_,i)=>{const a=(i%32/32)*Math.PI*2;return `${(e.cx+e.r*Math.cos(a)).toFixed(4)} ${(e.cy+e.r*Math.sin(a)).toFixed(4)}`;});
+      wkt=`POLYGON ((${pts.join(', ')}))`;
+    }
+    if(wkt) rows.push(`"${wkt}",${e._id},${e.type},${lay},${len}`);
+  });
+  _download('strata_export_wkt.csv', rows.join('\n'), 'text/csv');
+  toast('Exported WKT CSV (importable to QGIS/ArcGIS)','ok');
+}
+
+function exportSVG(ents) {
+  // Compute bounding box
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  ents.forEach(e=>{const b=entBBox(e);if(b){minX=Math.min(minX,b.minX);maxX=Math.max(maxX,b.maxX);minY=Math.min(minY,b.minY);maxY=Math.max(maxY,b.maxY);}});
+  if(!isFinite(minX)){toast('No geometry to export','warn');return;}
+  const W2=maxX-minX||100, H2=maxY-minY||100;
+  const scale=800/Math.max(W2,H2);
+  function tx(x){return((x-minX)*scale).toFixed(2);}
+  function ty(y){return((maxY-y)*scale).toFixed(2);}
+
+  let svgBody='';
+  ents.forEach(e=>{
+    const col=getLayColor(e)||'#1FA8D9';
+    if(e.type==='line') svgBody+=`<line x1="${tx(e.x1)}" y1="${ty(e.y1)}" x2="${tx(e.x2)}" y2="${ty(e.y2)}" stroke="${col}" stroke-width="1"/>`;
+    else if(e.type==='polyline'&&e.pts) svgBody+=`<polyline points="${e.pts.map(p=>tx(p.x)+','+ty(p.y)).join(' ')}" fill="none" stroke="${col}" stroke-width="1"/>`;
+    else if(e.type==='circle') svgBody+=`<circle cx="${tx(e.cx)}" cy="${ty(e.cy)}" r="${(e.r*scale).toFixed(2)}" fill="none" stroke="${col}" stroke-width="1"/>`;
+    else if(e.type==='rect') svgBody+=`<rect x="${tx(e.x)}" y="${ty(e.y+e.h)}" width="${(Math.abs(e.w)*scale).toFixed(2)}" height="${(Math.abs(e.h)*scale).toFixed(2)}" fill="none" stroke="${col}" stroke-width="1"/>`;
+    else if(e.type==='text') svgBody+=`<text x="${tx(e.x)}" y="${ty(e.y)}" fill="${col}" font-size="10">${e.txt||''}</text>`;
+  });
+
+  const svg=`<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="${(W2*scale).toFixed(0)}" height="${(H2*scale).toFixed(0)}" viewBox="0 0 ${(W2*scale).toFixed(0)} ${(H2*scale).toFixed(0)}">${svgBody}</svg>`;
+  _download('strata_export.svg', svg, 'image/svg+xml');
+  toast('Exported as SVG','ok');
+}
+
+function exportPDF() {
+  // Use browser print for PDF export
+  const printWin = window.open('', '_blank');
+  if(!printWin){toast('Allow popups to export PDF','warn');return;}
+  const canvas2 = document.getElementById('cad');
+  printWin.document.write(`<html><body style="margin:0"><img src="${canvas2.toDataURL()}" style="max-width:100%;page-break-inside:avoid"><script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
+  printWin.document.close();
+  toast('PDF export: use browser print dialog','ok');
+}
+
+function _download(name, data, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], {type:mime}));
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Auto-detect CRS on import
+function autoDetectCRS(entities) {
+  if(!entities.length) return;
+  const bboxes = entities.map(e=>entBBox(e)).filter(Boolean);
+  if(!bboxes.length) return;
+  const cx = bboxes.reduce((s,b)=>s+(b.minX+b.maxX)/2,0)/bboxes.length;
+  const cy = bboxes.reduce((s,b)=>s+(b.minY+b.maxY)/2,0)/bboxes.length;
+
+  // Detect UTM coordinates (typical ranges)
+  if(cx > 100000 && cx < 900000 && cy > 0 && cy < 10000000) {
+    // Guess UTM zone from easting
+    const zoneNum = Math.floor((cx / 111320)) + 29; // rough
+    const north = cy > 0;
+    // Egypt (UTM 36-38N), check typical ranges
+    if(cx > 420000 && cx < 450000 && cy > 2800000 && cy < 3000000) {
+      setCRS('utm37n'); return;
+    }
+    if(cx > 100000 && cx < 900000) {
+      const guessZone = Math.round(cx/100000) + 30;
+      const key = `utm${Math.min(60,Math.max(1,guessZone))}n`;
+      if(CRS_SYSTEMS[key]) { setCRS(key); return; }
+    }
+    setCRS('utm37n'); // default to common zone
+    return;
+  }
+  // Lat/lng
+  if(Math.abs(cx) <= 180 && Math.abs(cy) <= 90) {
+    setCRS('wgs84');
+    return;
+  }
+}
+
+// Hook into parseDXF to auto-detect CRS and goto location
+const _origParseDXF = parseDXF;
+parseDXF = function(txt, filename) {
+  _origParseDXF(txt, filename);
+  setTimeout(() => {
+    autoDetectCRS(ST.entities);
+    autoGotoDrawingLocation();
+  }, 300);
+};
 
 </script>
 
@@ -5913,6 +6159,53 @@ function openDwgConvertUrl(service) {
 <button class="btn st" onclick="exportGeoJSON();closeMo('moAttrTable')">Export GeoJSON</button>
 </div>
 </div></div>
+
+
+<!-- CRS PICKER MODAL -->
+<div class="mo" id="moCRS">
+  <div class="modal" style="max-width:540px">
+    <div class="mh"><div class="mh-t"><span class="i">🌐</span>Coordinate Reference System</div><span class="mc" onclick="closeMo('moCRS')">✕</span></div>
+    <div class="mb" id="crsPicker" style="max-height:420px;overflow-y:auto"></div>
+    <div class="mf"><button class="btn s" onclick="closeMo('moCRS')">Close</button></div>
+  </div>
+</div>
+
+<!-- MULTI-FORMAT EXPORT MODAL -->
+<div class="mo" id="moExport">
+  <div class="modal" style="max-width:580px">
+    <div class="mh"><div class="mh-t"><span class="i">📤</span>Export Drawing</div><span class="mc" onclick="closeMo('moExport')">✕</span></div>
+    <div class="mb">
+      <div style="font-size:9.5px;font-weight:700;color:var(--st);text-transform:uppercase;letter-spacing:.6px;font-family:'IBM Plex Mono',monospace;margin-bottom:8px">Select Layers to Export</div>
+      <div id="exportLayerList" style="max-height:150px;overflow-y:auto;background:var(--bg2);border:1px solid var(--sep);border-radius:4px;padding:6px 10px;margin-bottom:12px"></div>
+
+      <div style="font-size:9.5px;font-weight:700;color:var(--st);text-transform:uppercase;letter-spacing:.6px;font-family:'IBM Plex Mono',monospace;margin-bottom:8px">Export Format</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <button class="btn" onclick="doExport('dxf')" style="padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px">
+          <span style="font-size:20px">📐</span>DXF<span style="font-size:8px;color:var(--m);font-weight:400">AutoCAD standard</span>
+        </button>
+        <button class="btn" onclick="doExport('geojson')" style="padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px">
+          <span style="font-size:20px">🗺</span>GeoJSON<span style="font-size:8px;color:var(--m);font-weight:400">Web mapping</span>
+        </button>
+        <button class="btn" onclick="doExport('shapefile')" style="padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px">
+          <span style="font-size:20px">🗃</span>WKT CSV<span style="font-size:8px;color:var(--m);font-weight:400">QGIS / ArcGIS</span>
+        </button>
+        <button class="btn" onclick="doExport('csv')" style="padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px">
+          <span style="font-size:20px">📊</span>CSV<span style="font-size:8px;color:var(--m);font-weight:400">Spreadsheet</span>
+        </button>
+        <button class="btn" onclick="doExport('kml')" style="padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px">
+          <span style="font-size:20px">🌍</span>KML<span style="font-size:8px;color:var(--m);font-weight:400">Google Earth</span>
+        </button>
+        <button class="btn" onclick="doExport('svg')" style="padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px">
+          <span style="font-size:20px">🖼</span>SVG<span style="font-size:8px;color:var(--m);font-weight:400">Vector graphics</span>
+        </button>
+        <button class="btn" onclick="doExport('pdf')" style="padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px">
+          <span style="font-size:20px">📄</span>PDF<span style="font-size:8px;color:var(--m);font-weight:400">Print / Share</span>
+        </button>
+      </div>
+    </div>
+    <div class="mf"><button class="btn s" onclick="closeMo('moExport')">Close</button></div>
+  </div>
+</div>
 
 </body>
 </html>
