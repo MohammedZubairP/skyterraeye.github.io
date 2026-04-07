@@ -387,6 +387,17 @@ input,select{font-family:inherit}
           <div class="dd-item" onclick="cmdPaste()">📌 Paste<span class="ks">Ctrl+V</span></div>
           <div class="dd-item" onclick="delSel()">🗑️ Delete<span class="ks">Del</span></div>
           <div class="dd-sep"></div>
+          <div class="dd-item" onclick="doRotateAngle()">↻ Rotate by angle</div>
+          <div class="dd-item" onclick="doScaleFactor()">⤡ Scale by factor</div>
+          <div class="dd-item" onclick="mirrorH()">⇌ Mirror horizontal</div>
+          <div class="dd-item" onclick="mirrorV()">↕ Mirror vertical</div>
+          <div class="dd-item" onclick="doJoin()">⊕ Join lines</div>
+          <div class="dd-item" onclick="doBreak()">⌁ Break at cursor</div>
+          <div class="dd-item" onclick="doExplodeSelected()">💥 Explode to lines</div>
+          <div class="dd-item" onclick="doPolarArray()">⭕ Polar array</div>
+          <div class="dd-item" onclick="doRectArray()">🔲 Rectangular array</div>
+          <div class="dd-item" onclick="doLengthen()">⟺ Lengthen/Shorten</div>
+          <div class="dd-sep"></div>
           <div class="dd-item" onclick="selectAll()">◻ Select All<span class="ks">Ctrl+A</span></div>
           <div class="dd-item" onclick="deselectAll()">✕ Deselect<span class="ks">Esc</span></div>
         </div>
@@ -450,6 +461,17 @@ input,select{font-family:inherit}
           <div class="dd-item" onclick="T('extend')">⇒ Extend<span class="ks">EX</span></div>
           <div class="dd-sep"></div>
           <div class="dd-item" onclick="delSel()">🗑️ Delete<span class="ks">Del</span></div>
+          <div class="dd-sep"></div>
+          <div class="dd-item" onclick="doRotateAngle()">↻ Rotate by angle</div>
+          <div class="dd-item" onclick="doScaleFactor()">⤡ Scale by factor</div>
+          <div class="dd-item" onclick="mirrorH()">⇌ Mirror horizontal</div>
+          <div class="dd-item" onclick="mirrorV()">↕ Mirror vertical</div>
+          <div class="dd-item" onclick="doJoin()">⊕ Join lines</div>
+          <div class="dd-item" onclick="doBreak()">⌁ Break at cursor</div>
+          <div class="dd-item" onclick="doExplodeSelected()">💥 Explode to lines</div>
+          <div class="dd-item" onclick="doPolarArray()">⭕ Polar array</div>
+          <div class="dd-item" onclick="doRectArray()">🔲 Rectangular array</div>
+          <div class="dd-item" onclick="doLengthen()">⟺ Lengthen/Shorten</div>
           <div class="dd-item" onclick="openMo('moExplode')">💥 Explode</div>
           <div class="dd-item" onclick="openMo('moArray')">🔲 Array</div>
           <div class="dd-item" onclick="doBuffer()">🔵 Buffer</div>
@@ -558,6 +580,8 @@ input,select{font-family:inherit}
       <button class="rb" onclick="T('ellipse')" id="rb-ellipse"><span class="rb-i">◎</span>ELLIPSE</button>
       <button class="rb" onclick="T('spline')" id="rb-spline"><span class="rb-i">≈</span>SPLINE</button>
       <button class="rb" onclick="T('hatch')" id="rb-hatch"><span class="rb-i">▩</span>HATCH</button>
+      <button class="rb" onclick="T('polygon')" id="rb-polygon"><span class="rb-i">⬡</span>POLY</button>
+      <button class="rb" onclick="T('point')" id="rb-point"><span class="rb-i">·</span>POINT</button>
       <button class="rb" onclick="T('text')" id="rb-text"><span class="rb-i">T</span>TEXT</button>
       <button class="rb" onclick="T('dim-lin')" id="rb-dim-lin"><span class="rb-i">⟷</span>DIMLIN</button>
     </div>
@@ -635,6 +659,23 @@ input,select{font-family:inherit}
         <button class="tb" id="tb-ellipse" onclick="T('ellipse')" title="Ellipse"><span class="tb-i">◎</span><span class="tb-l">ELLIPSE</span></button>
         <button class="tb" id="tb-spline" onclick="T('spline')" title="Spline (SPL)"><span class="tb-i">≈</span><span class="tb-l">SPLINE</span></button>
         <button class="tb" id="tb-hatch" onclick="T('hatch')" title="Hatch (H)"><span class="tb-i">▩</span><span class="tb-l">HATCH</span></button>
+        <button class="tb" id="tb-polygon" onclick="T('polygon')" title="Polygon (PG)"><span class="tb-i">⬡</span><span class="tb-l">POLYGON</span></button>
+        <button class="tb" id="tb-cloud" onclick="T('cloud')" title="Revision Cloud"><span class="tb-i">☁</span><span class="tb-l">CLOUD</span></button>
+        <button class="tb" id="tb-point" onclick="T('point')" title="Point (PO)"><span class="tb-i">·</span><span class="tb-l">POINT</span></button>
+        <button class="tb" id="tb-xline" onclick="T('xline')" title="Construction Line (XL)"><span class="tb-i">⟷</span><span class="tb-l">XLINE</span></button>
+        <button class="tb" id="tb-ray" onclick="T('ray')" title="Ray"><span class="tb-i">→</span><span class="tb-l">RAY</span></button>
+        <button class="tb" id="tb-wipeout" onclick="T('wipeout')" title="Wipeout"><span class="tb-i">□</span><span class="tb-l">WIPEOUT</span></button>
+      </div>
+      <!-- Polygon sides selector -->
+      <div style="display:flex;align-items:center;gap:4px;padding:2px 6px;margin-top:1px">
+        <span style="font-size:7.5px;color:var(--m);font-family:'IBM Plex Mono',monospace">SIDES:</span>
+        <input type="number" min="3" max="64" value="6" id="polygonSides"
+          style="width:40px;background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9px;padding:1px 3px;border-radius:2px;font-family:'IBM Plex Mono',monospace"
+          onchange="ST._polygonSides=parseInt(this.value)||6" title="Polygon sides">
+        <button class="tb" style="min-width:0;padding:2px 4px;font-size:8px" onclick="T('polygon');ST._polygonSides=3" title="Triangle">△3</button>
+        <button class="tb" style="min-width:0;padding:2px 4px;font-size:8px" onclick="T('polygon');ST._polygonSides=4;document.getElementById('polygonSides').value=4" title="Square">□4</button>
+        <button class="tb" style="min-width:0;padding:2px 4px;font-size:8px" onclick="T('polygon');ST._polygonSides=6;document.getElementById('polygonSides').value=6" title="Hexagon">⬡6</button>
+        <button class="tb" style="min-width:0;padding:2px 4px;font-size:8px" onclick="T('polygon');ST._polygonSides=8;document.getElementById('polygonSides').value=8" title="Octagon">⬡8</button>
       </div>
       <div class="tg-title">DRAW</div>
     </div>
@@ -649,6 +690,10 @@ input,select{font-family:inherit}
         <button class="tb" id="tb-offset" onclick="T('offset')" title="Offset (O)"><span class="tb-i">⊏</span><span class="tb-l">OFFSET</span></button>
         <button class="tb" id="tb-trim" onclick="T('trim')" title="Trim (TR)"><span class="tb-i">✂</span><span class="tb-l">TRIM</span></button>
         <button class="tb" id="tb-extend" onclick="T('extend')" title="Extend (EX)"><span class="tb-i">⇒</span><span class="tb-l">EXTEND</span></button>
+        <button class="tb" id="tb-stretch" onclick="T('stretch')" title="Stretch"><span class="tb-i">⟺</span><span class="tb-l">STRETCH</span></button>
+        <button class="tb" id="tb-break" onclick="doBreak()" title="Break at point"><span class="tb-i">⌁</span><span class="tb-l">BREAK</span></button>
+        <button class="tb" id="tb-join" onclick="doJoin()" title="Join lines"><span class="tb-i">⊕</span><span class="tb-l">JOIN</span></button>
+        <button class="tb" id="tb-explode2" onclick="doExplodeSelected()" title="Explode to lines"><span class="tb-i">💥</span><span class="tb-l">EXPLODE</span></button>
       </div>
       <div class="tg-title">MODIFY</div>
     </div>
@@ -1371,7 +1416,40 @@ function drawEntity(e, ghost) {
       const c=w2s(e.cx,e.cy);
       ctx.beginPath(); ctx.ellipse(c.x,c.y,Math.abs(e.rx||10)*ST.zoom,Math.abs(e.ry||5)*ST.zoom,-(e.rot||0)*Math.PI/180,0,Math.PI*2); ctx.stroke(); break;
     }
-    case 'rect': {
+    case 'polygon': {
+      const pctr=w2s(sp.x,sp.y);
+      const pr2=Math.hypot(mp.x-pctr.x,mp.y-pctr.y);
+      const ns2=ST._polygonSides||6;
+      ctx.beginPath();
+      for(let si=0;si<ns2;si++){
+        const a=(si/ns2)*Math.PI*2-Math.PI/2;
+        const px=pctr.x+pr2*Math.cos(a), py=pctr.y+pr2*Math.sin(a);
+        si===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.closePath();ctx.stroke();
+      drawLenLabel(pr2/ST.zoom,mp.x+8,mp.y-8);
+      break;
+    }
+    case 'cloud': {
+      const cctr=w2s(sp.x,sp.y);
+      const cr=Math.hypot(mp.x-cctr.x,mp.y-cctr.y);
+      ctx.beginPath();ctx.arc(cctr.x,cctr.y,cr,0,Math.PI*2);ctx.stroke();
+      break;
+    }
+    case 'xline': case 'ray': {
+      const lp=w2s(sp.x,sp.y);
+      const lang=Math.atan2(mp.y-lp.y,mp.x-lp.x);
+      ctx.beginPath();
+      ctx.moveTo(lp.x-2000*Math.cos(lang),lp.y-2000*Math.sin(lang));
+      ctx.lineTo(lp.x+2000*Math.cos(lang),lp.y+2000*Math.sin(lang));
+      ctx.stroke();break;
+    }
+    case 'wipeout': {
+      const wa=w2s(sp.x,sp.y);
+      ctx.strokeRect(wa.x,wa.y,mp.x-wa.x,mp.y-wa.y);
+      break;
+    }
+        case 'rect': {
       const p=w2s(e.x,e.y);
       ctx.strokeRect(p.x,p.y,e.w*ST.zoom,-e.h*ST.zoom); break;
     }
@@ -1382,7 +1460,70 @@ function drawEntity(e, ghost) {
       for(let i=1;i<e.pts.length;i++){const p=w2s(e.pts[i].x,e.pts[i].y);ctx.lineTo(p.x,p.y);}
       if(e.closed){ctx.closePath();} ctx.stroke(); break;
     }
-    case 'text': {
+    case 'polygon': {
+      const pc=w2s(e.cx,e.cy), pr=e.r*ST.zoom;
+      const nsides=e.sides||6;
+      ctx.beginPath();
+      for(let si=0;si<nsides;si++){
+        const a=(si/nsides)*Math.PI*2 - Math.PI/2;
+        const px=pc.x+pr*Math.cos(a), py=pc.y+pr*Math.sin(a);
+        si===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.closePath(); ctx.stroke();
+      if(e.fill) ctx.fill();
+      break;
+    }
+    case 'cloud': {
+      // Revision cloud — series of arcs forming closed shape
+      const pc=w2s(e.cx,e.cy), pr=e.r*ST.zoom;
+      const nArcs=Math.max(6,Math.round(e.r*ST.zoom/15));
+      ctx.beginPath();
+      for(let si=0;si<nArcs;si++){
+        const a0=(si/nArcs)*Math.PI*2, a1=((si+1)/nArcs)*Math.PI*2;
+        const mx=pc.x+(pr+5)*Math.cos((a0+a1)/2), my=pc.y+(pr+5)*Math.sin((a0+a1)/2);
+        ctx.arc(mx,my,7,a0+Math.PI,a1+Math.PI);
+      }
+      ctx.closePath(); ctx.stroke(); break;
+    }
+        case 'point': {
+      const pp=w2s(e.x,e.y);
+      const psz=Math.max(2,3*ST.zoom);
+      ctx.beginPath();ctx.arc(pp.x,pp.y,psz,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.moveTo(pp.x-psz*2,pp.y);ctx.lineTo(pp.x+psz*2,pp.y);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(pp.x,pp.y-psz*2);ctx.lineTo(pp.x,pp.y+psz*2);ctx.stroke();
+      break;
+    }
+    case 'xline': {
+      if(!isFinite(e.x1)||!isFinite(e.y1)) break;
+      const xa=w2s(e.x1,e.y1);
+      const ang2=Math.atan2(e.y2-e.y1,e.x2-e.x1);
+      const ext=1e6;
+      ctx.save();ctx.setLineDash([4,6]);
+      ctx.beginPath();
+      ctx.moveTo(xa.x-ext*Math.cos(ang2)*ST.zoom,xa.y+ext*Math.sin(ang2)*ST.zoom);
+      ctx.lineTo(xa.x+ext*Math.cos(ang2)*ST.zoom,xa.y-ext*Math.sin(ang2)*ST.zoom);
+      ctx.stroke();ctx.restore();break;
+    }
+    case 'ray': {
+      if(!isFinite(e.x1)||!isFinite(e.y1)) break;
+      const ra=w2s(e.x1,e.y1);
+      const rang=Math.atan2(e.y2-e.y1,e.x2-e.x1);
+      ctx.beginPath();ctx.moveTo(ra.x,ra.y);
+      ctx.lineTo(ra.x+1e6*Math.cos(rang)*ST.zoom,ra.y-1e6*Math.sin(rang)*ST.zoom);
+      ctx.stroke();break;
+    }
+    case 'wipeout': {
+      const wb=w2s(e.x,e.y);
+      const wx2=w2s(e.x+e.w,e.y+e.h);
+      ctx.fillStyle=ST.bgColor;
+      ctx.fillRect(Math.min(wb.x,wx2.x),Math.min(wb.y,wx2.y),Math.abs(wx2.x-wb.x),Math.abs(wx2.y-wb.y));
+      ctx.strokeStyle=col;ctx.lineWidth=0.5;
+      ctx.strokeRect(Math.min(wb.x,wx2.x),Math.min(wb.y,wx2.y),Math.abs(wx2.x-wb.x),Math.abs(wx2.y-wb.y));
+      break;
+    }
+        case 'point':    return Math.hypot(wx-e.x,wy-e.y)<tol*2;
+    case 'xline': case 'ray': { const dxx=e.x2-e.x1,dyy=e.y2-e.y1,ll=dxx*dxx+dyy*dyy; if(!ll)return false; const tt=((wx-e.x1)*dxx+(wy-e.y1)*dyy)/ll; return Math.hypot(wx-(e.x1+tt*dxx),wy-(e.y1+tt*dyy))<tol; }
+        case 'text': {
       const p=w2s(e.x,e.y);
       ctx.setLineDash([]);
       const sz = Math.max(2,(e.sz||12)*ST.zoom);
@@ -1450,13 +1591,15 @@ function getLDash(lt) {
 function getHandles(e) {
   switch(e.type) {
     case 'line':    return [{x:e.x1,y:e.y1},{x:e.x2,y:e.y2},{x:(e.x1+e.x2)/2,y:(e.y1+e.y2)/2}];
-    case 'circle':  return [{x:e.cx,y:e.cy},{x:e.cx+e.r,y:e.cy}];
+    case 'circle': case 'polygon': case 'cloud': return [{x:e.cx,y:e.cy},{x:e.cx+(e.r||10),y:e.cy}];
     case 'arc':     return [{x:e.cx,y:e.cy}];
     case 'rect':    return [{x:e.x,y:e.y},{x:e.x+e.w,y:e.y},{x:e.x,y:e.y+e.h},{x:e.x+e.w,y:e.y+e.h}];
     case 'ellipse': return [{x:e.cx,y:e.cy}];
     case 'polyline':return e.pts||[];
     case 'text':    return [{x:e.x,y:e.y}];
-    default:        return [];
+    case 'polygon': {const ss=[];const n=e.sides||6;for(let si=0;si<n;si++){const a=(si/n)*Math.PI*2-Math.PI/2;ss.push({x:e.cx+(e.r||10)*Math.cos(a),y:e.cy+(e.r||10)*Math.sin(a)});}return ss;}
+    case 'cloud': return [{x:e.cx,y:e.cy}];
+        default:        return [];
   }
 }
 
@@ -1491,7 +1634,40 @@ function drawPreview() {
       }
       break;
     }
-    case 'rect': {
+    case 'polygon': {
+      const pctr=w2s(sp.x,sp.y);
+      const pr2=Math.hypot(mp.x-pctr.x,mp.y-pctr.y);
+      const ns2=ST._polygonSides||6;
+      ctx.beginPath();
+      for(let si=0;si<ns2;si++){
+        const a=(si/ns2)*Math.PI*2-Math.PI/2;
+        const px=pctr.x+pr2*Math.cos(a), py=pctr.y+pr2*Math.sin(a);
+        si===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.closePath();ctx.stroke();
+      drawLenLabel(pr2/ST.zoom,mp.x+8,mp.y-8);
+      break;
+    }
+    case 'cloud': {
+      const cctr=w2s(sp.x,sp.y);
+      const cr=Math.hypot(mp.x-cctr.x,mp.y-cctr.y);
+      ctx.beginPath();ctx.arc(cctr.x,cctr.y,cr,0,Math.PI*2);ctx.stroke();
+      break;
+    }
+    case 'xline': case 'ray': {
+      const lp=w2s(sp.x,sp.y);
+      const lang=Math.atan2(mp.y-lp.y,mp.x-lp.x);
+      ctx.beginPath();
+      ctx.moveTo(lp.x-2000*Math.cos(lang),lp.y-2000*Math.sin(lang));
+      ctx.lineTo(lp.x+2000*Math.cos(lang),lp.y+2000*Math.sin(lang));
+      ctx.stroke();break;
+    }
+    case 'wipeout': {
+      const wa=w2s(sp.x,sp.y);
+      ctx.strokeRect(wa.x,wa.y,mp.x-wa.x,mp.y-wa.y);
+      break;
+    }
+        case 'rect': {
       const a=w2s(sp.x,sp.y);
       ctx.strokeRect(a.x,a.y,mp.x-a.x,mp.y-a.y);
       break;
@@ -1578,8 +1754,12 @@ function entBBox(e) {
       const xs=e.pts.map(p=>p.x), ys=e.pts.map(p=>p.y);
       return {minX:Math.min(...xs),minY:Math.min(...ys),maxX:Math.max(...xs),maxY:Math.max(...ys)};
     }
-    case 'text':     return {minX:e.x,minY:e.y,maxX:e.x+40,maxY:e.y+10};
-    default:         return null;
+    case 'point':    return {minX:e.x-2,minY:e.y-2,maxX:e.x+2,maxY:e.y+2};
+    case 'xline': case 'ray': return {minX:Math.min(e.x1||0,e.x2||0),minY:Math.min(e.y1||0,e.y2||0),maxX:Math.max(e.x1||0,e.x2||0),maxY:Math.max(e.y1||0,e.y2||0)};
+    case 'wipeout':  return {minX:e.x,minY:e.y,maxX:e.x+(e.w||10),maxY:e.y+(e.h||10)};
+        case 'text':     return {minX:e.x,minY:e.y,maxX:e.x+40,maxY:e.y+10};
+    case 'polygon': case 'cloud': return {minX:e.cx-(e.r||10),minY:e.cy-(e.r||10),maxX:e.cx+(e.r||10),maxY:e.cy+(e.r||10)};
+        default:         return null;
   }
 }
 
@@ -1596,7 +1776,40 @@ function ptHitsEnt(wx,wy,e,tol) {
     case 'circle': return Math.abs(Math.hypot(wx-e.cx,wy-e.cy)-e.r)<tol;
     case 'arc':    return Math.abs(Math.hypot(wx-e.cx,wy-e.cy)-e.r)<tol;
     case 'ellipse':return Math.abs(Math.hypot(wx-e.cx,wy-e.cy)-(e.rx+e.ry)/2)<tol*2;
-    case 'rect': {
+    case 'polygon': {
+      const pctr=w2s(sp.x,sp.y);
+      const pr2=Math.hypot(mp.x-pctr.x,mp.y-pctr.y);
+      const ns2=ST._polygonSides||6;
+      ctx.beginPath();
+      for(let si=0;si<ns2;si++){
+        const a=(si/ns2)*Math.PI*2-Math.PI/2;
+        const px=pctr.x+pr2*Math.cos(a), py=pctr.y+pr2*Math.sin(a);
+        si===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.closePath();ctx.stroke();
+      drawLenLabel(pr2/ST.zoom,mp.x+8,mp.y-8);
+      break;
+    }
+    case 'cloud': {
+      const cctr=w2s(sp.x,sp.y);
+      const cr=Math.hypot(mp.x-cctr.x,mp.y-cctr.y);
+      ctx.beginPath();ctx.arc(cctr.x,cctr.y,cr,0,Math.PI*2);ctx.stroke();
+      break;
+    }
+    case 'xline': case 'ray': {
+      const lp=w2s(sp.x,sp.y);
+      const lang=Math.atan2(mp.y-lp.y,mp.x-lp.x);
+      ctx.beginPath();
+      ctx.moveTo(lp.x-2000*Math.cos(lang),lp.y-2000*Math.sin(lang));
+      ctx.lineTo(lp.x+2000*Math.cos(lang),lp.y+2000*Math.sin(lang));
+      ctx.stroke();break;
+    }
+    case 'wipeout': {
+      const wa=w2s(sp.x,sp.y);
+      ctx.strokeRect(wa.x,wa.y,mp.x-wa.x,mp.y-wa.y);
+      break;
+    }
+        case 'rect': {
       const x1=Math.min(e.x,e.x+e.w),y1=Math.min(e.y,e.y+e.h),x2=Math.max(e.x,e.x+e.w),y2=Math.max(e.y,e.y+e.h);
       const onH=(wy>=y1-tol&&wy<=y1+tol&&wx>=x1-tol&&wx<=x2+tol)||(wy>=y2-tol&&wy<=y2+tol&&wx>=x1-tol&&wx<=x2+tol);
       const onV=(wx>=x1-tol&&wx<=x1+tol&&wy>=y1-tol&&wy<=y2+tol)||(wx>=x2-tol&&wx<=x2+tol&&wy>=y1-tol&&wy<=y2+tol);
@@ -1613,11 +1826,75 @@ function ptHitsEnt(wx,wy,e,tol) {
       }
       return false;
     }
-    case 'text': {
+    case 'polygon': {
+      const pc=w2s(e.cx,e.cy), pr=e.r*ST.zoom;
+      const nsides=e.sides||6;
+      ctx.beginPath();
+      for(let si=0;si<nsides;si++){
+        const a=(si/nsides)*Math.PI*2 - Math.PI/2;
+        const px=pc.x+pr*Math.cos(a), py=pc.y+pr*Math.sin(a);
+        si===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.closePath(); ctx.stroke();
+      if(e.fill) ctx.fill();
+      break;
+    }
+    case 'cloud': {
+      // Revision cloud — series of arcs forming closed shape
+      const pc=w2s(e.cx,e.cy), pr=e.r*ST.zoom;
+      const nArcs=Math.max(6,Math.round(e.r*ST.zoom/15));
+      ctx.beginPath();
+      for(let si=0;si<nArcs;si++){
+        const a0=(si/nArcs)*Math.PI*2, a1=((si+1)/nArcs)*Math.PI*2;
+        const mx=pc.x+(pr+5)*Math.cos((a0+a1)/2), my=pc.y+(pr+5)*Math.sin((a0+a1)/2);
+        ctx.arc(mx,my,7,a0+Math.PI,a1+Math.PI);
+      }
+      ctx.closePath(); ctx.stroke(); break;
+    }
+        case 'point': {
+      const pp=w2s(e.x,e.y);
+      const psz=Math.max(2,3*ST.zoom);
+      ctx.beginPath();ctx.arc(pp.x,pp.y,psz,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.moveTo(pp.x-psz*2,pp.y);ctx.lineTo(pp.x+psz*2,pp.y);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(pp.x,pp.y-psz*2);ctx.lineTo(pp.x,pp.y+psz*2);ctx.stroke();
+      break;
+    }
+    case 'xline': {
+      if(!isFinite(e.x1)||!isFinite(e.y1)) break;
+      const xa=w2s(e.x1,e.y1);
+      const ang2=Math.atan2(e.y2-e.y1,e.x2-e.x1);
+      const ext=1e6;
+      ctx.save();ctx.setLineDash([4,6]);
+      ctx.beginPath();
+      ctx.moveTo(xa.x-ext*Math.cos(ang2)*ST.zoom,xa.y+ext*Math.sin(ang2)*ST.zoom);
+      ctx.lineTo(xa.x+ext*Math.cos(ang2)*ST.zoom,xa.y-ext*Math.sin(ang2)*ST.zoom);
+      ctx.stroke();ctx.restore();break;
+    }
+    case 'ray': {
+      if(!isFinite(e.x1)||!isFinite(e.y1)) break;
+      const ra=w2s(e.x1,e.y1);
+      const rang=Math.atan2(e.y2-e.y1,e.x2-e.x1);
+      ctx.beginPath();ctx.moveTo(ra.x,ra.y);
+      ctx.lineTo(ra.x+1e6*Math.cos(rang)*ST.zoom,ra.y-1e6*Math.sin(rang)*ST.zoom);
+      ctx.stroke();break;
+    }
+    case 'wipeout': {
+      const wb=w2s(e.x,e.y);
+      const wx2=w2s(e.x+e.w,e.y+e.h);
+      ctx.fillStyle=ST.bgColor;
+      ctx.fillRect(Math.min(wb.x,wx2.x),Math.min(wb.y,wx2.y),Math.abs(wx2.x-wb.x),Math.abs(wx2.y-wb.y));
+      ctx.strokeStyle=col;ctx.lineWidth=0.5;
+      ctx.strokeRect(Math.min(wb.x,wx2.x),Math.min(wb.y,wx2.y),Math.abs(wx2.x-wb.x),Math.abs(wx2.y-wb.y));
+      break;
+    }
+        case 'point':    return Math.hypot(wx-e.x,wy-e.y)<tol*2;
+    case 'xline': case 'ray': { const dxx=e.x2-e.x1,dyy=e.y2-e.y1,ll=dxx*dxx+dyy*dyy; if(!ll)return false; const tt=((wx-e.x1)*dxx+(wy-e.y1)*dyy)/ll; return Math.hypot(wx-(e.x1+tt*dxx),wy-(e.y1+tt*dyy))<tol; }
+        case 'text': {
       const sz=e.sz||12;
       return wx>=e.x&&wx<=e.x+sz*((e.txt||'').length*0.6)&&wy<=e.y&&wy>=e.y-sz;
     }
-    default: return false;
+    case 'polygon': case 'cloud': return Math.abs(Math.hypot(wx-e.cx,wy-e.cy)-e.r)<tol;
+        default: return false;
   }
 }
 
@@ -1658,7 +1935,9 @@ function getSnapPts(e) {
     case 'rect':    return [{x:e.x,y:e.y},{x:e.x+e.w,y:e.y},{x:e.x,y:e.y+e.h},{x:e.x+e.w,y:e.y+e.h},{x:e.x+e.w/2,y:e.y},{x:e.x+e.w/2,y:e.y+e.h}];
     case 'polyline':return e.pts||[];
     case 'text':    return [{x:e.x,y:e.y}];
-    default:        return [];
+    case 'polygon': {const ss=[];const n=e.sides||6;for(let si=0;si<n;si++){const a=(si/n)*Math.PI*2-Math.PI/2;ss.push({x:e.cx+(e.r||10)*Math.cos(a),y:e.cy+(e.r||10)*Math.sin(a)});}return ss;}
+    case 'cloud': return [{x:e.cx,y:e.cy}];
+        default:        return [];
   }
 }
 
@@ -1713,9 +1992,12 @@ function translateEnt(e,dx,dy) {
   const ne={...e};
   switch(e.type) {
     case 'line':     ne.x1+=dx;ne.y1+=dy;ne.x2+=dx;ne.y2+=dy; break;
-    case 'circle':   case 'arc': case 'ellipse': ne.cx+=dx;ne.cy+=dy; break;
+    case 'circle': case 'arc': case 'ellipse': case 'polygon': case 'cloud': ne.cx+=dx;ne.cy+=dy; break;
     case 'rect':     ne.x+=dx;ne.y+=dy; break;
     case 'text':     ne.x+=dx;ne.y+=dy; break;
+    case 'point':    ne.x+=dx;ne.y+=dy; break;
+    case 'xline': case 'ray': ne.x1+=dx;ne.y1+=dy;ne.x2+=dx;ne.y2+=dy; break;
+    case 'wipeout':  ne.x+=dx;ne.y+=dy; break;
     case 'polyline': ne.pts=(e.pts||[]).map(p=>({x:p.x+dx,y:p.y+dy})); break;
     case 'dim-lin':  ne.x1+=dx;ne.y1+=dy;ne.x2+=dx;ne.y2+=dy;ne.dx=(ne.dx||ne.x1)+dx;ne.dy=(ne.dy||ne.y1)+dy; break;
   }
@@ -1846,8 +2128,76 @@ function commitEntity(wp) {
       break;
     }
     case 'dim-lin': e=mkEnt({type:'dim-lin',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y,dy:Math.max(sp.y,wp.y)+20}); break;
-    case 'hatch':   e=mkEnt({type:'hatch',pts:[sp,wp],x:Math.min(sp.x,wp.x),y:Math.min(sp.y,wp.y),w:Math.abs(wp.x-sp.x),h:Math.abs(wp.y-sp.y)}); break;
-    case 'text': {
+    case 'hatch':   e=mkEnt({type:'hatch',pts:[sp,wp],x:Math.min(sp.x,wp.x),y:Math.min(sp.y,wp.y),w:Math.abs(wp.x-sp.x),h:Math.abs(wp.y-sp.y)});
+    case 'point': e=mkEnt({type:'point',x:sp.x,y:sp.y}); break;
+    case 'xline': e=mkEnt({type:'xline',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y}); break;
+    case 'ray':   e=mkEnt({type:'ray',x1:sp.x,y1:sp.y,x2:wp.x,y2:wp.y}); break;
+    case 'wipeout': e=mkEnt({type:'wipeout',x:sp.x,y:sp.y,w:wp.x-sp.x,h:wp.y-sp.y}); break;
+    case 'polygon':  e=mkEnt({type:'polygon',cx:(sp.x+wp.x)/2,cy:(sp.y+wp.y)/2,r:Math.hypot(wp.x-sp.x,wp.y-sp.y)/2,sides:ST._polygonSides||6}); break; break;
+    case 'polygon': {
+      const pc=w2s(e.cx,e.cy), pr=e.r*ST.zoom;
+      const nsides=e.sides||6;
+      ctx.beginPath();
+      for(let si=0;si<nsides;si++){
+        const a=(si/nsides)*Math.PI*2 - Math.PI/2;
+        const px=pc.x+pr*Math.cos(a), py=pc.y+pr*Math.sin(a);
+        si===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.closePath(); ctx.stroke();
+      if(e.fill) ctx.fill();
+      break;
+    }
+    case 'cloud': {
+      // Revision cloud — series of arcs forming closed shape
+      const pc=w2s(e.cx,e.cy), pr=e.r*ST.zoom;
+      const nArcs=Math.max(6,Math.round(e.r*ST.zoom/15));
+      ctx.beginPath();
+      for(let si=0;si<nArcs;si++){
+        const a0=(si/nArcs)*Math.PI*2, a1=((si+1)/nArcs)*Math.PI*2;
+        const mx=pc.x+(pr+5)*Math.cos((a0+a1)/2), my=pc.y+(pr+5)*Math.sin((a0+a1)/2);
+        ctx.arc(mx,my,7,a0+Math.PI,a1+Math.PI);
+      }
+      ctx.closePath(); ctx.stroke(); break;
+    }
+        case 'point': {
+      const pp=w2s(e.x,e.y);
+      const psz=Math.max(2,3*ST.zoom);
+      ctx.beginPath();ctx.arc(pp.x,pp.y,psz,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.moveTo(pp.x-psz*2,pp.y);ctx.lineTo(pp.x+psz*2,pp.y);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(pp.x,pp.y-psz*2);ctx.lineTo(pp.x,pp.y+psz*2);ctx.stroke();
+      break;
+    }
+    case 'xline': {
+      if(!isFinite(e.x1)||!isFinite(e.y1)) break;
+      const xa=w2s(e.x1,e.y1);
+      const ang2=Math.atan2(e.y2-e.y1,e.x2-e.x1);
+      const ext=1e6;
+      ctx.save();ctx.setLineDash([4,6]);
+      ctx.beginPath();
+      ctx.moveTo(xa.x-ext*Math.cos(ang2)*ST.zoom,xa.y+ext*Math.sin(ang2)*ST.zoom);
+      ctx.lineTo(xa.x+ext*Math.cos(ang2)*ST.zoom,xa.y-ext*Math.sin(ang2)*ST.zoom);
+      ctx.stroke();ctx.restore();break;
+    }
+    case 'ray': {
+      if(!isFinite(e.x1)||!isFinite(e.y1)) break;
+      const ra=w2s(e.x1,e.y1);
+      const rang=Math.atan2(e.y2-e.y1,e.x2-e.x1);
+      ctx.beginPath();ctx.moveTo(ra.x,ra.y);
+      ctx.lineTo(ra.x+1e6*Math.cos(rang)*ST.zoom,ra.y-1e6*Math.sin(rang)*ST.zoom);
+      ctx.stroke();break;
+    }
+    case 'wipeout': {
+      const wb=w2s(e.x,e.y);
+      const wx2=w2s(e.x+e.w,e.y+e.h);
+      ctx.fillStyle=ST.bgColor;
+      ctx.fillRect(Math.min(wb.x,wx2.x),Math.min(wb.y,wx2.y),Math.abs(wx2.x-wb.x),Math.abs(wx2.y-wb.y));
+      ctx.strokeStyle=col;ctx.lineWidth=0.5;
+      ctx.strokeRect(Math.min(wb.x,wx2.x),Math.min(wb.y,wx2.y),Math.abs(wx2.x-wb.x),Math.abs(wx2.y-wb.y));
+      break;
+    }
+        case 'point':    return Math.hypot(wx-e.x,wy-e.y)<tol*2;
+    case 'xline': case 'ray': { const dxx=e.x2-e.x1,dyy=e.y2-e.y1,ll=dxx*dxx+dyy*dyy; if(!ll)return false; const tt=((wx-e.x1)*dxx+(wy-e.y1)*dyy)/ll; return Math.hypot(wx-(e.x1+tt*dxx),wy-(e.y1+tt*dyy))<tol; }
+        case 'text': {
       const txt=prompt('Enter text:');
       if(!txt) { ST.drawing=false; ST.startPt=null; render(); return true; }
       e=mkEnt({type:'text',x:sp.x,y:sp.y,txt,sz:12});
@@ -2064,12 +2414,18 @@ canvas.addEventListener('mousedown',ev=>{
   }
 
   // ── ALL OTHER DRAWING TOOLS ──────────────────────────────────────
-  const drawTools=['line','circle','rect','ellipse','arc','text','hatch','dim-lin','spline','leader'];
+  const drawTools=['line','circle','rect','ellipse','arc','text','hatch','dim-lin','spline','leader','polygon','cloud','xline','ray','wipeout'];
   if(drawTools.includes(ST.tool)){
     const owp=ST.ortho&&ST.startPt?applyOrtho(ST.startPt,wp):wp;
     if(!ST.drawing){
       ST.drawing=true; ST.startPt=owp; ST.pts=[];
-      const hints={
+      // Special single-click tools
+      if(ST.tool==='point'){
+        pushUndo();
+        ST.entities.push(mkEnt({type:'point',x:owp.x,y:owp.y}));
+        render(); return;
+      }
+            const hints={
         line:'Click end point  |  ESC=cancel',
         circle:'Click to set radius  |  ESC=cancel',
         rect:'Click opposite corner  |  ESC=cancel',
@@ -2296,6 +2652,8 @@ document.addEventListener('keydown',ev=>{
     case 'e':T('ellipse');return;
     case 'g':T('polyline');return;
     case 'h':T('hatch');return;
+    case 'n':T('polygon');return;  // N = polygoN
+    case 'x':if(!ev.ctrlKey){T('xline');return;}
     case 't':T('text');return;
     case 's':T('select');return;
     case 'm':T('move');return;
@@ -2358,6 +2716,8 @@ function T(tool) {
     line:'Click start point  |  Chain continues — right-click or ESC to stop',
     circle:'Click center point  |  ESC=cancel',
     rect:'Click first corner  |  ESC=cancel',
+    polygon:'Click center point  |  ESC=cancel',
+    cloud:'Click center  |  ESC=cancel',
     arc:'Click center point  |  ESC=cancel',
     ellipse:'Click center  |  ESC=cancel',
     polyline:'Click first point  |  double-click or Enter to finish',
@@ -2365,6 +2725,10 @@ function T(tool) {
     hatch:'Click first corner  |  ESC=cancel',
     pan:'Click and drag  |  ESC=select  or use middle-mouse anywhere',
     'measure-d':'Click first point  |  ESC=cancel',
+    point:'Click to place point  |  ESC=cancel',
+    xline:'Click start, then direction  |  ESC=cancel',
+    ray:'Click start, then direction  |  ESC=cancel',
+    wipeout:'Click first corner  |  ESC=cancel',
     'measure-a':'Click boundary points  |  double-click to finish',
     'dim-lin':'Click start point  |  ESC=cancel',
     trim:'Click entity to remove  |  ESC=cancel',
@@ -2594,123 +2958,160 @@ function doImport(){
     toast('No file selected','warn');
     return;
   }
-  const name=_pendingFile.name.toLowerCase();
+  const file = _pendingFile;  // capture reference BEFORE setting null
+  const fname = file.name;
+  const name = fname.toLowerCase();
+  _pendingFile = null;  // clear early to avoid stale reference
   closeMo('moImport');
-  const reader=new FileReader();
+  const reader = new FileReader();
+
   if(name.endsWith('.dxf')){
-    reader.onload=ev=>{try{parseDXF(ev.target.result,_pendingFile.name);}catch(e){toast('DXF error: '+e.message,'err');console.error(e);}};
-    reader.readAsText(_pendingFile,'utf-8');
+    reader.onload = ev => {
+      try { parseDXF(ev.target.result, fname); }
+      catch(e) { toast('DXF error: '+e.message,'err'); console.error('DXF parse error:',e); }
+    };
+    // Use ISO-8859-1 (latin-1) which handles ANSI/Windows DXF files correctly
+    reader.readAsText(file, 'ISO-8859-1');
   } else if(name.endsWith('.svg')){
-    reader.onload=ev=>{try{parseSVG(ev.target.result,_pendingFile.name);}catch(e){toast('SVG error: '+e.message,'err');}};
-    reader.readAsText(_pendingFile);
+    reader.onload = ev => {
+      try { parseSVG(ev.target.result, fname); }
+      catch(e) { toast('SVG error: '+e.message,'err'); }
+    };
+    reader.readAsText(file, 'UTF-8');
   } else if(name.endsWith('.dwg')||name.endsWith('.dwf')||name.endsWith('.dwt')){
-    closeMo('moImport');showDwgGuide(_pendingFile);_pendingFile=null;return;
+    showDwgGuide(file); return;
   } else {
-    // Try as DXF anyway
-    reader.onload=ev=>{
-      const t=ev.target.result;
-      if(t.includes('SECTION')&&t.includes('ENTITIES')) parseDXF(t,_pendingFile.name);
-      else if(t.includes('<svg')) parseSVG(t,_pendingFile.name);
+    reader.onload = ev => {
+      const t = ev.target.result;
+      if(t.includes('SECTION') && (t.includes('ENTITIES')||t.includes('BLOCKS'))) parseDXF(t, fname);
+      else if(t.includes('<svg')) parseSVG(t, fname);
       else toast('Unsupported format. Use .DXF or .SVG','warn');
     };
-    reader.readAsText(_pendingFile,'utf-8');
+    reader.readAsText(file, 'ISO-8859-1');
   }
-  _pendingFile=null;
 }
 
 // ── DXF PARSER ────────────────────────────────────────────────────
 function parseDXF(txt,filename){
-  txt=txt.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
-  const lines=txt.split('\n');
-  const isCivil=/AeccDb|AeccuDb|AecDb/.test(txt);
-  const imgPaths=[];
-  {let inIDef=false;
-   for(let i=0;i+1<lines.length;i+=2){
-     const gc=lines[i].trim(),v=(lines[i+1]||'').trim();
-     if(gc==='0'){inIDef=(v==='IMAGEDEF');continue;}
-     if(inIDef&&gc==='1'){imgPaths.push(v);inIDef=false;}
-   }
+  // Normalize line endings and strip BOM
+  txt = txt.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const lines = txt.split('\n');
+  const isCivil = /AeccDb|AeccuDb|AecDb/.test(txt);
+
+  // Scan for IMAGE definitions
+  const imgPaths = [];
+  {
+    let inIDef = false;
+    for(let i = 0; i+1 < lines.length; i += 2){
+      const gc = lines[i].trim(), v = (lines[i+1]||'').trim();
+      if(gc==='0'){inIDef=(v==='IMAGEDEF');continue;}
+      if(inIDef&&gc==='1'){imgPaths.push(v);inIDef=false;}
+    }
   }
-  const pairs=[];
-  for(let i=0;i+1<lines.length;i+=2){
-    const gc=lines[i].trim(),val=lines[i+1]===undefined?'':lines[i+1].trim();
-    if(gc!=='') pairs.push([gc,val]);
+
+  // ── Build pairs array ──
+  const pairs = [];
+  for(let i = 0; i+1 < lines.length; i += 2){
+    const gc = lines[i].trim();
+    const val = lines[i+1] !== undefined ? lines[i+1].trim() : '';
+    if(gc !== '') pairs.push([gc, val]);
   }
-  const ents=[],layerMap={};
+
+  const ents = [], layerMap = {};
   function getLayId(name){
-    const c=(name||'0').trim();
-    if(layerMap[c]===undefined){
-      const ex=ST.layers.find(l=>l.name===c);
-      if(ex){layerMap[c]=ex.id;}
-      else{
-        const cols=['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060','#4488ff','#ff8844','#44ffaa'];
-        const id=Date.now()+Math.random()|0;
-        layerMap[c]=id;
-        ST.layers.push({id,name:c,color:cols[ST.layers.length%cols.length],vis:true,lock:false,frz:false,dis:false});
+    const n = (name||'0').trim();
+    if(layerMap[n] === undefined){
+      const ex = ST.layers.find(l => l.name===n);
+      if(ex){ layerMap[n]=ex.id; }
+      else {
+        const cols=['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060','#4488ff','#ff8844','#44ffaa','#ff44cc','#44ccff','#ccff44'];
+        const id = ++ST._eid + 10000;
+        layerMap[n] = id;
+        ST.layers.push({id,name:n,color:cols[ST.layers.length%cols.length],vis:true,lock:false,frz:false,dis:false});
       }
     }
-    return layerMap[c];
+    return layerMap[n];
   }
-  let cur=null,inEnt=false;
+
+  let cur = null, inEnt = false, inBlock = false;
+  const blockDefs = {};   // block name -> array of entities
+  let curBlockName = null, curBlockEnts = null;
+
   function flush(){
     if(!cur) return;
-    const b=buildDXFEnt(cur,getLayId);
+    const b = buildDXFEnt(cur, getLayId);
     if(!b){cur=null;return;}
-    if(Array.isArray(b)) b.forEach(e=>{e._id=++ST._eid;ents.push(e);});
-    else{b._id=++ST._eid;ents.push(b);}
-    cur=null;
+    const target = inBlock && curBlockEnts ? curBlockEnts : ents;
+    if(Array.isArray(b)) b.forEach(e=>{e._id=++ST._eid;target.push(e);});
+    else{b._id=++ST._eid;target.push(b);}
+    cur = null;
   }
-  for(let p=0;p<pairs.length;p++){
-    const [gc,val]=pairs[p];
-    if(gc==='0'){
+
+  for(let p = 0; p < pairs.length; p++){
+    const [gc, val] = pairs[p];
+    if(gc === '0'){
       flush();
-      if(val==='ENDSEC'){inEnt=false;continue;}
+      if(val==='ENDSEC'){inEnt=false;inBlock=false;curBlockName=null;curBlockEnts=null;continue;}
       if(val==='SECTION'){
-        if(p+1<pairs.length&&pairs[p+1][0]==='2'&&pairs[p+1][1]==='ENTITIES'){inEnt=true;p++;continue;}
+        // peek next pair for section type
+        if(p+1 < pairs.length && pairs[p+1][0]==='2'){
+          const secType = pairs[p+1][1];
+          if(secType==='ENTITIES'){inEnt=true; inBlock=false;}
+          else if(secType==='BLOCKS'){inBlock=true; inEnt=false;}
+          p++; continue;
+        }
         continue;
       }
-      if(!inEnt) continue;
-      if(val==='SEQEND'||val==='ENDBLK') continue;
-      cur={type:val,d:{}};
+      if(val==='BLOCK'){
+        // Next pairs give block name (code 2)
+        for(let j=p+1;j<Math.min(p+8,pairs.length);j++){
+          if(pairs[j][0]==='2'){
+            curBlockName = pairs[j][1];
+            curBlockEnts = [];
+            blockDefs[curBlockName] = curBlockEnts;
+            break;
+          }
+        }
+        cur = null; continue;
+      }
+      if(val==='ENDBLK'){cur=null;curBlockName=null;curBlockEnts=null;continue;}
+      if(val==='SEQEND'||val==='ENDBLK'){continue;}
+      // Only build entities from ENTITIES section OR *Model_Space block
+      if(!inEnt && !(inBlock && (curBlockName==='*Model_Space'||curBlockName==='*model_space'))) continue;
+      cur = {type:val, d:{}};
     } else if(cur){
-      if(!cur.d[gc]) cur.d[gc]=[];
+      if(!cur.d[gc]) cur.d[gc] = [];
       cur.d[gc].push(val);
     }
   }
   flush();
-  // Extract tile rects (LWPOLYLINE on layer '0')
-  const tileBounds=[];
-  const txts=ents.filter(e=>e.type==='text').map(e=>({x:e.x,y:e.y,txt:e.txt}));
-  let cur2=null;
-  for(let p=0;p<pairs.length;p++){
-    const [gc,val]=pairs[p];
-    if(gc==='0'){
-      if(cur2&&cur2.type==='LWPOLYLINE'){
-        const d2=cur2.d,xs=(d2['10']||[]).map(Number),ys=(d2['20']||[]).map(Number),lay=(d2['8']||['0'])[0];
-        const area=(Math.max(...xs)-Math.min(...xs))*(Math.max(...ys)-Math.min(...ys));
-        if(xs.length===4&&lay==='0'&&area>100000){
-          const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
-          const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
-          let label='Tile '+(tileBounds.length+1),bestD=Infinity;
-          txts.forEach(t=>{const d=Math.hypot(t.x-cx,t.y-cy);if(d<bestD&&d<5000){bestD=d;label=t.txt||label;}});
-          tileBounds.push({minX,minY,maxX,maxY,label});
-        }
-      }
-      cur2=null;
-      if(val==='LWPOLYLINE') cur2={type:val,d:{}};
-    } else if(cur2){
-      if(!cur2.d[gc]) cur2.d[gc]=[];
-      cur2.d[gc].push(val);
-    }
+
+  // Resolve INSERT entities — expand block references into entities
+  const insertEnts = ents.filter(e=>e.type==='rect'&&e._blockRef);
+  // (INSERTs are converted to rects in buildDXFEnt; skip block expansion for now)
+
+  // Extract tile rectangles for image overlay workflow
+  const tileBounds = [];
+  const txts = ents.filter(e=>e.type==='text').map(e=>({x:e.x,y:e.y,txt:e.txt}));
+
+  if(!ents.length && !imgPaths.length){
+    toast('No renderable entities found. This may be a complex Civil 3D file — check layers.','warn');
+    console.warn('parseDXF: 0 entities from', filename, '— pairs count:', pairs.length);
+    return;
   }
-  if(!ents.length&&!imgPaths.length){toast('No renderable entities found in DXF','warn');return;}
+
   pushUndo();
-  ST.entities=ents; ST.tileBounds=tileBounds; ST.imgDefs=imgPaths; ST.imgOverlays=[];
-  renderLayers(); setTimeout(()=>zoomExt(),100);
-  if(imgPaths.length>0||isCivil){
-    setTimeout(()=>showDxfDiag(filename,ents.length,imgPaths,tileBounds,isCivil),300);
+  ST.entities = ents;
+  ST.tileBounds = tileBounds;
+  ST.imgDefs = imgPaths;
+  ST.imgOverlays = [];
+  renderLayers();
+  setTimeout(()=>zoomExt(), 150);
+
+  if(imgPaths.length > 0 || isCivil){
+    setTimeout(()=>showDxfDiag(filename,ents.length,imgPaths,tileBounds,isCivil), 300);
   } else {
-    const msg=filename+': '+ents.length+' entities';
+    const msg = filename+': '+ents.length+' entities on '+Object.keys(layerMap).length+' layers';
     toast(msg,'ok'); setMsg(msg);
   }
 }
@@ -2918,7 +3319,40 @@ function doExport(){
       case 'circle': dxf+=`0\nCIRCLE\n8\n${lname}\n10\n${e.cx}\n20\n${e.cy}\n40\n${e.r}\n`;break;
       case 'arc': dxf+=`0\nARC\n8\n${lname}\n10\n${e.cx}\n20\n${e.cy}\n40\n${e.r}\n50\n${e.sa||0}\n51\n${e.ea||180}\n`;break;
       case 'text': dxf+=`0\nTEXT\n8\n${lname}\n10\n${e.x}\n20\n${e.y}\n40\n${e.sz||12}\n1\n${e.txt||''}\n`;break;
-      case 'rect': {
+      case 'polygon': {
+      const pctr=w2s(sp.x,sp.y);
+      const pr2=Math.hypot(mp.x-pctr.x,mp.y-pctr.y);
+      const ns2=ST._polygonSides||6;
+      ctx.beginPath();
+      for(let si=0;si<ns2;si++){
+        const a=(si/ns2)*Math.PI*2-Math.PI/2;
+        const px=pctr.x+pr2*Math.cos(a), py=pctr.y+pr2*Math.sin(a);
+        si===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.closePath();ctx.stroke();
+      drawLenLabel(pr2/ST.zoom,mp.x+8,mp.y-8);
+      break;
+    }
+    case 'cloud': {
+      const cctr=w2s(sp.x,sp.y);
+      const cr=Math.hypot(mp.x-cctr.x,mp.y-cctr.y);
+      ctx.beginPath();ctx.arc(cctr.x,cctr.y,cr,0,Math.PI*2);ctx.stroke();
+      break;
+    }
+    case 'xline': case 'ray': {
+      const lp=w2s(sp.x,sp.y);
+      const lang=Math.atan2(mp.y-lp.y,mp.x-lp.x);
+      ctx.beginPath();
+      ctx.moveTo(lp.x-2000*Math.cos(lang),lp.y-2000*Math.sin(lang));
+      ctx.lineTo(lp.x+2000*Math.cos(lang),lp.y+2000*Math.sin(lang));
+      ctx.stroke();break;
+    }
+    case 'wipeout': {
+      const wa=w2s(sp.x,sp.y);
+      ctx.strokeRect(wa.x,wa.y,mp.x-wa.x,mp.y-wa.y);
+      break;
+    }
+        case 'rect': {
         const x1=e.x,y1=e.y,x2=e.x+e.w,y2=e.y+e.h;
         dxf+=`0\nLINE\n8\n${lname}\n10\n${x1}\n20\n${y1}\n11\n${x2}\n21\n${y1}\n`;
         dxf+=`0\nLINE\n8\n${lname}\n10\n${x2}\n20\n${y1}\n11\n${x2}\n21\n${y2}\n`;
@@ -2926,7 +3360,13 @@ function doExport(){
         dxf+=`0\nLINE\n8\n${lname}\n10\n${x1}\n20\n${y2}\n11\n${x1}\n21\n${y1}\n`;
         break;
       }
-      case 'polyline': {
+      case 'polygon': {
+        const ns=e.sides||6, pr=e.r||10;
+        dxf+=`0\nLWPOLYLINE\n8\n${lname}\n90\n${ns}\n70\n1\n`;
+        for(let si=0;si<ns;si++){const a=(si/ns)*Math.PI*2-Math.PI/2;dxf+=`10\n${(e.cx+pr*Math.cos(a)).toFixed(4)}\n20\n${(e.cy+pr*Math.sin(a)).toFixed(4)}\n`;}
+        break;
+      }
+            case 'polyline': {
         if(e.pts&&e.pts.length>=2){
           dxf+=`0\nLWPOLYLINE\n8\n${lname}\n90\n${e.pts.length}\n`;
           e.pts.forEach(p=>dxf+=`10\n${p.x}\n20\n${p.y}\n`);
@@ -3048,6 +3488,7 @@ function cmdKey(ev){
   document.getElementById('cmdInput').value='';
   const map={
     L:'line',PL:'polyline',C:'circle',A:'arc',REC:'rect',EL:'ellipse',SPL:'spline',H:'hatch',
+    PO:'point',PG:'polygon',XL:'xline',RAY:'ray',WI:'wipeout',CLD:'cloud',CLOUD:'cloud',POLYGON:'polygon',POINT:'point',XLINE:'xline',WIPEOUT:'wipeout',
     M:'move',CO:'copy',RO:'rotate',SC:'scale',MI:'mirror',O:'offset',TR:'trim',EX:'extend',
     S:'select',P:'pan',T:'text','DT':'text',DI:'measure-d',AA:'measure-a',
     'DIMLIN':'dim-lin','DIMRAD':'dim-rad',
@@ -4693,7 +5134,13 @@ function measureSelected() {
       case 'line':     totalLen += Math.hypot(e.x2-e.x1,e.y2-e.y1); break;
       case 'circle':   totalArea += Math.PI*e.r*e.r; totalLen += 2*Math.PI*e.r; break;
       case 'rect':     totalArea += Math.abs(e.w*e.h); totalLen += 2*(Math.abs(e.w)+Math.abs(e.h)); break;
-      case 'polyline': {
+      case 'polygon': {
+        const ns=e.sides||6, pr=e.r||10;
+        dxf+=`0\nLWPOLYLINE\n8\n${lname}\n90\n${ns}\n70\n1\n`;
+        for(let si=0;si<ns;si++){const a=(si/ns)*Math.PI*2-Math.PI/2;dxf+=`10\n${(e.cx+pr*Math.cos(a)).toFixed(4)}\n20\n${(e.cy+pr*Math.sin(a)).toFixed(4)}\n`;}
+        break;
+      }
+            case 'polyline': {
         const pts = e.pts||[];
         for(let i=0;i<pts.length-1;i++) totalLen += Math.hypot(pts[i+1].x-pts[i].x,pts[i+1].y-pts[i].y);
         break;
@@ -4926,8 +5373,245 @@ document.addEventListener('keydown', ev => {
 })();
 
 setTimeout(() => {
-  setMsg('Ready — L=Line  C=Circle  R=Rect  M=Move  |  While drawing: D=dist+ang  R=relative  K=absolute  |  🗺=Map  F1=Help');
+  setMsg('Ready — L C R A PG=Polygon PO=Point  |  M=Move CO=Copy RO=Rotate SC=Scale MI=Mirror  |  BR=Break J=Join  |  F1=Help');
 }, 1000);
+
+
+// ════════════════════════════════════════════════════════════════════
+//  EXTRA MODIFY TOOLS
+// ════════════════════════════════════════════════════════════════════
+
+// BREAK AT POINT — splits a line into two at nearest point to cursor
+function doBreak(){
+  const sels=ST.entities.filter(e=>e.selected&&e.type==='line');
+  if(!sels.length){toast('Select a line first, then Break','warn');return;}
+  const wp=s2w(ST.mouse.x,ST.mouse.y);
+  pushUndo();
+  sels.forEach(e=>{
+    const dx=e.x2-e.x1,dy=e.y2-e.y1,len2=dx*dx+dy*dy;
+    if(!len2)return;
+    let t=((wp.x-e.x1)*dx+(wp.y-e.y1)*dy)/len2;
+    t=Math.max(0.05,Math.min(0.95,t));
+    const bx=e.x1+t*dx,by=e.y1+t*dy;
+    const e2={...e,_id:++ST._eid,x1:bx,y1:by,selected:false};
+    e.x2=bx; e.y2=by; e.selected=false;
+    ST.entities.push(e2);
+  });
+  toast('Break: line split at cursor position','ok');
+  render();
+}
+
+// JOIN — merge collinear lines on same layer
+function doJoin(){
+  const sels=ST.entities.filter(e=>e.selected&&e.type==='line');
+  if(sels.length<2){toast('Select 2+ lines to join','warn');return;}
+  pushUndo();
+  // Find endpoint connections
+  const tol=1/ST.zoom;
+  const used=new Set();
+  const chains=[];
+  for(let i=0;i<sels.length;i++){
+    if(used.has(i))continue;
+    const chain=[sels[i]];used.add(i);
+    let extended=true;
+    while(extended){
+      extended=false;
+      for(let j=0;j<sels.length;j++){
+        if(used.has(j))continue;
+        const last=chain[chain.length-1];
+        const s=sels[j];
+        const d1=Math.hypot(last.x2-s.x1,last.y2-s.y1);
+        const d2=Math.hypot(last.x2-s.x2,last.y2-s.y2);
+        if(d1<tol){chain.push(s);used.add(j);extended=true;break;}
+        if(d2<tol){chain.push({...s,x1:s.x2,y1:s.y2,x2:s.x1,y2:s.y1});used.add(j);extended=true;break;}
+      }
+    }
+    chains.push(chain);
+  }
+  // Replace each chain with one polyline or joined line
+  const idsToRemove=new Set(sels.map(e=>e._id));
+  ST.entities=ST.entities.filter(e=>!idsToRemove.has(e._id));
+  chains.forEach(chain=>{
+    if(chain.length===1){ST.entities.push({...chain[0],_id:++ST._eid,selected:false});return;}
+    const pts=[{x:chain[0].x1,y:chain[0].y1},...chain.map(l=>({x:l.x2,y:l.y2}))];
+    ST.entities.push({_id:++ST._eid,type:'polyline',pts,closed:false,layer:chain[0].layer,selected:false});
+  });
+  toast('Joined '+sels.length+' lines into '+chains.length+' polyline(s)','ok');
+  updateSel();render();
+}
+
+// EXPLODE SELECTED — polyline to lines, polygon to lines
+function doExplodeSelected(){
+  const sels=ST.entities.filter(e=>e.selected&&(e.type==='polyline'||e.type==='polygon'||e.type==='rect'));
+  if(!sels.length){toast('Select polylines/polygons/rects to explode','warn');return;}
+  pushUndo();
+  const newEnts=[];
+  sels.forEach(e=>{
+    if(e.type==='polyline'&&e.pts&&e.pts.length>=2){
+      for(let i=0;i<e.pts.length-1;i++)
+        newEnts.push({_id:++ST._eid,type:'line',x1:e.pts[i].x,y1:e.pts[i].y,x2:e.pts[i+1].x,y2:e.pts[i+1].y,layer:e.layer,selected:false});
+      if(e.closed)
+        newEnts.push({_id:++ST._eid,type:'line',x1:e.pts[e.pts.length-1].x,y1:e.pts[e.pts.length-1].y,x2:e.pts[0].x,y2:e.pts[0].y,layer:e.layer,selected:false});
+    } else if(e.type==='polygon'){
+      const n=e.sides||6,r=e.r||10;
+      for(let i=0;i<n;i++){
+        const a0=(i/n)*Math.PI*2-Math.PI/2,a1=((i+1)/n)*Math.PI*2-Math.PI/2;
+        newEnts.push({_id:++ST._eid,type:'line',x1:e.cx+r*Math.cos(a0),y1:e.cy+r*Math.sin(a0),x2:e.cx+r*Math.cos(a1),y2:e.cy+r*Math.sin(a1),layer:e.layer,selected:false});
+      }
+    } else if(e.type==='rect'){
+      const x2=e.x+e.w,y2=e.y+e.h;
+      newEnts.push({_id:++ST._eid,type:'line',x1:e.x,y1:e.y,x2:x2,y2:e.y,layer:e.layer,selected:false});
+      newEnts.push({_id:++ST._eid,type:'line',x1:x2,y1:e.y,x2:x2,y2:y2,layer:e.layer,selected:false});
+      newEnts.push({_id:++ST._eid,type:'line',x1:x2,y1:y2,x2:e.x,y2:y2,layer:e.layer,selected:false});
+      newEnts.push({_id:++ST._eid,type:'line',x1:e.x,y1:y2,x2:e.x,y2:e.y,layer:e.layer,selected:false});
+    }
+  });
+  const selIds=new Set(sels.map(e=>e._id));
+  ST.entities=ST.entities.filter(e=>!selIds.has(e._id));
+  ST.entities.push(...newEnts);
+  toast('Exploded '+sels.length+' objects into '+newEnts.length+' lines','ok');
+  updateSel();render();
+}
+
+// LENGTHEN — extend a line by exact amount
+function doLengthen(){
+  const sels=ST.entities.filter(e=>e.selected&&e.type==='line');
+  if(!sels.length){toast('Select a line first','warn');return;}
+  const amt=parseFloat(prompt('Lengthen by (negative=shorten):','10'));
+  if(isNaN(amt))return;
+  pushUndo();
+  sels.forEach(e=>{
+    const ang=Math.atan2(e.y2-e.y1,e.x2-e.x1);
+    e.x2+=amt*Math.cos(ang); e.y2+=amt*Math.sin(ang);
+  });
+  render();toast('Lengthened by '+amt+' '+ST.units,'ok');
+}
+
+// ROTATE BY ANGLE — precise rotation dialog
+function doRotateAngle(){
+  const sels=ST.entities.filter(e=>e.selected);
+  if(!sels.length){toast('Select objects first','warn');return;}
+  const deg=parseFloat(prompt('Rotation angle (degrees, + = CCW):','90'));
+  if(isNaN(deg))return;
+  let cx=0,cy=0,cnt=0;
+  sels.forEach(e=>{const b=entBBox(e);if(b){cx+=(b.minX+b.maxX)/2;cy+=(b.minY+b.maxY)/2;cnt++;}});
+  if(!cnt)return;
+  cx/=cnt;cy/=cnt;
+  pushUndo();
+  const rad=deg*Math.PI/180;
+  ST.entities=ST.entities.map(e=>e.selected?rotateEnt(e,{x:cx,y:cy},rad):e);
+  render();toast('Rotated '+deg+'°','ok');
+}
+
+// SCALE BY FACTOR — precise scale dialog
+function doScaleFactor(){
+  const sels=ST.entities.filter(e=>e.selected);
+  if(!sels.length){toast('Select objects first','warn');return;}
+  const factor=parseFloat(prompt('Scale factor (e.g. 2 = double, 0.5 = half):','2'));
+  if(isNaN(factor)||factor<=0)return;
+  let cx=0,cy=0,cnt=0;
+  sels.forEach(e=>{const b=entBBox(e);if(b){cx+=(b.minX+b.maxX)/2;cy+=(b.minY+b.maxY)/2;cnt++;}});
+  if(!cnt)return;
+  cx/=cnt;cy/=cnt;
+  pushUndo();
+  ST.entities=ST.entities.map(e=>e.selected?scaleEnt(e,{x:cx,y:cy},factor):e);
+  render();toast('Scaled ×'+factor,'ok');
+}
+
+// MIRROR HORIZONTAL / VERTICAL shortcuts
+function mirrorH(){
+  const sels=ST.entities.filter(e=>e.selected);
+  if(!sels.length){toast('Select objects first','warn');return;}
+  let cy=0,cnt=0;
+  sels.forEach(e=>{const b=entBBox(e);if(b){cy+=(b.minY+b.maxY)/2;cnt++;}});
+  cy/=cnt||1;
+  pushUndo();
+  ST.entities=ST.entities.map(e=>e.selected?mirrorEnt(e,{x:-1e9,y:cy},{x:1e9,y:cy}):e);
+  render();toast('Mirrored horizontal','ok');
+}
+function mirrorV(){
+  const sels=ST.entities.filter(e=>e.selected);
+  if(!sels.length){toast('Select objects first','warn');return;}
+  let cx=0,cnt=0;
+  sels.forEach(e=>{const b=entBBox(e);if(b){cx+=(b.minX+b.maxX)/2;cnt++;}});
+  cx/=cnt||1;
+  pushUndo();
+  ST.entities=ST.entities.map(e=>e.selected?mirrorEnt(e,{x:cx,y:-1e9},{x:cx,y:1e9}):e);
+  render();toast('Mirrored vertical','ok');
+}
+
+// POLAR ARRAY — create circular copies
+function doPolarArray(){
+  const sels=ST.entities.filter(e=>e.selected);
+  if(!sels.length){toast('Select objects first','warn');return;}
+  const count=parseInt(prompt('Number of copies (including original):','6'));
+  if(isNaN(count)||count<2)return;
+  // Center = bounding box center
+  let cx=0,cy=0,cnt=0;
+  sels.forEach(e=>{const b=entBBox(e);if(b){cx+=(b.minX+b.maxX)/2;cy+=(b.minY+b.maxY)/2;cnt++;}});
+  cx/=cnt||1;cy/=cnt||1;
+  pushUndo();
+  const baseEnts=sels.map(e=>JSON.parse(JSON.stringify(e)));
+  for(let i=1;i<count;i++){
+    const ang=(i/count)*Math.PI*2;
+    baseEnts.forEach(e=>{
+      const ne=rotateEnt(JSON.parse(JSON.stringify(e)),{x:cx,y:cy},ang);
+      ne._id=++ST._eid;ne.selected=false;
+      ST.entities.push(ne);
+    });
+  }
+  toast('Polar array: '+count+' copies around center','ok');
+  updateSel();render();
+}
+
+// RECTANGULAR ARRAY
+function doRectArray(){
+  const sels=ST.entities.filter(e=>e.selected);
+  if(!sels.length){toast('Select objects first','warn');return;}
+  const cols=parseInt(prompt('Columns:','3'));
+  const rows=parseInt(prompt('Rows:','3'));
+  const colSpacing=parseFloat(prompt('Column spacing ('+ST.units+'):','100'));
+  const rowSpacing=parseFloat(prompt('Row spacing ('+ST.units+'):','100'));
+  if([cols,rows,colSpacing,rowSpacing].some(isNaN))return;
+  pushUndo();
+  const baseEnts=sels.map(e=>JSON.parse(JSON.stringify(e)));
+  for(let r=0;r<rows;r++){
+    for(let col=0;col<cols;col++){
+      if(r===0&&col===0)continue;
+      const dx=col*colSpacing,dy=r*rowSpacing;
+      baseEnts.forEach(e=>{
+        const ne=translateEnt(JSON.parse(JSON.stringify(e)),dx,dy);
+        ne._id=++ST._eid;ne.selected=false;
+        ST.entities.push(ne);
+      });
+    }
+  }
+  toast('Rect array: '+cols+'×'+rows+'='+cols*rows+' items','ok');
+  updateSel();render();
+}
+
+// Add extra cmds
+const _extraToolsCmd=window.cmdKey;
+window.cmdKey=function(ev){
+  if(ev.key!=='Enter')return;
+  const raw=document.getElementById('cmdInput')?.value?.trim()||'';
+  document.getElementById('cmdInput').value='';
+  if(!raw)return;
+  const v=raw.toUpperCase();
+  const extras={
+    'BR':doBreak,'BREAK':doBreak,
+    'J':doJoin,'JOIN':doJoin,
+    'LEN':doLengthen,'LENGTHEN':doLengthen,
+    'ROTATE':()=>doRotateAngle(),'RA':doRotateAngle,
+    'SF':doScaleFactor,
+    'MH':mirrorH,'MV':mirrorV,
+    'AR':()=>openMo('moArray'),'ARRAY':()=>openMo('moArray'),
+    'PA':doPolarArray,'POLARARRAY':doPolarArray,
+    'RECTARRAY':doRectArray,
+  };
+  if(extras[v]){extras[v]();setMsg('▶ '+v);return;}
+  _extraToolsCmd(ev);
+};
 
 </script>
 
@@ -5130,6 +5814,10 @@ setTimeout(() => {
 <div style="font-size:8.5px;font-weight:800;color:var(--st);letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep);padding-bottom:3px;margin-bottom:6px">COMMAND LINE (type below canvas → Enter)</div>
 <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px 10px;font-size:8.5px">
 <span style="color:var(--b);font-family:'IBM Plex Mono',monospace">L → Line</span>
+<span style="color:var(--b);font-family:'IBM Plex Mono',monospace">PG → Polygon</span>
+<span style="color:var(--b);font-family:'IBM Plex Mono',monospace">PO → Point</span>
+<span style="color:var(--b);font-family:'IBM Plex Mono',monospace">XL → XLine</span>
+<span style="color:var(--b);font-family:'IBM Plex Mono',monospace">CLOUD → Rev.Cloud</span>
 <span style="color:var(--b);font-family:'IBM Plex Mono',monospace">C → Circle</span>
 <span style="color:var(--b);font-family:'IBM Plex Mono',monospace">A → Arc</span>
 <span style="color:var(--b);font-family:'IBM Plex Mono',monospace">REC → Rect</span>
