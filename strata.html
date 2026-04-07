@@ -3568,7 +3568,7 @@ function _initMap() {
   // Search control
   _addMapSearch();
 
-  _map.on('load', () => { if(_map) _map.invalidateSize(); });
+  if(_map) _map.on('load', () => { if(_map) _map.invalidateSize(); });
   setTimeout(() => { if(_map) _map.invalidateSize(); }, 300);
   toast('Map loaded — use +/- or scroll to zoom', 'ok');
 }
@@ -3603,7 +3603,8 @@ function _addMapSearch() {
 
 function setMapLayer(type) {
   _mapLayer = type;
-  if(!_map || typeof L === 'undefined') { toggleMap(); return; }
+  if(typeof L === 'undefined') { toast('Map library not loaded','warn'); return; }
+  if(!_map) { toggleMap(); setTimeout(() => setMapLayer(type), 800); return; }
   _map.eachLayer(l => { if(l instanceof L.TileLayer) _map.removeLayer(l); });
   const cfg = _mapLayers[type] || _mapLayers.osm;
   L.tileLayer(cfg.url, { maxZoom: 22, attribution: cfg.attr }).addTo(_map);
@@ -3638,6 +3639,7 @@ function mapSearch(query) {
 function _goToLocation(lat, lon, name) {
   if(!_mapActive) toggleMap();
   if(!_map) { setTimeout(() => _goToLocation(lat, lon, name), 500); return; }
+  if(!_map){toast('Map error — try toggling map off/on','warn');return;}
   _map.setView([parseFloat(lat), parseFloat(lon)], 16);
   // Add marker
   const marker = L.circleMarker([parseFloat(lat), parseFloat(lon)], {
@@ -3650,21 +3652,26 @@ function _goToLocation(lat, lon, name) {
 // ── MAP CALIBRATION (simplified, clean) ──────────────────────────
 function startMapCal() {
   if(!_mapActive) toggleMap();
-  setTimeout(() => {
+  // Wait for map to fully initialize before attaching click handlers
+  const _waitForMap = (attempts) => {
+    if(!_map) {
+      if(attempts > 20) { toast('Map not loaded — open map first', 'warn'); return; }
+      setTimeout(() => _waitForMap(attempts + 1), 200);
+      return;
+    }
     _mapCal = { step: 0, pts: [], worldPts: [] };
     _showCalHint(1);
-    setMapDrawMode('map');  // switch to map mode so user can click map
-    // Listen for 2 map clicks
+    setMapDrawMode('map');
     _map.once('click', ev => {
       _mapCal.pts[0] = { lat: ev.latlng.lat, lng: ev.latlng.lng };
-      L.circleMarker(ev.latlng, { radius: 6, color: '#F5BE18', fillColor: '#F5BE18', fillOpacity: 0.8 }).addTo(_map);
+      if(typeof L !== 'undefined') L.circleMarker(ev.latlng, { radius: 6, color: '#F5BE18', fillColor: '#F5BE18', fillOpacity: 0.8 }).addTo(_map);
       _showCalHint(2);
-      toast('Point 1 set on map. Now switch to Draw mode and click the matching point on your drawing.', 'ok');
-      // Now user switches to draw mode to click canvas
+      toast('Point 1 set! Click "Draw" button, then click the same point on your drawing.', 'ok');
       setMapDrawMode('draw');
-      _mapCal.step = 1;  // waiting for canvas click 1
+      _mapCal.step = 1;
     });
-  }, 300);
+  };
+  setTimeout(() => _waitForMap(0), 300);
 }
 
 function _showCalHint(step) {
@@ -3700,6 +3707,7 @@ function _checkCalCanvasClick(wp) {
     _showCalHint(3);
     toast('Point 1 matched! Now click point 2 on the MAP.', 'ok');
     setMapDrawMode('map');
+    if(!_map){toast('Map not ready — open map first','warn');cancelMapCal();return;}
     _map.once('click', ev => {
       _mapCal.pts[1] = { lat: ev.latlng.lat, lng: ev.latlng.lng };
       L.circleMarker(ev.latlng, { radius: 6, color: '#A78BFA', fillColor: '#A78BFA', fillOpacity: 0.8 }).addTo(_map);
@@ -3779,8 +3787,8 @@ setTimeout(() => {
 // Universal file router
 // pendingCSVFile and pendingGeoFile declared in main script above
 function routeFile(f,source){
+  if(!f||!f.name){toast('Invalid file','err');return;}
   const n=f.name.toLowerCase();
-  if(!f.name){toast('Invalid file','err');return;}
   if(n.endsWith('.dwg')||n.endsWith('.dwf')||n.endsWith('.dwt')){
     _pendingFile=f; if(source==='import')closeMo('moImport');
     showDwgGuide(f); return;
