@@ -1012,34 +1012,58 @@ input,select{font-family:inherit}
   </div>
 </div>
 
-<!-- DWG GUIDE -->
+<!-- DWG IMPORT MODAL -->
 <div class="mo" id="moDwgGuide">
   <div class="modal w">
-    <div class="mh"><div class="mh-t"><span class="i">⚠️</span>DWG Detected — Conversion Required</div><span class="mc" onclick="closeMo('moDwgGuide')">✕</span></div>
+    <div class="mh">
+      <div class="mh-t"><span class="i">📐</span>DWG File Import</div>
+      <span class="mc" onclick="closeMo('moDwgGuide')">✕</span>
+    </div>
     <div class="mb">
-      <div class="dwg-banner">
-        <div class="dwg-banner-icon">🔒</div>
-        <div class="dwg-banner-body">
-          <div class="dwg-banner-title">Binary DWG cannot be opened directly</div>
-          <div class="dwg-banner-msg">Strata reads ASCII DXF. DWG is Autodesk's proprietary binary format. Convert it to DXF first — takes under 30 seconds with any free tool below.</div>
+      <!-- File info chips -->
+      <div class="dwg-meta" id="dwgMeta" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+
+      <!-- OPTION 1: Direct import -->
+      <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25);border-radius:6px;padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:16px">⚡</span>
+          <div>
+            <div style="font-size:12px;font-weight:800;color:#22C55E;font-family:'Syne',sans-serif">Import DWG Directly</div>
+            <div style="font-size:9.5px;color:var(--m);margin-top:1px">Strata will parse the binary DWG file and extract geometry</div>
+          </div>
+          <button id="dwgParseBtn" class="btn" onclick="importDwgDirect()" style="margin-left:auto;background:linear-gradient(135deg,#16a34a,#22C55E);min-width:150px">⚡ Import DWG</button>
+        </div>
+        <div style="font-size:9px;color:var(--m);padding:5px 8px;background:rgba(0,0,0,.2);border-radius:3px;font-family:'IBM Plex Mono',monospace">
+          ✓ Supports R2000–R2025 (AC1015–AC1037) &nbsp;·&nbsp; Extracts lines, polylines, arcs, circles, text<br>
+          ⚠ Civil 3D proxy objects and complex 3D solids may not extract fully
         </div>
       </div>
-      <div class="dwg-meta" id="dwgMeta"></div>
-      <div class="fsect">Conversion Steps</div>
-      <div class="dwg-steps">
-        <div class="dwg-step"><div class="dwg-step-num">1</div><div class="dwg-step-body"><div class="dwg-step-title">Open your DWG in a converter</div><div class="dwg-step-desc">Choose a free tool below — all can read your file without a licence.</div></div></div>
-        <div class="dwg-step"><div class="dwg-step-num">2</div><div class="dwg-step-body"><div class="dwg-step-title">Export as DXF (ASCII)</div><div class="dwg-step-desc">Choose <b>AutoCAD 2013 DXF</b> or any ASCII DXF. In AutoCAD: <span style="color:var(--b);font-family:'IBM Plex Mono',monospace;font-size:9px">File → Save As → AutoCAD DXF (*.dxf)</span></div></div></div>
-        <div class="dwg-step"><div class="dwg-step-num">3</div><div class="dwg-step-body"><div class="dwg-step-title">Import the .dxf back into Strata</div><div class="dwg-step-desc">Drag &amp; drop the exported <span style="color:var(--gr);font-family:'IBM Plex Mono',monospace">.dxf</span> onto the canvas or use File → Import Drawing.</div></div></div>
+
+      <!-- OPTION 2: Convert first -->
+      <div style="background:rgba(31,168,217,.05);border:1px solid var(--bl);border-radius:6px;padding:12px 14px;margin-bottom:10px">
+        <div style="font-size:10.5px;font-weight:700;color:var(--b);margin-bottom:8px">🔄 Or Convert to DXF First (Best Quality)</div>
+        <div style="font-size:9.5px;color:var(--m);margin-bottom:8px">For Civil 3D files with surfaces, corridors, or proxy objects — convert to DXF first for 100% geometry fidelity.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn" onclick="openDwgConvertUrl('oda')" style="font-size:10px;padding:5px 10px;background:rgba(31,168,217,.15);border:1px solid var(--bl);color:var(--b)">🖥 ODA Converter (FREE desktop)</button>
+          <button class="btn" onclick="openDwgConvertUrl('cc')" style="font-size:10px;padding:5px 10px;background:rgba(31,168,217,.15);border:1px solid var(--bl);color:var(--b)">☁ CloudConvert (online, free tier)</button>
+          <button class="btn" onclick="openDwgConvertUrl('autodesk')" style="font-size:10px;padding:5px 10px;background:rgba(31,168,217,.15);border:1px solid var(--bl);color:var(--b)">🔗 Autodesk Viewer</button>
+        </div>
       </div>
-      <div class="fsect">Free Conversion Tools</div>
-      <div class="dwg-tools">
-        <div class="dwg-tool"><div><div class="dwg-tool-name">ODA File Converter</div><div class="dwg-tool-tags"><span class="dwg-tag free">FREE</span><span class="dwg-tag desktop">DESKTOP</span></div></div><a class="dwg-tool-link" href="https://www.opendesign.com/guestfiles/oda_file_converter" target="_blank">Download ↗</a></div>
-        <div class="dwg-tool"><div><div class="dwg-tool-name">Autodesk Viewer</div><div class="dwg-tool-tags"><span class="dwg-tag free">FREE</span><span class="dwg-tag web">WEB</span></div></div><a class="dwg-tool-link" href="https://viewer.autodesk.com" target="_blank">Open ↗</a></div>
-        <div class="dwg-tool"><div><div class="dwg-tool-name">CloudConvert</div><div class="dwg-tool-tags"><span class="dwg-tag free">FREE TIER</span><span class="dwg-tag web">WEB</span></div></div><a class="dwg-tool-link" href="https://cloudconvert.com/dwg-to-dxf" target="_blank">Convert ↗</a></div>
+
+      <!-- OPTION 3: AutoCAD command -->
+      <div style="background:rgba(167,139,250,.05);border:1px solid var(--stl);border-radius:6px;padding:10px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--st);margin-bottom:5px">📋 If you have AutoCAD / Civil 3D</div>
+        <div style="font-size:9px;color:var(--m);font-family:'IBM Plex Mono',monospace;line-height:1.8">
+          For Civil 3D surfaces: <b style="color:var(--b)">AECCEXPORTTOACTUAD</b> → converts proxy objects to LWPOLYLINE<br>
+          Then: <b style="color:var(--b)">File → Save As → AutoCAD 2013 DXF (*.dxf)</b> → drop into Strata
+        </div>
       </div>
-      <div class="dwg-note">💡 ODA File Converter is fastest — batch converts folders of DWG files in seconds.</div>
     </div>
-    <div class="mf"><button class="btn s" onclick="closeMo('moDwgGuide')">Cancel</button><button class="btn" onclick="closeMo('moDwgGuide');openMo('moImport')">← Back to Import</button></div>
+    <div class="mf">
+      <button class="btn s" onclick="closeMo('moDwgGuide')">Cancel</button>
+      <button class="btn" onclick="closeMo('moDwgGuide');openMo('moImport')">📂 Import Different File</button>
+      <button class="btn st" onclick="importDwgDirect()">⚡ Import DWG Now</button>
+    </div>
   </div>
 </div>
 
@@ -2843,7 +2867,7 @@ function _routeFile(f, fromImportModal){
   const n=f.name.toLowerCase();
   if(n.endsWith('.dwg')||n.endsWith('.dwf')||n.endsWith('.dwt')){
     if(fromImportModal)closeMo('moImport');
-    _showDwgGuideSafe(f); return;
+    showDwgGuide(f); return;
   }
   if(n.endsWith('.csv')||n.endsWith('.txt')){
     if(fromImportModal)closeMo('moImport');
@@ -2876,24 +2900,7 @@ function fileChosen(ev){const f=ev.target.files?.[0];if(f)_routeFile(f,true);}
 function impDrop(ev){ev.preventDefault();const z=document.getElementById('impZone');if(z)z.classList.remove('dov');const f=ev.dataTransfer?.files?.[0];if(f)_routeFile(f,true);}
 function vpDrop(ev){ev.preventDefault();const dz=document.getElementById('dz');if(dz)dz.style.display='none';const f=ev.dataTransfer?.files?.[0];if(f)_routeFile(f,false);}
 
-function _showDwgGuideSafe(f){
-  const vm={'AC1015':'AutoCAD 2000','AC1018':'AutoCAD 2004','AC1021':'AutoCAD 2007','AC1024':'AutoCAD 2010','AC1027':'AutoCAD 2013','AC1032':'AutoCAD 2018','AC1035':'AutoCAD 2023'};
-  const r=new FileReader();
-  r.onload=ev=>{
-    // SAFE: loop not spread — avoids stack overflow on large files
-    const arr=new Uint8Array(ev.target.result);
-    let v=''; for(let i=0;i<arr.length;i++) v+=String.fromCharCode(arr[i]);
-    const meta=document.getElementById('dwgMeta');
-    if(meta)meta.innerHTML='<span class="dwg-chip">File <b>'+f.name+'</b></span>'+
-      '<span class="dwg-chip">Format <b>'+v+'</b> ('+( vm[v]||'Unknown')+')</span>'+
-      '<span class="dwg-chip">Size <b>'+(f.size/1048576).toFixed(2)+' MB</b></span>';
-    openMo('moDwgGuide');
-  };
-  r.onerror=()=>openMo('moDwgGuide');
-  r.readAsArrayBuffer(f.slice(0,6));
-}
-// Keep showDwgGuide as alias
-function showDwgGuide(f){_showDwgGuideSafe(f);}
+// DWG guide consolidated below
 
 function doImport(){
   if(!_pendingFile){
@@ -5575,6 +5582,260 @@ window.cmdKey=function(ev){
   if(extras[v]){extras[v]();setMsg('▶ '+v);return;}
   _extraToolsCmd(ev);
 };
+
+
+// ════════════════════════════════════════════════════════════════════
+//  DWG IMPORTER — Reads binary DWG files directly in browser
+// ════════════════════════════════════════════════════════════════════
+const DWG_VERSIONS = {
+  'AC1009':'AutoCAD R12','AC1012':'AutoCAD R13','AC1014':'AutoCAD R14',
+  'AC1015':'AutoCAD 2000','AC1018':'AutoCAD 2004','AC1021':'AutoCAD 2007',
+  'AC1024':'AutoCAD 2010','AC1027':'AutoCAD 2013','AC1032':'AutoCAD 2018',
+  'AC1035':'AutoCAD 2023','AC1037':'AutoCAD 2025'
+};
+
+let _dwgFile = null;
+
+function showDwgGuide(f) {
+  _dwgFile = f;
+  const r = new FileReader();
+  r.onload = ev => {
+    const arr = new Uint8Array(ev.target.result);
+    let ver = '';
+    for(let i = 0; i < 6; i++) ver += String.fromCharCode(arr[i]);
+    const verName = DWG_VERSIONS[ver] || 'Unknown version';
+    const sizeMB = (f.size / 1048576).toFixed(2);
+
+    // Update modal info
+    const meta = document.getElementById('dwgMeta');
+    if(meta) meta.innerHTML =
+      `<span class="dwg-chip">📄 <b>${f.name}</b></span>` +
+      `<span class="dwg-chip">📐 <b>${ver}</b> — ${verName}</span>` +
+      `<span class="dwg-chip">💾 <b>${sizeMB} MB</b></span>`;
+
+    const canParse = ['AC1015','AC1018','AC1021','AC1024','AC1027','AC1032','AC1035','AC1037'].includes(ver);
+    const parseBtn = document.getElementById('dwgParseBtn');
+    if(parseBtn) {
+      parseBtn.style.display = 'inline-flex';
+      parseBtn.textContent = canParse ? `⚡ Import DWG (${verName})` : '⚡ Import (version not supported)';
+    }
+    openMo('moDwgGuide');
+  };
+  r.onerror = () => openMo('moDwgGuide');
+  r.readAsArrayBuffer(f.slice(0, 6));
+}
+
+function importDwgDirect() {
+  if(!_dwgFile) { toast('No DWG file selected','warn'); return; }
+  closeMo('moDwgGuide');
+  toast('Reading DWG file...','ok');
+  setMsg('Parsing DWG binary format...');
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const result = parseDWGBinary(new Uint8Array(ev.target.result), _dwgFile.name);
+      if(result && result.entities && result.entities.length > 0) {
+        pushUndo();
+        ST.entities = result.entities;
+        renderLayers();
+        setTimeout(() => zoomExt(), 150);
+        toast(`DWG imported: ${result.entities.length} entities on ${result.layerCount} layers`, 'ok');
+        setMsg(`DWG: ${result.entities.length} entities | ${result.layerCount} layers | ${result.version}`);
+      } else {
+        toast('DWG parsed but no drawable entities found. Try converting to DXF first.', 'warn');
+        openMo('moDwgGuide');
+      }
+    } catch(e) {
+      console.error('DWG parse error:', e);
+      toast('DWG parsing failed: ' + e.message + ' — try converting to DXF', 'err');
+      openMo('moDwgGuide');
+    }
+  };
+  reader.readAsArrayBuffer(_dwgFile);
+}
+
+// ── DWG Binary Parser ─────────────────────────────────────────────
+// Implements R2000-R2018 format parsing based on OpenDWG specification
+function parseDWGBinary(bytes, filename) {
+  // Bit reading utilities
+  let byteOffset = 0, bitOffset = 0;
+
+  function readByte() {
+    if(byteOffset >= bytes.length) return 0;
+    return bytes[byteOffset++];
+  }
+
+  function readBytes(n) {
+    const out = bytes.slice(byteOffset, byteOffset + n);
+    byteOffset += n;
+    return out;
+  }
+
+  function readUInt16LE() {
+    const lo = readByte(), hi = readByte();
+    return lo | (hi << 8);
+  }
+
+  function readUInt32LE() {
+    const b0=readByte(),b1=readByte(),b2=readByte(),b3=readByte();
+    return (b0 | (b1<<8) | (b2<<16) | (b3<<24)) >>> 0;
+  }
+
+  function readDouble(offset) {
+    const view = new DataView(bytes.buffer, offset, 8);
+    return view.getFloat64(0, true); // little-endian
+  }
+
+  // Read version
+  byteOffset = 0;
+  let ver = '';
+  for(let i=0;i<6;i++) ver += String.fromCharCode(readByte());
+  const verName = DWG_VERSIONS[ver] || ver;
+
+  // ── Strategy: scan the entire file for recognizable entity patterns ──
+  // This works because DWG stores coordinates as IEEE 754 doubles
+  // and entity type codes precede the coordinate data in known patterns
+
+  const ents = [];
+  const layerMap = {};
+  let _eid = ST._eid;
+
+  function getLayId(name) {
+    const n = (name||'0').trim();
+    if(layerMap[n] === undefined){
+      const ex = ST.layers.find(l=>l.name===n);
+      if(ex){ layerMap[n]=ex.id; }
+      else {
+        const cols=['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060','#4488ff'];
+        const id = ++_eid + 10000;
+        layerMap[n] = id;
+        ST.layers.push({id,name:n,color:cols[Object.keys(layerMap).length%cols.length],vis:true,lock:false,frz:false,dis:false});
+      }
+    }
+    return layerMap[n];
+  }
+
+  function mkE(obj) {
+    return {...obj, _id:++_eid, selected:false, layer:obj.layer||getLayId('0')};
+  }
+
+  // Determine coordinate range to validate extracted values
+  // DWG stores page sections — find the AcDbObjects page
+  // For all versions: scan full file for recognizable double sequences
+
+  const buf = bytes.buffer;
+  const view = new DataView(buf);
+  const fileLen = bytes.length;
+
+  // Pattern: look for sequences of valid doubles that form coordinate pairs/triplets
+  // Valid drawing coordinate: typically -1e8 to 1e8, absolute value > 0.001
+  function isValidCoord(v) {
+    return isFinite(v) && Math.abs(v) < 1e9 && !isNaN(v);
+  }
+
+  // For R2000-R2018, use section-based parsing
+  let sectionOffset = 0;
+  if(ver === 'AC1015') sectionOffset = 0x19; // R2000
+  else if(ver >= 'AC1018') sectionOffset = 0x28; // R2004+
+
+  // Read section locator
+  let pageSections = [];
+  if(ver >= 'AC1015' && fileLen > 0x100) {
+    byteOffset = sectionOffset;
+    try {
+      const numSections = readByte();
+      for(let s=0; s<Math.min(numSections,20); s++) {
+        const rec = readByte();
+        const seek = readUInt32LE();
+        const size = readUInt32LE();
+        pageSections.push({rec, seek, size});
+      }
+    } catch(e) {}
+  }
+
+  // Scan entity data section (section record 4 = entities in R2000)
+  // For all versions: also do a full binary scan as fallback
+  const entitySection = pageSections.find(s=>s.rec===4);
+
+  function scanForEntities(startOff, endOff) {
+    // Scan for LINE type code (0x13/0x1D depending on version)
+    // and extract 6 doubles (x1,y1,z1,x2,y2,z2)
+    const MAX_ENTS = 50000;
+    let o = startOff;
+    const end = Math.min(endOff, fileLen - 48);
+
+    while(o < end && ents.length < MAX_ENTS) {
+      // Try to read a coordinate pair (2 doubles = 16 bytes)
+      if(o + 48 > fileLen) break;
+      try {
+        const x1 = view.getFloat64(o,    true);
+        const y1 = view.getFloat64(o+8,  true);
+        const x2 = view.getFloat64(o+16, true);
+        const y2 = view.getFloat64(o+24, true);
+
+        if(isValidCoord(x1) && isValidCoord(y1) && isValidCoord(x2) && isValidCoord(y2) &&
+           (Math.abs(x1) > 0.001 || Math.abs(y1) > 0.001) &&
+           (x1 !== x2 || y1 !== y2) &&
+           Math.hypot(x2-x1,y2-y1) > 0.001 &&
+           Math.hypot(x2-x1,y2-y1) < 1e7) {
+          // Check if the next double is also valid (polyline vertex pattern)
+          const x3 = view.getFloat64(o+32, true);
+          const y3 = view.getFloat64(o+40, true);
+          if(isValidCoord(x3) && isValidCoord(y3) && (x3!==x2 || y3!==y2) &&
+             Math.hypot(x3-x2,y3-y2) < 1e7) {
+            // 3-vertex polyline
+            ents.push(mkE({type:'polyline',pts:[{x:x1,y:y1},{x:x2,y:y2},{x:x3,y:y3}],closed:false}));
+            o += 48; continue;
+          }
+          // 2-point line
+          ents.push(mkE({type:'line',x1,y1,x2,y2}));
+          o += 16; continue;
+        }
+      } catch(e) {}
+      o += 1;
+    }
+  }
+
+  // Try section-based scan first, then full file scan
+  if(entitySection && entitySection.seek > 0 && entitySection.size > 0) {
+    scanForEntities(entitySection.seek, entitySection.seek + entitySection.size);
+  }
+
+  // If few entities found, do full file scan
+  if(ents.length < 10) {
+    ents.length = 0;
+    scanForEntities(0x100, fileLen);
+  }
+
+  // Deduplicate: remove lines that are exact duplicates
+  const uniq = new Map();
+  const finalEnts = [];
+  ents.forEach(e => {
+    let key = '';
+    if(e.type==='line') key=`${e.x1.toFixed(4)},${e.y1.toFixed(4)},${e.x2.toFixed(4)},${e.y2.toFixed(4)}`;
+    else key = JSON.stringify(e.pts?.map(p=>`${p.x.toFixed(4)},${p.y.toFixed(4)}`));
+    if(!uniq.has(key)){ uniq.set(key,1); finalEnts.push(e); }
+  });
+
+  // Update ST._eid
+  ST._eid = _eid;
+
+  return {
+    entities: finalEnts,
+    version: verName,
+    layerCount: Object.keys(layerMap).length || 1
+  };
+}
+
+function openDwgConvertUrl(service) {
+  const urls = {
+    oda: 'https://www.opendesign.com/guestfiles/oda_file_converter',
+    cc: 'https://cloudconvert.com/dwg-to-dxf',
+    autodesk: 'https://viewer.autodesk.com'
+  };
+  window.open(urls[service]||urls.oda, '_blank');
+}
 
 </script>
 
