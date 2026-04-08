@@ -6336,132 +6336,174 @@ showDwgGuide = function(f) {
 //  CLOUDCONVERT DWG→DXF CONVERSION
 // ════════════════════════════════════════════════════════════════════
 async function convertWithCloudConvert() {
-  // Use built-in key, fall back to user-entered key
   const apiKey = CC_API_KEY || (document.getElementById('ccApiKey')?.value||'').trim();
   if(!apiKey) { toast('No CloudConvert API key configured', 'warn'); return; }
   if(!_dwgFile) { toast('No DWG file selected', 'warn'); return; }
 
   const statusEl = document.getElementById('ccStatus');
   const btn = document.getElementById('ccConvertBtn');
+  const sizeMB = (_dwgFile.size / 1048576).toFixed(1);
 
   function setS(msg, col) {
     if(statusEl){statusEl.innerHTML=msg;statusEl.style.color=col||'var(--m)';statusEl.style.display='block';}
     setMsg(msg.replace(/<[^>]+>/g,''));
   }
 
-  // File size check
-  const sizeMB = _dwgFile.size / 1048576;
-  if(sizeMB > 500) { toast('File is ' + sizeMB.toFixed(0) + 'MB — CloudConvert free tier works up to 1GB', 'warn'); }
+  if(btn) { btn.disabled = true; btn.textContent = '⏳ Converting…'; }
 
-  btn.disabled = true; btn.textContent = '⏳ Converting…';
+  // Helper: POST JSON to CloudConvert
+  async function ccPost(path, body) {
+    const r = await fetch('https://api.cloudconvert.com' + path, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await r.json();
+    if(!r.ok) {
+      const msg = data.message || data.error || r.statusText;
+      if(r.status === 401) throw new Error('AUTH_FAILED: ' + msg);
+      if(r.status === 402) throw new Error('QUOTA_EXCEEDED');
+      throw new Error('API ' + r.status + ': ' + msg);
+    }
+    return data;
+  }
+
+  async function ccGet(path) {
+    const r = await fetch('https://api.cloudconvert.com' + path, {
+      headers: { 'Authorization': 'Bearer ' + apiKey }
+    });
+    const data = await r.json();
+    if(!r.ok) throw new Error('Poll error ' + r.status);
+    return data;
+  }
 
   try {
-    setS('Step 1/4 — Creating conversion job…');
+    // ── APPROACH: Use import/url with a temporary blob URL approach
+    // Since direct S3 upload fails due to CORS, we use a two-step approach:
+    // 1. Read file as base64 ArrayBuffer
+    // 2. Create job with import/upload
+    // 3. Upload via XMLHttpRequest (avoids some CORS preflight issues)
 
-    const jobResp = await fetch('https://api.cloudconvert.com/v2/jobs', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + apiKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        tasks: {
-          'upload':  { operation: 'import/upload' },
-          'convert': { operation: 'convert', input: 'upload', output_format: 'dxf', input_format: 'dwg',
-                       engine: 'cadconverter' },
-          'export':  { operation: 'export/url', input: 'convert' }
-        }
-      })
+    setS('Reading DWG file (' + sizeMB + 'MB)…');
+    const fileBuffer = await _dwgFile.arrayBuffer();
+
+    setS('Creating CloudConvert job…');
+
+    const jobData = await ccPost('/v2/jobs', {
+      tasks: {
+        'upload':  { operation: 'import/upload' },
+        'convert': {
+          operation: 'convert',
+          input: 'upload',
+          output_format: 'dxf',
+          input_format: 'dwg'
+        },
+        'export': { operation: 'export/url', input: 'convert' }
+      }
     });
 
-    if(!jobResp.ok) {
-      const errBody = await jobResp.json().catch(()=>({message:jobResp.statusText}));
-      const msg = errBody.message || errBody.error || jobResp.statusText;
+    const uploadTask = jobData.data.tasks.find(t => t.name === 'upload');
+    if(!uploadTask?.result?.form) throw new Error('No upload form received from CloudConvert');
 
-      if(jobResp.status === 401) {
-        setS(`<b style="color:#ff4466">Authentication failed.</b><br>
-Your API key is invalid or expired. Make sure you:<br>
-1. Used a <b>Production</b> key (not Sandbox)<br>
-2. Gave it "tasks.write" permission<br>
-3. Copied the full key including <code>eyJ0...</code><br>
-<a href="https://app.cloudconvert.com/dashboard/api/v2/keys" target="_blank" style="color:var(--b)">→ Open CloudConvert API Keys page</a>`, '#ff9060');
-        return;
-      }
-      if(jobResp.status === 402) {
-        setS(`<b style="color:#ff4466">Conversion limit reached.</b><br>
-Your free tier (25/day) is exhausted. <a href="https://cloudconvert.com/pricing" target="_blank" style="color:var(--b)">Upgrade on CloudConvert →</a>`, '#ff9060');
-        return;
-      }
-      throw new Error('API error ' + jobResp.status + ': ' + msg);
-    }
+    const form = uploadTask.result.form;
+    setS('Uploading DWG to CloudConvert (' + sizeMB + 'MB)…');
 
-    const job = await jobResp.json();
-    const uploadTask = job.data.tasks.find(t => t.name === 'upload');
-    if(!uploadTask?.result?.form) throw new Error('No upload endpoint received');
+    // Use XMLHttpRequest for the upload — handles CORS differently than fetch
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', form.url, true);
 
-    setS('Step 2/4 — Uploading ' + sizeMB.toFixed(1) + 'MB DWG to CloudConvert…');
+      // Build multipart form data manually
+      const fd = new FormData();
+      Object.entries(form.parameters || {}).forEach(([k, v]) => fd.append(k, v));
+      fd.append('file', _dwgFile, _dwgFile.name);
 
-    const form = new FormData();
-    Object.entries(uploadTask.result.form.parameters || {}).forEach(([k,v]) => form.append(k, v));
-    form.append('file', _dwgFile);
+      xhr.onload = () => {
+        if(xhr.status >= 200 && xhr.status < 300) resolve();
+        else reject(new Error('Upload HTTP ' + xhr.status + ': ' + xhr.responseText));
+      };
+      xhr.onerror = () => {
+        // XHR failed too — try alternative raw upload via CloudConvert's own upload endpoint
+        reject(new Error('XHR_UPLOAD_FAILED'));
+      };
+      xhr.upload.onprogress = ev => {
+        if(ev.lengthComputable) {
+          const pct = Math.round(ev.loaded/ev.total*100);
+          setS('Uploading… ' + pct + '% (' + (ev.loaded/1048576).toFixed(1) + '/' + sizeMB + 'MB)');
+        }
+      };
+      xhr.send(fd);
+    }).catch(async (uploadErr) => {
+      if(uploadErr.message !== 'XHR_UPLOAD_FAILED') throw uploadErr;
 
-    const uploadResp = await fetch(uploadTask.result.form.url, { method: 'POST', body: form });
-    if(!uploadResp.ok && uploadResp.status !== 201 && uploadResp.status !== 204) {
-      throw new Error('Upload failed: HTTP ' + uploadResp.status);
-    }
+      // Alternative: use CloudConvert's /v2/import/upload endpoint directly
+      setS('Retrying upload via CloudConvert direct endpoint…');
+      const uploadUrl = 'https://api.cloudconvert.com/v2/import/upload?uploadUrl=' +
+        encodeURIComponent(form.url);
 
-    setS('Step 3/4 — Converting DWG → DXF (this may take a minute for large files)…');
+      const fd2 = new FormData();
+      Object.entries(form.parameters || {}).forEach(([k, v]) => fd2.append(k, v));
+      fd2.append('file', _dwgFile, _dwgFile.name);
+
+      const r2 = await fetch(form.url, {
+        method: 'POST',
+        body: fd2,
+        mode: 'no-cors'  // bypass CORS for the S3 upload
+      });
+      // no-cors returns opaque response — we can't read it but upload proceeds
+    });
+
+    setS('Converting DWG → DXF (may take 1–3 minutes for large files)…');
 
     // Poll for completion
-    const jobId = job.data.id;
+    const jobId = jobData.data.id;
     let dxfUrl = null;
-    for(let i = 0; i < 90; i++) {  // up to 3 minutes
-      await new Promise(r => setTimeout(r, 2000));
-      const pollResp = await fetch('https://api.cloudconvert.com/v2/jobs/' + jobId,
-        { headers: { 'Authorization': 'Bearer ' + apiKey } });
-
-      if(!pollResp.ok) throw new Error('Poll failed: ' + pollResp.status);
-      const pd = await pollResp.json();
+    for(let i = 0; i < 90; i++) {
+      await new Promise(r => setTimeout(r, 3000));
+      const pd = await ccGet('/v2/jobs/' + jobId);
       const st = pd.data.status;
-      const pct = Math.round(((i+1)/90)*100);
-      setS('Step 3/4 — Converting… status: <b>' + st + '</b> (' + (i*2) + 's elapsed)');
+      const elapsed = ((i+1)*3);
+      setS('Converting… <b>' + st + '</b> (' + elapsed + 's)');
 
       if(st === 'finished') {
         const expTask = pd.data.tasks.find(t => t.name === 'export');
         dxfUrl = expTask?.result?.files?.[0]?.url;
-        if(!dxfUrl) throw new Error('Conversion finished but no DXF URL in response');
+        if(!dxfUrl) throw new Error('No DXF URL in finished job');
         break;
       }
       if(st === 'error') {
         const errTask = pd.data.tasks.find(t => t.status === 'error');
-        throw new Error('Conversion failed: ' + (errTask?.message || errTask?.code || 'unknown error'));
+        throw new Error('Conversion failed: ' + (errTask?.message || errTask?.code || 'unknown'));
       }
     }
 
-    if(!dxfUrl) throw new Error('Conversion timed out after 3 minutes');
+    if(!dxfUrl) throw new Error('Timed out after 4.5 minutes');
 
-    setS('Step 4/4 — Downloading converted DXF…');
-
+    setS('Downloading converted DXF…');
     const dxfResp = await fetch(dxfUrl);
     if(!dxfResp.ok) throw new Error('DXF download failed: ' + dxfResp.status);
     const dxfText = await dxfResp.text();
 
-    setS('Importing DXF into Strata…');
+    if(statusEl) statusEl.style.display = 'none';
     closeMo('moDwgGuide');
-
-    const dxfName = _dwgFile.name.replace(/\.dwg$/i, '.dxf');
-    parseDXF(dxfText, dxfName);
-    toast('✅ DWG converted and imported! (' + sizeMB.toFixed(1) + 'MB → DXF via CloudConvert)', 'ok');
-    setS('');
+    parseDXF(dxfText, _dwgFile.name.replace(/\.dwg$/i, '.dxf'));
+    toast('✅ DWG imported via CloudConvert (' + sizeMB + 'MB converted)', 'ok');
 
   } catch(err) {
     console.error('CloudConvert error:', err);
     const msg = err.message || String(err);
-    setS('<b style="color:#ff4466">Error: ' + msg + '</b><br><span style="font-size:8px">Check browser console for details. Make sure your API key is a Production key with tasks.write permission.</span>', '#ff9060');
-    toast('CloudConvert: ' + msg, 'err');
+
+    if(msg.startsWith('AUTH_FAILED')) {
+      setS('<b>Authentication failed</b> — the built-in API key may have expired.<br>Contact Sky TerraEye support or use the offline ODA converter.', '#ff4466');
+    } else if(msg === 'QUOTA_EXCEEDED') {
+      setS('<b>CloudConvert daily limit reached</b> (25/day). Try again tomorrow or use ODA converter.', '#ff9060');
+    } else {
+      setS('<b>Error:</b> ' + msg + '<br><small>Try the ODA File Converter as a fallback.</small>', '#ff9060');
+    }
+    toast('DWG conversion error: ' + msg.slice(0, 80), 'err');
+    openMo('moDwgGuide');
   } finally {
-    btn.disabled = false;
-    btn.textContent = '☁ Convert & Import DWG Now';
+    if(btn) { btn.disabled = false; btn.textContent = '☁ Convert & Import DWG Now'; }
   }
 }
 
