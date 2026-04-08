@@ -1483,7 +1483,7 @@ function drawEntity(e, ghost) {
       ctx.beginPath();
       const p0=w2s(e.pts[0].x,e.pts[0].y); ctx.moveTo(p0.x,p0.y);
       for(let i=1;i<e.pts.length;i++){const p=w2s(e.pts[i].x,e.pts[i].y);ctx.lineTo(p.x,p.y);}
-      if(e.closed){ctx.closePath();} ctx.stroke(); break;
+      if(e.closed){ctx.closePath();} ctx.stroke(); if(e.filled){ctx.globalAlpha=0.15;ctx.fill();ctx.globalAlpha=1;} break;
     }
         case 'point': {
       const pp=w2s(e.x,e.y);
@@ -5584,17 +5584,22 @@ function importDwgDirect() {
   reader.onload = ev => {
     try {
       const result = parseDWGBinary(new Uint8Array(ev.target.result), _dwgFile.name);
+      if(result && result.compressed) {
+        // R2013+ compressed — show conversion dialog
+        toast('DWG R2013+ uses ODA compression — browser cannot decode. Use ODA Converter to convert to DXF first.', 'warn');
+        setMsg('DWG R2013+ cannot be decoded in browser. Please convert to DXF using ODA Converter (free) or CloudConvert.');
+        // Show the guide modal again with focus on conversion
+        setTimeout(() => openMo('moDwgGuide'), 300);
+        return;
+      }
       if(result && result.entities && result.entities.length > 0) {
         pushUndo();
         ST.entities = result.entities;
         renderLayers();
         setTimeout(() => zoomExt(), 150);
-        const extInfo = result.extents ?
-          ` | Extents: ${(result.extents.maxX-result.extents.minX).toFixed(0)} × ${(result.extents.maxY-result.extents.minY).toFixed(0)} units` : '';
         toast(`DWG imported: ${result.entities.length} entities on ${result.layerCount} layers`, 'ok');
-        setMsg(`DWG: ${result.entities.length} entities | ${result.layerCount} layers | ${result.version}${extInfo}`);
-        // Auto-detect CRS based on extents
-        if(result.extents) autoDetectCRS(result.entities);
+        setMsg(`DWG: ${result.entities.length} entities | ${result.layerCount} layers | ${result.version}`);
+        autoDetectCRS(result.entities);
       } else {
         toast('DWG parsed but no drawable entities found. Try converting to DXF first.', 'warn');
         openMo('moDwgGuide');
@@ -5615,169 +5620,145 @@ function parseDWGBinary(bytes, filename) {
   const fileLen = bytes.length;
 
   let ver = '';
-  for(let i=0;i<6;i++) ver += String.fromCharCode(bytes[i]);
+  for(let i = 0; i < 6; i++) ver += String.fromCharCode(bytes[i]);
   const verName = DWG_VERSIONS[ver] || ver;
 
   const ents = [];
   const layerMap = {};
   let _eid = ST._eid;
 
-  const ACI = ['#ffffff','#ff0000','#ffff00','#00ff00','#00ffff','#0000ff','#ff00ff',
-    '#ffffff','#808080','#c0c0c0','#ff0000','#ff8080','#cc0000','#cc6666','#990000',
-    '#994c4c','#7f0000','#7f3f3f','#4c0000','#4c2626','#ff4000','#ff9f80','#cc3300',
-    '#cc7f66','#992600','#995f4c','#7f1f00','#7f4f3f','#4c1300','#4c2f26','#ff8000',
-    '#ffbf80','#cc6600','#cc9966','#994c00','#99724c','#7f3f00','#7f5f3f','#4c2600',
-    '#4c3926','#ffbf00','#ffdf80','#cc9900','#ccb266','#997300','#99854c','#7f5f00',
-    '#7f6c3f','#4c3900','#4c4126','#ffff00','#ffff80','#cccc00','#cccc66','#999900',
-    '#99994c','#7f7f00','#7f7f3f','#4c4c00','#4c4c26','#80ff00','#bfff80','#66cc00',
-    '#99cc66','#4c9900','#73994c','#3f7f00','#5f7f3f','#264c00','#394c26','#00ff00',
-    '#80ff80','#00cc00','#66cc66','#009900','#4c994c','#007f00','#3f7f3f','#004c00','#264c26'];
+  // ACI standard colors
+  const ACI_COLORS = ['#ffffff','#ff0000','#ffff00','#00ff00','#00ffff','#0000ff','#ff00ff',
+    '#808080','#c0c0c0','#ff8080','#cc0000','#994c4c','#ff4000','#ff9f80','#cc3300',
+    '#ff8000','#ffbf80','#cc6600','#ffbf00','#ffdf80','#cccc00','#80ff00','#66cc00',
+    '#00ff00','#80ff80','#00cc00','#009900','#007f00','#00ff80','#00cc66','#009933',
+    '#00ff40','#00cc33','#009926','#00ffbf','#00ccaa','#009977','#00ffff','#00cccc',
+    '#009999','#0080ff','#0066cc','#004c99','#0040ff','#0033cc','#002699','#0000ff',
+    '#0000cc','#000099','#4000ff','#3300cc','#260099','#8000ff','#6600cc','#4c0099',
+    '#ff00ff','#cc00cc','#990099','#ff0080','#cc0066','#990044'];
 
-  function aciColor(idx){ return ACI[idx % ACI.length] || '#1FA8D9'; }
+  function aciCol(i){ return ACI_COLORS[i % ACI_COLORS.length] || '#1FA8D9'; }
 
   function getLayId(name, aci) {
     const n = (name||'0').trim();
     if(layerMap[n] === undefined){
-      const ex = ST.layers.find(l=>l.name===n);
-      if(ex){ layerMap[n]=ex.id; }
+      const ex = ST.layers.find(l => l.name === n);
+      if(ex){ layerMap[n] = ex.id; }
       else {
         const id = ++_eid + 10000;
         layerMap[n] = id;
-        const col = aci!=null ? aciColor(aci) :
-          ['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060'][Object.keys(layerMap).length%6];
-        ST.layers.push({id,name:n,color:col,vis:true,lock:false,frz:false,dis:false});
+        const col = aci != null ? aciCol(aci) :
+          ['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060'][Object.keys(layerMap).length % 6];
+        ST.layers.push({id, name: n, color: col, vis: true, lock: false, frz: false, dis: false});
       }
     }
     return layerMap[n];
   }
 
-  function mkE(obj){ return {...obj,_id:++_eid,selected:false,layer:obj.layer||getLayId('0')}; }
+  function mkE(obj){ return {...obj, _id: ++_eid, selected: false, layer: obj.layer || getLayId('0')}; }
+  function readD(o){ return (o + 8 <= fileLen) ? view.getFloat64(o, true) : NaN; }
 
-  function readD(off){ return off+8<=fileLen ? view.getFloat64(off,true) : NaN; }
-  function isValid(v){ return isFinite(v) && !isNaN(v); }
+  // ── Detect compressed sections (R2013+) ─────────────────────────
+  // For compressed DWG, geometry cannot be extracted in the browser.
+  // We detect this by version and show a helpful error.
+  const isCompressed = ver >= 'AC1027'; // R2013 and newer use ODA compression
+  const isLegacy     = ver >= 'AC1015' && ver < 'AC1021'; // R2000-R2007
 
-  // ── STEP 1: Extract drawing extents from header area ────────────
-  // Scan first 64KB for EXTMIN/EXTMAX — two pairs of doubles close together
-  // that represent the bounding box
-  let extMinX=-Infinity, extMinY=-Infinity, extMaxX=Infinity, extMaxY=Infinity;
-  let extFound = false;
-
-  // Scan for isolated coordinate pairs in the header/tables area (first 512KB)
-  const scanLimit = Math.min(524288, fileLen);
-  const pairCandidates = [];
-  for(let o = 256; o < scanLimit - 32; o += 8) {
-    const x = readD(o), y = readD(o+8);
-    if(!isValid(x)||!isValid(y)) continue;
-    if(Math.abs(x) < 1e-10 && Math.abs(y) < 1e-10) continue; // skip zero pairs
-    if(Math.abs(x) > 1e9 || Math.abs(y) > 1e9) continue;
-    if(Math.abs(x) < 1e-6 || Math.abs(y) < 1e-6) continue; // skip near-zero
-    const prevX = readD(o-8);
-    const nextX = readD(o+16);
-    // Look for isolated pairs (surrounded by zeros/invalids)
-    if((!isValid(prevX) || Math.abs(prevX)<1e-6) && (!isValid(nextX) || Math.abs(nextX)<1e-6)) {
-      pairCandidates.push({o, x, y});
+  // ── Skip image/binary regions (PNG thumbnails etc) ────────────
+  const skipRegions = [];
+  // Find PNG signature
+  const PNG_SIG = [0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A];
+  for(let i = 0; i < Math.min(fileLen - 8, 100000); i++) {
+    if(PNG_SIG.every((b, j) => bytes[i+j] === b)) {
+      // Find IEND
+      let iend = i;
+      for(let j = i; j < Math.min(i + 2000000, fileLen - 4); j++) {
+        if(bytes[j]===0x49&&bytes[j+1]===0x45&&bytes[j+2]===0x4E&&bytes[j+3]===0x44) {
+          iend = j + 8; break;
+        }
+      }
+      skipRegions.push([i, iend > i ? iend : i + 50000]);
     }
   }
 
-  // Find EXTMIN/EXTMAX pattern: two pairs that look like min/max of a bounding box
-  for(let i = 0; i < pairCandidates.length - 1; i++) {
-    const a = pairCandidates[i], b = pairCandidates[i+1];
-    const dx = Math.abs(b.x - a.x), dy = Math.abs(b.y - a.y);
-    const scale = Math.max(Math.abs(a.x), Math.abs(b.x), Math.abs(a.y), Math.abs(b.y));
-    // A valid extents pair: both in similar range, B slightly > A
-    if(dx > 0.001 && dy > 0.001 && scale > 1 && scale < 1e8 &&
-       dx/scale < 2 && dy/scale < 2) {
-      extMinX = Math.min(a.x, b.x);
-      extMinY = Math.min(a.y, b.y);
-      extMaxX = Math.max(a.x, b.x);
-      extMaxY = Math.max(a.y, b.y);
-      extFound = true;
-      break;
-    }
-  }
+  // ── Extract layer names from ASCII header (avoid image regions) ─
+  // Known non-layer strings to skip
+  const SKIP_WORDS = new Set(['PNG','IHDR','PLTE','IDAT','IEND','BMP','DIB',
+    'AutoCAD','Autodesk','AcAd','ACAD','SHX','TTF','ANSI','UTF','ISO',
+    'NULL','TRUE','FALSE','BEGIN','END','BLOCK','TABLE','LAYER','LINE',
+    'INSERT','XREF','ATTDEF','ENTITIES','HEADER','CLASSES','OBJECTS',
+    'SECTION','ENDSEC','EOF','FILE','DATA','SIZE','TYPE','CODE','NAME',
+    'MODEL','PAPER','SPACE','STANDARD','CONTINUOUS','BYLAYER','BYBLOCK']);
 
-  // ── STEP 2: Scan for layer names in header ────────────────────
-  const layerSection = bytes.indexOf ? -1 : -1; // fallback
-  // Scan for ASCII strings 2-30 chars in header zone
-  let textRun = '', textStart = 0;
-  for(let i = 256; i < Math.min(65536, fileLen); i++) {
+  let buf = '', textRanges = [];
+  const headerEnd = Math.min(65536, fileLen);
+  for(let i = 256; i < headerEnd; i++) {
+    // Skip image regions
+    if(skipRegions.some(r => i >= r[0] && i <= r[1])) { buf = ''; continue; }
     const b = bytes[i];
-    if(b >= 32 && b < 127) {
-      if(!textRun) textStart = i;
-      textRun += String.fromCharCode(b);
+    if(b >= 32 && b < 127 && b !== 92) { // printable ASCII except backslash
+      buf += String.fromCharCode(b);
     } else {
-      if(textRun.length >= 3 && textRun.length <= 30 &&
-         /^[A-Za-z0-9_\-. ]+$/.test(textRun) &&
-         !['AutoCAD','Autodesk','TRUETYPE','BIGFONT','AcAd'].includes(textRun)) {
-        // Could be a layer name
-        getLayId(textRun);
+      if(buf.length >= 2 && buf.length <= 30 && buf.trim().length >= 2) {
+        const name = buf.trim();
+        // Valid layer name: not a skip word, not all digits, not hex-like
+        if(!SKIP_WORDS.has(name) &&
+           !/^[0-9a-f]{6,}$/i.test(name) &&  // skip hex strings
+           !/^\d+$/.test(name) &&              // skip pure numbers
+           /^[A-Za-z0-9][A-Za-z0-9_ \-\.]*$/.test(name) &&  // valid chars
+           name.length <= 20) {
+          getLayId(name);
+        }
       }
-      textRun = '';
+      buf = '';
     }
   }
 
-  // ── STEP 3: Extract geometry with smart filtering ─────────────
-  // Filtering rules:
-  // a) Both endpoints within 3x the drawing extents
-  // b) Line length between 1/1000 and 10x the drawing diagonal
-  // c) No single coordinate outside 10x the scale of the extents
-  // d) Coordinates must cluster — reject statistical outliers
-
-  const extW = extMaxX - extMinX, extH = extMaxY - extMinY;
-  const extDiag = Math.hypot(extW, extH);
-  const cx = (extMinX + extMaxX) / 2, cy = (extMinY + extMaxY) / 2;
-  const margin = extFound ? Math.max(extW, extH) * 3 : 1e7;
-  const minLen = extFound ? extDiag * 0.00001 : 0.001;
-  const maxLen = extFound ? extDiag * 10 : 1e6;
-
-  // First pass: collect all lines matching basic criteria
-  const rawLines = [];
-  for(let o = 4096; o < fileLen - 32; o += 8) {
-    const x1=readD(o), y1=readD(o+8), x2=readD(o+16), y2=readD(o+24);
-    if(!isValid(x1)||!isValid(y1)||!isValid(x2)||!isValid(y2)) continue;
-    const d = Math.hypot(x2-x1, y2-y1);
-    if(d < minLen || d > maxLen) continue;
-    if(x1===x2 && y1===y2) continue;
-
-    if(extFound) {
-      // Reject if outside extended bounding box
-      const pad = margin;
-      if(x1<extMinX-pad||x1>extMaxX+pad||y1<extMinY-pad||y1>extMaxY+pad) continue;
-      if(x2<extMinX-pad||x2>extMaxX+pad||y2<extMinY-pad||y2>extMaxY+pad) continue;
-    } else {
-      // No extents known: use magnitude filter
-      const maxAbs = Math.max(Math.abs(x1),Math.abs(y1),Math.abs(x2),Math.abs(y2));
-      if(maxAbs < 0.001 || maxAbs > 1e7) continue;
-      // Reject if coordinates span more than 6 orders of magnitude
-      const minAbs = Math.min(...[x1,y1,x2,y2].filter(v=>Math.abs(v)>1e-10).map(Math.abs));
-      if(minAbs > 0 && maxAbs/minAbs > 1e6) continue;
+  // ── Extract geometry (only for R2000-R2010 uncompressed sections) ─
+  if(!isCompressed) {
+    // For R2000-R2010, geometry data is NOT compressed — scan directly
+    // Sane double filter: rejects subnormal values and extreme exponents
+    function isSane(v) {
+      if(!isFinite(v) || isNaN(v)) return false;
+      const av = Math.abs(v);
+      if(av > 0 && av < 1e-3) return false;   // subnormal-ish, not a drawing coord
+      if(av > 1e7) return false;               // too large
+      return true;
     }
 
-    rawLines.push([x1, y1, x2, y2]);
+    // Collect candidate lines
+    const candidates = [];
+    for(let o = 4096; o < fileLen - 32; o += 8) {
+      const x1=readD(o), y1=readD(o+8), x2=readD(o+16), y2=readD(o+24);
+      if(!isSane(x1)||!isSane(y1)||!isSane(x2)||!isSane(y2)) continue;
+      // Check consistent magnitude (all coords within 3 orders of magnitude of each other)
+      const vals = [Math.abs(x1),Math.abs(y1),Math.abs(x2),Math.abs(y2)].filter(v=>v>1e-3);
+      if(vals.length < 2) continue;
+      if(Math.max(...vals) / Math.min(...vals) > 1000) continue;
+      const d = Math.hypot(x2-x1, y2-y1);
+      if(d < 0.01 || d > 1e6 || (x1===x2&&y1===y2)) continue;
+      candidates.push([x1,y1,x2,y2]);
+    }
+
+    // IQR clustering — keep only the dominant coordinate cluster
+    if(candidates.length > 0) {
+      const allX = candidates.flatMap(l=>[l[0],l[2]]).sort((a,b)=>a-b);
+      const allY = candidates.flatMap(l=>[l[1],l[3]]).sort((a,b)=>a-b);
+      const n = allX.length;
+      const xLo = allX[Math.floor(n*0.10)], xHi = allX[Math.floor(n*0.90)];
+      const yLo = allY[Math.floor(n*0.10)], yHi = allY[Math.floor(n*0.90)];
+      const xPad = (xHi-xLo)*0.5, yPad = (yHi-yLo)*0.5;
+
+      candidates.forEach(([x1,y1,x2,y2]) => {
+        if(x1>=xLo-xPad&&x1<=xHi+xPad && y1>=yLo-yPad&&y1<=yHi+yPad &&
+           x2>=xLo-xPad&&x2<=xHi+xPad && y2>=yLo-yPad&&y2<=yHi+yPad) {
+          ents.push(mkE({type:'line',x1,y1,x2,y2}));
+        }
+      });
+    }
   }
 
-  // Second pass: find the MODE coordinate region and filter to it
-  // Bin X coordinates into histogram
-  if(rawLines.length > 0) {
-    const allXY = rawLines.flatMap(([x1,y1,x2,y2])=>[{v:x1,ax:'x'},{v:y1,ax:'y'},{v:x2,ax:'x'},{v:y2,ax:'y'}]);
-    const xs = allXY.filter(p=>p.ax==='x').map(p=>p.v).sort((a,b)=>a-b);
-    const ys = allXY.filter(p=>p.ax==='y').map(p=>p.v).sort((a,b)=>a-b);
-
-    // Use interquartile range
-    const q1x=xs[Math.floor(xs.length*0.10)], q3x=xs[Math.floor(xs.length*0.90)];
-    const q1y=ys[Math.floor(ys.length*0.10)], q3y=ys[Math.floor(ys.length*0.90)];
-    const iqrX=(q3x-q1x)*1.5, iqrY=(q3y-q1y)*1.5;
-    const xLo=q1x-iqrX, xHi=q3x+iqrX;
-    const yLo=q1y-iqrY, yHi=q3y+iqrY;
-
-    rawLines.forEach(([x1,y1,x2,y2]) => {
-      if(x1>=xLo&&x1<=xHi&&y1>=yLo&&y1<=yHi&&x2>=xLo&&x2<=xHi&&y2>=yLo&&y2<=yHi) {
-        ents.push(mkE({type:'line',x1,y1,x2,y2}));
-      }
-    });
-  }
-
-  // Deduplicate
+  // Deduplicate lines
   const seen = new Set();
   const finalEnts = ents.filter(e => {
     const k = `${e.x1.toFixed(2)},${e.y1.toFixed(2)},${e.x2.toFixed(2)},${e.y2.toFixed(2)}`;
@@ -5791,7 +5772,7 @@ function parseDWGBinary(bytes, filename) {
     entities: finalEnts,
     version: verName,
     layerCount: Object.keys(layerMap).length || 1,
-    extents: extFound ? {minX:extMinX,minY:extMinY,maxX:extMaxX,maxY:extMaxY} : null
+    compressed: isCompressed
   };
 }
 
