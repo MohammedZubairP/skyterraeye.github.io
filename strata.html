@@ -5589,8 +5589,12 @@ function importDwgDirect() {
         ST.entities = result.entities;
         renderLayers();
         setTimeout(() => zoomExt(), 150);
+        const extInfo = result.extents ?
+          ` | Extents: ${(result.extents.maxX-result.extents.minX).toFixed(0)} × ${(result.extents.maxY-result.extents.minY).toFixed(0)} units` : '';
         toast(`DWG imported: ${result.entities.length} entities on ${result.layerCount} layers`, 'ok');
-        setMsg(`DWG: ${result.entities.length} entities | ${result.layerCount} layers | ${result.version}`);
+        setMsg(`DWG: ${result.entities.length} entities | ${result.layerCount} layers | ${result.version}${extInfo}`);
+        // Auto-detect CRS based on extents
+        if(result.extents) autoDetectCRS(result.entities);
       } else {
         toast('DWG parsed but no drawable entities found. Try converting to DXF first.', 'warn');
         openMo('moDwgGuide');
@@ -5610,7 +5614,6 @@ function parseDWGBinary(bytes, filename) {
   const view = new DataView(bytes.buffer);
   const fileLen = bytes.length;
 
-  // Read version string
   let ver = '';
   for(let i=0;i<6;i++) ver += String.fromCharCode(bytes[i]);
   const verName = DWG_VERSIONS[ver] || ver;
@@ -5619,130 +5622,165 @@ function parseDWGBinary(bytes, filename) {
   const layerMap = {};
   let _eid = ST._eid;
 
-  // Standard layer colors from AutoCAD ACI palette (index → hex)
-  const ACI = ['#ffffff','#ff0000','#ffff00','#00ff00','#00ffff','#0000ff','#ff00ff','#ffffff',
-    '#808080','#c0c0c0','#ff0000','#ff8080','#cc0000','#cc6666','#990000','#994c4c',
-    '#7f0000','#7f3f3f','#4c0000','#4c2626','#ff4000','#ff9f80','#cc3300','#cc7f66',
-    '#992600','#995f4c','#7f1f00','#7f4f3f','#4c1300','#4c2f26','#ff8000','#ffbf80',
-    '#cc6600','#cc9966','#994c00','#99724c','#7f3f00','#7f5f3f','#4c2600','#4c3926',
-    '#ffbf00','#ffdf80','#cc9900','#ccb266','#997300','#99854c','#7f5f00','#7f6c3f',
-    '#4c3900','#4c4126','#ffff00','#ffff80','#cccc00','#cccc66','#999900','#99994c',
-    '#7f7f00','#7f7f3f','#4c4c00','#4c4c26','#80ff00','#bfff80','#66cc00','#99cc66',
-    '#4c9900','#73994c','#3f7f00','#5f7f3f','#264c00','#394c26','#00ff00','#80ff80',
-    '#00cc00','#66cc66','#009900','#4c994c','#007f00','#3f7f3f','#004c00','#264c26'];
+  const ACI = ['#ffffff','#ff0000','#ffff00','#00ff00','#00ffff','#0000ff','#ff00ff',
+    '#ffffff','#808080','#c0c0c0','#ff0000','#ff8080','#cc0000','#cc6666','#990000',
+    '#994c4c','#7f0000','#7f3f3f','#4c0000','#4c2626','#ff4000','#ff9f80','#cc3300',
+    '#cc7f66','#992600','#995f4c','#7f1f00','#7f4f3f','#4c1300','#4c2f26','#ff8000',
+    '#ffbf80','#cc6600','#cc9966','#994c00','#99724c','#7f3f00','#7f5f3f','#4c2600',
+    '#4c3926','#ffbf00','#ffdf80','#cc9900','#ccb266','#997300','#99854c','#7f5f00',
+    '#7f6c3f','#4c3900','#4c4126','#ffff00','#ffff80','#cccc00','#cccc66','#999900',
+    '#99994c','#7f7f00','#7f7f3f','#4c4c00','#4c4c26','#80ff00','#bfff80','#66cc00',
+    '#99cc66','#4c9900','#73994c','#3f7f00','#5f7f3f','#264c00','#394c26','#00ff00',
+    '#80ff80','#00cc00','#66cc66','#009900','#4c994c','#007f00','#3f7f3f','#004c00','#264c26'];
 
-  function getACI(idx) {
-    return ACI[idx % ACI.length] || '#1FA8D9';
-  }
+  function aciColor(idx){ return ACI[idx % ACI.length] || '#1FA8D9'; }
 
-  function getLayId(name, colorIdx) {
+  function getLayId(name, aci) {
     const n = (name||'0').trim();
-    if(layerMap[n] === undefined) {
+    if(layerMap[n] === undefined){
       const ex = ST.layers.find(l=>l.name===n);
-      if(ex) { layerMap[n]=ex.id; }
+      if(ex){ layerMap[n]=ex.id; }
       else {
         const id = ++_eid + 10000;
         layerMap[n] = id;
-        const col = colorIdx != null ? getACI(colorIdx) :
-          ['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060'][Object.keys(layerMap).length % 6];
+        const col = aci!=null ? aciColor(aci) :
+          ['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060'][Object.keys(layerMap).length%6];
         ST.layers.push({id,name:n,color:col,vis:true,lock:false,frz:false,dis:false});
       }
     }
     return layerMap[n];
   }
 
-  function mkE(obj) {
-    return {...obj, _id:++_eid, selected:false, layer:obj.layer||getLayId('0')};
-  }
+  function mkE(obj){ return {...obj,_id:++_eid,selected:false,layer:obj.layer||getLayId('0')}; }
 
-  // ── Try to extract layer table from DWG header area ────────────
-  // Scan for ASCII layer names in the first 64KB (header/table area)
-  const headerZone = Math.min(fileLen, 65536);
-  const headerText = Array.from(bytes.slice(0, headerZone)).map(b=>b>31&&b<127?String.fromCharCode(b):' ').join('');
+  function readD(off){ return off+8<=fileLen ? view.getFloat64(off,true) : NaN; }
+  function isValid(v){ return isFinite(v) && !isNaN(v); }
 
-  // Layer names typically appear as null-terminated strings preceded by length byte
-  // Also look for the pattern: ACI color byte, then string
-  const layerNameRe = /([A-Za-z0-9_\-. ]{2,30})/g;
-  const potentialLayers = new Set();
-  let lm;
-  // Only extract from a header zone — look for DWG layer table markers
-  const layerSection = headerText.indexOf('LAYER');
-  if(layerSection > 0) {
-    const zone = headerText.slice(layerSection, Math.min(layerSection+8192, headerZone));
-    while((lm = layerNameRe.exec(zone)) !== null) {
-      const n = lm[1].trim();
-      if(n.length >= 2 && n.length <= 30 && !/^\d+$/.test(n) && !['LAYER','BLOCK','SECTION','ENTITIES','HEADER','TABLES'].includes(n))
-        potentialLayers.add(n);
+  // ── STEP 1: Extract drawing extents from header area ────────────
+  // Scan first 64KB for EXTMIN/EXTMAX — two pairs of doubles close together
+  // that represent the bounding box
+  let extMinX=-Infinity, extMinY=-Infinity, extMaxX=Infinity, extMaxY=Infinity;
+  let extFound = false;
+
+  // Scan for isolated coordinate pairs in the header/tables area (first 512KB)
+  const scanLimit = Math.min(524288, fileLen);
+  const pairCandidates = [];
+  for(let o = 256; o < scanLimit - 32; o += 8) {
+    const x = readD(o), y = readD(o+8);
+    if(!isValid(x)||!isValid(y)) continue;
+    if(Math.abs(x) < 1e-10 && Math.abs(y) < 1e-10) continue; // skip zero pairs
+    if(Math.abs(x) > 1e9 || Math.abs(y) > 1e9) continue;
+    if(Math.abs(x) < 1e-6 || Math.abs(y) < 1e-6) continue; // skip near-zero
+    const prevX = readD(o-8);
+    const nextX = readD(o+16);
+    // Look for isolated pairs (surrounded by zeros/invalids)
+    if((!isValid(prevX) || Math.abs(prevX)<1e-6) && (!isValid(nextX) || Math.abs(nextX)<1e-6)) {
+      pairCandidates.push({o, x, y});
     }
   }
 
-  // Pre-register detected layers
-  potentialLayers.forEach(n => getLayId(n));
-
-  // ── Entity extraction: scan entire file for coordinate doubles ──
-  function isValidCoord(v) {
-    return isFinite(v) && !isNaN(v) && Math.abs(v) < 2e8 && Math.abs(v) > 1e-6;
+  // Find EXTMIN/EXTMAX pattern: two pairs that look like min/max of a bounding box
+  for(let i = 0; i < pairCandidates.length - 1; i++) {
+    const a = pairCandidates[i], b = pairCandidates[i+1];
+    const dx = Math.abs(b.x - a.x), dy = Math.abs(b.y - a.y);
+    const scale = Math.max(Math.abs(a.x), Math.abs(b.x), Math.abs(a.y), Math.abs(b.y));
+    // A valid extents pair: both in similar range, B slightly > A
+    if(dx > 0.001 && dy > 0.001 && scale > 1 && scale < 1e8 &&
+       dx/scale < 2 && dy/scale < 2) {
+      extMinX = Math.min(a.x, b.x);
+      extMinY = Math.min(a.y, b.y);
+      extMaxX = Math.max(a.x, b.x);
+      extMaxY = Math.max(a.y, b.y);
+      extFound = true;
+      break;
+    }
   }
 
-  // Track coordinate range to filter noise
-  let coordSamples = [];
-  function isInRange(v) {
-    if(coordSamples.length < 50) return true;
-    const med = coordSamples[Math.floor(coordSamples.length/2)];
-    return Math.abs(v - med) < med * 100 + 1e6;
-  }
-
-  // First pass: collect coordinate sample for range determination
-  for(let o = 256; o < Math.min(fileLen-16, 4096); o += 8) {
-    try {
-      const v = view.getFloat64(o, true);
-      if(isValidCoord(v) && Math.abs(v) > 1) coordSamples.push(Math.abs(v));
-    } catch(e) {}
-  }
-  coordSamples.sort((a,b)=>a-b);
-
-  const MAX_ENTS = 100000;
-  let o = Math.max(256, ver === 'AC1015' ? 0x19 : 0x28);
-
-  while(o < fileLen - 32 && ents.length < MAX_ENTS) {
-    if(o + 32 > fileLen) break;
-    try {
-      const x1 = view.getFloat64(o,    true);
-      const y1 = view.getFloat64(o+8,  true);
-
-      if(!isValidCoord(x1) || !isValidCoord(y1)) { o+=1; continue; }
-
-      const x2 = view.getFloat64(o+16, true);
-      const y2 = view.getFloat64(o+24, true);
-
-      if(!isValidCoord(x2) || !isValidCoord(y2)) { o+=8; continue; }
-
-      const dist = Math.hypot(x2-x1, y2-y1);
-      if(dist < 0.0001 || dist > 5e7) { o+=8; continue; }
-
-      // Try 3-point poly
-      if(o + 48 <= fileLen) {
-        const x3 = view.getFloat64(o+32, true);
-        const y3 = view.getFloat64(o+40, true);
-        if(isValidCoord(x3) && isValidCoord(y3) &&
-           Math.hypot(x3-x2,y3-y2) > 0.0001 && Math.hypot(x3-x2,y3-y2) < 5e7 &&
-           (x3!==x1||y3!==y1)) {
-          ents.push(mkE({type:'polyline',pts:[{x:x1,y:y1},{x:x2,y:y2},{x:x3,y:y3}],closed:false}));
-          o += 48; continue;
-        }
+  // ── STEP 2: Scan for layer names in header ────────────────────
+  const layerSection = bytes.indexOf ? -1 : -1; // fallback
+  // Scan for ASCII strings 2-30 chars in header zone
+  let textRun = '', textStart = 0;
+  for(let i = 256; i < Math.min(65536, fileLen); i++) {
+    const b = bytes[i];
+    if(b >= 32 && b < 127) {
+      if(!textRun) textStart = i;
+      textRun += String.fromCharCode(b);
+    } else {
+      if(textRun.length >= 3 && textRun.length <= 30 &&
+         /^[A-Za-z0-9_\-. ]+$/.test(textRun) &&
+         !['AutoCAD','Autodesk','TRUETYPE','BIGFONT','AcAd'].includes(textRun)) {
+        // Could be a layer name
+        getLayId(textRun);
       }
+      textRun = '';
+    }
+  }
 
-      ents.push(mkE({type:'line',x1,y1,x2,y2}));
-      o += 16;
-    } catch(e) { o += 1; }
+  // ── STEP 3: Extract geometry with smart filtering ─────────────
+  // Filtering rules:
+  // a) Both endpoints within 3x the drawing extents
+  // b) Line length between 1/1000 and 10x the drawing diagonal
+  // c) No single coordinate outside 10x the scale of the extents
+  // d) Coordinates must cluster — reject statistical outliers
+
+  const extW = extMaxX - extMinX, extH = extMaxY - extMinY;
+  const extDiag = Math.hypot(extW, extH);
+  const cx = (extMinX + extMaxX) / 2, cy = (extMinY + extMaxY) / 2;
+  const margin = extFound ? Math.max(extW, extH) * 3 : 1e7;
+  const minLen = extFound ? extDiag * 0.00001 : 0.001;
+  const maxLen = extFound ? extDiag * 10 : 1e6;
+
+  // First pass: collect all lines matching basic criteria
+  const rawLines = [];
+  for(let o = 4096; o < fileLen - 32; o += 8) {
+    const x1=readD(o), y1=readD(o+8), x2=readD(o+16), y2=readD(o+24);
+    if(!isValid(x1)||!isValid(y1)||!isValid(x2)||!isValid(y2)) continue;
+    const d = Math.hypot(x2-x1, y2-y1);
+    if(d < minLen || d > maxLen) continue;
+    if(x1===x2 && y1===y2) continue;
+
+    if(extFound) {
+      // Reject if outside extended bounding box
+      const pad = margin;
+      if(x1<extMinX-pad||x1>extMaxX+pad||y1<extMinY-pad||y1>extMaxY+pad) continue;
+      if(x2<extMinX-pad||x2>extMaxX+pad||y2<extMinY-pad||y2>extMaxY+pad) continue;
+    } else {
+      // No extents known: use magnitude filter
+      const maxAbs = Math.max(Math.abs(x1),Math.abs(y1),Math.abs(x2),Math.abs(y2));
+      if(maxAbs < 0.001 || maxAbs > 1e7) continue;
+      // Reject if coordinates span more than 6 orders of magnitude
+      const minAbs = Math.min(...[x1,y1,x2,y2].filter(v=>Math.abs(v)>1e-10).map(Math.abs));
+      if(minAbs > 0 && maxAbs/minAbs > 1e6) continue;
+    }
+
+    rawLines.push([x1, y1, x2, y2]);
+  }
+
+  // Second pass: find the MODE coordinate region and filter to it
+  // Bin X coordinates into histogram
+  if(rawLines.length > 0) {
+    const allXY = rawLines.flatMap(([x1,y1,x2,y2])=>[{v:x1,ax:'x'},{v:y1,ax:'y'},{v:x2,ax:'x'},{v:y2,ax:'y'}]);
+    const xs = allXY.filter(p=>p.ax==='x').map(p=>p.v).sort((a,b)=>a-b);
+    const ys = allXY.filter(p=>p.ax==='y').map(p=>p.v).sort((a,b)=>a-b);
+
+    // Use interquartile range
+    const q1x=xs[Math.floor(xs.length*0.10)], q3x=xs[Math.floor(xs.length*0.90)];
+    const q1y=ys[Math.floor(ys.length*0.10)], q3y=ys[Math.floor(ys.length*0.90)];
+    const iqrX=(q3x-q1x)*1.5, iqrY=(q3y-q1y)*1.5;
+    const xLo=q1x-iqrX, xHi=q3x+iqrX;
+    const yLo=q1y-iqrY, yHi=q3y+iqrY;
+
+    rawLines.forEach(([x1,y1,x2,y2]) => {
+      if(x1>=xLo&&x1<=xHi&&y1>=yLo&&y1<=yHi&&x2>=xLo&&x2<=xHi&&y2>=yLo&&y2<=yHi) {
+        ents.push(mkE({type:'line',x1,y1,x2,y2}));
+      }
+    });
   }
 
   // Deduplicate
   const seen = new Set();
   const finalEnts = ents.filter(e => {
-    const k = e.type==='line'
-      ? `${e.x1.toFixed(3)},${e.y1.toFixed(3)},${e.x2.toFixed(3)},${e.y2.toFixed(3)}`
-      : (e.pts||[]).map(p=>`${p.x.toFixed(3)},${p.y.toFixed(3)}`).join('|');
+    const k = `${e.x1.toFixed(2)},${e.y1.toFixed(2)},${e.x2.toFixed(2)},${e.y2.toFixed(2)}`;
     if(seen.has(k)) return false;
     seen.add(k); return true;
   });
@@ -5752,7 +5790,8 @@ function parseDWGBinary(bytes, filename) {
   return {
     entities: finalEnts,
     version: verName,
-    layerCount: Object.keys(layerMap).length || 1
+    layerCount: Object.keys(layerMap).length || 1,
+    extents: extFound ? {minX:extMinX,minY:extMinY,maxX:extMaxX,maxY:extMaxY} : null
   };
 }
 
