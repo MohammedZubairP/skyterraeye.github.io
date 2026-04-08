@@ -1019,61 +1019,55 @@ input,select{font-family:inherit}
 
 <!-- DWG IMPORT MODAL -->
 <div class="mo" id="moDwgGuide">
-  <div class="modal w">
+  <div class="modal w" style="max-width:580px">
     <div class="mh">
       <div class="mh-t"><span class="i">📐</span>DWG File Import</div>
       <span class="mc" onclick="closeMo('moDwgGuide')">✕</span>
     </div>
     <div class="mb">
-      <!-- File info chips -->
-      <div class="dwg-meta" id="dwgMeta" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
-
-      <!-- OPTION 1: Direct import -->
-      <!-- DWG Thumbnail Preview -->
+      <div class="dwg-meta" id="dwgMeta" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px"></div>
       <div id="dwgThumbRow" style="display:none;margin-bottom:10px;background:var(--bg2);border:1px solid var(--sep);border-radius:5px;overflow:hidden">
-        <div style="font-size:8.5px;color:var(--m);padding:4px 8px;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep)">📐 Drawing Preview</div>
         <canvas id="dwgThumbCanvas" style="width:100%;max-height:160px;display:block"></canvas>
       </div>
 
-      <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25);border-radius:6px;padding:12px 14px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <span style="font-size:16px">⚡</span>
-          <div style="flex:1">
-            <div style="font-size:12px;font-weight:800;color:#22C55E;font-family:'Syne',sans-serif">Import DWG Directly</div>
-            <div style="font-size:9.5px;color:var(--m);margin-top:1px">Extracts geometry from binary DWG — best for R2000–R2010 files</div>
-          </div>
-          <button id="dwgParseBtn" class="btn" onclick="importDwgDirect()" style="background:linear-gradient(135deg,#16a34a,#22C55E);flex-shrink:0">⚡ Import Now</button>
+      <!-- CloudConvert API -->
+      <div style="background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.3);border-radius:6px;padding:12px 14px;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:800;color:#22C55E;margin-bottom:5px">☁ Auto-Convert via CloudConvert — All DWG versions</div>
+        <div style="font-size:9px;color:var(--m);margin-bottom:8px;line-height:1.5">Paste your free CloudConvert API key (get one free at cloudconvert.com — 25 conversions/day). Strata converts DWG→DXF automatically and imports it.</div>
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <input id="ccApiKey" placeholder="Paste CloudConvert API key (eyJ0eXAiO...)" type="password"
+            style="flex:1;background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9px;padding:4px 8px;border-radius:3px;outline:none;font-family:'IBM Plex Mono',monospace"
+            onkeydown="event.stopPropagation()">
+          <button class="btn" onclick="window.open('https://app.cloudconvert.com/dashboard/api/v2/keys','_blank')" style="font-size:9px;white-space:nowrap;flex-shrink:0">Get Free Key →</button>
         </div>
-        <div style="font-size:9px;color:var(--m);padding:5px 8px;background:rgba(0,0,0,.2);border-radius:3px;font-family:'IBM Plex Mono',monospace">
-          ✓ R2000–R2010 (AC1015–AC1024): good extraction &nbsp;·&nbsp; R2013+ (AC1027+): partial extraction only<br>
-          ⚠ R2013+ files use proprietary compression — see conversion options below for 100% accuracy
-        </div>
+        <button id="ccConvertBtn" class="btn" onclick="convertWithCloudConvert()"
+          style="width:100%;background:linear-gradient(135deg,#166534,#22C55E);font-size:10.5px;padding:7px">
+          ☁ Convert &amp; Import DWG Now
+        </button>
+        <div id="ccStatus" style="font-size:9px;color:var(--m);margin-top:5px;font-family:'IBM Plex Mono',monospace;display:none;line-height:1.5"></div>
       </div>
 
-      <!-- OPTION 2: Convert first -->
-      <div style="background:rgba(31,168,217,.05);border:1px solid var(--bl);border-radius:6px;padding:12px 14px;margin-bottom:10px">
-        <div style="font-size:10.5px;font-weight:700;color:var(--b);margin-bottom:8px">🔄 Or Convert to DXF First (Best Quality)</div>
-        <div style="font-size:9.5px;color:var(--m);margin-bottom:8px">For Civil 3D files with surfaces, corridors, or proxy objects — convert to DXF first for 100% geometry fidelity.</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn" onclick="openDwgConvertUrl('oda')" style="font-size:10px;padding:5px 10px;background:rgba(31,168,217,.15);border:1px solid var(--bl);color:var(--b)">🖥 ODA Converter (FREE desktop)</button>
-          <button class="btn" onclick="openDwgConvertUrl('cc')" style="font-size:10px;padding:5px 10px;background:rgba(31,168,217,.15);border:1px solid var(--bl);color:var(--b)">☁ CloudConvert (online, free tier)</button>
-          <button class="btn" onclick="openDwgConvertUrl('autodesk')" style="font-size:10px;padding:5px 10px;background:rgba(31,168,217,.15);border:1px solid var(--bl);color:var(--b)">🔗 Autodesk Viewer</button>
-        </div>
+      <!-- Direct import (R2000-R2010) -->
+      <div style="background:rgba(31,168,217,.05);border:1px solid var(--bl);border-radius:6px;padding:10px 14px;margin-bottom:8px">
+        <div style="font-size:10px;font-weight:700;color:var(--b);margin-bottom:4px">⚡ Direct Browser Import — R2000–R2010 (AC1015–AC1024) only</div>
+        <div style="font-size:9px;color:var(--m);margin-bottom:6px">R2013+ (AC1027+) uses ODA proprietary compression — use CloudConvert above for those.</div>
+        <button id="dwgParseBtn" class="btn" onclick="importDwgDirect()" style="font-size:10px;padding:5px 12px">⚡ Try Direct Import</button>
       </div>
 
-      <!-- OPTION 3: AutoCAD command -->
+      <!-- Offline options -->
       <div style="background:rgba(167,139,250,.05);border:1px solid var(--stl);border-radius:6px;padding:10px 14px">
-        <div style="font-size:10px;font-weight:700;color:var(--st);margin-bottom:5px">📋 If you have AutoCAD / Civil 3D</div>
-        <div style="font-size:9px;color:var(--m);font-family:'IBM Plex Mono',monospace;line-height:1.8">
-          For Civil 3D surfaces: <b style="color:var(--b)">AECCEXPORTTOACTUAD</b> → converts proxy objects to LWPOLYLINE<br>
-          Then: <b style="color:var(--b)">File → Save As → AutoCAD 2013 DXF (*.dxf)</b> → drop into Strata
+        <div style="font-size:10px;font-weight:700;color:var(--st);margin-bottom:5px">🖥 Offline Conversion Options</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px">
+          <button class="btn" onclick="openDwgConvertUrl('oda')" style="font-size:9px;padding:4px 9px">ODA File Converter (Free desktop)</button>
+          <button class="btn" onclick="openDwgConvertUrl('cc')" style="font-size:9px;padding:4px 9px">CloudConvert Web</button>
+          <button class="btn" onclick="openDwgConvertUrl('autodesk')" style="font-size:9px;padding:4px 9px">Autodesk Viewer</button>
         </div>
+        <div style="font-size:8.5px;color:var(--m);font-family:'IBM Plex Mono',monospace">In AutoCAD: File → Save As → AutoCAD 2013 DXF (*.dxf) → drag into Strata</div>
       </div>
     </div>
     <div class="mf">
       <button class="btn s" onclick="closeMo('moDwgGuide')">Cancel</button>
-      <button class="btn" onclick="closeMo('moDwgGuide');openMo('moImport')">📂 Import Different File</button>
-      <button class="btn st" onclick="importDwgDirect()">⚡ Import DWG Now</button>
+      <button class="btn" onclick="closeMo('moDwgGuide');openMo('moImport')">📂 Choose Different File</button>
     </div>
   </div>
 </div>
@@ -6320,6 +6314,75 @@ showDwgGuide = function(f) {
   };
   reader.readAsArrayBuffer(f.slice(0, 200000)); // Read first 200KB for header + thumbnail
 };
+
+
+// ════════════════════════════════════════════════════════════════════
+//  CLOUDCONVERT DWG→DXF CONVERSION
+// ════════════════════════════════════════════════════════════════════
+async function convertWithCloudConvert() {
+  const apiKey = (document.getElementById('ccApiKey')?.value||'').trim();
+  if(!apiKey) { toast('Paste your CloudConvert API key first', 'warn'); return; }
+  if(!_dwgFile) { toast('No DWG file selected', 'warn'); return; }
+  const statusEl = document.getElementById('ccStatus');
+  const btn = document.getElementById('ccConvertBtn');
+  function setS(msg, col) {
+    if(statusEl){statusEl.textContent=msg;statusEl.style.color=col||'var(--m)';statusEl.style.display='block';}
+    setMsg(msg);
+  }
+  btn.disabled = true; btn.textContent = '⏳ Converting…';
+  try {
+    setS('Creating conversion job…');
+    const jobResp = await fetch('https://api.cloudconvert.com/v2/jobs', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'},
+      body: JSON.stringify({tasks:{
+        'upload':   {operation:'import/upload'},
+        'convert':  {operation:'convert',input:'upload',output_format:'dxf',input_format:'dwg'},
+        'export':   {operation:'export/url',input:'convert'}
+      }})
+    });
+    if(!jobResp.ok){const e=await jobResp.json();throw new Error(e.message||'Job failed: '+jobResp.status);}
+    const job = await jobResp.json();
+    const uploadTask = job.data.tasks.find(t=>t.name==='upload');
+    if(!uploadTask?.result?.form) throw new Error('No upload form in response');
+    setS('Uploading DWG ('+(_dwgFile.size/1024/1024).toFixed(1)+'MB)…');
+    const form = new FormData();
+    Object.entries(uploadTask.result.form.parameters||{}).forEach(([k,v])=>form.append(k,v));
+    form.append('file', _dwgFile);
+    await fetch(uploadTask.result.form.url, {method:'POST',body:form});
+    setS('Converting DWG → DXF on cloud…');
+    const jobId = job.data.id;
+    let dxfUrl = null;
+    for(let i = 0; i < 60; i++) {
+      await new Promise(r=>setTimeout(r,2000));
+      const poll = await fetch('https://api.cloudconvert.com/v2/jobs/'+jobId,
+        {headers:{'Authorization':'Bearer '+apiKey}});
+      const pd = await poll.json();
+      const st = pd.data.status;
+      setS('Converting… ('+st+', attempt '+(i+1)+'/60)');
+      if(st==='finished'){
+        const exp = pd.data.tasks.find(t=>t.name==='export');
+        dxfUrl = exp?.result?.files?.[0]?.url;
+        break;
+      }
+      if(st==='error'){
+        const et = pd.data.tasks.find(t=>t.status==='error');
+        throw new Error('Conversion error: '+(et?.message||'unknown'));
+      }
+    }
+    if(!dxfUrl) throw new Error('Timed out waiting for conversion');
+    setS('Downloading converted DXF…');
+    const dxfText = await (await fetch(dxfUrl)).text();
+    closeMo('moDwgGuide');
+    parseDXF(dxfText, _dwgFile.name.replace(/\.dwg$/i,'.dxf'));
+    setS(''); btn.disabled=false; btn.textContent='☁ Convert & Import DWG Now';
+    toast('DWG converted and imported via CloudConvert!','ok');
+  } catch(err) {
+    toast('CloudConvert: '+err.message,'err');
+    setS('Error: '+err.message,'#ff4466');
+    btn.disabled=false; btn.textContent='☁ Convert & Import DWG Now';
+  }
+}
 
 </script>
 
