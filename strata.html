@@ -1033,13 +1033,14 @@ input,select{font-family:inherit}
       <!-- CloudConvert API -->
       <div style="background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.3);border-radius:6px;padding:12px 14px;margin-bottom:8px">
         <div style="font-size:11px;font-weight:800;color:#22C55E;margin-bottom:5px">☁ Auto-Convert via CloudConvert — All DWG versions</div>
-        <div style="font-size:9px;color:var(--m);margin-bottom:8px;line-height:1.5">Paste your free CloudConvert API key (get one free at cloudconvert.com — 25 conversions/day). Strata converts DWG→DXF automatically and imports it.</div>
-        <div style="display:flex;gap:6px;margin-bottom:6px">
-          <input id="ccApiKey" placeholder="Paste CloudConvert API key (eyJ0eXAiO...)" type="password"
-            style="flex:1;background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9px;padding:4px 8px;border-radius:3px;outline:none;font-family:'IBM Plex Mono',monospace"
-            onkeydown="event.stopPropagation()">
-          <button class="btn" onclick="window.open('https://app.cloudconvert.com/dashboard/api/v2/keys','_blank')" style="font-size:9px;white-space:nowrap;flex-shrink:0">Get Free Key →</button>
+        <div style="font-size:9px;color:var(--m);margin-bottom:8px;line-height:1.5">
+          CloudConvert API is pre-configured. Click the button below to convert and import any DWG file automatically.
         </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:5px 8px;background:rgba(34,197,94,.06);border-radius:4px">
+          <span style="font-size:16px">✅</span>
+          <span style="font-size:9.5px;color:#4eff91;font-family:'IBM Plex Mono',monospace">API key pre-configured — ready to convert</span>
+        </div>
+        <input id="ccApiKey" type="hidden" value="">
         <button id="ccConvertBtn" class="btn" onclick="convertWithCloudConvert()"
           style="width:100%;background:linear-gradient(135deg,#166534,#22C55E);font-size:10.5px;padding:7px">
           ☁ Convert &amp; Import DWG Now
@@ -3812,6 +3813,9 @@ document.addEventListener('keydown', ev => {
 // ════════════════════════════════════════════════════════════════════
 //  MAP BACKGROUND — Leaflet tiles behind canvas
 // ════════════════════════════════════════════════════════════════════
+// Built-in CloudConvert API key
+const CC_API_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiMmUwMjE3OWE3YTQ3Zjk4ODYzZGMwNGQwMGEwODdmMmY2YWQxODA5YmI3NDc5ODNmNTM1M2JjZjg1NmFkMzUxNzkwY2FmMjFlZmZhYjdjYzgiLCJpYXQiOjE3NzU2NDcxMDMuNjQxNjI3LCJuYmYiOjE3NzU2NDcxMDMuNjQxNjI5LCJleHAiOjQ5MzEzMjA3MDMuNjM0MDIsInN1YiI6IjU1NzE1MTUxIiwic2NvcGVzIjpbInVzZXIucmVhZCIsInVzZXIud3JpdGUiLCJ0YXNrLnJlYWQiLCJ0YXNrLndyaXRlIiwid2ViaG9vay5yZWFkIiwid2ViaG9vay53cml0ZSIsInByZXNldC5yZWFkIiwicHJlc2V0LndyaXRlIl19.JJfY2UDUF_u_Jq_cNNekVilmE3vd7vIjcqo1FaK9aYhO9Iqb_eckL6VVWIS5EoiidfixJQozFiLkvZry9did7aVgC1TfmZStHKhtVfROt-F09yjNSRjf-loRqRgNtedZ5pOzbXQp3kdHqIUKuzNFyd9FJQS4qNYfKR4Ze1M7ddRujvdcI_H6Wi0-YJf7lH7_aAMnGCQ-dIKYk2zdymOMxAZsirYDFhCyDbcd8Hk28XfqqG8bpYcwRoai9uBkK0K_8P_hPbhGU3XVPuOX1Hze-eKnkAkkR_t8CzMu0QIIOXelDdYjBasPyuw2rD2eiF1vMtsYOhvfmIRgW1_4GTMkkaeViIgSJlXXwQHGdN0cREzH7jZ3W4tt5RPg9oEKR1DRh0OZjoQUZcRslZm_SI_j6hmXPJEADt4nNsM2__lnWP_UrgBWVjx9zkPxMTNYLUXmfYD9TwVegvn_hSNyGt32nJC_CP6MP4kLTn9qSbEndi7hX2ffqg0J7rU3TofdvqCl0pc-hLTQPDYNdr3sgxvl451OPOftoKaOL-PrA3rk25g5o_4nzhfkR9_CQ_9-SdVzUDb50RwVr4sVHYYxWamROD6getBvpd7q202cbv7gu2Z1lRQZM0X-dULtsR5ZwFibOaCY8xY0gmKkHBgVuxHgCsnaGhNY5Lav--z5XU1UcaU';
+
 // ════════════════════════════════════════════════════════════════════
 //  MAP ENGINE — Leaflet with proper canvas event routing
 // ════════════════════════════════════════════════════════════════════
@@ -5579,13 +5583,10 @@ function importDwgDirect() {
     try {
       const result = parseDWGBinary(new Uint8Array(ev.target.result), _dwgFile.name);
       if(result && result.compressed) {
-        // R2013+ — update the guide modal to focus on conversion options
-        const meta = document.getElementById('dwgMeta');
-        if(meta) meta.innerHTML = meta.innerHTML +
-          '<span class="dwg-chip" style="background:rgba(255,68,102,.1);border-color:rgba(255,68,102,.4);color:#ff4466">⚠ AC1027+ Compressed — cannot decode in browser</span>';
-        toast('DWG R2013+ requires ODA conversion — see options below', 'warn');
-        setMsg('⚠ DWG R2013+ (AC1027) cannot be decoded in browser. Please convert to DXF using ODA Converter (free) then reimport.');
-        openMo('moDwgGuide');
+        // R2013+: auto-convert with embedded CloudConvert key
+        closeMo('moDwgGuide');
+        toast('DWG R2013+ detected — auto-converting via CloudConvert…', 'ok');
+        setTimeout(() => convertWithCloudConvert(), 200);
         return;
       }
       if(result && result.entities && result.entities.length > 0) {
@@ -6308,6 +6309,21 @@ showDwgGuide = function(f) {
       }
     }
 
+    // If compressed R2013+, auto-convert immediately without showing modal
+    let verStr = '';
+    for(let i=0;i<6;i++) verStr += String.fromCharCode(bytes[i]);
+    if(verStr >= 'AC1027') {
+      // Show brief toast and go straight to CloudConvert
+      const meta = document.getElementById('dwgMeta');
+      if(meta) meta.innerHTML =
+        `<span class="dwg-chip">📄 <b>${f.name}</b></span>` +
+        `<span class="dwg-chip">📐 <b>${verStr}</b> — ${DWG_VERSIONS[verStr]||verStr}</span>` +
+        `<span class="dwg-chip">💾 <b>${(f.size/1048576).toFixed(1)} MB</b></span>`;
+      toast('DWG ' + (DWG_VERSIONS[verStr]||verStr) + ' — auto-converting via CloudConvert…', 'ok');
+      setMsg('Auto-converting DWG via CloudConvert — please wait…');
+      setTimeout(() => convertWithCloudConvert(), 300);
+      return;
+    }
     const parseBtn = document.getElementById('dwgParseBtn');
     if(parseBtn) parseBtn.style.display = 'inline-flex';
     openMo('moDwgGuide');
@@ -6320,67 +6336,132 @@ showDwgGuide = function(f) {
 //  CLOUDCONVERT DWG→DXF CONVERSION
 // ════════════════════════════════════════════════════════════════════
 async function convertWithCloudConvert() {
-  const apiKey = (document.getElementById('ccApiKey')?.value||'').trim();
-  if(!apiKey) { toast('Paste your CloudConvert API key first', 'warn'); return; }
+  // Use built-in key, fall back to user-entered key
+  const apiKey = CC_API_KEY || (document.getElementById('ccApiKey')?.value||'').trim();
+  if(!apiKey) { toast('No CloudConvert API key configured', 'warn'); return; }
   if(!_dwgFile) { toast('No DWG file selected', 'warn'); return; }
+
   const statusEl = document.getElementById('ccStatus');
   const btn = document.getElementById('ccConvertBtn');
+
   function setS(msg, col) {
-    if(statusEl){statusEl.textContent=msg;statusEl.style.color=col||'var(--m)';statusEl.style.display='block';}
-    setMsg(msg);
+    if(statusEl){statusEl.innerHTML=msg;statusEl.style.color=col||'var(--m)';statusEl.style.display='block';}
+    setMsg(msg.replace(/<[^>]+>/g,''));
   }
+
+  // File size check
+  const sizeMB = _dwgFile.size / 1048576;
+  if(sizeMB > 500) { toast('File is ' + sizeMB.toFixed(0) + 'MB — CloudConvert free tier works up to 1GB', 'warn'); }
+
   btn.disabled = true; btn.textContent = '⏳ Converting…';
+
   try {
-    setS('Creating conversion job…');
+    setS('Step 1/4 — Creating conversion job…');
+
     const jobResp = await fetch('https://api.cloudconvert.com/v2/jobs', {
-      method:'POST',
-      headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'},
-      body: JSON.stringify({tasks:{
-        'upload':   {operation:'import/upload'},
-        'convert':  {operation:'convert',input:'upload',output_format:'dxf',input_format:'dwg'},
-        'export':   {operation:'export/url',input:'convert'}
-      }})
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        tasks: {
+          'upload':  { operation: 'import/upload' },
+          'convert': { operation: 'convert', input: 'upload', output_format: 'dxf', input_format: 'dwg',
+                       engine: 'cadconverter' },
+          'export':  { operation: 'export/url', input: 'convert' }
+        }
+      })
     });
-    if(!jobResp.ok){const e=await jobResp.json();throw new Error(e.message||'Job failed: '+jobResp.status);}
+
+    if(!jobResp.ok) {
+      const errBody = await jobResp.json().catch(()=>({message:jobResp.statusText}));
+      const msg = errBody.message || errBody.error || jobResp.statusText;
+
+      if(jobResp.status === 401) {
+        setS(`<b style="color:#ff4466">Authentication failed.</b><br>
+Your API key is invalid or expired. Make sure you:<br>
+1. Used a <b>Production</b> key (not Sandbox)<br>
+2. Gave it "tasks.write" permission<br>
+3. Copied the full key including <code>eyJ0...</code><br>
+<a href="https://app.cloudconvert.com/dashboard/api/v2/keys" target="_blank" style="color:var(--b)">→ Open CloudConvert API Keys page</a>`, '#ff9060');
+        return;
+      }
+      if(jobResp.status === 402) {
+        setS(`<b style="color:#ff4466">Conversion limit reached.</b><br>
+Your free tier (25/day) is exhausted. <a href="https://cloudconvert.com/pricing" target="_blank" style="color:var(--b)">Upgrade on CloudConvert →</a>`, '#ff9060');
+        return;
+      }
+      throw new Error('API error ' + jobResp.status + ': ' + msg);
+    }
+
     const job = await jobResp.json();
-    const uploadTask = job.data.tasks.find(t=>t.name==='upload');
-    if(!uploadTask?.result?.form) throw new Error('No upload form in response');
-    setS('Uploading DWG ('+(_dwgFile.size/1024/1024).toFixed(1)+'MB)…');
+    const uploadTask = job.data.tasks.find(t => t.name === 'upload');
+    if(!uploadTask?.result?.form) throw new Error('No upload endpoint received');
+
+    setS('Step 2/4 — Uploading ' + sizeMB.toFixed(1) + 'MB DWG to CloudConvert…');
+
     const form = new FormData();
-    Object.entries(uploadTask.result.form.parameters||{}).forEach(([k,v])=>form.append(k,v));
+    Object.entries(uploadTask.result.form.parameters || {}).forEach(([k,v]) => form.append(k, v));
     form.append('file', _dwgFile);
-    await fetch(uploadTask.result.form.url, {method:'POST',body:form});
-    setS('Converting DWG → DXF on cloud…');
+
+    const uploadResp = await fetch(uploadTask.result.form.url, { method: 'POST', body: form });
+    if(!uploadResp.ok && uploadResp.status !== 201 && uploadResp.status !== 204) {
+      throw new Error('Upload failed: HTTP ' + uploadResp.status);
+    }
+
+    setS('Step 3/4 — Converting DWG → DXF (this may take a minute for large files)…');
+
+    // Poll for completion
     const jobId = job.data.id;
     let dxfUrl = null;
-    for(let i = 0; i < 60; i++) {
-      await new Promise(r=>setTimeout(r,2000));
-      const poll = await fetch('https://api.cloudconvert.com/v2/jobs/'+jobId,
-        {headers:{'Authorization':'Bearer '+apiKey}});
-      const pd = await poll.json();
+    for(let i = 0; i < 90; i++) {  // up to 3 minutes
+      await new Promise(r => setTimeout(r, 2000));
+      const pollResp = await fetch('https://api.cloudconvert.com/v2/jobs/' + jobId,
+        { headers: { 'Authorization': 'Bearer ' + apiKey } });
+
+      if(!pollResp.ok) throw new Error('Poll failed: ' + pollResp.status);
+      const pd = await pollResp.json();
       const st = pd.data.status;
-      setS('Converting… ('+st+', attempt '+(i+1)+'/60)');
-      if(st==='finished'){
-        const exp = pd.data.tasks.find(t=>t.name==='export');
-        dxfUrl = exp?.result?.files?.[0]?.url;
+      const pct = Math.round(((i+1)/90)*100);
+      setS('Step 3/4 — Converting… status: <b>' + st + '</b> (' + (i*2) + 's elapsed)');
+
+      if(st === 'finished') {
+        const expTask = pd.data.tasks.find(t => t.name === 'export');
+        dxfUrl = expTask?.result?.files?.[0]?.url;
+        if(!dxfUrl) throw new Error('Conversion finished but no DXF URL in response');
         break;
       }
-      if(st==='error'){
-        const et = pd.data.tasks.find(t=>t.status==='error');
-        throw new Error('Conversion error: '+(et?.message||'unknown'));
+      if(st === 'error') {
+        const errTask = pd.data.tasks.find(t => t.status === 'error');
+        throw new Error('Conversion failed: ' + (errTask?.message || errTask?.code || 'unknown error'));
       }
     }
-    if(!dxfUrl) throw new Error('Timed out waiting for conversion');
-    setS('Downloading converted DXF…');
-    const dxfText = await (await fetch(dxfUrl)).text();
+
+    if(!dxfUrl) throw new Error('Conversion timed out after 3 minutes');
+
+    setS('Step 4/4 — Downloading converted DXF…');
+
+    const dxfResp = await fetch(dxfUrl);
+    if(!dxfResp.ok) throw new Error('DXF download failed: ' + dxfResp.status);
+    const dxfText = await dxfResp.text();
+
+    setS('Importing DXF into Strata…');
     closeMo('moDwgGuide');
-    parseDXF(dxfText, _dwgFile.name.replace(/\.dwg$/i,'.dxf'));
-    setS(''); btn.disabled=false; btn.textContent='☁ Convert & Import DWG Now';
-    toast('DWG converted and imported via CloudConvert!','ok');
+
+    const dxfName = _dwgFile.name.replace(/\.dwg$/i, '.dxf');
+    parseDXF(dxfText, dxfName);
+    toast('✅ DWG converted and imported! (' + sizeMB.toFixed(1) + 'MB → DXF via CloudConvert)', 'ok');
+    setS('');
+
   } catch(err) {
-    toast('CloudConvert: '+err.message,'err');
-    setS('Error: '+err.message,'#ff4466');
-    btn.disabled=false; btn.textContent='☁ Convert & Import DWG Now';
+    console.error('CloudConvert error:', err);
+    const msg = err.message || String(err);
+    setS('<b style="color:#ff4466">Error: ' + msg + '</b><br><span style="font-size:8px">Check browser console for details. Make sure your API key is a Production key with tasks.write permission.</span>', '#ff9060');
+    toast('CloudConvert: ' + msg, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '☁ Convert & Import DWG Now';
   }
 }
 
