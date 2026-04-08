@@ -1029,18 +1029,24 @@ input,select{font-family:inherit}
       <div class="dwg-meta" id="dwgMeta" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
 
       <!-- OPTION 1: Direct import -->
+      <!-- DWG Thumbnail Preview -->
+      <div id="dwgThumbRow" style="display:none;margin-bottom:10px;background:var(--bg2);border:1px solid var(--sep);border-radius:5px;overflow:hidden">
+        <div style="font-size:8.5px;color:var(--m);padding:4px 8px;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--sep)">📐 Drawing Preview</div>
+        <canvas id="dwgThumbCanvas" style="width:100%;max-height:160px;display:block"></canvas>
+      </div>
+
       <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25);border-radius:6px;padding:12px 14px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
           <span style="font-size:16px">⚡</span>
-          <div>
+          <div style="flex:1">
             <div style="font-size:12px;font-weight:800;color:#22C55E;font-family:'Syne',sans-serif">Import DWG Directly</div>
-            <div style="font-size:9.5px;color:var(--m);margin-top:1px">Strata will parse the binary DWG file and extract geometry</div>
+            <div style="font-size:9.5px;color:var(--m);margin-top:1px">Extracts geometry from binary DWG — best for R2000–R2010 files</div>
           </div>
-          <button id="dwgParseBtn" class="btn" onclick="importDwgDirect()" style="margin-left:auto;background:linear-gradient(135deg,#16a34a,#22C55E);min-width:150px">⚡ Import DWG</button>
+          <button id="dwgParseBtn" class="btn" onclick="importDwgDirect()" style="background:linear-gradient(135deg,#16a34a,#22C55E);flex-shrink:0">⚡ Import Now</button>
         </div>
         <div style="font-size:9px;color:var(--m);padding:5px 8px;background:rgba(0,0,0,.2);border-radius:3px;font-family:'IBM Plex Mono',monospace">
-          ✓ Supports R2000–R2025 (AC1015–AC1037) &nbsp;·&nbsp; Extracts lines, polylines, arcs, circles, text<br>
-          ⚠ Civil 3D proxy objects and complex 3D solids may not extract fully
+          ✓ R2000–R2010 (AC1015–AC1024): good extraction &nbsp;·&nbsp; R2013+ (AC1027+): partial extraction only<br>
+          ⚠ R2013+ files use proprietary compression — see conversion options below for 100% accuracy
         </div>
       </div>
 
@@ -2323,7 +2329,7 @@ canvas.addEventListener('mousedown',ev=>{
   }
 
   // ── ALL OTHER DRAWING TOOLS ──────────────────────────────────────
-  const drawTools=['line','circle','rect','ellipse','arc','text','hatch','dim-lin','spline','leader','polygon','cloud','xline','ray','wipeout'];
+  const drawTools=['line','circle','rect','ellipse','arc','text','hatch','dim-lin','spline','leader','polygon','cloud','xline','ray','wipeout','boundary'];
   if(drawTools.includes(ST.tool)){
     const owp=ST.ortho&&ST.startPt?applyOrtho(ST.startPt,wp):wp;
     if(!ST.drawing){
@@ -2626,6 +2632,7 @@ function T(tool) {
     circle:'Click center point  |  ESC=cancel',
     rect:'Click first corner  |  ESC=cancel',
     polygon:'Click center point  |  ESC=cancel',
+    boundary:'Click points to define boundary — double-click or Enter to close  |  ESC=cancel',
     cloud:'Click center  |  ESC=cancel',
     arc:'Click center point  |  ESC=cancel',
     ellipse:'Click center  |  ESC=cancel',
@@ -6081,6 +6088,230 @@ parseDXF = function(txt, filename) {
     autoDetectCRS(ST.entities);
     autoGotoDrawingLocation();
   }, 300);
+};
+
+
+// ════════════════════════════════════════════════════════════════════
+//  POINT-BY-POINT BOUNDARY / POLYGON TOOL
+// ════════════════════════════════════════════════════════════════════
+
+// The 'boundary' tool works like polyline but closes and creates a filled polygon
+// Each click adds a vertex. Double-click or Enter closes and commits.
+
+// Hook into mousedown for boundary tool
+(function() {
+  const _origMD_handler = canvas.onmousedown;
+  const _handleBoundary = (ev) => {
+    if(ST.tool !== 'boundary') return false;
+    if(ev.button !== 0) return false;
+    ev.stopImmediatePropagation();
+    const r = canvas.getBoundingClientRect();
+    const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    const wp = snapPoint(mx, my);
+    if(!ST.polyPts) { ST.polyPts = []; ST.drawing = true; }
+    ST.polyPts.push(wp);
+    ST.startPt = wp;
+    if(ST.polyPts.length === 1) {
+      setMsg('Boundary: click to add points — double-click or Enter to close  |  ESC=cancel  |  ' + ST.polyPts.length + ' pts');
+    } else {
+      setMsg('Boundary: ' + ST.polyPts.length + ' pts — keep clicking  |  double-click or Enter to close  |  ESC=cancel');
+    }
+    render();
+    return true;
+  };
+
+  canvas.addEventListener('mousedown', ev => {
+    if(_handleBoundary(ev)) return;
+  }, true); // capture phase so it fires before the main handler
+
+  // Double-click closes the boundary
+  const _origDblClick = canvas.ondblclick;
+  canvas.addEventListener('dblclick', ev => {
+    if(ST.tool === 'boundary') {
+      ev.stopImmediatePropagation();
+      commitBoundary();
+    }
+  }, true);
+})();
+
+function commitBoundary() {
+  const pts = ST.polyPts;
+  if(!pts || pts.length < 3) {
+    toast('Need at least 3 points for a boundary', 'warn'); return;
+  }
+  pushUndo();
+  // Create as closed polyline (it renders as a polygon)
+  ST.entities.push(mkEnt({
+    type: 'polyline',
+    pts: [...pts],
+    closed: true,
+    layer: ST.curLayer
+  }));
+  ST.polyPts = null; ST.startPt = null; ST.drawing = false;
+  toast('Boundary closed — ' + pts.length + ' vertices', 'ok');
+  setMsg('Boundary drawn  |  BND to draw another  |  ESC=select');
+  render();
+}
+
+// Patch keydown to handle Enter for boundary
+const _bdKeydown = document.addEventListener;
+document.addEventListener('keydown', ev => {
+  if(ST.tool === 'boundary' && ev.key === 'Enter') {
+    ev.preventDefault(); ev.stopPropagation();
+    commitBoundary();
+  }
+  if(ST.tool === 'boundary' && ev.key === 'Escape') {
+    ST.polyPts = null; ST.startPt = null; ST.drawing = false;
+    setMsg('Boundary cancelled'); render();
+  }
+}, false);
+
+// Draw preview for boundary tool
+const _origDrawPreview = drawPreview;
+drawPreview = function() {
+  _origDrawPreview();
+  if(ST.tool === 'boundary' && ST.polyPts && ST.polyPts.length > 0) {
+    const mp = ST.mouse;
+    ctx.save();
+    ctx.strokeStyle = '#4eff91';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.fillStyle = 'rgba(78,255,145,0.08)';
+    ctx.beginPath();
+    const p0 = w2s(ST.polyPts[0].x, ST.polyPts[0].y);
+    ctx.moveTo(p0.x, p0.y);
+    for(let i = 1; i < ST.polyPts.length; i++) {
+      const p = w2s(ST.polyPts[i].x, ST.polyPts[i].y);
+      ctx.lineTo(p.x, p.y);
+    }
+    // Rubber-band line to cursor
+    ctx.lineTo(mp.x, mp.y);
+    // Preview closing line back to first point
+    ctx.lineTo(p0.x, p0.y);
+    ctx.stroke();
+    ctx.fill();
+
+    // Draw vertex dots
+    ST.polyPts.forEach((pt, i) => {
+      const sp = w2s(pt.x, pt.y);
+      ctx.fillStyle = i === 0 ? '#F5BE18' : '#4eff91';
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, i === 0 ? 5 : 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Label count
+    ctx.fillStyle = '#4eff91';
+    ctx.font = '10px IBM Plex Mono, monospace';
+    ctx.fillText(ST.polyPts.length + ' pts', mp.x + 10, mp.y - 8);
+    ctx.restore();
+  }
+};
+
+// Add 'BND' command
+const _bndPrev = window.cmdKey;
+window.cmdKey = function(ev) {
+  if(ev.key !== 'Enter') return;
+  const raw = document.getElementById('cmdInput')?.value?.trim() || '';
+  document.getElementById('cmdInput').value = '';
+  if(!raw) return;
+  const v = raw.toUpperCase();
+  if(v === 'BND' || v === 'BOUNDARY' || v === 'BD') {
+    T('boundary'); return;
+  }
+  if(v === 'CLOSE' && ST.tool === 'boundary') {
+    commitBoundary(); return;
+  }
+  _bndPrev(ev);
+};
+
+// Add to left toolbar — boundary tool button
+(function addBoundaryBtn() {
+  const tb = document.getElementById('tb-polygon')?.parentElement;
+  if(!tb) return;
+  // Add boundary button after polygon
+  const pgBtn = document.getElementById('tb-polygon');
+  if(!pgBtn) return;
+  const btn = document.createElement('button');
+  btn.className = 'tb';
+  btn.id = 'tb-boundary';
+  btn.title = 'Boundary Polygon — click points (BND)';
+  btn.innerHTML = '<span class="tb-i">⬠</span><span class="tb-l">BOUND</span>';
+  btn.onclick = () => T('boundary');
+  pgBtn.parentElement.insertBefore(btn, pgBtn.nextSibling);
+})();
+
+// ════════════════════════════════════════════════════════════════════
+//  DWG IMPORT — Improved with thumbnail extraction and better R2013 handling
+// ════════════════════════════════════════════════════════════════════
+
+// Patch showDwgGuide to also try extracting and showing the embedded BMP thumbnail
+const _origShowDwgGuide = showDwgGuide;
+showDwgGuide = function(f) {
+  _dwgFile = f;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const bytes = new Uint8Array(ev.target.result);
+    const view = new DataView(bytes.buffer);
+
+    // Version
+    let ver = '';
+    for(let i=0;i<6;i++) ver += String.fromCharCode(bytes[i]);
+    const verName = DWG_VERSIONS[ver] || 'Unknown';
+    const sizeMB = (f.size / 1048576).toFixed(2);
+
+    // Update meta
+    const meta = document.getElementById('dwgMeta');
+    if(meta) meta.innerHTML =
+      `<span class="dwg-chip">📄 <b>${f.name}</b></span>` +
+      `<span class="dwg-chip">📐 <b>${ver}</b> — ${verName}</span>` +
+      `<span class="dwg-chip">💾 <b>${sizeMB} MB</b></span>`;
+
+    // Try to extract embedded BMP thumbnail
+    // The thumbnail seeker is at bytes 0x0F-0x12 (big-endian for some versions, LE for others)
+    const thumbOffBE = (bytes[0x0F]<<24)|(bytes[0x10]<<16)|(bytes[0x11]<<8)|bytes[0x12];
+    const thumbOffLE = view.getUint32(0x0F, true);
+    // Use whichever is a valid file offset
+    const thumbOff = (thumbOffBE > 0 && thumbOffBE < bytes.length) ? thumbOffBE :
+                     (thumbOffLE > 0 && thumbOffLE < bytes.length) ? thumbOffLE : 0;
+
+    if(thumbOff > 0 && thumbOff + 5 < bytes.length) {
+      const imgCount = bytes[thumbOff];
+      if(imgCount > 0 && imgCount < 5) {
+        let p = thumbOff + 1;
+        for(let i = 0; i < imgCount && p + 5 < bytes.length; i++) {
+          const code = bytes[p];
+          const imgSize = view.getUint32(p+1, true);
+          if(code === 2 && imgSize > 100 && imgSize < 2000000 && p+5+imgSize <= bytes.length) {
+            // BMP found
+            const bmpData = bytes.slice(p+5, p+5+imgSize);
+            const blob = new Blob([bmpData], {type:'image/bmp'});
+            const url = URL.createObjectURL(blob);
+            const row = document.getElementById('dwgThumbRow');
+            const cv = document.getElementById('dwgThumbCanvas');
+            if(row && cv) {
+              const img = new Image();
+              img.onload = () => {
+                cv.width = img.width;
+                cv.height = img.height;
+                cv.getContext('2d').drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+              };
+              img.src = url;
+              row.style.display = 'block';
+            }
+            break;
+          }
+          p += 5 + (imgSize > 0 ? imgSize : 0);
+        }
+      }
+    }
+
+    const parseBtn = document.getElementById('dwgParseBtn');
+    if(parseBtn) parseBtn.style.display = 'inline-flex';
+    openMo('moDwgGuide');
+  };
+  reader.readAsArrayBuffer(f.slice(0, 200000)); // Read first 200KB for header + thumbnail
 };
 
 </script>
