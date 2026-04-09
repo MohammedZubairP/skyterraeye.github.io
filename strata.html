@@ -236,6 +236,35 @@ input,select{font-family:inherit}
 .stbtn.on{color:var(--st);border-color:var(--stl);background:var(--stdim)}
 .stbtn.gu{color:var(--g);border-color:rgba(245,190,24,.22)}
 
+/* Cursor settings */
+#cursorPanel{position:fixed;bottom:90px;right:20px;background:#050F1C;border:1px solid var(--bl);
+  border-radius:8px;padding:12px 15px;width:260px;z-index:600;box-shadow:0 8px 30px rgba(0,0,0,.8);display:none}
+#cursorPanel.open{display:block}
+.cp-title{font-size:9px;font-weight:800;color:var(--b);text-transform:uppercase;letter-spacing:.8px;
+  font-family:'IBM Plex Mono',monospace;margin-bottom:10px;display:flex;justify-content:space-between}
+.cp-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:8px}
+.cp-lbl{font-size:9px;color:var(--m);font-family:'IBM Plex Mono',monospace;min-width:80px}
+.cp-ctrl{display:flex;align-items:center;gap:5px;flex:1}
+.cp-ctrl input[type=range]{flex:1;accent-color:var(--b);height:4px}
+.cp-ctrl input[type=color]{width:28px;height:20px;border:none;background:none;cursor:pointer;padding:0}
+.cp-val{font-size:9px;color:var(--t);font-family:'IBM Plex Mono',monospace;min-width:30px;text-align:right}
+
+
+/* ── INPUT BAR ── */
+.inputbar{height:32px;flex-shrink:0;background:#040B15;border-top:1px solid var(--sep);display:flex;align-items:center;padding:0 8px;gap:6px;overflow-x:auto;overflow-y:hidden}
+.inputbar::-webkit-scrollbar{height:0}
+.ib-sect{display:flex;align-items:center;gap:3px;flex-shrink:0}
+.ib-lbl{font-size:8.5px;color:var(--m);font-family:'IBM Plex Mono',monospace;font-weight:700;letter-spacing:.3px;text-transform:uppercase;white-space:nowrap}
+.ib-val{font-size:9.5px;color:#4eff91;font-family:'IBM Plex Mono',monospace;min-width:60px;white-space:nowrap}
+.ib-in{background:var(--bg2);border:1px solid var(--sep);border-radius:2px;color:var(--t);font-size:9.5px;font-family:'IBM Plex Mono',monospace;padding:2px 6px;outline:none;width:80px;caret-color:var(--st)}
+.ib-in:focus{border-color:var(--st);background:rgba(167,139,250,.04)}
+.ib-btn{padding:1px 7px;background:var(--bg2);border:1px solid var(--sep);border-radius:2px;color:var(--m);font-size:8.5px;cursor:pointer;font-family:'IBM Plex Mono',monospace;white-space:nowrap;transition:all .08s;flex-shrink:0}
+.ib-btn:hover{color:var(--t);border-color:var(--bl)}
+.ib-btn.on{color:var(--st);border-color:var(--stl);background:var(--stdim)}
+.ib-sep{width:1px;height:14px;background:var(--sep);flex-shrink:0;margin:0 2px}
+.ib-mode{font-size:8.5px;font-weight:800;color:var(--st);font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;background:var(--stdim);border:1px solid var(--stl);border-radius:2px;padding:1px 5px}
+
+
 /* ── LAYOUT BAR ── */
 .laybar{height:24px;flex-shrink:0;background:#020810;border-top:1px solid rgba(31,168,217,.07);display:flex;align-items:stretch;overflow-x:auto}
 .laybar::-webkit-scrollbar{height:0}
@@ -392,7 +421,7 @@ input,select{font-family:inherit}
           <div class="dd-item" onclick="openMo('moGeoImport')">🗺️ Import GeoJSON</div>
           <div class="dd-item" onclick="openMo('moProject')">💾 Project Save/Load<span class="ks">Ctrl+S</span></div>
           <div class="dd-sep"></div>
-          <div class="dd-item" onclick="openMo('moExport')">💾 Export<span class="ks">Ctrl+E</span></div>
+          <div class="dd-item" onclick="openExportModalFull()">💾 Export<span class="ks">Ctrl+E</span></div>
           <div class="dd-item" onclick="openExportModal()">📤 Export (DXF/GeoJSON/CSV/KML/SVG…)</div>
           <div class="dd-item" onclick="doExport('dxf')">📐 Export DXF</div>
           <div class="dd-item" onclick="doExport('csv')">📊 Export CSV</div>
@@ -591,7 +620,7 @@ input,select{font-family:inherit}
 <div class="ribbon" id="ribbonEl">
   <!-- HOME -->
   <div class="rg rp-home">
-    <div class="rr"><button class="rb lg grn" onclick="openMo('moImport')"><span class="rb-i">📂</span>IMPORT</button><button class="rb lg" onclick="openMo('moExport')"><span class="rb-i">💾</span>EXPORT</button></div>
+    <div class="rr"><button class="rb lg grn" onclick="openMo('moImport')"><span class="rb-i">📂</span>IMPORT</button><button class="rb lg" onclick="openExportModalFull()"><span class="rb-i">💾</span>EXPORT</button></div>
     <div class="rg-lbl">FILE</div>
   </div>
   <div class="rg rp-home">
@@ -670,7 +699,7 @@ input,select{font-family:inherit}
     <div class="tg">
       <div class="tg-grid">
         <button class="tb" onclick="openMo('moImport')" title="Import Drawing (Ctrl+O)"><span class="tb-i">📂</span><span class="tb-l">IMPORT</span></button>
-        <button class="tb" onclick="openMo('moExport')" title="Export Drawing"><span class="tb-i">💾</span><span class="tb-l">EXPORT</span></button>
+        <button class="tb" onclick="openExportModalFull()" title="Export Drawing"><span class="tb-i">💾</span><span class="tb-l">EXPORT</span></button>
       </div>
       <div class="tg-title">FILE</div>
     </div>
@@ -2579,12 +2608,42 @@ canvas.addEventListener('mousedown',ev=>{
 
 canvas.addEventListener('contextmenu',ev=>{
   ev.preventDefault();
-  // Right-click ends line chain and returns to select
-  if(ST.tool==='line'&&ST.drawing){
-    ST.drawing=false; ST.startPt=null;
-    setMsg('Line ended — right-click or ESC exits drawing');
+  // Right-click ends current drawing operation (Civil 3D style)
+  if(ST.tool==='line' && ST.drawing){
+    ST.drawing=false; ST.startPt=null; ST.pts=[];
+    setMsg('Line chain ended — right-click or ESC exits drawing'); render(); return;
   }
-  if(ST.tool==='polyline') commitPolyline();
+  if(ST.tool==='polyline'){
+    if(ST.polyPts&&ST.polyPts.length>=2) commitPolyline();
+    else { ST.polyPts=null; ST.drawing=false; setMsg('Polyline cancelled'); render(); }
+    return;
+  }
+  if(ST.tool==='boundary'){
+    if(ST.polyPts&&ST.polyPts.length>=3) commitBoundary();
+    else { ST.polyPts=null; ST.drawing=false; setMsg('Boundary cancelled'); render(); }
+    return;
+  }
+  if(ST.tool==='spline'){
+    if(ST.pts&&ST.pts.length>=2){
+      pushUndo();
+      ST.entities.push(mkEnt({type:'spline',pts:[...ST.pts],layer:ST.curLayer}));
+      ST.drawing=false; ST.pts=[]; ST.startPt=null; render();
+      toast('Spline drawn','ok'); setMsg('Spline — right-click to draw another  |  ESC=select');
+    }
+    return;
+  }
+  if(ST.drawing){
+    // Generic: cancel current drawing
+    ST.drawing=false; ST.startPt=null; ST.pts=[];
+    setMsg('Drawing cancelled'); render(); return;
+  }
+  if(ST.opState){
+    ST.opState=null; setMsg('Operation cancelled'); render(); return;
+  }
+  // Show right-click context menu if something selected
+  if(ST.entities.some(e=>e.selected)){
+    showContextMenu(ev.clientX, ev.clientY);
+  }
 });
 
 canvas.addEventListener('mouseup',ev=>{
@@ -2719,7 +2778,7 @@ document.addEventListener('keydown',ev=>{
     hideSelBox(); render(); return;
   }
   // SPACE = repeat last command
-  if(ev.key===' '&&!ev.ctrlKey){ ev.preventDefault(); if(ST._lastTool)T(ST._lastTool); return; }
+  if(ev.key===' '&&!ev.ctrlKey){ ev.preventDefault(); if(ST.tool==='polyline'||ST.tool==='boundary'){commitPolyline();}else if(ST._lastTool){T(ST._lastTool);} return; }
   // ENTER = finish polyline / area
   if(ev.key==='Enter'){
     if(ST.tool==='polyline') commitPolyline();
@@ -2756,7 +2815,7 @@ document.addEventListener('keydown',ev=>{
       case 'g':ev.preventDefault();groupSel();return;
       case 'o':ev.preventDefault();openMo('moImport');return;
       case 's':ev.preventDefault();if(typeof saveProject==='function')saveProject();else toast('Save: use File menu','ok');return;
-      case 'e':ev.preventDefault();openMo('moExport');return;
+      case 'e':ev.preventDefault();openExportModalFull();return;
       case ',':openMo('moSettings');return;
       case 'p':ev.preventDefault();printDwg();return;
       case '=':case '+':zoomBy(1.25);return;
@@ -3836,7 +3895,8 @@ function runCommand(rawCmd) {
 }
 
 function cmdKey(ev){
-  if(ev.key!=='Enter') return;
+  if(ev.key!=='Enter' && ev.key!==' ') return;
+  if(ev.key===' '&&ev.currentTarget?.value?.trim()==='') { ev.preventDefault(); if(ST._lastTool)T(ST._lastTool); return; }
   const inp = document.getElementById('cmdInput');
   const raw = inp.value.trim();
   inp.value = '';
@@ -6410,7 +6470,7 @@ function utmToWgs84(easting, northing, crsKey) {
 
 // ══ MULTI-FORMAT EXPORT ══════════════════════════════════════════════
 function openExportModal() {
-  openMo('moExport');
+  openExportModalFull();
   // Build layer list
   const layList = document.getElementById('exportLayerList');
   if(!layList) return;
@@ -7985,6 +8045,557 @@ CAD_COMMANDS['F1']='help';
 CAD_COMMANDS['SHORTCUTS']='help';
 CAD_ACTIONS['help'] = ()=>openMo('moShortcuts');
 
+
+// ════════════════════════════════════════════════════════════════════
+//  CURSOR SETTINGS HELPERS
+// ════════════════════════════════════════════════════════════════════
+
+// Initialize cursor settings in ST
+if(!ST.crosshairSize)    ST.crosshairSize = 100;
+if(!ST.crosshairArm)     ST.crosshairArm  = 300;
+if(!ST.pickboxSize)      ST.pickboxSize   = 5;
+if(!ST.crosshairOpacity) ST.crosshairOpacity = 0.55;
+if(!ST.crosshairColor)   ST.crosshairColor = '#1FA8D9';
+if(!ST.crosshairStyle)   ST.crosshairStyle = 'full';
+
+function updateCsBtn(btn) {
+  document.querySelectorAll('#csFullCross,#csArmOnly,#csBoxOnly').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+function openCursorPanel() {
+  const p = document.getElementById('cursorPanel');
+  if(p) p.classList.toggle('open');
+}
+
+// Patch drawCrosshair to use settings
+const _origDrawCrosshair2 = drawCrosshair;
+drawCrosshair = function() {
+  const {x,y} = ST.mouse;
+  const cs = ST.crosshairSize || 100;
+  const armLen = Math.min(W, ST.crosshairArm || 300);
+  const pb = ST.pickboxSize || 5;
+  const op = ST.crosshairOpacity || 0.55;
+  const col = ST.crosshairColor || '#1FA8D9';
+  const style = ST.crosshairStyle || 'full';
+
+  // Convert hex to rgba
+  const hex2rgb = h => [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+  const [r,g,b] = hex2rgb(col);
+  const rgba = (a) => `rgba(${r},${g},${b},${a})`;
+
+  ctx.setLineDash([]);
+
+  if(style !== 'box') {
+    // Full-screen faint lines
+    if(style === 'full') {
+      ctx.strokeStyle = rgba(op*0.15); ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(x,0); ctx.lineTo(x,y-cs);
+      ctx.moveTo(x,y+cs); ctx.lineTo(x,H);
+      ctx.moveTo(0,y); ctx.lineTo(x-cs,y);
+      ctx.moveTo(x+cs,y); ctx.lineTo(W,y);
+      ctx.stroke();
+    }
+
+    // Inner arms
+    ctx.strokeStyle = rgba(op); ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x-armLen,y); ctx.lineTo(x-cs,y);
+    ctx.moveTo(x+cs,y);     ctx.lineTo(x+armLen,y);
+    ctx.moveTo(x,y-armLen); ctx.lineTo(x,y-cs);
+    ctx.moveTo(x,y+cs);     ctx.lineTo(x,y+armLen);
+    ctx.stroke();
+  }
+
+  // Pickbox
+  ctx.strokeStyle = rgba(op*1.2); ctx.lineWidth = 0.8;
+  ctx.strokeRect(x-pb,y-pb,pb*2,pb*2);
+
+  // Tool color override
+  const toolColors = {
+    move:'rgba(245,190,24,.7)', copy:'rgba(167,139,250,.7)', rotate:'rgba(255,144,96,.7)',
+    scale:'rgba(78,255,145,.7)', stretch:'rgba(255,68,102,.7)', offset:'rgba(31,168,217,.9)',
+    trim:'rgba(255,68,102,.7)', line:'rgba(255,255,255,.5)', polyline:'rgba(255,255,255,.5)',
+    boundary:'rgba(78,255,145,.6)', circle:'rgba(31,168,217,.7)', arc:'rgba(31,168,217,.7)',
+  };
+  const tc = toolColors[ST.tool] || (ST.opState ? toolColors[ST.opState.type] : null);
+  if(tc) {
+    ctx.strokeStyle = tc; ctx.lineWidth = 1.2;
+    if(style !== 'box') {
+      ctx.beginPath();
+      ctx.moveTo(x-armLen,y); ctx.lineTo(x-cs,y);
+      ctx.moveTo(x+cs,y); ctx.lineTo(x+armLen,y);
+      ctx.moveTo(x,y-armLen); ctx.lineTo(x,y-cs);
+      ctx.moveTo(x,y+cs); ctx.lineTo(x,y+armLen);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = tc; ctx.strokeRect(x-pb,y-pb,pb*2,pb*2);
+  }
+
+  canvas.style.cursor = 'none';
+};
+
+// ════════════════════════════════════════════════════════════════════
+//  CONTEXT MENU
+// ════════════════════════════════════════════════════════════════════
+
+function showContextMenu(cx, cy) {
+  const m = document.getElementById('ctxMenu');
+  if(!m) return;
+  m.style.left = Math.min(cx, window.innerWidth-170) + 'px';
+  m.style.top = Math.min(cy, window.innerHeight-250) + 'px';
+  m.style.display = 'block';
+  // Close on outside click
+  setTimeout(() => document.addEventListener('click', closeCM, {once:true}), 50);
+}
+
+function closeCM() {
+  const m = document.getElementById('ctxMenu');
+  if(m) m.style.display = 'none';
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  MOUSE BEHAVIOR — Civil 3D style
+// ════════════════════════════════════════════════════════════════════
+
+// Middle mouse button = always pan (even while drawing)
+// Right-click = end drawing / show context menu
+// Scroll = zoom at cursor position
+
+// The main mousedown handler already has middle-button pan.
+// Patch to ensure it works everywhere:
+canvas.addEventListener('mousedown', ev => {
+  if(ev.button === 1) {  // middle click = pan
+    ev.preventDefault();
+    ST.panning = true;
+    const r = canvas.getBoundingClientRect();
+    ST.panStart = {x: ev.clientX - r.left, y: ev.clientY - r.top};
+    canvas.style.cursor = 'grabbing';
+  }
+}, true); // capture phase to intercept before other handlers
+
+// Double middle-click = zoom extents
+let _lastMidClick = 0;
+canvas.addEventListener('mousedown', ev => {
+  if(ev.button === 1) {
+    const now = Date.now();
+    if(now - _lastMidClick < 400) zoomExt();
+    _lastMidClick = now;
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  POLYGON EDIT — right-click to add point, vertex editing
+// ════════════════════════════════════════════════════════════════════
+
+// When a closed polyline (polygon) is selected, double-click on it to enter edit mode
+let _editingPoly = null;
+let _editingPtIdx = -1;
+let _dragPt = false;
+
+canvas.addEventListener('dblclick', ev => {
+  if(ST.tool !== 'select') return;
+  const r = canvas.getBoundingClientRect();
+  const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+  const wp = s2w(mx, my);
+  const tol = 10 / ST.zoom;
+
+  // Find clicked polyline
+  for(let i = ST.entities.length-1; i >= 0; i--) {
+    const e = ST.entities[i];
+    if(!e.selected || (e.type!=='polyline' && e.type!=='boundary')) continue;
+    if(!layVisible(e.layer)) continue;
+    if(ptHitsEnt(wp.x, wp.y, e, tol)) {
+      enterPolyEdit(i);
+      ev.stopImmediatePropagation();
+      return;
+    }
+  }
+});
+
+function enterPolyEdit(entIdx) {
+  _editingPoly = entIdx;
+  const e = ST.entities[entIdx];
+  setMsg('POLY EDIT: drag vertices to move  |  right-click segment to add point  |  DEL=remove point  |  ESC=exit edit');
+  render();
+  toast('Polygon vertex edit — drag points, right-click to add', 'ok');
+}
+
+function exitPolyEdit() {
+  _editingPoly = null; _editingPtIdx = -1; _dragPt = false;
+  setMsg('Edit done  |  ESC=deselect');
+  render();
+}
+
+// Patch render to show vertex handles when in edit mode
+const _origRenderForEdit = render;
+render = function() {
+  _origRenderForEdit();
+  if(_editingPoly !== null && _editingPoly < ST.entities.length) {
+    const e = ST.entities[_editingPoly];
+    if(!e || !e.pts) return;
+    ctx.save();
+    e.pts.forEach((pt, i) => {
+      const sp = w2s(pt.x, pt.y);
+      ctx.fillStyle = i === _editingPtIdx ? '#FF4466' : '#F5BE18';
+      ctx.strokeStyle = '#050F1C'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, 6, 0, Math.PI*2);
+      ctx.fill(); ctx.stroke();
+    });
+    ctx.restore();
+  }
+};
+
+// Handle vertex drag in edit mode
+canvas.addEventListener('mousedown', ev => {
+  if(_editingPoly === null || ev.button !== 0) return;
+  const r = canvas.getBoundingClientRect();
+  const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+  const wp = s2w(mx, my);
+  const e = ST.entities[_editingPoly];
+  if(!e || !e.pts) return;
+  const tol = 10 / ST.zoom;
+  // Find clicked vertex
+  for(let i = 0; i < e.pts.length; i++) {
+    if(Math.hypot(e.pts[i].x - wp.x, e.pts[i].y - wp.y) < tol) {
+      _editingPtIdx = i;
+      _dragPt = true;
+      ev.stopImmediatePropagation();
+      return;
+    }
+  }
+});
+
+canvas.addEventListener('mousemove', ev => {
+  if(!_dragPt || _editingPoly === null) return;
+  const r = canvas.getBoundingClientRect();
+  const wp = s2w(ev.clientX-r.left, ev.clientY-r.top);
+  const e = ST.entities[_editingPoly];
+  if(e && e.pts && _editingPtIdx >= 0) {
+    pushUndo();
+    e.pts[_editingPtIdx] = snapPoint(ev.clientX-r.left, ev.clientY-r.top);
+    render();
+  }
+});
+
+canvas.addEventListener('mouseup', ev => {
+  if(_dragPt) { _dragPt = false; _editingPtIdx = -1; }
+});
+
+// Right-click on segment in edit mode → insert point
+canvas.addEventListener('contextmenu', ev => {
+  if(_editingPoly === null) return;
+  ev.preventDefault(); ev.stopImmediatePropagation();
+  const r = canvas.getBoundingClientRect();
+  const wp = s2w(ev.clientX-r.left, ev.clientY-r.top);
+  const e = ST.entities[_editingPoly];
+  if(!e || !e.pts) return;
+  // Find closest segment
+  let minD = Infinity, insertIdx = 0;
+  for(let i = 0; i < e.pts.length; i++) {
+    const a = e.pts[i], b = e.pts[(i+1)%e.pts.length];
+    const dx=b.x-a.x, dy=b.y-a.y, ll=dx*dx+dy*dy;
+    if(!ll) continue;
+    const t=Math.max(0,Math.min(1,((wp.x-a.x)*dx+(wp.y-a.y)*dy)/ll));
+    const d=Math.hypot(wp.x-(a.x+t*dx),wp.y-(a.y+t*dy));
+    if(d<minD){minD=d;insertIdx=i+1;}
+  }
+  pushUndo();
+  e.pts.splice(insertIdx, 0, {x:wp.x, y:wp.y});
+  render();
+  toast('Point added at index '+insertIdx, 'ok');
+}, true);
+
+// ESC exits poly edit
+document.addEventListener('keydown', ev => {
+  if(_editingPoly !== null && ev.key === 'Escape') {
+    exitPolyEdit(); ev.stopPropagation();
+  }
+  if(_editingPoly !== null && ev.key === 'Delete' && _editingPtIdx >= 0) {
+    const e = ST.entities[_editingPoly];
+    if(e && e.pts && e.pts.length > 3) {
+      pushUndo(); e.pts.splice(_editingPtIdx, 1); _editingPtIdx=-1; render();
+    }
+  }
+}, false);
+
+// ════════════════════════════════════════════════════════════════════
+//  PROCESSING TOOLBOX — draggable floating panel
+// ════════════════════════════════════════════════════════════════════
+
+// Make all modals draggable by their header
+function makeDraggable(modalEl) {
+  const header = modalEl.querySelector('.mh');
+  if(!header || header._draggable) return;
+  header._draggable = true;
+  header.style.cursor = 'move';
+  let sx, sy, ox, oy;
+  header.addEventListener('mousedown', ev => {
+    if(ev.target.classList.contains('mc')) return; // don't drag on close btn
+    sx = ev.clientX; sy = ev.clientY;
+    const rect = modalEl.getBoundingClientRect();
+    ox = rect.left; oy = rect.top;
+    modalEl.style.position = 'fixed';
+    modalEl.style.left = ox + 'px';
+    modalEl.style.top = oy + 'px';
+    modalEl.style.margin = '0';
+    modalEl.style.transform = 'none';
+    function onMove(e) {
+      modalEl.style.left = (ox + e.clientX - sx) + 'px';
+      modalEl.style.top  = (oy + e.clientY - sy) + 'px';
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
+// Patch openMo to make modals draggable
+const _origOpenMo2 = openMo;
+openMo = function(id) {
+  _origOpenMo2(id);
+  const el = document.getElementById(id);
+  if(el) {
+    const modal = el.querySelector('.modal');
+    if(modal) makeDraggable(modal);
+    // Add minimize button to modal header
+    const mh = el.querySelector('.mh');
+    if(mh && !mh.querySelector('.min-btn')) {
+      const minBtn = document.createElement('span');
+      minBtn.className = 'mc min-btn';
+      minBtn.title = 'Minimize';
+      minBtn.textContent = '−';
+      minBtn.style.marginRight = '4px';
+      minBtn.onclick = (e) => {
+        e.stopPropagation();
+        const mb = el.querySelector('.mb');
+        const mf = el.querySelector('.mf');
+        if(mb) mb.style.display = mb.style.display === 'none' ? '' : 'none';
+        if(mf) mf.style.display = mf.style.display === 'none' ? '' : 'none';
+        minBtn.textContent = mb?.style.display === 'none' ? '+' : '−';
+      };
+      const mc = mh.querySelector('.mc');
+      if(mc) mh.insertBefore(minBtn, mc);
+    }
+  }
+};
+
+// ════════════════════════════════════════════════════════════════════
+//  EXPORT WITH SAVE DIALOG + OPTIONS
+// ════════════════════════════════════════════════════════════════════
+
+function openExportModalFull() {
+  openExportModalFull();
+  // Rebuild export layer list
+  const layList = document.getElementById('exportLayerList');
+  if(layList) {
+    layList.innerHTML = ST.layers.map(l => `
+      <label style="display:flex;align-items:center;gap:6px;padding:2px 0;cursor:pointer;font-size:9px">
+        <input type="checkbox" checked value="${l.id}" style="accent-color:var(--b)">
+        <span style="width:9px;height:9px;border-radius:50%;background:${l.color};flex-shrink:0;display:inline-block"></span>
+        <span style="color:var(--t)">${l.name}</span>
+        <span style="color:var(--m);margin-left:auto">${ST.entities.filter(e=>e.layer===l.id).length}</span>
+      </label>`).join('');
+  }
+}
+
+// Enhanced _download with file picker
+async function _downloadSave(name, data, mime) {
+  // Try File System Access API (Chrome/Edge — shows native save dialog)
+  if(window.showSaveFilePicker) {
+    try {
+      const ext = name.split('.').pop();
+      const mimeTypes = {
+        dxf: [{description:'DXF Files',accept:{'text/plain':['.dxf']}}],
+        geojson: [{description:'GeoJSON Files',accept:{'application/json':['.geojson','.json']}}],
+        csv: [{description:'CSV Files',accept:{'text/csv':['.csv']}}],
+        kml: [{description:'KML Files',accept:{'application/vnd.google-earth.kml+xml':['.kml']}}],
+        svg: [{description:'SVG Files',accept:{'image/svg+xml':['.svg']}}],
+        shp: [{description:'Shapefile WKT',accept:{'text/csv':['.csv']}}],
+      };
+      const opts = {
+        suggestedName: name,
+        types: mimeTypes[ext] || [{description:'All Files',accept:{'*/*':['.' + ext]}}],
+      };
+      const fh = await window.showSaveFilePicker(opts);
+      const ws = await fh.createWritable();
+      await ws.write(data instanceof ArrayBuffer ? data : new Blob([data], {type:mime}));
+      await ws.close();
+      toast('Saved: ' + fh.name, 'ok');
+      return;
+    } catch(e) {
+      if(e.name === 'AbortError') return; // user cancelled
+    }
+  }
+  // Fallback: browser download
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], {type: mime}));
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Patch _download to use _downloadSave
+_download = _downloadSave;
+
+// ════════════════════════════════════════════════════════════════════
+//  COMMANDS — fix polygon/pline to activate drawing properly
+// ════════════════════════════════════════════════════════════════════
+
+// After T() is called for a drawing tool, focus returns to canvas
+const _origT3 = T;
+T = function(tool) {
+  // Hide context menu
+  closeCM();
+  // Call original
+  _origT3(tool);
+  // Focus canvas so keyboard works
+  canvas.focus();
+  canvas.tabIndex = -1;
+};
+
+// Patch runCommand to also handle closing poly
+const _origRunCmd = runCommand;
+runCommand = function(raw) {
+  const v = raw.trim().toUpperCase();
+  // C = close polyline/boundary while drawing
+  if(v === 'C' && (ST.tool==='polyline'||ST.tool==='boundary')) {
+    if(ST.tool==='polyline') { if(ST.polyPts) ST.polyPts._close=true; commitPolyline(); }
+    else commitBoundary();
+    return;
+  }
+  _origRunCmd(raw);
+};
+
+// ════════════════════════════════════════════════════════════════════
+//  STATUS BAR — add cursor settings button
+// ════════════════════════════════════════════════════════════════════
+(function addCursorBtn() {
+  const bar = document.querySelector('.statbar');
+  if(bar && !document.getElementById('cursorSettBtn')) {
+    const btn = document.createElement('button');
+    btn.id = 'cursorSettBtn';
+    btn.className = 'stbtn';
+    btn.title = 'Cursor Settings';
+    btn.textContent = '⊕ Cursor';
+    btn.onclick = openCursorPanel;
+    bar.appendChild(btn);
+  }
+})();
+
+// ════════════════════════════════════════════════════════════════════
+//  PROCESSING TOOLBOX — as BOTH a modal AND a dockable side panel
+// ════════════════════════════════════════════════════════════════════
+
+// Add F12 toggle for processing panel
+const procSidePanel = document.getElementById('procSidePanel');
+function toggleProcPanel() {
+  const p = document.getElementById('procSidePanel');
+  if(p) {
+    const visible = p.style.display !== 'none';
+    p.style.display = visible ? 'none' : 'flex';
+  } else {
+    openMo('moProcessing');
+  }
+}
+
+
+// ════════════════════════════════════════════════════════════════════
+//  PROCESSING SIDE PANEL — populate on demand
+// ════════════════════════════════════════════════════════════════════
+
+function buildProcessingSidePanel() {
+  const container = document.getElementById('processingContentSide');
+  if(!container || container.children.length > 0) return;
+
+  const tools = [
+    {cat:'Vector General', color:'var(--b)', tools:[
+      {id:'deleteDuplicates',name:'Delete Duplicates'},
+      {id:'mergeLines',name:'Merge Lines'},
+      {id:'fixGeom',name:'Fix Geometry'},
+      {id:'multiToSingle',name:'Multipart→Single'},
+      {id:'simplifyGeom',name:'Simplify (D-P)'},
+      {id:'smoothGeom',name:'Smooth'},
+    ]},
+    {cat:'Vector Analysis', color:'var(--gr)', tools:[
+      {id:'countPoints',name:'Count Points in Poly'},
+      {id:'meanCoords',name:'Mean Coordinates'},
+      {id:'boundingBox',name:'Bounding Box'},
+      {id:'convexHull',name:'Convex Hull'},
+    ]},
+    {cat:'Overlay', color:'var(--st)', tools:[
+      {id:'bufferTool',name:'Buffer'},
+      {id:'intersectTool',name:'Intersection'},
+      {id:'dissolveTool',name:'Dissolve'},
+    ]},
+    {cat:'Terrain', color:'var(--ora)', tools:[
+      {id:'buildTIN',name:'Build TIN'},
+      {id:'generateContours',name:'Generate Contours'},
+    ]},
+    {cat:'Database', color:'#F5BE18', tools:[
+      {id:'statistics',name:'Statistics'},
+      {id:'fieldCalculator',name:'Field Calculator'},
+      {id:'selectByExpression',name:'Select by Expression'},
+    ]},
+  ];
+
+  container.innerHTML = tools.map(cat => `
+    <div style="margin-bottom:2px">
+      <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'"
+        style="padding:4px 8px;background:rgba(31,168,217,.06);border-bottom:1px solid var(--sep);cursor:pointer;
+               display:flex;align-items:center;gap:5px;font-size:8.5px;font-weight:700;color:${cat.color};
+               font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;text-transform:uppercase">
+        ▾ ${cat.cat}
+      </div>
+      <div>
+        ${cat.tools.map(t => `
+          <div onclick="runProcessingTool('${t.id}')"
+            style="padding:5px 12px;font-size:9px;color:var(--m);cursor:pointer;border-bottom:1px solid rgba(31,168,217,.03);
+                   font-family:'IBM Plex Mono',monospace;transition:all .08s;display:flex;align-items:center;gap:6px"
+            onmouseover="this.style.background='rgba(31,168,217,.06)';this.style.color='var(--t)'"
+            onmouseout="this.style.background='';this.style.color='var(--m)'">
+            <span style="color:${cat.color};font-size:10px">▶</span> ${t.name}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// Also populate the modal version
+const _origBuildProcessingUI = buildProcessingUI;
+buildProcessingUI = function() {
+  _origBuildProcessingUI();
+  buildProcessingSidePanel();
+};
+
+// Toggle processing panel — build content when opened
+const _origToggleProc = toggleProcPanel;
+toggleProcPanel = function() {
+  const p = document.getElementById('procSidePanel');
+  if(p) {
+    const visible = p.style.display !== 'none';
+    p.style.display = visible ? 'none' : 'flex';
+    if(!visible) buildProcessingSidePanel();
+  }
+};
+
+// Filter side panel
+const _origFilterProc = filterProcessing;
+filterProcessing = function(q) {
+  _origFilterProc(q);
+  // Also filter side panel
+  const side = document.getElementById('processingContentSide');
+  if(!side) return;
+  side.querySelectorAll('[onclick*="runProcessingTool"]').forEach(el => {
+    el.style.display = (!q || el.textContent.toLowerCase().includes(q.toLowerCase())) ? '' : 'none';
+  });
+};
+
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════
@@ -8216,6 +8827,92 @@ CAD_ACTIONS['help'] = ()=>openMo('moShortcuts');
     </div>
     <div class="mf"><button class="btn s" onclick="closeMo('moShortcuts')">Close</button></div>
   </div>
+</div>
+
+
+<!-- CURSOR SETTINGS PANEL -->
+<div id="cursorPanel">
+  <div class="cp-title">
+    <span>⊕ Cursor Settings</span>
+    <span style="cursor:pointer;color:var(--m)" onclick="document.getElementById('cursorPanel').classList.remove('open')">✕</span>
+  </div>
+  <div class="cp-row">
+    <span class="cp-lbl">Crosshair size</span>
+    <div class="cp-ctrl">
+      <input type="range" min="20" max="200" value="100" oninput="ST.crosshairSize=+this.value;document.getElementById('csVal').textContent=this.value;render()">
+      <span class="cp-val" id="csVal">100</span>
+    </div>
+  </div>
+  <div class="cp-row">
+    <span class="cp-lbl">Arm length</span>
+    <div class="cp-ctrl">
+      <input type="range" min="50" max="500" value="300" oninput="ST.crosshairArm=+this.value;document.getElementById('caVal').textContent=this.value;render()">
+      <span class="cp-val" id="caVal">300</span>
+    </div>
+  </div>
+  <div class="cp-row">
+    <span class="cp-lbl">Pickbox size</span>
+    <div class="cp-ctrl">
+      <input type="range" min="2" max="20" value="5" oninput="ST.pickboxSize=+this.value;document.getElementById('cpVal').textContent=this.value;render()">
+      <span class="cp-val" id="cpVal">5</span>
+    </div>
+  </div>
+  <div class="cp-row">
+    <span class="cp-lbl">Line opacity</span>
+    <div class="cp-ctrl">
+      <input type="range" min="10" max="100" value="55" oninput="ST.crosshairOpacity=this.value/100;document.getElementById('coVal').textContent=this.value+'%';render()">
+      <span class="cp-val" id="coVal">55%</span>
+    </div>
+  </div>
+  <div class="cp-row">
+    <span class="cp-lbl">Color</span>
+    <div class="cp-ctrl">
+      <input type="color" value="#1FA8D9" oninput="ST.crosshairColor=this.value;render()" title="Crosshair color">
+      <span style="font-size:8.5px;color:var(--m)">custom color</span>
+    </div>
+  </div>
+  <div class="cp-row">
+    <span class="cp-lbl">Style</span>
+    <div class="cp-ctrl" style="gap:3px">
+      <button class="stbtn on" id="csFullCross" onclick="ST.crosshairStyle='full';updateCsBtn(this);render()">Full</button>
+      <button class="stbtn" id="csArmOnly" onclick="ST.crosshairStyle='arms';updateCsBtn(this);render()">Arms</button>
+      <button class="stbtn" id="csBoxOnly" onclick="ST.crosshairStyle='box';updateCsBtn(this);render()">Box</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- CONTEXT MENU -->
+<div id="ctxMenu" style="position:fixed;display:none;z-index:800;background:#050F1C;border:1px solid var(--bl);border-radius:6px;padding:4px;min-width:160px;box-shadow:0 8px 28px rgba(0,0,0,.8)">
+  <div class="dd-item" onclick="T('move');closeCM()">⟶ Move (M)</div>
+  <div class="dd-item" onclick="T('copy');closeCM()">⊕ Copy (CO)</div>
+  <div class="dd-item" onclick="T('rotate');closeCM()">↻ Rotate (RO)</div>
+  <div class="dd-item" onclick="T('scale');closeCM()">⤡ Scale (SC)</div>
+  <div class="dd-item" onclick="T('mirror');closeCM()">⇄ Mirror (MI)</div>
+  <div class="dd-sep"></div>
+  <div class="dd-item" onclick="T('offset');closeCM()">↔ Offset (O)</div>
+  <div class="dd-item" onclick="doExplodeSelected();closeCM()">💥 Explode (X)</div>
+  <div class="dd-sep"></div>
+  <div class="dd-item" onclick="showTab('props');closeCM()">📋 Properties</div>
+  <div class="dd-item" onclick="delSel();closeCM()" style="color:var(--red)">🗑 Delete (Del)</div>
+</div>
+
+
+<!-- PROCESSING SIDE PANEL (dockable) -->
+<div id="procSidePanel" style="position:fixed;right:0;top:60px;bottom:50px;width:260px;
+  background:#050F1C;border-left:1px solid var(--bl);z-index:500;display:none;
+  flex-direction:column;box-shadow:-6px 0 24px rgba(0,0,0,.5);overflow:hidden">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;
+    border-bottom:1px solid var(--sep);background:rgba(0,0,0,.2);cursor:move" id="procSideDragHdr">
+    <span style="font-size:9px;font-weight:800;color:var(--b);font-family:'IBM Plex Mono',monospace;letter-spacing:.8px;text-transform:uppercase">⚙ Processing Toolbox</span>
+    <div style="display:flex;gap:4px">
+      <span style="cursor:pointer;color:var(--m);font-size:11px" onclick="document.getElementById('procSidePanel').style.display='none'" title="Close">✕</span>
+    </div>
+  </div>
+  <input placeholder="🔍 Search tools…" oninput="filterProcessing(this.value)" onkeydown="event.stopPropagation()"
+    style="margin:6px;background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9px;
+    padding:4px 8px;border-radius:3px;outline:none;font-family:'IBM Plex Mono',monospace">
+  <div id="processingContentSide" style="overflow-y:auto;flex:1;padding:4px"></div>
 </div>
 
 </body>
