@@ -24,6 +24,23 @@ input,select{font-family:inherit}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+
+/* ── OPERATION INPUT PANEL (AutoCAD-style) ── */
+#opPanel{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  background:#050F1C;border:1px solid var(--b);border-radius:6px;padding:10px 14px;
+  display:none;z-index:500;box-shadow:0 4px 24px rgba(0,0,0,.8);min-width:320px;
+  font-family:'IBM Plex Mono',monospace}
+.op-title{font-size:9px;color:var(--b);font-weight:700;text-transform:uppercase;
+  letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.op-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.op-lbl{font-size:9px;color:var(--m);min-width:60px}
+.op-inp{background:var(--bg2);border:1px solid var(--sep);border-radius:3px;
+  color:var(--g);font-family:'IBM Plex Mono',monospace;font-size:11px;
+  padding:3px 8px;flex:1;outline:none;caret-color:var(--g)}
+.op-inp:focus{border-color:var(--g);background:rgba(245,190,24,.05)}
+.op-btns{display:flex;gap:5px;margin-top:6px}
+.op-hint{font-size:8px;color:var(--m);margin-top:4px;line-height:1.5}
+
 /* ── DYNAMIC INPUT (floats near cursor) ── */
 #dynInput{position:fixed;display:none;z-index:500;pointer-events:all;}
 .dyn-box{background:#061422;border:1px solid var(--b);border-radius:4px;padding:3px 6px;display:flex;align-items:center;gap:5px;box-shadow:0 3px 12px rgba(0,0,0,.7);}
@@ -3016,151 +3033,218 @@ function doImport(){
 
 // ── DXF PARSER ────────────────────────────────────────────────────
 function parseDXF(txt,filename){
-  // Normalize line endings and strip BOM
-  txt = txt.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
-  const lines = txt.split('\n');
-  const isCivil = /AeccDb|AeccuDb|AecDb/.test(txt);
-
-  // Scan for IMAGE definitions
-  const imgPaths = [];
-  {
-    let inIDef = false;
-    for(let i = 0; i+1 < lines.length; i += 2){
-      const gc = lines[i].trim(), v = (lines[i+1]||'').trim();
-      if(gc==='0'){inIDef=(v==='IMAGEDEF');continue;}
-      if(inIDef&&gc==='1'){imgPaths.push(v);inIDef=false;}
-    }
+  txt=txt.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const lines=txt.split('\n');
+  const isCivil=/AeccDb|AeccuDb|AecDb/.test(txt);
+  const imgPaths=[];
+  {let inIDef=false;
+   for(let i=0;i+1<lines.length;i+=2){
+     const gc=lines[i].trim(),v=(lines[i+1]||'').trim();
+     if(gc==='0'){inIDef=(v==='IMAGEDEF');continue;}
+     if(inIDef&&gc==='1'){imgPaths.push(v);inIDef=false;}
+   }
   }
 
-  // ── Build pairs array ──
-  const pairs = [];
-  for(let i = 0; i+1 < lines.length; i += 2){
-    const gc = lines[i].trim();
-    const val = lines[i+1] !== undefined ? lines[i+1].trim() : '';
-    if(gc !== '') pairs.push([gc, val]);
+  // Build pairs
+  const pairs=[];
+  for(let i=0;i+1<lines.length;i+=2){
+    const gc=lines[i].trim(),val=lines[i+1]===undefined?'':lines[i+1].trim();
+    if(gc!=='') pairs.push([gc,val]);
   }
 
-  const ents = [], layerMap = {};
-  function getLayId(name){
-    const n = (name||'0').trim();
-    if(layerMap[n] === undefined){
-      const ex = ST.layers.find(l => l.name===n);
-      if(ex){ layerMap[n]=ex.id; }
-      else {
-        const cols=['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060','#4488ff','#ff8844','#44ffaa','#ff44cc','#44ccff','#ccff44'];
-        const id = ++ST._eid + 10000;
-        layerMap[n] = id;
-        ST.layers.push({id,name:n,color:cols[ST.layers.length%cols.length],vis:true,lock:false,frz:false,dis:false});
+  // ACI color table (AutoCAD standard 256 colors)
+  const ACI=[
+    '#000000','#FF0000','#FFFF00','#00FF00','#00FFFF','#0000FF','#FF00FF','#FFFFFF',
+    '#808080','#C0C0C0','#FF0000','#FF8080','#CC0000','#CC6666','#990000','#994C4C',
+    '#7F0000','#7F3F3F','#4C0000','#4C2626','#FF4000','#FF9F80','#CC3300','#CC7F66',
+    '#992600','#995F4C','#7F1F00','#7F4F3F','#4C1300','#4C2F26','#FF8000','#FFBF80',
+    '#CC6600','#CC9966','#994C00','#99724C','#7F3F00','#7F5F3F','#4C2600','#4C3926',
+    '#FFBF00','#FFDF80','#CC9900','#CCB266','#997300','#99854C','#7F5F00','#7F6C3F',
+    '#4C3900','#4C4126','#FFFF00','#FFFF80','#CCCC00','#CCCC66','#999900','#99994C',
+    '#7F7F00','#7F7F3F','#4C4C00','#4C4C26','#80FF00','#BFFF80','#66CC00','#99CC66',
+    '#4C9900','#73994C','#3F7F00','#5F7F3F','#264C00','#394C26','#00FF00','#80FF80',
+    '#00CC00','#66CC66','#009900','#4C994C','#007F00','#3F7F3F','#004C00','#264C26',
+    '#00FF40','#80FFBF','#00CC33','#66CC99','#009926','#4C9966','#007F1F','#3F7F5F',
+    '#004C13','#264C39','#00FF80','#80FFD9','#00CC66','#66CCB2','#009943','#4C997F',
+    '#007F33','#3F7F66','#004C1F','#264C3F','#00FFBF','#80FFEF','#00CC99','#66CCCC',
+    '#009973','#4C9999','#007F59','#3F7F7F','#004C33','#264C4C','#00FFFF','#80FFFF',
+    '#00CCCC','#66CCCC','#009999','#4C9999','#007F7F','#3F7F7F','#004C4C','#264C4C',
+    '#00BFFF','#80DFFF','#0099CC','#66B2CC','#007399','#4C8599','#005F7F','#3F6C7F',
+    '#00394C','#264059','#0080FF','#80BFFF','#0066CC','#6699CC','#004C99','#4C7299',
+    '#00397F','#3F597F','#00204C','#26334C','#0040FF','#809FFF','#0033CC','#6680CC',
+    '#002699','#4C5F99','#001F7F','#3F4C7F','#00124C','#26264C','#0000FF','#8080FF',
+    '#0000CC','#6666CC','#000099','#4C4C99','#00007F','#3F3F7F','#00004C','#26264C',
+    '#4000FF','#9F80FF','#3300CC','#8066CC','#260099','#5F4C99','#1F007F','#4C3F7F',
+    '#12004C','#2C264C','#8000FF','#BF80FF','#6600CC','#9966CC','#4C0099','#724C99',
+    '#33007F','#59397F','#1F004C','#391F4C','#BF00FF','#DF80FF','#9900CC','#B266CC',
+    '#730099','#854C99','#59007F','#6C3F7F','#33004C','#400040','#FF00FF','#FF80FF',
+    '#CC00CC','#CC66CC','#990099','#994C99','#7F007F','#7F3F7F','#4C004C','#4C264C',
+    '#FF00BF','#FF80DF','#CC0099','#CC66B2','#990073','#994C85','#7F0059','#7F3F6C',
+    '#4C0033','#4C2640','#FF0080','#FF80BF','#CC0066','#CC6699','#990043','#994C72',
+    '#7F0033','#7F3F59','#4C001F','#4C2639','#FF0040','#FF809F','#CC0033','#CC6680',
+    '#990026','#994C5F','#7F001F','#7F3F4C','#4C0013','#4C2633','#FF0000','#FF8080',
+  ];
+  function aciToHex(n){return ACI[Math.abs(n)%256]||'#1FA8D9';}
+
+  // Layer table — stores name, color, linetype
+  const layerTable={};  // name -> {color, ltype, id}
+  const layerMap={};    // name -> ST layer id
+
+  function getLayId(name, aci){
+    const n=(name||'0').trim();
+    if(layerMap[n]===undefined){
+      const ex=ST.layers.find(l=>l.name===n);
+      if(ex){layerMap[n]=ex.id;}
+      else{
+        const lt=layerTable[n];
+        const col=lt?.color||aciToHex(aci||7);
+        const id=Date.now()+Math.random()|0;
+        layerMap[n]=id;
+        ST.layers.push({id,name:n,color:col,vis:true,lock:false,frz:false,dis:false});
       }
     }
     return layerMap[n];
   }
 
-  let cur = null, inEnt = false, inBlock = false;
-  const blockDefs = {};   // block name -> array of entities
-  let curBlockName = null, curBlockEnts = null;
+  // First pass: read TABLES section to get layer colors
+  let inTables=false, inLayerTable=false, curLayerEntry=null;
+  for(let p=0;p<pairs.length;p++){
+    const [gc,val]=pairs[p];
+    if(gc==='0'){
+      if(curLayerEntry){layerTable[curLayerEntry.name]=curLayerEntry;}
+      curLayerEntry=null;
+      if(val==='SECTION'){
+        const nextPair=pairs[p+1];
+        if(nextPair&&nextPair[1]==='TABLES') inTables=true;
+        else if(nextPair&&nextPair[1]==='ENTITIES') inTables=false;
+      }
+      if(val==='ENDSEC') inTables=false;
+      if(inTables&&val==='LAYER') curLayerEntry={name:'0',color:'#FFFFFF',ltype:'Continuous'};
+      else if(inTables&&val==='TABLE'){ const nxt=pairs[p+1]; if(nxt&&nxt[1]==='LAYER') inLayerTable=true; }
+      else if(inTables&&val==='ENDTAB') inLayerTable=false;
+    }
+    if(curLayerEntry){
+      if(gc==='2') curLayerEntry.name=val;
+      if(gc==='62') curLayerEntry.color=aciToHex(Math.abs(parseInt(val)||7));
+      if(gc==='6') curLayerEntry.ltype=val;
+    }
+  }
+  if(curLayerEntry) layerTable[curLayerEntry.name]=curLayerEntry;
+
+  // Block definitions
+  const blockDefs={};
+  let cur=null,inEnt=false,inBlock=false,curBlockName=null,curBlockEnts=null;
+
+  const ents=[];
 
   function flush(){
     if(!cur) return;
-    const b = buildDXFEnt(cur, getLayId);
+    const b=buildDXFEnt(cur,getLayId);
     if(!b){cur=null;return;}
-    const target = inBlock && curBlockEnts ? curBlockEnts : ents;
+    const target=inBlock&&curBlockEnts?curBlockEnts:ents;
     if(Array.isArray(b)) b.forEach(e=>{e._id=++ST._eid;target.push(e);});
     else{b._id=++ST._eid;target.push(b);}
-    cur = null;
+    cur=null;
   }
 
-  for(let p = 0; p < pairs.length; p++){
-    const [gc, val] = pairs[p];
-    if(gc === '0'){
+  for(let p=0;p<pairs.length;p++){
+    const [gc,val]=pairs[p];
+    if(gc==='0'){
       flush();
       if(val==='ENDSEC'){inEnt=false;inBlock=false;curBlockName=null;curBlockEnts=null;continue;}
       if(val==='SECTION'){
-        // peek next pair for section type
-        if(p+1 < pairs.length && pairs[p+1][0]==='2'){
-          const secType = pairs[p+1][1];
-          if(secType==='ENTITIES'){inEnt=true; inBlock=false;}
-          else if(secType==='BLOCKS'){inBlock=true; inEnt=false;}
-          p++; continue;
+        if(p+1<pairs.length&&pairs[p+1][0]==='2'){
+          const sec=pairs[p+1][1];
+          if(sec==='ENTITIES'){inEnt=true;inBlock=false;}
+          else if(sec==='BLOCKS'){inBlock=true;inEnt=false;}
+          p++;
         }
         continue;
       }
       if(val==='BLOCK'){
-        // Next pairs give block name (code 2)
         for(let j=p+1;j<Math.min(p+8,pairs.length);j++){
-          if(pairs[j][0]==='2'){
-            curBlockName = pairs[j][1];
-            curBlockEnts = [];
-            blockDefs[curBlockName] = curBlockEnts;
-            break;
-          }
+          if(pairs[j][0]==='2'){curBlockName=pairs[j][1];break;}
         }
-        cur = null; continue;
+        curBlockEnts=curBlockName?[]:(curBlockEnts||[]);
+        if(curBlockName) blockDefs[curBlockName]=curBlockEnts;
+        continue;
       }
-      if(val==='ENDBLK'){cur=null;curBlockName=null;curBlockEnts=null;continue;}
-      if(val==='SEQEND'||val==='ENDBLK'){continue;}
-      // Only build entities from ENTITIES section OR *Model_Space block
-      if(!inEnt && !(inBlock && (curBlockName==='*Model_Space'||curBlockName==='*model_space'))) continue;
-      cur = {type:val, d:{}};
+      if(val==='ENDBLK'){curBlockName=null;curBlockEnts=null;continue;}
+      if(val==='SEQEND') continue;
+      if(!inEnt&&!(inBlock&&curBlockName&&!curBlockName.startsWith('*Paper'))) continue;
+      cur={type:val,d:{}};
     } else if(cur){
-      if(!cur.d[gc]) cur.d[gc] = [];
+      if(!cur.d[gc]) cur.d[gc]=[];
       cur.d[gc].push(val);
     }
   }
   flush();
 
-  // ── Expand INSERT entities into block contents ──
-  // Walk through ents, for each INSERT find its block def and clone entities
-  // with correct offset/scale/rotation applied
-  const finalEnts = [];
-  ents.forEach(e => {
-    if(e.type === 'rect' && e._blockRef && blockDefs[e._blockRef]) {
-      const bEnts = blockDefs[e._blockRef];
-      const ox = e.x||0, oy = e.y||0;
-      const sx = e._sx||1, sy = e._sy||1;
-      const rot = e._rot||0;
-      bEnts.forEach(be => {
-        const ne = JSON.parse(JSON.stringify(be));
-        ne._id = ++ST._eid;
-        ne.selected = false;
-        ne.layer = ne.layer || e.layer;
-        // Apply block insertion transform
-        if(ox !== 0 || oy !== 0) {
-          const te = translateEnt(ne, ox, oy);
-          Object.assign(ne, te);
-        }
-        finalEnts.push(ne);
+  // Expand INSERT entities into their block contents
+  const finalEnts=[];
+  ents.forEach(e=>{
+    if(e._blockRef&&blockDefs[e._blockRef]){
+      const bEnts=blockDefs[e._blockRef];
+      const ox=e.x||0,oy=e.y||0;
+      const sx=e._sx||1,sy=e._sy||1;
+      const rot=e._rot||0;
+      bEnts.forEach(be=>{
+        try{
+          const ne=JSON.parse(JSON.stringify(be));
+          ne._id=++ST._eid;ne.selected=false;
+          // Apply insertion transform
+          if(ox!==0||oy!==0){
+            const te=translateEnt(ne,ox,oy);
+            Object.assign(ne,te);
+          }
+          if(rot!==0){
+            const re=rotateEnt(ne,{x:ox,y:oy},rot*Math.PI/180);
+            Object.assign(ne,re);
+          }
+          finalEnts.push(ne);
+        }catch(err){}
       });
     } else {
       finalEnts.push(e);
     }
   });
-  const expandedEnts = finalEnts;
 
-  // Extract tile rectangles for image overlay workflow
-  const tileBounds = [];
-  const txts = ents.filter(e=>e.type==='text').map(e=>({x:e.x,y:e.y,txt:e.txt}));
+  // Also add Model_Space block entities
+  if(blockDefs['*Model_Space']){
+    blockDefs['*Model_Space'].forEach(e=>{
+      if(e&&!finalEnts.find(fe=>fe._id===e._id)){
+        finalEnts.push(e);
+      }
+    });
+  }
 
-  if(!ents.length && !imgPaths.length){
-    toast('No renderable entities found. This may be a complex Civil 3D file — check layers.','warn');
-    console.warn('parseDXF: 0 entities from', filename, '— pairs count:', pairs.length);
+  const totalEnts=finalEnts.filter(e=>e&&e.type);
+  const layerCount=Object.keys(layerMap).length;
+
+  if(!totalEnts.length&&!imgPaths.length){
+    toast('No renderable entities found in this DXF.'+
+      (isCivil?' Civil 3D proxy objects cannot be read — ask author to export as standard DXF.':''),'warn');
     return;
   }
 
   pushUndo();
-  ST.entities = expandedEnts.length > ents.length ? expandedEnts : ents;
-  ST.tileBounds = tileBounds;
-  ST.imgDefs = imgPaths;
-  ST.imgOverlays = [];
+  ST.entities=totalEnts;
+  ST.imgDefs=imgPaths;
+  ST.imgOverlays=[];
   renderLayers();
-  setTimeout(()=>zoomExt(), 150);
+  setTimeout(()=>zoomExt(),150);
 
-  if(imgPaths.length > 0 || isCivil){
-    setTimeout(()=>showDxfDiag(filename,ents.length,imgPaths,tileBounds,isCivil), 300);
+  const msg=filename+': '+totalEnts.length+' entities on '+layerCount+' layers';
+  if(imgPaths.length>0||isCivil){
+    setTimeout(()=>showDxfDiag(filename,totalEnts.length,imgPaths,[],isCivil),300);
   } else {
-    const msg = filename+': '+ents.length+' entities on '+Object.keys(layerMap).length+' layers';
     toast(msg,'ok'); setMsg(msg);
   }
+  // Auto-detect CRS from coordinates
+  setTimeout(()=>{
+    autoDetectCRS&&autoDetectCRS(totalEnts);
+    autoGotoDrawingLocation&&autoGotoDrawingLocation();
+  },400);
 }
 
 function buildDXFEnt(cur,getLayId){
@@ -4287,10 +4371,20 @@ function routeFile(f,source){
     previewCSV(f); return;
   }
   if(n.endsWith('.json')||n.endsWith('.geojson')){
-    _pendingGeoFile=f; if(source==='import')closeMo('moImport');
-    openMo('moGeoImport');
-    const el=document.getElementById('geoFileName');if(el)el.textContent='🗺️ '+f.name;
-    previewGeoJSON(f); return;
+    if(source==='import') closeMo('moImport');
+    const r2=new FileReader();
+    r2.onload=ev=>{
+      try{
+        const gj=JSON.parse(ev.target.result);
+        if(gj.type==='FeatureCollection'||gj.type==='Feature'||gj.features){
+          parseGeoJSON(gj,f.name);
+        } else {
+          toast('Not a valid GeoJSON FeatureCollection','warn');
+        }
+      }catch(e){toast('GeoJSON parse error: '+e.message,'err');}
+    };
+    r2.readAsText(f,'UTF-8');
+    return;
   }
   if(n.endsWith('.strata')){
     const r=new FileReader();
@@ -4378,13 +4472,7 @@ function doImportCSV(){
   r.readAsText(_pendingCSVFile);
 }
 
-function ensureLayer(name,color){
-  let l=ST.layers.find(la=>la.name===name);
-  if(l) return l.id;
-  const id=++ST._eid+50000;
-  ST.layers.push({id,name,color,vis:true,lock:false,frz:false,dis:false});
-  renderLayers(); return id;
-}
+
 
 function renderSurveyList(){
   const list=document.getElementById('surveyList');if(!list)return;
@@ -4453,34 +4541,64 @@ function geoDrop(ev){ev.preventDefault();const f=ev.dataTransfer?.files?.[0];if(
 function geoFileChosen(ev){const f=ev.target.files?.[0];if(!f)return;_pendingGeoFile=f;const el=document.getElementById('geoFileName');if(el)el.textContent='🗺️ '+f.name;previewGeoJSON(f);}
 function doImportGeoJSON(){if(!_pendingGeoFile){toast('No GeoJSON selected','warn');return;}const r=new FileReader();r.onload=ev=>{try{parseGeoJSON(JSON.parse(ev.target.result),_pendingGeoFile.name);closeMo('moGeoImport');_pendingGeoFile=null;}catch(e){toast('GeoJSON error: '+e.message,'err');console.error(e);}};r.readAsText(_pendingGeoFile);}
 function parseGeoJSON(gj,filename){
-  const ents=[];let _e=ST._eid;
-  const mk=obj=>({...obj,_id:++_e,selected:false});
-  if(gj.crs?.properties?.name)ST.crs=gj.crs.properties.name;
-  const feats=gj.type==='FeatureCollection'?gj.features:gj.type==='Feature'?[gj]:[{type:'Feature',geometry:gj,properties:{}}];
-  feats.forEach(feat=>{
-    if(!feat?.geometry)return;
-    const g=feat.geometry;
-    const layName=g.type==='Point'?'GIS Points':g.type.includes('Line')?'GIS Lines':'GIS Polygons';
-    const layId=ensureLayer(layName,g.type==='Point'?'#4eff91':g.type.includes('Line')?'#1FA8D9':'#A78BFA');
-    const proc=(coords,type)=>{
-      if(!Array.isArray(coords)||!coords.length)return;
-      if(type==='Point'){const[x,y]=coords;if(isFinite(x)&&isFinite(y))ents.push(mk({type:'circle',cx:x,cy:y,r:1.5,layer:layId}));}
-      else if(type==='LineString'){for(let i=0;i<coords.length-1;i++){const[x1,y1]=coords[i],[x2,y2]=coords[i+1];if(isFinite(x1)&&isFinite(y1)&&isFinite(x2)&&isFinite(y2))ents.push(mk({type:'line',x1,y1,x2,y2,layer:layId}));}}
-      else if(type==='Polygon'){coords.forEach(ring=>{for(let i=0;i<ring.length-1;i++){const[x1,y1]=ring[i],[x2,y2]=ring[i+1];if(isFinite(x1)&&isFinite(y1)&&isFinite(x2)&&isFinite(y2))ents.push(mk({type:'line',x1,y1,x2,y2,layer:layId}));}});}
-    };
+  if(!gj||(!gj.features&&gj.type!=='Feature')){toast('Invalid GeoJSON','err');return;}
+  const features = gj.features || [gj];
+  const fileBase = (filename||'geo').replace(/\.[^.]+$/,'');
+  const layersByType = {};
+  const layColors = {Point:'#F5BE18',MultiPoint:'#F5BE18',
+    LineString:'#1FA8D9',MultiLineString:'#1FA8D9',
+    Polygon:'#4eff91',MultiPolygon:'#4eff91'};
+
+  function ensureGeoLayer(name, color) {
+    if(layersByType[name]) return layersByType[name];
+    const ex = ST.layers.find(l=>l.name===name);
+    if(ex){ layersByType[name]=ex.id; return ex.id; }
+    const id = Date.now() + (Math.random()*1000|0);
+    layersByType[name] = id;
+    ST.layers.push({id,name:name.toString().slice(0,30),color:color||'#1FA8D9',vis:true,lock:false,frz:false,dis:false});
+    return id;
+  }
+
+  const ents=[];
+  features.forEach(feat=>{
+    const g=feat?.geometry; if(!g) return;
+    const props=feat.properties||{};
+    const rawLayName = props.layer||props.Layer||props.NAME||props.name||
+                       (fileBase+'-'+g.type);
+    const layName = rawLayName.toString().replace(/[^a-zA-Z0-9_\- ]/g,'').slice(0,30)||'geo';
+    const col = layColors[g.type]||'#A78BFA';
+    const layId = ensureGeoLayer(layName, col);
+
+    function mkE(obj){ return {...obj,_id:++ST._eid,layer:layId,selected:false}; }
+    function addLine(coords){
+      if(!coords||coords.length<2)return;
+      ents.push(mkE({type:'polyline',pts:coords.map(c=>({x:+c[0],y:+c[1]})),closed:false}));
+    }
+    function addPoly(rings){
+      rings.forEach((ring,i)=>{
+        if(!ring||ring.length<3)return;
+        ents.push(mkE({type:'polyline',pts:ring.map(c=>({x:+c[0],y:+c[1]})),closed:true}));
+      });
+    }
     switch(g.type){
-      case'Point':proc(g.coordinates,'Point');break;
-      case'LineString':proc(g.coordinates,'LineString');break;
-      case'Polygon':proc(g.coordinates,'Polygon');break;
-      case'MultiPoint':g.coordinates.forEach(c=>proc(c,'Point'));break;
-      case'MultiLineString':g.coordinates.forEach(c=>proc(c,'LineString'));break;
-      case'MultiPolygon':g.coordinates.forEach(p=>proc(p,'Polygon'));break;
+      case 'Point': ents.push(mkE({type:'point',x:+g.coordinates[0],y:+g.coordinates[1]})); break;
+      case 'MultiPoint': g.coordinates.forEach(co=>ents.push(mkE({type:'point',x:+co[0],y:+co[1]}))); break;
+      case 'LineString': addLine(g.coordinates); break;
+      case 'MultiLineString': g.coordinates.forEach(addLine); break;
+      case 'Polygon': addPoly(g.coordinates); break;
+      case 'MultiPolygon': g.coordinates.forEach(poly=>addPoly(poly)); break;
     }
   });
-  if(!ents.length){toast('No renderable features','warn');return;}
-  pushUndo();ST._eid=_e;ST.entities=ST.entities.concat(ents);
-  renderLayers();setTimeout(()=>zoomExt(),100);
-  toast(`${filename}: ${ents.length} GIS entities`,'ok');
+
+  if(!ents.length){toast('No geometry in GeoJSON','warn');return;}
+  pushUndo();
+  ST.entities.push(...ents);
+  renderLayers();
+  setTimeout(()=>zoomExt(),150);
+  if(typeof autoDetectCRS==='function') autoDetectCRS(ents);
+  const lc=Object.keys(layersByType).length;
+  toast(filename+': '+ents.length+' entities on '+lc+' layer'+(lc!==1?'s':''),'ok');
+  setMsg(filename+': '+ents.length+' entities | '+lc+' layers');
 }
 function exportGeoJSON(){const feats=[];ST.entities.forEach(e=>{let g=null;switch(e.type){case'line':g={type:'LineString',coordinates:[[e.x1,e.y1],[e.x2,e.y2]]};break;case'circle':g={type:'Point',coordinates:[e.cx,e.cy]};break;case'polyline':if(e.pts?.length>=2)g={type:'LineString',coordinates:e.pts.map(p=>[p.x,p.y])};break;}if(g)feats.push({type:'Feature',geometry:g,properties:{layer:e.layer}});});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({type:'FeatureCollection',features:feats},null,2)],{type:'application/json'}));a.download='strata_export.geojson';a.click();toast('GeoJSON exported','ok');}
 
@@ -5691,30 +5809,27 @@ let _dwgFile = null;
 
 function showDwgGuide(f) {
   _dwgFile = f;
+  // Read version to decide path — no modal, just do it
   const r = new FileReader();
   r.onload = ev => {
     const arr = new Uint8Array(ev.target.result);
     let ver = '';
-    for(let i = 0; i < 6; i++) ver += String.fromCharCode(arr[i]);
-    const verName = DWG_VERSIONS[ver] || 'Unknown version';
-    const sizeMB = (f.size / 1048576).toFixed(2);
+    for(let i=0;i<6;i++) ver += String.fromCharCode(arr[i]);
+    const verName = DWG_VERSIONS[ver] || ver;
+    const sizeMB = (f.size/1048576).toFixed(1);
 
-    // Update modal info
-    const meta = document.getElementById('dwgMeta');
-    if(meta) meta.innerHTML =
-      `<span class="dwg-chip">📄 <b>${f.name}</b></span>` +
-      `<span class="dwg-chip">📐 <b>${ver}</b> — ${verName}</span>` +
-      `<span class="dwg-chip">💾 <b>${sizeMB} MB</b></span>`;
-
-    const canParse = ['AC1015','AC1018','AC1021','AC1024','AC1027','AC1032','AC1035','AC1037'].includes(ver);
-    const parseBtn = document.getElementById('dwgParseBtn');
-    if(parseBtn) {
-      parseBtn.style.display = 'inline-flex';
-      parseBtn.textContent = canParse ? `⚡ Import DWG (${verName})` : '⚡ Import (version not supported)';
+    if(ver >= 'AC1027') {
+      // R2013+: auto-convert via CloudConvert immediately
+      toast(`📐 DWG ${verName} (${sizeMB}MB) — auto-converting via CloudConvert…`, 'ok');
+      setMsg(`Converting ${f.name} (${verName}) via CloudConvert — please wait…`);
+      setTimeout(() => convertWithCloudConvert(), 100);
+    } else {
+      // Older DWG: try direct parse
+      toast(`📐 DWG ${verName} — importing directly…`, 'ok');
+      importDwgDirect();
     }
-    openMo('moDwgGuide');
   };
-  r.onerror = () => openMo('moDwgGuide');
+  r.onerror = () => { toast('Cannot read DWG file', 'err'); };
   r.readAsArrayBuffer(f.slice(0, 6));
 }
 
@@ -5744,13 +5859,13 @@ function importDwgDirect() {
         setMsg(`DWG: ${result.entities.length} entities | ${result.layerCount} layers | ${result.version}`);
         autoDetectCRS(result.entities);
       } else {
-        toast('DWG parsed but no drawable entities found. Try converting to DXF first.', 'warn');
-        openMo('moDwgGuide');
+        toast('No entities found in DWG — trying CloudConvert…', 'warn');
+        setTimeout(() => convertWithCloudConvert(), 200);
       }
     } catch(e) {
       console.error('DWG parse error:', e);
-      toast('DWG parsing failed: ' + e.message + ' — try converting to DXF', 'err');
-      openMo('moDwgGuide');
+      toast('DWG parse failed: ' + e.message + ' — trying CloudConvert…', 'warn');
+      setTimeout(() => convertWithCloudConvert(), 200);
     }
   };
   reader.readAsArrayBuffer(_dwgFile);
@@ -7070,6 +7185,178 @@ ibApply = function() {
   }
 })();
 
+
+// ════════════════════════════════════════════════════════════════════
+//  OPERATION INPUT PANEL — AutoCAD-style inline value entry
+// ════════════════════════════════════════════════════════════════════
+
+function showOpPanel(title, fields, hint, onApply) {
+  const panel = document.getElementById('opPanel');
+  const titleEl = document.getElementById('opTitle');
+  const fieldsEl = document.getElementById('opFields');
+  const hintEl = document.getElementById('opHint');
+  if(!panel) return;
+
+  titleEl.textContent = title;
+  hintEl.textContent = hint || '';
+
+  fieldsEl.innerHTML = fields.map((f, i) =>
+    `<div class="op-row">
+      <span class="op-lbl">${f.label}</span>
+      <input class="op-inp" id="opField${i}" placeholder="${f.placeholder||''}" 
+             value="${f.value||''}" type="text"
+             onkeydown="opPanelKey(event,${i},${fields.length})"
+             onkeyup="event.stopPropagation()" autocomplete="off">
+    </div>`
+  ).join('');
+
+  panel._onApply = onApply;
+  panel._fields = fields;
+  panel.style.display = 'block';
+
+  // Focus first field
+  setTimeout(() => {
+    const f = document.getElementById('opField0');
+    if(f) f.focus();
+  }, 50);
+}
+
+function hideOpPanel() {
+  const panel = document.getElementById('opPanel');
+  if(panel) panel.style.display = 'none';
+}
+
+function opPanelKey(ev, idx, total) {
+  ev.stopPropagation();
+  if(ev.key === 'Enter') {
+    if(idx < total - 1) {
+      const next = document.getElementById('opField' + (idx + 1));
+      if(next) { next.focus(); return; }
+    }
+    opPanelApply();
+  }
+  if(ev.key === 'Escape') opPanelCancel();
+  if(ev.key === 'Tab') { ev.preventDefault(); opPanelKey({...ev, key:'Enter'}, idx, total); }
+}
+
+function opPanelApply() {
+  const panel = document.getElementById('opPanel');
+  if(!panel || !panel._onApply) return;
+  const vals = (panel._fields||[]).map((f,i) => {
+    const el = document.getElementById('opField'+i);
+    return el ? el.value.trim() : '';
+  });
+  hideOpPanel();
+  panel._onApply(vals);
+}
+
+function opPanelCancel() {
+  hideOpPanel();
+  ST.opState = null;
+  T('select');
+}
+
+// ── Patch applyOp to show panel when base is set ──────────────────
+const _origApplyOp2 = applyOp;
+applyOp = function(wp) {
+  const op = ST.opState;
+  if(!op) return;
+
+  // After base is set for move/rotate/scale — show input panel
+  if(op.base && !op._panelShown) {
+    op._panelShown = true;
+
+    if(op.type === 'move') {
+      showOpPanel('⟶ MOVE', [
+        {label:'ΔX', placeholder:'horizontal distance'},
+        {label:'ΔY', placeholder:'vertical distance'},
+      ], 'Or click destination on canvas. Polar: enter distance<angle',
+      vals => {
+        const dx = parseFloat(vals[0])||0, dy = parseFloat(vals[1])||0;
+        if(dx===0&&dy===0){_origApplyOp2(wp);return;}
+        const dest = {x:op.base.x+dx, y:op.base.y+dy};
+        _origApplyOp2(dest);
+      });
+    } else if(op.type === 'rotate') {
+      showOpPanel('↻ ROTATE', [
+        {label:'Angle °', placeholder:'e.g. 45  (+ = CCW)'},
+      ], 'Positive = counter-clockwise. Or click on canvas.',
+      vals => {
+        const deg = parseFloat(vals[0]);
+        if(isNaN(deg)){_origApplyOp2(wp);return;}
+        const rad = deg * Math.PI / 180;
+        const sels = ST.entities.filter(e=>e.selected);
+        pushUndo();
+        ST.entities = ST.entities.map(e => e.selected ? rotateEnt(e, op.base, rad) : e);
+        toast('Rotated '+deg+'°', 'ok');
+        setMsg('Rotated — ESC=done');
+        op._panelShown = false; op.refPt = null; render();
+      });
+    } else if(op.type === 'scale') {
+      showOpPanel('⤡ SCALE', [
+        {label:'Factor', placeholder:'e.g. 2  (2=double, 0.5=half)'},
+      ], 'Or click reference point on canvas.',
+      vals => {
+        const f = parseFloat(vals[0]);
+        if(isNaN(f)||f<=0){_origApplyOp2(wp);return;}
+        pushUndo();
+        ST.entities = ST.entities.map(e => e.selected ? scaleEnt(e, op.base, f) : e);
+        toast('Scaled ×'+f.toFixed(3), 'ok');
+        setMsg('Scaled — ESC=done');
+        op._panelShown = false; op.refPt = null; render();
+      });
+    } else if(op.type === 'copy') {
+      showOpPanel('⊕ COPY', [
+        {label:'ΔX', placeholder:'horizontal'},
+        {label:'ΔY', placeholder:'vertical'},
+      ], 'Or click destination. Press Enter again to copy multiple.',
+      vals => {
+        const dx=parseFloat(vals[0])||0, dy=parseFloat(vals[1])||0;
+        if(dx===0&&dy===0){_origApplyOp2(wp);return;}
+        const dest={x:op.base.x+dx, y:op.base.y+dy};
+        op._panelShown=false;
+        _origApplyOp2(dest);
+      });
+    } else if(op.type === 'offset') {
+      showOpPanel('↔ OFFSET', [
+        {label:'Distance', placeholder:'e.g. 500'},
+      ], 'Enter offset distance then click entity side.',
+      vals => {
+        const d = parseFloat(vals[0]);
+        if(!isNaN(d)&&d>0) op.dist=d;
+        hideOpPanel();
+        setMsg('Offset '+d+' '+ST.units+' — click entity to offset  |  ESC=cancel');
+      });
+      return; // Don't call _origApplyOp2 yet
+    }
+  }
+
+  _origApplyOp2(wp);
+};
+
+// ── Show op panel when op tool starts with selection ─────────────
+const _origT2 = T;
+T = function(tool) {
+  hideOpPanel();
+  _origT2(tool);
+  // For offset: show panel immediately
+  if(tool === 'offset') {
+    setTimeout(() => {
+      showOpPanel('↔ OFFSET', [
+        {label:'Distance', placeholder:'e.g. 500 mm'},
+      ], 'Enter distance then click entity on canvas.',
+      vals => {
+        const d = parseFloat(vals[0]);
+        if(!isNaN(d)&&d>0){
+          ST.opState = {type:'offset', dist:d, base:null};
+          setMsg('Click entity to offset at '+d+' '+ST.units+'  |  ESC=cancel');
+        }
+        hideOpPanel();
+      });
+    }, 100);
+  }
+};
+
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════
@@ -7192,6 +7479,17 @@ ibApply = function() {
   </div>
 </div>
 
+
+<!-- OPERATION INPUT PANEL -->
+<div id="opPanel">
+  <div class="op-title" id="opTitle">🔧 OPERATION</div>
+  <div id="opFields"></div>
+  <div class="op-btns">
+    <button class="btn s" style="font-size:9px;padding:3px 10px" onclick="opPanelCancel()">ESC Cancel</button>
+    <button class="btn st" style="font-size:9px;padding:3px 10px" id="opApplyBtn" onclick="opPanelApply()">✓ Apply (Enter)</button>
+  </div>
+  <div class="op-hint" id="opHint"></div>
+</div>
 </body>
 </html>
 
