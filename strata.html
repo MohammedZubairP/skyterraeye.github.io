@@ -597,6 +597,7 @@ input,select{font-family:inherit}
     </div>
   </div>
   <div class="mb-right">
+    <button class="mb-btn" onclick="toggleProcPanel()" style="color:var(--st);border:1px solid var(--stl);padding:0 10px;border-radius:3px;font-size:10px">⚙ QGIS</button>
     <button class="unit-pill" id="unitPill" onclick="openMo('moSettings');setTimeout(()=>openSetTab('units'),60)">mm</button>
     <div class="coord" id="coordEl">X: 0.000&nbsp;&nbsp;Y: 0.000&nbsp;mm</div>
     <button style="display:flex;align-items:center;gap:3px;background:none;border:1px solid var(--sep);border-radius:3px;padding:1px 7px;color:var(--m);font-size:10px;cursor:pointer;transition:all .1s" onclick="mapSearch()" title="Go to location on map" onmouseover="this.style.color='var(--b)'" onmouseout="this.style.color='var(--m)'">🗺 Find</button>
@@ -977,7 +978,7 @@ input,select{font-family:inherit}
   <div class="ib-sect" style="gap:3px">
     <button class="ib-btn on" id="ib-ortho" onclick="toggleOrtho()" title="Ortho mode — constrain to 0/45/90° (F8)">⊢ ORTHO</button>
     <button class="ib-btn on" id="ib-snap" onclick="toggleSnap()" title="Grid snap (F9)">⊞ SNAP</button>
-    <button class="ib-btn on" id="ib-osnap" onclick="toggleOsnap()" title="Object snap endpoints/midpoints (F3)">◎ OSNAP</button>
+    <button class="ib-btn on" id="ib-osnap" onclick="document.getElementById('osnapPanel').style.display=document.getElementById('osnapPanel').style.display==='block'?'none':'block'" title="Object snap settings endpoints/midpoints (F3)">◎ OSNAP</button>
   </div>
 </div>
 
@@ -2105,17 +2106,30 @@ function applyOrtho(base,wp) {
 
 // ── SELECTION ──────────────────────────────────────────────────────
 function applyBoxSel(sx1,sy1,sx2,sy2,add) {
-  const w1=s2w(Math.min(sx1,sx2),Math.min(sy1,sy2));
-  const w2=s2w(Math.max(sx1,sx2),Math.max(sy1,sy2));
-  const crossing=(sx2<sx1);
+  // sx2<sx1 = dragged LEFT (crossing/green) → touches box
+  // sx2>sx1 = dragged RIGHT (window/blue) → fully inside box
+  const crossing = (sx2 < sx1);
+  
+  // Convert screen corners to world coords
+  const minSX=Math.min(sx1,sx2), maxSX=Math.max(sx1,sx2);
+  const minSY=Math.min(sy1,sy2), maxSY=Math.max(sy1,sy2);
+  const wMin=s2w(minSX,minSY), wMax=s2w(maxSX,maxSY);
+  // World coords: minY is actually bigger Y because screen Y is inverted
+  const wxLo=Math.min(wMin.x,wMax.x), wxHi=Math.max(wMin.x,wMax.x);
+  const wyLo=Math.min(wMin.y,wMax.y), wyHi=Math.max(wMin.y,wMax.y);
+  
   if(!add) ST.entities.forEach(e=>e.selected=false);
   ST.entities.forEach(e=>{
     if(!layVisible(e.layer)) return;
     const bb=entBBox(e); if(!bb) return;
     if(crossing){
-      if(!(bb.maxX<w1.x||bb.minX>w2.x||bb.maxY<Math.min(w1.y,w2.y)||bb.minY>Math.max(w1.y,w2.y))) e.selected=true;
+      // Crossing: select if box TOUCHES the entity (any overlap)
+      if(bb.maxX>=wxLo && bb.minX<=wxHi && bb.maxY>=wyLo && bb.minY<=wyHi)
+        e.selected=true;
     } else {
-      if(bb.minX>=w1.x&&bb.maxX<=w2.x&&bb.minY>=Math.min(w1.y,w2.y)&&bb.maxY<=Math.max(w1.y,w2.y)) e.selected=true;
+      // Window: select only if entity is FULLY INSIDE box
+      if(bb.minX>=wxLo && bb.maxX<=wxHi && bb.minY>=wyLo && bb.maxY<=wyHi)
+        e.selected=true;
     }
   });
   updateSel();
@@ -3412,18 +3426,13 @@ function buildDXFEnt(cur,getLayId){
       const flag=parseInt(g('70'))||0;
       const closed=!!(flag&1);
       const pts=xs.map((x,i)=>({x,y:ys[i]||0}));
-      const segs=[];
-      for(let i=0;i<pts.length-1;i++)
-        segs.push({type:'line',x1:pts[i].x,y1:pts[i].y,x2:pts[i+1].x,y2:pts[i+1].y,layer});
-      if(closed&&pts.length>2)
-        segs.push({type:'line',x1:pts[pts.length-1].x,y1:pts[pts.length-1].y,x2:pts[0].x,y2:pts[0].y,layer});
-      return segs.length?segs:null;
+      // Return as a proper polyline entity (preserves layer structure)
+      return{type:'polyline',pts,closed,layer};
     }
 
-    case 'POLYLINE': return null; // vertices come as VERTEX
+    case 'POLYLINE': return null; // vertices handled by VERTEX accumulation
 
-    case 'VERTEX':
-      return{type:'circle',cx:gf('10'),cy:gf('20'),r:0.5,layer};
+    case 'VERTEX': return null; // vertices accumulated into polylines in parseDXF
 
     case 'SPLINE':{
       const xs=ga('10'),ys=ga('20');
@@ -3573,1305 +3582,8 @@ function parseSVGPath(d,ents,mk){
 }
 
 // ── EXPORT ───────────────────────────────────────────────────────
-function doExport(){
-  closeMo('moExport');
-  // Build a simple DXF string
-  let dxf='0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n';
-  ST.entities.forEach(e=>{
-    const lay=ST.layers.find(l=>l.id===e.layer);
-    const lname=lay?lay.name:'0';
-    switch(e.type){
-      case 'line': dxf+=`0\nLINE\n8\n${lname}\n10\n${e.x1}\n20\n${e.y1}\n11\n${e.x2}\n21\n${e.y2}\n`;break;
-      case 'circle': dxf+=`0\nCIRCLE\n8\n${lname}\n10\n${e.cx}\n20\n${e.cy}\n40\n${e.r}\n`;break;
-      case 'arc': dxf+=`0\nARC\n8\n${lname}\n10\n${e.cx}\n20\n${e.cy}\n40\n${e.r}\n50\n${e.sa||0}\n51\n${e.ea||180}\n`;break;
-      case 'text': dxf+=`0\nTEXT\n8\n${lname}\n10\n${e.x}\n20\n${e.y}\n40\n${e.sz||12}\n1\n${e.txt||''}\n`;break;
-      case 'polygon': {
-      const pc=w2s(e.cx,e.cy), pr=Math.abs(e.r||10)*ST.zoom;
-      const ns=e.sides||6;
-      ctx.beginPath();
-      for(let si=0;si<ns;si++){
-        const a=(si/ns)*Math.PI*2-Math.PI/2;
-        si===0?ctx.moveTo(pc.x+pr*Math.cos(a),pc.y+pr*Math.sin(a)):ctx.lineTo(pc.x+pr*Math.cos(a),pc.y+pr*Math.sin(a));
-      }
-      ctx.closePath(); ctx.stroke();
-      if(e.fill){ctx.fillStyle=col+'33';ctx.fill();}
-      break;
-    }
-    case 'cloud': {
-      const pcc=w2s(e.cx,e.cy), prc=Math.abs(e.r||10)*ST.zoom;
-      const nArcs=Math.max(6,Math.round(prc/14));
-      ctx.beginPath();
-      for(let si=0;si<nArcs;si++){
-        const a0=(si/nArcs)*Math.PI*2, a1=((si+1)/nArcs)*Math.PI*2;
-        const bmx=pcc.x+(prc+6)*Math.cos((a0+a1)/2), bmy=pcc.y+(prc+6)*Math.sin((a0+a1)/2);
-        ctx.arc(bmx,bmy,7,a0+Math.PI,a1+Math.PI);
-      }
-      ctx.closePath(); ctx.stroke(); break;
-    }
-        case 'rect': {
-        const x1=e.x,y1=e.y,x2=e.x+e.w,y2=e.y+e.h;
-        dxf+=`0\nLINE\n8\n${lname}\n10\n${x1}\n20\n${y1}\n11\n${x2}\n21\n${y1}\n`;
-        dxf+=`0\nLINE\n8\n${lname}\n10\n${x2}\n20\n${y1}\n11\n${x2}\n21\n${y2}\n`;
-        dxf+=`0\nLINE\n8\n${lname}\n10\n${x2}\n20\n${y2}\n11\n${x1}\n21\n${y2}\n`;
-        dxf+=`0\nLINE\n8\n${lname}\n10\n${x1}\n20\n${y2}\n11\n${x1}\n21\n${y1}\n`;
-        break;
-      }
-      case 'polygon': {
-        const ns=e.sides||6, pr=e.r||10;
-        dxf+=`0\nLWPOLYLINE\n8\n${lname}\n90\n${ns}\n70\n1\n`;
-        for(let si=0;si<ns;si++){const a=(si/ns)*Math.PI*2-Math.PI/2;dxf+=`10\n${(e.cx+pr*Math.cos(a)).toFixed(4)}\n20\n${(e.cy+pr*Math.sin(a)).toFixed(4)}\n`;}
-        break;
-      }
-            case 'polyline': {
-        if(e.pts&&e.pts.length>=2){
-          dxf+=`0\nLWPOLYLINE\n8\n${lname}\n90\n${e.pts.length}\n`;
-          e.pts.forEach(p=>dxf+=`10\n${p.x}\n20\n${p.y}\n`);
-        }
-        break;
-      }
-    }
-  });
-  dxf+='0\nENDSEC\n0\nEOF\n';
-  const blob=new Blob([dxf],{type:'text/plain'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='strata_export.dxf';
-  a.click();
-  toast('DXF exported','ok');
-}
-function exportLayers(){
-  closeMo('moExportLayers');
-  toast('Layers exported as ZIP (demo)','ok');
-}
-function printDwg(){toast('Print dialog opening…','ok');window.print();}
+// doExport() replaced — see doExport(fmt) below
 
-// ── SETTINGS ──────────────────────────────────────────────────────
-function openSetTab(t){
-  document.querySelectorAll('.stab,.spanel').forEach(el=>el.classList.remove('act'));
-  document.getElementById('stab-'+t)?.classList.add('act');
-  document.getElementById('sp-'+t)?.classList.add('act');
-}
-function applyUnits(){
-  const u=document.getElementById('setUnits')?.value||'mm';
-  ST.units=u;
-  ['unitPill','unitBadge','stUnits','stUnitBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=u;});
-  document.getElementById('pUnits').textContent=u;
-}
-function applyScale(){
-  const s=document.getElementById('setScale')?.value||'1:1';
-  ST.scale=s;
-  document.getElementById('stScale').textContent=s;
-  document.getElementById('pScale').textContent=s;
-}
-function saveSettings(){applyUnits();applyScale();closeMo('moSettings');toast('Settings saved','ok');}
-function setBg(c,el){
-  ST.bgColor=c;
-  document.querySelectorAll('.bgsw').forEach(s=>s.classList.remove('sel'));
-  if(el)el.classList.add('sel');
-  render();
-}
-function setTbSz(sz){
-  document.body.classList.remove('tb-sm','tb-lg');
-  if(sz==='sm')document.body.classList.add('tb-sm');
-  else if(sz==='lg')document.body.classList.add('tb-lg');
-}
-function markSz(el,g){
-  document.querySelectorAll(`[id^="szc-"]`).forEach(e=>e.classList.remove('sel'));
-  el.classList.add('sel');
-}
-document.getElementById('bgSwatches').addEventListener('click',ev=>{
-  if(ev.target.classList.contains('bgsw')) setBg(ev.target.dataset.c,ev.target);
-});
-
-// ── TOGGLE PANELS ─────────────────────────────────────────────────
-function toggleLP(show){const el=document.getElementById('lpanel');const chk=document.getElementById('chkLP');const v=show!==undefined?show:el.classList.contains('lp-hidden');el.classList.toggle('lp-hidden',!v);if(chk)chk.checked=v;setTimeout(resize,220);}
-function toggleRP(show){const el=document.getElementById('rpanel');const chk=document.getElementById('chkRP');const v=show!==undefined?show:el.classList.contains('rp-hidden');el.classList.toggle('rp-hidden',!v);if(chk)chk.checked=v;setTimeout(resize,220);}
-function toggleRibbon(show){const el=document.getElementById('ribbonEl');const tabs=document.getElementById('ribTabsEl');const chk=document.getElementById('chkRib');const v=show!==undefined?show:el.classList.contains('rh');el.classList.toggle('rh',!v);tabs.classList.toggle('rh',!v);if(chk)chk.checked=v;setTimeout(resize,220);}
-
-// ── TOGGLES ───────────────────────────────────────────────────────
-function toggleSnap(){ST.snap=!ST.snap;document.getElementById('stSnap').textContent=ST.snap?'ON':'OFF';document.getElementById('btn-snap').classList.toggle('on',ST.snap);}
-function toggleGridF(){ST.grid=!ST.grid;document.getElementById('stGrid').textContent=ST.grid?'ON':'OFF';document.getElementById('btn-grid').classList.toggle('on',ST.grid);render();}
-function toggleOrtho(){ST.ortho=!ST.ortho;document.getElementById('stOrtho').textContent=ST.ortho?'ON':'OFF';document.getElementById('btn-ortho').classList.toggle('on',ST.ortho);}
-function toggleOsnap(){ST.osnap=!ST.osnap;document.getElementById('stOsnap').textContent=ST.osnap?'ON':'OFF';document.getElementById('btn-osnap').classList.toggle('on',ST.osnap);}
-function togglePolar(){ST.polar=!ST.polar;toast('Polar '+(ST.polar?'ON':'OFF'),'ok');}
-
-// ── RIBBON ────────────────────────────────────────────────────────
-function switchRib(t){
-  document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('act'));
-  document.getElementById('rt-'+t)?.classList.add('act');
-}
-
-// ── LAYOUTS ───────────────────────────────────────────────────────
-let _layoutCount=1;
-function switchLayout(id){
-  ST.layout=id;
-  document.querySelectorAll('.lt').forEach(el=>el.classList.remove('act-m','act-l'));
-  const el=document.getElementById('lt-'+id);
-  if(el)el.classList.add(id==='model'?'act-m':'act-l');
-  toast(id==='model'?'Model space':'Layout space','ok');
-}
-function addLayout(){
-  _layoutCount++;
-  const id='lt-l'+_layoutCount;
-  const bar=document.getElementById('laybarEl');
-  const addBtn=bar.querySelector('.lt-add');
-  const div=document.createElement('div');
-  div.className='lt'; div.id=id;
-  div.innerHTML=`<span class="lt-dot" style="background:var(--st)"></span>Layout ${_layoutCount}<div class="lt-ctx"><div class="lt-ci" onclick="event.stopPropagation()">📐 Page Setup</div><div class="lt-ci" onclick="toast('Renamed','ok');event.stopPropagation()">✏️ Rename</div><div class="lt-ci" onclick="this.closest('.lt').remove();event.stopPropagation()">🗑️ Delete</div></div>`;
-  div.onclick=()=>switchLayout(id);
-  bar.insertBefore(div,addBtn);
-  switchLayout(id);
-}
-
-// ── MODAL ─────────────────────────────────────────────────────────
-function openMo(id){renderLayers();document.getElementById(id)?.classList.add('open');}
-function closeMo(id){document.getElementById(id)?.classList.remove('open');}
-document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
-function selCard(el){el.closest('.oc-g')?.querySelectorAll('.oc').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');}
-
-// ── PANEL TABS ────────────────────────────────────────────────────
-function showTab(s){
-  ['layers','props','blocks'].forEach(k=>{document.getElementById('sec-'+k)?.classList.remove('act');document.getElementById('tab-'+k)?.classList.remove('act');});
-  document.getElementById('sec-'+s)?.classList.add('act');
-  document.getElementById('tab-'+s)?.classList.add('act');
-}
-
-// ── CMD LINE ─────────────────────────────────────────────────────
-function setMsg(m){document.getElementById('cmdMsg').textContent=m;}
-// ── FULL AUTOCAD COMMAND ALIASES ─────────────────────────────────
-const CAD_COMMANDS = {
-  // Draw
-  'L':'line','LINE':'line',
-  'PL':'polyline','PLINE':'polyline','POLYLINE':'polyline',
-  'C':'circle','CIRCLE':'circle',
-  'A':'arc','ARC':'arc',
-  'REC':'rect','RECT':'rect','RECTANG':'rect','RECTANGLE':'rect',
-  'EL':'ellipse','ELLIPSE':'ellipse',
-  'SPL':'spline','SPLINE':'spline',
-  'H':'hatch','HATCH':'hatch','BH':'hatch',
-  'T':'text','TEXT':'text','DT':'text','MTEXT':'text','MT':'text',
-  'PO':'point','POINT':'point',
-  'XL':'xline','XLINE':'xline','CL':'xline',
-  'RAY':'ray',
-  'WI':'wipeout','WIPEOUT':'wipeout',
-  'CLD':'cloud','CLOUD':'cloud','REVCLOUD':'cloud',
-  'BND':'boundary','BOUNDARY':'boundary','N':'boundary',
-  'PG':'polygon',
-  'DIM':'dim-lin','DIMLIN':'dim-lin','DL':'dim-lin','DIMLINEAR':'dim-lin',
-  'LEADER':'leader','LE':'leader',
-  // Modify
-  'M':'move','MOVE':'move',
-  'CO':'copy','CP':'copy','COPY':'copy',
-  'RO':'rotate','ROTATE':'rotate',
-  'SC':'scale','SCALE':'scale',
-  'MI':'mirror','MIRROR':'mirror',
-  'O':'offset','OFFSET':'offset',
-  'TR':'trim','TRIM':'trim',
-  'EX':'extend','EXTEND':'extend',
-  'F':'fillet','FILLET':'fillet',
-  'CHA':'chamfer','CHAMFER':'chamfer',
-  'ST':'stretch','STRETCH':'stretch',
-  'BR':'break','BREAK':'break',
-  'J':'join','JOIN':'join',
-  'X':'explode','EXP':'explode','EXPLODE':'explode',
-  'LEN':'lengthen','LENGTHEN':'lengthen',
-  'AR':'array','ARRAY':'array',
-  'PA':'polararray','POLARARRAY':'polararray',
-  'RECTARRAY':'rectarray',
-  'RA':'rotateangle',
-  'SF':'scalefactor',
-  'MH':'mirrorh','MV':'mirrorv',
-  // View / Tools
-  'Z':'zoom','ZOOM':'zoom','ZE':'zoom',
-  'P':'pan','PAN':'pan',
-  'S':'select','SELECT':'select',
-  'U':'undo','UNDO':'undo',
-  'REDO':'redo',
-  'DEL':'delete','DELETE':'delete','E':'delete','ERASE':'delete',
-  // Info
-  'DI':'measure-d','DIST':'measure-d','MEASUREGEOM':'measure-d',
-  'AA':'measure-a','AREA':'measure-a',
-  'AT':'attrtable','TABLE':'attrtable','DBLIST':'attrtable',
-  // Layers
-  'LA':'layers','LAYER':'layers','LAYERS':'layers',
-  // Survey/Terrain
-  'TIN':'tin','CONTOUR':'contour',
-  'CSV':'csv','GEO':'geojson',
-  // Map
-  'MAP':'map','MAPCAL':'mapcal',
-  // File
-  'IMPORT':'import','OPEN':'import',
-  'EXPORT':'export','EXPRT':'export',
-  'SAVE':'save',
-  'SETTINGS':'settings',
-  'PROPS':'properties','PR':'properties',
-  'HELP':'help','?':'help','F1':'help',
-  // QGIS Processing
-  'BUFFER':'buffer','BUF':'buffer',
-  'DISSOLVE':'dissolve',
-  'STATS':'stats','STATISTICS':'stats',
-  'DELDUPS':'deleteDuplicates','DELETEDUPLICATES':'deleteDuplicates',
-  'CLIP':'clip',
-  'INTERSECT':'intersect',
-};
-
-const CAD_ACTIONS = {
-  zoom:      ()=>zoomExt(),
-  pan:       ()=>T('pan'),
-  select:    ()=>T('select'),
-  delete:    ()=>delSel(),
-  undo:      ()=>undo(),
-  redo:      ()=>redo(),
-  layers:    ()=>showTab('layers'),
-  import:    ()=>openMo('moImport'),
-  export:    ()=>openExportModal(),
-  save:      ()=>{if(typeof saveProject==='function')saveProject();},
-  settings:  ()=>openMo('moSettings'),
-  attrtable: ()=>openAttrTable(),
-  buffer:    ()=>doBuffer(),
-  dissolve:  ()=>dissolveLayer(),
-  stats:     ()=>showStats(),
-  help:      ()=>openMo('moHelp'),
-  properties:()=>showTab('props'),
-  tin:       ()=>buildTIN(),
-  contour:   ()=>openMo('moContour'),
-  csv:       ()=>openMo('moCsvImport'),
-  geojson:   ()=>openMo('moGeoImport'),
-  map:       ()=>toggleMap(),
-  mapcal:    ()=>startMapCal(),
-  array:     ()=>openMo('moArray'),
-  polararray:()=>doPolarArray(),
-  rectarray: ()=>doRectArray(),
-  rotateangle:()=>doRotateAngle(),
-  scalefactor:()=>doScaleFactor(),
-  mirrorh:   ()=>mirrorH(),
-  mirrorv:   ()=>mirrorV(),
-  join:      ()=>doJoin(),
-  break:     ()=>doBreak(),
-  explode:   ()=>doExplodeSelected(),
-  lengthen:  ()=>doLengthen(),
-  fillet:    ()=>{ if(typeof doFillet==='function')doFillet(); },
-  chamfer:   ()=>{ if(typeof doChamfer==='function')doChamfer(); },
-  deleteDuplicates: ()=>processDeleteDuplicates(),
-};
-
-function runCommand(rawCmd) {
-  const raw = rawCmd.trim();
-  if(!raw) return;
-  const v = raw.toUpperCase();
-  
-  // Coordinate input while drawing
-  if((ST.drawing && ST.startPt) || (ST.opState && ST.opState.base)) {
-    if(raw.includes('<') || raw.startsWith('@') || (!isNaN(parseFloat(raw)) && raw.match(/^[@\d\.\-]/))) {
-      if(typeof applyDynValue === 'function') { applyDynValue(raw); setMsg('Applied: '+raw); return; }
-    }
-    if(raw.match(/^\d+[\.,]\d+$/)) { applyDynValue(raw.replace(',','.')); return; }
-  }
-  
-  // Look up command
-  const target = CAD_COMMANDS[v];
-  if(target) {
-    // Draw/modify tool
-    const drawTools=['line','polyline','circle','arc','rect','ellipse','spline','hatch','text','point',
-      'xline','ray','wipeout','cloud','boundary','polygon','dim-lin','leader'];
-    const modTools=['move','copy','rotate','scale','mirror','offset','trim','extend',
-      'fillet','chamfer','stretch','break','join','explode'];
-    if(drawTools.includes(target)||modTools.includes(target)) {
-      T(target); setMsg('▶ '+v+' — '+target.toUpperCase()); return;
-    }
-    // Action
-    if(CAD_ACTIONS[target]) { CAD_ACTIONS[target](); setMsg('▶ '+v); return; }
-  }
-  // Direct action lookup
-  if(CAD_ACTIONS[v.toLowerCase()]) { CAD_ACTIONS[v.toLowerCase()](); setMsg('▶ '+v); return; }
-  
-  // FIND command for map search
-  if(v.startsWith('FIND ') || v.startsWith('GO ') || v.startsWith('-')) {
-    const loc = raw.replace(/^(FIND|GO|-)\s*/i,'');
-    if(loc) { mapSearch(loc); return; }
-  }
-  
-  setMsg('Unknown: '+raw+' — press F1 for full command list');
-}
-
-function cmdKey(ev){
-  if(ev.key!=='Enter' && ev.key!==' ') return;
-  if(ev.key===' '&&ev.currentTarget?.value?.trim()==='') { ev.preventDefault(); if(ST._lastTool)T(ST._lastTool); return; }
-  const inp = document.getElementById('cmdInput');
-  const raw = inp.value.trim();
-  inp.value = '';
-  if(!raw) return;
-  runCommand(raw);
-}
-
-// ── TOAST ─────────────────────────────────────────────────────────
-let _tTimer;
-function toast(msg,type=''){
-  const el=document.getElementById('toastEl');
-  el.textContent=msg; el.className='toast show'+(type?' '+type:'');
-  clearTimeout(_tTimer); _tTimer=setTimeout(()=>el.classList.remove('show'),2800);
-}
-
-// ── MISC ──────────────────────────────────────────────────────────
-function addAttr(){
-  const tb=document.getElementById('attrBody');
-  const r=document.createElement('tr');
-  r.innerHTML='<td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9.5px;padding:2px 4px;border-radius:2px;width:80px" value="TAG"></td><td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9.5px;padding:2px 4px;border-radius:2px;width:100px" value="Enter:"></td><td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9.5px;padding:2px 4px;border-radius:2px;width:80px" value=""></td><td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--red);cursor:pointer">✕</button></td>';
-  tb.appendChild(r);
-}
-
-// ── DXF DIAGNOSTIC ──────────────────────────────────────────────
-function showDxfDiag(filename,entCount,imgPaths,tileBounds,isCivil){
-  document.getElementById('diagStats').innerHTML=
-    '<div class="diag-stat"><div class="diag-stat-n" style="color:'+(entCount>0?'var(--gr)':'var(--red)')+'">'+entCount+'</div><div class="diag-stat-l">Rendered</div></div>'+
-    '<div class="diag-stat"><div class="diag-stat-n" style="color:'+(imgPaths.length?'var(--ora)':'var(--m)')+'">'+imgPaths.length+'</div><div class="diag-stat-l">Ext Images</div></div>'+
-    '<div class="diag-stat"><div class="diag-stat-n" style="color:'+(tileBounds.length?'var(--b)':'var(--m)')+'">'+tileBounds.length+'</div><div class="diag-stat-l">Tile Boxes</div></div>'+
-    '<div class="diag-stat"><div class="diag-stat-n" style="color:'+(isCivil?'var(--ora)':'var(--m)')+'">C3D</div><div class="diag-stat-l">Civil 3D</div></div>';
-  const issues=[];
-  if(imgPaths.length){
-    const fnames=imgPaths.map(p=>p.replace(/\\/g,'/').split('/').pop());
-    issues.push({icon:'🖼️',label:imgPaths.length+' external image tile'+(imgPaths.length>1?'s':'')+' — not found',pill:'err',
-      desc:'The contour imagery is stored as '+imgPaths.length+' external PNG files on the original author\'s machine. They are not embedded in this DXF.',
-      files:fnames});
-  }
-  if(isCivil){issues.push({icon:'🏗️',label:'Civil 3D proxy objects detected',pill:'warn',
-    desc:'Civil 3D stores surfaces as proprietary proxy objects that cannot be read by standard DXF parsers.',files:[]});}
-  document.getElementById('diagIssues').innerHTML=issues.map(w=>
-    '<div class="diag-row"><div class="diag-icon">'+w.icon+'</div><div class="diag-body">'+
-    '<div class="diag-label">'+w.label+'<span class="diag-pill '+w.pill+'">'+w.pill.toUpperCase()+'</span></div>'+
-    '<div class="diag-desc">'+w.desc+'</div>'+
-    (w.files.length?'<div class="diag-files">'+w.files.map(f=>'<div class="diag-file">✗ '+f+'</div>').join('')+'</div>':'')+
-    '</div></div>').join('');
-  const fixes=[];
-  if(imgPaths.length&&tileBounds.length) fixes.push({t:'🖼️ Load the PNG tiles directly into Strata',b:'Click <b>"🖼️ Load PNG Tiles"</b> below. Strata will georeferenced each PNG inside its tile boundary.'});
-  if(imgPaths.length) fixes.push({t:'📁 Get the PNG files from the original author',b:'Request the '+imgPaths.length+' PNG files named <span class="diag-code">SP0170-SCA-EGT-EN-DWG-0002_GENERAL_LAYOUT*.png</span>.'});
-  if(imgPaths.length) fixes.push({t:'🏗️ Ask for exploded DXF export',b:'In AutoCAD Civil 3D, use <span class="diag-code">AECCEXPORTTOAUTOCAD</span> to convert proxy surfaces into standard LWPOLYLINE vectors, then export as DXF.'});
-  document.getElementById('diagFixes').innerHTML=fixes.map(f=>'<div class="diag-fix"><div class="diag-fix-title">'+f.t+'</div><div class="diag-fix-body">'+f.b+'</div></div>').join('');
-  document.getElementById('diagTileBtn').style.display=(tileBounds.length&&imgPaths.length)?'':'none';
-  setMsg(entCount>0?filename+': '+entCount+' entities — '+issues.length+' issue(s)':filename+': No geometry — see diagnostic');
-  openMo('moDxfDiag');
-}
-// ── TILE IMAGE LOADER ────────────────────────────────────────────
-function tlOpen(){
-  const tiles=ST.tileBounds;
-  document.getElementById('tlImgCount').textContent=ST.imgDefs.length;
-  document.getElementById('tlTotal').textContent=tiles.length;
-  document.getElementById('tlLoaded').textContent=ST.imgOverlays.length;
-  const grid=document.getElementById('tlGrid');
-  grid.style.gridTemplateColumns='repeat('+Math.min(5,Math.max(3,tiles.length))+',1fr)';
-  grid.innerHTML='';
-  tiles.forEach((t,i)=>{
-    const ov=ST.imgOverlays.find(o=>o.tileIdx===i);
-    const cell=document.createElement('div');
-    cell.className='tl-cell'+(ov?' loaded':''); cell.id='tlc'+i;
-    cell.innerHTML='<button class="tl-cell-x" onclick="event.stopPropagation();tlClear('+i+')">✕</button>'+
-      '<div class="tl-cell-n">'+(i+1)+'</div>'+
-      '<div class="tl-cell-lbl">'+(ov?ov.filename.substring(0,20):(t.label||'No image'))+'</div>'+
-      (ov?'<img class="tl-cell-img" src="'+ov.src+'">':'');
-    cell.addEventListener('dragover',e=>{e.preventDefault();cell.classList.add('loaded');});
-    cell.addEventListener('dragleave',()=>{if(!ST.imgOverlays.find(o=>o.tileIdx===i))cell.classList.remove('loaded');});
-    cell.addEventListener('drop',e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)tlLoadFile(f,i);});
-    cell.addEventListener('click',()=>{const inp=document.createElement('input');inp.type='file';inp.accept='.png,.jpg,.jpeg,.tif,.tiff,.webp';inp.onchange=()=>{if(inp.files[0])tlLoadFile(inp.files[0],i);};inp.click();});
-    grid.appendChild(cell);
-  });
-  openMo('moTileLoader');
-}
-function tlDrop(ev){ev.preventDefault();document.getElementById('tlDz').classList.remove('dov');tlFiles(ev.dataTransfer.files);}
-function tlFiles(files){
-  const arr=Array.from(files),defs=ST.imgDefs,unmatched=[];
-  arr.forEach(f=>{
-    const fn=f.name.toLowerCase();
-    let idx=-1;
-    for(let i=0;i<defs.length;i++){if(defs[i].replace(/\\/g,'/').split('/').pop().toLowerCase()===fn){idx=Math.min(i,ST.tileBounds.length-1);break;}}
-    if(idx>=0) tlLoadFile(f,idx); else unmatched.push(f);
-  });
-  let slot=0;
-  unmatched.forEach(f=>{while(slot<ST.tileBounds.length&&ST.imgOverlays.find(o=>o.tileIdx===slot))slot++;if(slot<ST.tileBounds.length){tlLoadFile(f,slot);slot++;}});
-}
-function tlLoadFile(file,idx){
-  if(idx>=ST.tileBounds.length) return;
-  const t=ST.tileBounds[idx],reader=new FileReader();
-  reader.onload=ev=>{
-    const img=new Image();
-    img.onload=()=>{
-      ST.imgOverlays=ST.imgOverlays.filter(o=>o.tileIdx!==idx);
-      ST.imgOverlays.push({img,tileIdx:idx,src:ev.target.result,filename:file.name,minX:t.minX,minY:t.minY,maxX:t.maxX,maxY:t.maxY});
-      render();
-      const cell=document.getElementById('tlc'+idx);
-      if(cell){cell.className='tl-cell loaded';
-        cell.innerHTML='<button class="tl-cell-x" onclick="event.stopPropagation();tlClear('+idx+')">✕</button>'+
-          '<div class="tl-cell-n">'+(idx+1)+'</div><div class="tl-cell-lbl">'+file.name.substring(0,20)+'</div>'+
-          '<img class="tl-cell-img" src="'+ev.target.result+'">';}
-      document.getElementById('tlLoaded').textContent=ST.imgOverlays.length;
-      toast('Tile '+(idx+1)+' loaded: '+file.name,'ok');
-    };
-    img.onerror=()=>toast('Could not load: '+file.name,'err');
-    img.src=ev.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-function tlClear(idx){
-  ST.imgOverlays=ST.imgOverlays.filter(o=>o.tileIdx!==idx);
-  const cell=document.getElementById('tlc'+idx);
-  if(cell){cell.className='tl-cell';const t=ST.tileBounds[idx]||{};
-    cell.innerHTML='<button class="tl-cell-x" onclick="event.stopPropagation();tlClear('+idx+')">✕</button>'+
-      '<div class="tl-cell-n">'+(idx+1)+'</div><div class="tl-cell-lbl">'+(t.label||'No image')+'</div>';}
-  document.getElementById('tlLoaded').textContent=ST.imgOverlays.length; render();
-}
-function tlClearAll(){ST.imgOverlays=[];tlOpen();render();}
-
-// ── INIT ─────────────────────────────────────────────────────────
-ST._lastTool = 'line';
-ST.surveyPts = [];
-ST.tin = null;
-ST.contours = [];
-ST.showTIN = false;
-ST.showContours = true;
-ST.terrainMinZ = 0;
-ST.terrainMaxZ = 100;
-ST.crs = 'Local / Unknown';
-T('select');
-switchLayout('model');
-setTimeout(()=>{
-  toast('Strata CAD Pro — L=Line  C=Circle  M=Move  ESC=Cancel  DEL=Delete  F1=Help','ok');
-  setMsg('Ready — Draw: L C R A  |  Edit: M CO RO SC MI O  |  View: +- arrows  |  F1=all shortcuts');
-  resize();
-},200);
-// ════════════════════════════════════════════════════════════════════
-//  DYNAMIC INPUT — floats near cursor, shows live dist/angle, accepts typed values
-// ════════════════════════════════════════════════════════════════════
-const DYN = {
-  visible: false,
-  mode: 'dist',   // 'dist' or 'angle'
-  enabled: true,
-};
-
-function dynShow(mx, my) {
-  if(!DYN.enabled || !ST.drawing || !ST.startPt) { dynHide(); return; }
-  const div = document.getElementById('dynInput');
-  if(!div) return;
-  const sp = ST.startPt;
-  const wp = s2w(mx, my);
-  const dx = wp.x - sp.x, dy = wp.y - sp.y;
-  const dist = Math.hypot(dx, dy);
-  const ang = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
-
-  // Update live display
-  const v1 = document.getElementById('dynVal1');
-  const v2 = document.getElementById('dynVal2');
-  const l1 = document.getElementById('dynLbl1');
-  const l2 = document.getElementById('dynLbl2');
-  if(v1) v1.textContent = dist.toFixed(3) + ' ' + ST.units;
-  if(v2) v2.textContent = ang.toFixed(1) + '°';
-
-  // Tool-specific labels
-  if(ST.tool === 'rotate' || ST.tool === 'arc') {
-    if(l1) l1.textContent = 'ANGLE'; if(l2) l2.textContent = 'RADIUS';
-    if(v1) v1.textContent = ang.toFixed(2) + '°';
-    if(v2) v2.textContent = dist.toFixed(3) + ' ' + ST.units;
-  } else if(ST.tool === 'scale') {
-    if(l1) l1.textContent = 'FACTOR'; if(l2) l2.textContent = 'DIST';
-  } else {
-    if(l1) l1.textContent = 'DIST'; if(l2) l2.textContent = 'ANGLE';
-  }
-
-  // Position near cursor (avoid edges)
-  const pad = 18;
-  let px = mx + pad, py = my - 60;
-  if(px + 310 > window.innerWidth) px = mx - 315;
-  if(py < 4) py = my + pad;
-  div.style.left = px + 'px';
-  div.style.top  = py + 'px';
-  div.style.display = 'block';
-  DYN.visible = true;
-}
-
-function dynHide() {
-  const div = document.getElementById('dynInput');
-  if(div) div.style.display = 'none';
-  DYN.visible = false;
-}
-
-function dynFocus() {
-  const f = document.getElementById('dynField');
-  if(f) { f.value = ''; f.focus(); }
-}
-
-// Called when user presses Enter in dynField
-document.addEventListener('DOMContentLoaded', () => {
-  // Wire ibUpdate to canvas mousemove (canvas is in first script block)
-  const _cvs = document.getElementById('cad');
-  if(_cvs) {
-    _cvs.addEventListener('mousemove', ev => {
-      const r = _cvs.getBoundingClientRect();
-      if(typeof ibUpdate === 'function') ibUpdate(ev.clientX - r.left, ev.clientY - r.top);
-    });
-  }
-
-  const dynField = document.getElementById('dynField');
-  if(!dynField) return;
-
-  dynField.addEventListener('keydown', ev => {
-    ev.stopPropagation(); // don't let keydown bubble to canvas handlers
-    if(ev.key === 'Escape') { dynHide(); T('select'); return; }
-    if(ev.key === 'Tab') {
-      ev.preventDefault();
-      DYN.mode = DYN.mode === 'dist' ? 'angle' : 'dist';
-      dynField.value = '';
-      return;
-    }
-    if(ev.key === 'Enter') {
-      ev.preventDefault();
-      const val = dynField.value.trim();
-      if(!val) return;
-      applyDynValue(val);
-      dynField.value = '';
-    }
-  });
-});
-
-function applyDynValue(val) {
-  if(!ST.startPt) return;
-  const sp = ST.startPt;
-  let wp = null;
-
-  // Format: "100" = distance along current direction
-  // "@50,30" = relative X,Y
-  // "100<45" = distance at angle
-  // "50" when mode='angle' = current dist at typed angle
-
-  if(val.includes('<')) {
-    // Polar: dist<angle
-    const [d, a] = val.split('<').map(Number);
-    const rad = (a || 0) * Math.PI / 180;
-    wp = { x: sp.x + d * Math.cos(rad), y: sp.y + d * Math.sin(rad) };
-  } else if(val.startsWith('@')) {
-    // Relative cartesian
-    const [dx, dy] = val.slice(1).split(',').map(Number);
-    wp = { x: sp.x + (dx||0), y: sp.y + (dy||0) };
-  } else if(val.includes(',')) {
-    // Absolute cartesian
-    const [x, y] = val.split(',').map(Number);
-    wp = { x, y };
-  } else {
-    const num = parseFloat(val);
-    if(isNaN(num)) { toast('Invalid value: '+val, 'warn'); return; }
-    if(DYN.mode === 'angle') {
-      // Apply this angle, keep current distance
-      const curDist = Math.hypot(ST.mouse.x - w2s(sp.x,sp.y).x, ST.mouse.y - w2s(sp.x,sp.y).y) / ST.zoom;
-      const rad = num * Math.PI / 180;
-      wp = { x: sp.x + curDist * Math.cos(rad), y: sp.y + curDist * Math.sin(rad) };
-    } else {
-      // Apply this distance, keep current angle
-      const curAng = Math.atan2(ST.mouse.y - w2s(sp.x,sp.y).y, ST.mouse.x - w2s(sp.x,sp.y).x);
-      wp = { x: sp.x + num * Math.cos(curAng), y: sp.y + num * Math.sin(curAng) };
-    }
-  }
-
-  if(!wp) return;
-
-  // Apply to current operation
-  if(ST.opState) {
-    applyOp(wp); return;
-  }
-
-  // Apply to drawing tool
-  if(ST.tool === 'line' || ST.tool === 'circle' || ST.tool === 'rect' || ST.tool === 'ellipse' || ST.tool === 'arc' || ST.tool === 'hatch' || ST.tool === 'dim-lin') {
-    const owp = ST.ortho ? applyOrtho(ST.startPt, wp) : wp;
-    const done = commitEntity(owp);
-    if(done) {
-      if(ST.tool === 'line') { ST.startPt = owp; setMsg('Next point — type dist, @x,y, dist<ang, or click  |  ESC=stop'); }
-      else { ST.drawing = false; ST.startPt = null; ST.pts = []; setMsg(ST.tool.toUpperCase() + ' drawn'); }
-      render();
-    }
-  }
-}
-
-// ── COORDINATE ENTRY POPUP ──────────────────────────────────────
-let _ceCallback = null;
-
-function openCE(callback, hint) {
-  _ceCallback = callback;
-  const div = document.getElementById('coordEntry');
-  const hintEl = document.getElementById('ceHint');
-  if(!div) return;
-  if(hintEl) hintEl.textContent = hint || 'Enter coordinates (absolute) or @dx,dy (relative from last point)';
-  // Center on screen
-  div.style.left = (window.innerWidth/2 - 120) + 'px';
-  div.style.top  = (window.innerHeight/2 - 80) + 'px';
-  div.style.display = 'block';
-  const x = document.getElementById('ceX');
-  if(x) { x.value = ''; x.focus(); }
-  const y = document.getElementById('ceY');
-  if(y) y.value = '';
-  // Allow enter in inputs
-  [document.getElementById('ceX'), document.getElementById('ceY')].forEach(el => {
-    if(el) el.onkeydown = ev => { if(ev.key === 'Enter') confirmCE(); if(ev.key === 'Escape') closeCE(); ev.stopPropagation(); };
-  });
-}
-
-function closeCE() {
-  const div = document.getElementById('coordEntry');
-  if(div) div.style.display = 'none';
-  _ceCallback = null;
-}
-
-function confirmCE() {
-  const xv = document.getElementById('ceX')?.value?.trim();
-  const yv = document.getElementById('ceY')?.value?.trim();
-  if(!xv && !yv) { closeCE(); return; }
-
-  let wp;
-  if(xv && xv.startsWith('@')) {
-    // Relative
-    const base = ST.startPt || {x:0,y:0};
-    wp = { x: base.x + parseFloat(xv.slice(1)||0), y: base.y + parseFloat(yv||0) };
-  } else {
-    wp = { x: parseFloat(xv||0), y: parseFloat(yv||0) };
-  }
-
-  closeCE();
-  if(_ceCallback) { _ceCallback(wp); _ceCallback = null; }
-  else if(ST.drawing && ST.startPt) {
-    applyDynValue(wp.x + ',' + wp.y);
-  } else if(!ST.drawing && ['line','circle','rect','arc','ellipse','polyline'].includes(ST.tool)) {
-    ST.drawing = true; ST.startPt = wp;
-    setMsg('Start set to ' + wp.x.toFixed(3) + ', ' + wp.y.toFixed(3) + ' — click or type next point');
-    render();
-  }
-}
-
-// ── COMMAND LINE COORDINATE PARSING ──────────────────────────────
-// Allow typing "@50,30" or "100,200" or "100<45" in cmd line while drawing
-const _origCmdKeyFn = window.cmdKey;
-window.cmdKey = function(ev) {
-  if(ev.key !== 'Enter') return;
-  const raw = document.getElementById('cmdInput')?.value?.trim() || '';
-  document.getElementById('cmdInput').value = '';
-  if(!raw) return;
-
-  const v = raw.toUpperCase();
-
-  // Coordinate patterns (only when drawing or operating)
-  if(ST.drawing || ST.opState) {
-    if(raw.includes(',') || raw.includes('<') || raw.startsWith('@') || (!isNaN(parseFloat(raw)) && ST.drawing)) {
-      applyDynValue(raw);
-      setMsg('Applied: ' + raw);
-      return;
-    }
-  }
-
-  // CE = open coordinate entry popup
-  if(v === 'CE' || v === 'COORD' || v === 'ENTER') {
-    openCE(null, 'Enter absolute coordinates X, Y');
-    return;
-  }
-
-  _origCmdKeyFn(ev);
-};
-
-// ── PATCH MOUSEMOVE to update dynamic input ────────────────────
-const _origMM = canvas.onmousemove;
-canvas.addEventListener('mousemove', ev => {
-  const r = canvas.getBoundingClientRect();
-  dynShow(ev.clientX - r.left, ev.clientY - r.top);
-});
-
-// ── KEYBOARD: # to open coord entry while drawing ──────────────
-document.addEventListener('keydown', ev => {
-  const tag = document.activeElement.tagName;
-  if(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-  // # key or F12 = open coord entry
-  if(ev.key === '#' || ev.key === 'F12') {
-    ev.preventDefault();
-    openCE(null, ST.drawing ? 'Enter next point coordinates' : 'Enter start point coordinates');
-    return;
-  }
-  // D = focus dynamic input field
-  if(ev.key === 'd' && ST.drawing && !ev.ctrlKey) {
-    ev.preventDefault();
-    dynFocus();
-    return;
-  }
-});
-
-// ════════════════════════════════════════════════════════════════════
-//  MAP BACKGROUND — Leaflet tiles behind canvas
-// ════════════════════════════════════════════════════════════════════
-// Built-in CloudConvert API key
-const CC_API_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiMmUwMjE3OWE3YTQ3Zjk4ODYzZGMwNGQwMGEwODdmMmY2YWQxODA5YmI3NDc5ODNmNTM1M2JjZjg1NmFkMzUxNzkwY2FmMjFlZmZhYjdjYzgiLCJpYXQiOjE3NzU2NDcxMDMuNjQxNjI3LCJuYmYiOjE3NzU2NDcxMDMuNjQxNjI5LCJleHAiOjQ5MzEzMjA3MDMuNjM0MDIsInN1YiI6IjU1NzE1MTUxIiwic2NvcGVzIjpbInVzZXIucmVhZCIsInVzZXIud3JpdGUiLCJ0YXNrLnJlYWQiLCJ0YXNrLndyaXRlIiwid2ViaG9vay5yZWFkIiwid2ViaG9vay53cml0ZSIsInByZXNldC5yZWFkIiwicHJlc2V0LndyaXRlIl19.JJfY2UDUF_u_Jq_cNNekVilmE3vd7vIjcqo1FaK9aYhO9Iqb_eckL6VVWIS5EoiidfixJQozFiLkvZry9did7aVgC1TfmZStHKhtVfROt-F09yjNSRjf-loRqRgNtedZ5pOzbXQp3kdHqIUKuzNFyd9FJQS4qNYfKR4Ze1M7ddRujvdcI_H6Wi0-YJf7lH7_aAMnGCQ-dIKYk2zdymOMxAZsirYDFhCyDbcd8Hk28XfqqG8bpYcwRoai9uBkK0K_8P_hPbhGU3XVPuOX1Hze-eKnkAkkR_t8CzMu0QIIOXelDdYjBasPyuw2rD2eiF1vMtsYOhvfmIRgW1_4GTMkkaeViIgSJlXXwQHGdN0cREzH7jZ3W4tt5RPg9oEKR1DRh0OZjoQUZcRslZm_SI_j6hmXPJEADt4nNsM2__lnWP_UrgBWVjx9zkPxMTNYLUXmfYD9TwVegvn_hSNyGt32nJC_CP6MP4kLTn9qSbEndi7hX2ffqg0J7rU3TofdvqCl0pc-hLTQPDYNdr3sgxvl451OPOftoKaOL-PrA3rk25g5o_4nzhfkR9_CQ_9-SdVzUDb50RwVr4sVHYYxWamROD6getBvpd7q202cbv7gu2Z1lRQZM0X-dULtsR5ZwFibOaCY8xY0gmKkHBgVuxHgCsnaGhNY5Lav--z5XU1UcaU';
-
-// ════════════════════════════════════════════════════════════════════
-//  MAP ENGINE — Leaflet with proper canvas event routing
-// ════════════════════════════════════════════════════════════════════
-let _map = null;
-let _mapActive = false;
-let _mapMode = 'draw';  // 'draw' = canvas events active, 'map' = map events active
-let _mapLayer = 'osm';
-let _mapMarkers = [];
-let _mapCal = { step: 0, pts: [], worldPts: [] };
-
-const _mapLayers = {
-  osm: { url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attr:'© OpenStreetMap', label:'Street' },
-  sat: { url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr:'© Esri', label:'Satellite' },
-  topo:{ url:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attr:'© OpenTopoMap', label:'Topo' },
-  hybrid:{ url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr:'© Esri', label:'Hybrid' },
-};
-
-// Ensure mapDiv + cal hint exist in viewport
-(function ensureMapDivs() {
-  const vp = document.getElementById('vp');
-  if(!vp) return;
-  if(!document.getElementById('mapDiv')) {
-    const md = document.createElement('div');
-    md.id = 'mapDiv';
-    md.style.cssText = 'position:absolute;inset:0;z-index:0;display:none';
-    vp.insertBefore(md, vp.firstChild);
-  }
-  if(!document.getElementById('mapCalHint')) {
-    const ch = document.createElement('div');
-    ch.id = 'mapCalHint';
-    ch.style.cssText = 'display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(6,14,26,.97);border:2px solid var(--g);border-radius:8px;padding:18px 24px;text-align:center;font-size:13px;color:var(--t);z-index:30;min-width:280px;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.8)';
-    vp.appendChild(ch);
-  }
-})();
-
-function toggleMap() {
-  _mapActive = !_mapActive;
-  const mapDiv = document.getElementById('mapDiv');
-  const cad    = document.getElementById('cad');
-
-  if(_mapActive) {
-    mapDiv.style.display = 'block';
-    ST.bgColor = 'rgba(6,14,26,0.02)';  // near-transparent so map shows
-    if(!_map) _initMap();
-    else _map.invalidateSize();
-    // Canvas stays on top for drawing — map mode toggle controls routing
-    setMapDrawMode('draw');
-    // Update buttons
-    ['ibBtnMapToggle','btnMap'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.add('map-on','on');}); const pm=document.getElementById('ibBtnMapMode');if(pm)pm.style.display='flex';
-    toast('Map ON — 🖱 Pan Map button to navigate map | Draw button to draw on top', 'ok');
-    setMsg('Map active — use "Pan Map" in input bar to navigate. "Draw" mode = draw on map. 📍 = calibrate coords.');
-  } else {
-    mapDiv.style.display = 'none';
-    ST.bgColor = '#060E1A';
-    _mapMode = 'draw';
-    if(cad) { cad.style.pointerEvents = ''; cad.style.opacity = '1'; }
-    ['ibBtnMapToggle','btnMap','ibBtnMapMode'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('map-on','on');}); const pm=document.getElementById('ibBtnMapMode');if(pm)pm.style.display='none';
-    cancelMapCal();
-    toast('Map OFF', 'ok');
-  }
-  render();
-}
-
-function setMapDrawMode(mode) {
-  // 'draw' = canvas captures events (draw on map)
-  // 'map'  = canvas is transparent (pan/zoom map)
-  _mapMode = mode;
-  const cad = document.getElementById('cad');
-  const modeBtn = document.getElementById('ibBtnMapMode');
-  if(mode === 'map') {
-    if(cad) { cad.style.pointerEvents = 'none'; cad.style.opacity = '0.7'; }
-    if(modeBtn) { modeBtn.textContent = '✏️ Draw'; modeBtn.title = 'Switch back to draw mode'; modeBtn.classList.add('on'); }
-    setMsg('MAP PAN mode — scroll/drag to navigate map | Click "Draw" button to draw again');
-    toast('Map pan mode — scroll to zoom, drag to pan', 'ok');
-  } else {
-    if(cad) { cad.style.pointerEvents = ''; cad.style.opacity = '1'; }
-    if(modeBtn) { modeBtn.textContent = '🗺 Pan Map'; modeBtn.title = 'Switch to map navigation mode'; modeBtn.classList.remove('on'); }
-    setMsg('Draw mode on map — draw normally. Click "Pan Map" to navigate the map beneath.');
-    toast('Draw mode — draw on top of map', 'ok');
-  }
-}
-
-function _initMap() {
-  const div = document.getElementById('mapDiv');
-  if(!div) return;
-  if(typeof L === 'undefined') {
-    toast('Leaflet not loaded — check internet connection', 'warn');
-    return;
-  }
-  _map = L.map(div, {
-    zoomControl: true,   // Built-in +/- buttons
-    attributionControl: true,
-    scrollWheelZoom: true,
-    preferCanvas: true,
-  }).setView([25.2048, 55.2708], 13);
-
-  // Add zoom control to top-left
-  _map.zoomControl.setPosition('topleft');
-
-  // Add layer switcher
-  const layers = {};
-  Object.entries(_mapLayers).forEach(([key, val]) => {
-    layers[val.label] = L.tileLayer(val.url, { maxZoom: 22, attribution: val.attr });
-  });
-  layers.Street.addTo(_map);
-  L.control.layers(layers, null, { position: 'topright', collapsed: true }).addTo(_map);
-
-  // Search control
-  _addMapSearch();
-
-  if(_map) _map.on('load', () => { if(_map) _map.invalidateSize(); });
-  setTimeout(() => { if(_map) _map.invalidateSize(); }, 300);
-  toast('Map loaded — use +/- or scroll to zoom', 'ok');
-}
-
-function _addMapSearch() {
-  // Custom geocoder using Nominatim
-  const ctrl = L.Control.extend({
-    options: { position: 'topleft' },
-    onAdd: function() {
-      const div = L.DomUtil.create('div', 'leaflet-bar');
-      div.style.cssText = 'background:#061422;padding:3px;display:flex;gap:3px';
-      const inp = L.DomUtil.create('input', '', div);
-      inp.placeholder = 'Search location…';
-      inp.style.cssText = 'background:#0A1520;border:1px solid rgba(31,168,217,.3);color:#D0E8F5;font-size:11px;padding:2px 6px;border-radius:2px;width:160px;outline:none';
-      const btn = L.DomUtil.create('button', '', div);
-      btn.textContent = '🔍';
-      btn.style.cssText = 'background:rgba(31,168,217,.1);border:1px solid rgba(31,168,217,.2);color:#D0E8F5;cursor:pointer;border-radius:2px;padding:2px 5px';
-      L.DomEvent.disableClickPropagation(div);
-      L.DomEvent.disableScrollPropagation(div);
-      const go = () => {
-        const q = inp.value.trim();
-        if(!q) return;
-        mapSearch(q);
-      };
-      inp.addEventListener('keydown', e => { if(e.key==='Enter') go(); e.stopPropagation(); });
-      btn.addEventListener('click', go);
-      return div;
-    }
-  });
-  _map.addControl(new ctrl());
-}
-
-function setMapLayer(type) {
-  _mapLayer = type;
-  if(typeof L === 'undefined') { toast('Map library not loaded','warn'); return; }
-  if(!_map) { toggleMap(); setTimeout(() => setMapLayer(type), 800); return; }
-  _map.eachLayer(l => { if(l instanceof L.TileLayer) _map.removeLayer(l); });
-  const cfg = _mapLayers[type] || _mapLayers.osm;
-  L.tileLayer(cfg.url, { maxZoom: 22, attribution: cfg.attr }).addTo(_map);
-  // Update sat/osm button labels
-  const satBtn = document.getElementById('ibBtnSat');
-  const osmBtn = document.getElementById('ibBtnOSM');
-  if(satBtn) satBtn.classList.toggle('on', type==='sat');
-  if(osmBtn) osmBtn.classList.toggle('on', type==='osm');
-  toast('Map: ' + (cfg.label || type), 'ok');
-}
-
-function mapSearch(query) {
-  if(!query) {
-    query = document.getElementById('ibMapSearch')?.value?.trim();
-    if(!query) query = prompt('Search location:', '');
-    if(!query) return;
-  }
-  toast('Searching: ' + query + '…', 'ok');
-  fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query) + '&format=json&limit=1', {
-    headers: { 'Accept-Language': 'en' }
-  })
-  .then(r => r.json())
-  .then(data => {
-    if(!data.length) { toast('Not found: ' + query, 'warn'); return; }
-    const { lat, lon, display_name } = data[0];
-    if(!_map) { toggleMap(); setTimeout(() => _goToLocation(lat, lon, display_name), 600); }
-    else _goToLocation(lat, lon, display_name);
-  })
-  .catch(() => toast('Search failed — check internet', 'warn'));
-}
-
-function _goToLocation(lat, lon, name) {
-  if(!_mapActive) toggleMap();
-  if(!_map) { setTimeout(() => _goToLocation(lat, lon, name), 500); return; }
-  if(!_map){toast('Map error — try toggling map off/on','warn');return;}
-  _map.setView([parseFloat(lat), parseFloat(lon)], 16);
-  // Add marker
-  const marker = L.circleMarker([parseFloat(lat), parseFloat(lon)], {
-    radius: 8, color: '#4eff91', fillColor: '#4eff91', fillOpacity: 0.7, weight: 2
-  }).addTo(_map).bindPopup('<b>' + name.split(',').slice(0,2).join(', ') + '</b>').openPopup();
-  _mapMarkers.push(marker);
-  toast('→ ' + name.split(',')[0], 'ok');
-}
-
-// ── MAP CALIBRATION (simplified, clean) ──────────────────────────
-function startMapCal() {
-  if(!_mapActive) toggleMap();
-  // Wait for map to fully initialize before attaching click handlers
-  const _waitForMap = (attempts) => {
-    if(!_map) {
-      if(attempts > 20) { toast('Map not loaded — open map first', 'warn'); return; }
-      setTimeout(() => _waitForMap(attempts + 1), 200);
-      return;
-    }
-    _mapCal = { step: 0, pts: [], worldPts: [] };
-    _showCalHint(1);
-    setMapDrawMode('map');
-    _map.once('click', ev => {
-      _mapCal.pts[0] = { lat: ev.latlng.lat, lng: ev.latlng.lng };
-      if(typeof L !== 'undefined') L.circleMarker(ev.latlng, { radius: 6, color: '#F5BE18', fillColor: '#F5BE18', fillOpacity: 0.8 }).addTo(_map);
-      _showCalHint(2);
-      toast('Point 1 set! Click "Draw" button, then click the same point on your drawing.', 'ok');
-      setMapDrawMode('draw');
-      _mapCal.step = 1;
-    });
-  };
-  setTimeout(() => _waitForMap(0), 300);
-}
-
-function _showCalHint(step) {
-  const h = document.getElementById('mapCalHint');
-  if(!h) return;
-  const msgs = {
-    0: '',
-    1: '📍 Step 1/4 — Click a known point on the MAP (switch to Pan Map mode first)',
-    2: '📍 Step 2/4 — Now click the SAME point on your DRAWING',
-    3: '📍 Step 3/4 — Click a SECOND known point on the MAP',
-    4: '📍 Step 4/4 — Click the same second point on your DRAWING',
-    5: '✅ Calibration complete! Drawing is now georeferenced.',
-  };
-  if(step === 0) { h.style.display = 'none'; return; }
-  h.style.display = 'block';
-  h.innerHTML = msgs[step] ? msgs[step].replace(/\n/g,'<br>') + (step < 5 ? '<br><small style="color:var(--m);font-size:10px">Use Pan Map / Draw buttons to switch modes</small>' : '') : '';
-  if(step === 5) setTimeout(() => { h.style.display = 'none'; }, 3000);
-}
-
-function cancelMapCal() {
-  _mapCal = { step: 0, pts: [], worldPts: [] };
-  _showCalHint(0);
-  setMapDrawMode('draw');
-}
-
-// Called from mousedown handler when in draw mode during calibration
-function _checkCalCanvasClick(wp) {
-  if(!_mapActive) return false;
-  if(_mapCal.step === 1) {
-    // Got first canvas point
-    _mapCal.worldPts[0] = { x: wp.x, y: wp.y };
-    _mapCal.step = 2;
-    _showCalHint(3);
-    toast('Point 1 matched! Now click point 2 on the MAP.', 'ok');
-    setMapDrawMode('map');
-    if(!_map){toast('Map not ready — open map first','warn');cancelMapCal();return;}
-    _map.once('click', ev => {
-      _mapCal.pts[1] = { lat: ev.latlng.lat, lng: ev.latlng.lng };
-      L.circleMarker(ev.latlng, { radius: 6, color: '#A78BFA', fillColor: '#A78BFA', fillOpacity: 0.8 }).addTo(_map);
-      _showCalHint(4);
-      toast('Point 2 set on map. Now click the matching point on your drawing.', 'ok');
-      setMapDrawMode('draw');
-      _mapCal.step = 3;
-    });
-    return true;
-  }
-  if(_mapCal.step === 3) {
-    // Got second canvas point
-    _mapCal.worldPts[1] = { x: wp.x, y: wp.y };
-    _mapCal.step = 0;
-    _finishCal();
-    return true;
-  }
-  return false;
-}
-
-function _finishCal() {
-  const { pts, worldPts } = _mapCal;
-  if(!pts[0] || !pts[1] || !worldPts[0] || !worldPts[1]) { toast('Calibration failed', 'err'); return; }
-  _mapCal.ready = true;
-  _mapCal.transform = { p1w: worldPts[0], p2w: worldPts[1], p1m: pts[0], p2m: pts[1] };
-  const dxW = worldPts[1].x - worldPts[0].x || 1;
-  const dyW = worldPts[1].y - worldPts[0].y || 1;
-  const dLat = pts[1].lat - pts[0].lat;
-  const dLng = pts[1].lng - pts[0].lng;
-  window._worldToLatLng = (x, y) => L.latLng(
-    pts[0].lat + ((y - worldPts[0].y) / dyW) * dLat,
-    pts[0].lng + ((x - worldPts[0].x) / dxW) * dLng
-  );
-  _showCalHint(5);
-  toast('✅ Drawing georeferenced!', 'ok');
-  setMsg('Calibration done — drawing coordinates are now aligned to real-world map coordinates');
-  setMapDrawMode('draw');
-}
-
-// Cal intercept now handled in mousedown via _checkCalCanvasClick
-
-// ════════════════════════════════════════════════════════════════════
-//  ENHANCED COMMAND LINE — add map + coord commands
-// ════════════════════════════════════════════════════════════════════
-const _prevCmdKey2 = window.cmdKey;
-window.cmdKey = function(ev) {
-  if(ev.key !== 'Enter') return;
-  const raw = document.getElementById('cmdInput')?.value?.trim() || '';
-  document.getElementById('cmdInput').value = '';
-  if(!raw) return;
-  const v = raw.toUpperCase();
-  const mapExtras = {
-    MAP: toggleMap,
-    MAPSAT: () => setMapLayer('sat'),
-    MAPOSM: () => setMapLayer('osm'),
-    MAPCAL: startMapCal,
-    'MAP SEARCH': () => mapSearch(),
-  };
-  if(v.startsWith('FIND ') || v.startsWith('GO ') || v.startsWith('SEARCH ')) {
-    mapSearch(raw.split(' ').slice(1).join(' ')); return;
-  }
-  if(mapExtras[v]) { mapExtras[v](); return; }
-  _prevCmdKey2(ev);
-};
-
-// ── Update init message ──────────────────────────────────────────
-setTimeout(() => {
-  setMsg('Ready — L C R A  |  Type coords: @x,y  100<45  dist  |  # = coord entry  D = type value  |  F1 = Help');
-}, 600);
-
-
-// ═══ EXTENSIONS MERGED FROM SCRIPT2 ═══
-// ── FILE ROUTING (fixes null.name + stack overflow) ───────────────
-// Replace fileChosen with safe version that routes all formats
-// File routing handled in main script block above
-
-// Universal file router
-// pendingCSVFile and pendingGeoFile declared in main script above
-function routeFile(f,source){
-  if(!f||!f.name){toast('Invalid file','err');return;}
-  const n=f.name.toLowerCase();
-  if(n.endsWith('.dwg')||n.endsWith('.dwf')||n.endsWith('.dwt')){
-    _pendingFile=f; if(source==='import')closeMo('moImport');
-    showDwgGuide(f); return;
-  }
-  if(n.endsWith('.csv')||n.endsWith('.txt')){
-    _pendingCSVFile=f; if(source==='import')closeMo('moImport');
-    openMo('moCsvImport');
-    const el=document.getElementById('csvFileName');if(el)el.textContent='📊 '+f.name;
-    previewCSV(f); return;
-  }
-  if(n.endsWith('.json')||n.endsWith('.geojson')){
-    if(source==='import') closeMo('moImport');
-    const r2=new FileReader();
-    r2.onload=ev=>{
-      try{
-        const gj=JSON.parse(ev.target.result);
-        if(gj.type==='FeatureCollection'||gj.type==='Feature'||gj.features){
-          parseGeoJSON(gj,f.name);
-        } else {
-          toast('Not a valid GeoJSON FeatureCollection','warn');
-        }
-      }catch(e){toast('GeoJSON parse error: '+e.message,'err');}
-    };
-    r2.readAsText(f,'UTF-8');
-    return;
-  }
-  if(n.endsWith('.strata')){
-    const r=new FileReader();
-    r.onload=e=>{try{loadProjectData(JSON.parse(e.target.result),f.name);}catch(err){toast('Load error: '+err.message,'err');}};
-    r.readAsText(f); return;
-  }
-  // Image files — place on canvas as image overlay
-  if(n.endsWith('.png')||n.endsWith('.jpg')||n.endsWith('.jpeg')||n.endsWith('.gif')||n.endsWith('.webp')||n.endsWith('.bmp')){
-    importImageFile(f); return;
-  }
-  // PDF — extract layers/geometry
-  if(n.endsWith('.pdf')){
-    importPDFFile(f); return;
-  }
-  // KML
-  if(n.endsWith('.kml')||n.endsWith('.kmz')){
-    importKMLFile(f); return;
-  }
-  // Shapefile (SHP — needs .dbf too, handle ZIP bundle)
-  if(n.endsWith('.shp')||n.endsWith('.zip')){
-    toast('Shapefile: drop a .zip containing .shp + .dbf + .prj, or use GeoJSON export from QGIS','ok');
-    return;
-  }
-  _pendingFile=f;
-  if(source==='canvas') doImport();
-  else { const el=document.getElementById('impName');if(el)el.textContent='📐 '+f.name; toast('File ready — click Import Drawing','ok'); }
-}
-
-// ── SURVEY MODULE ─────────────────────────────────────────────────
-function previewCSV(file){
-  const r=new FileReader();
-  r.onload=ev=>{
-    const el=document.getElementById('csvPreview');
-    if(el) el.textContent=ev.target.result.split('\n').slice(0,8).join('\n');
-  };
-  r.readAsText(file);
-}
-function csvDrop(ev){ev.preventDefault();const f=ev.dataTransfer?.files?.[0];if(!f)return;_pendingCSVFile=f;const el=document.getElementById('csvFileName');if(el)el.textContent='📊 '+f.name;previewCSV(f);}
-function csvFileChosen(ev){const f=ev.target.files?.[0];if(!f)return;_pendingCSVFile=f;const el=document.getElementById('csvFileName');if(el)el.textContent='📊 '+f.name;previewCSV(f);}
-
-function doImportCSV(){
-  if(!_pendingCSVFile){toast('No CSV selected','warn');return;}
-  const colPt=parseInt(document.getElementById('csvColPt')?.value)||0;
-  const colE =parseInt(document.getElementById('csvColE')?.value)||1;
-  const colN =parseInt(document.getElementById('csvColN')?.value)||2;
-  const colZ =parseInt(document.getElementById('csvColZ')?.value); // may be -1
-  const header=document.getElementById('csvHasHeader')?.checked!==false;
-  const plot  =document.getElementById('csvPlotPts')?.checked!==false;
-  const label =document.getElementById('csvLabelPts')?.checked!==false;
-  const showZ =document.getElementById('csvShowElev')?.checked!==false;
-  const r=new FileReader();
-  r.onload=ev=>{
-    const lines=ev.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
-    let count=0,errors=0;
-    const newPts=[];
-    for(let i=header?1:0;i<lines.length;i++){
-      const line=lines[i].trim(); if(!line)continue;
-      const cols=line.split(/[,;\t]+/);
-      const e=parseFloat(cols[colE]), n=parseFloat(cols[colN]);
-      if(!isFinite(e)||!isFinite(n)){errors++;continue;}
-      const z=(colZ>=0&&cols[colZ]!==undefined)?parseFloat(cols[colZ])||0:0;
-      const id=cols[colPt]?.trim()||String(count+1);
-      const desc=cols[5]?.trim()||'';
-      newPts.push({id,e,n,z,desc,type:''});
-      count++;
-    }
-    if(!count){toast('No valid survey points found','err');return;}
-    ST.surveyPts=(ST.surveyPts||[]).concat(newPts);
-    closeMo('moCsvImport');
-    if(plot){
-      pushUndo();
-      const layId=ensureLayer('Survey Points','#4eff91');
-      const lblId=ensureLayer('Survey Labels','#F5BE18');
-      newPts.forEach(p=>{
-        ST.entities.push({_id:++ST._eid,type:'circle',cx:p.e,cy:p.n,r:2,layer:layId,selected:false});
-        if(label) ST.entities.push({_id:++ST._eid,type:'text',x:p.e+4,y:p.n+4,txt:showZ?`${p.id}(${p.z.toFixed(1)})`:`${p.id}`,sz:3.5,layer:lblId,selected:false});
-      });
-      renderLayers();
-      setTimeout(()=>zoomToSurvey(),100);
-    }
-    renderSurveyList();
-    toast(`${count} survey points imported${errors?' ('+errors+' skipped)':''}`,errors?'warn':'ok');
-    _pendingCSVFile=null;
-  };
-  r.readAsText(_pendingCSVFile);
-}
-
-
-
-function renderSurveyList(){
-  const list=document.getElementById('surveyList');if(!list)return;
-  const pts=ST.surveyPts||[];
-  if(!pts.length){list.innerHTML='<div style="padding:14px 10px;text-align:center;color:var(--m);font-size:9.5px">No survey points.<br>Import a CSV via File menu or Ctrl+I</div>';return;}
-  list.innerHTML=pts.map((p,i)=>`
-    <div style="display:flex;align-items:center;padding:3px 6px;border-bottom:1px solid rgba(31,168,217,.05);font-size:8.5px;cursor:pointer;${p.type==='ctrl'?'border-left:3px solid #22C55E':p.type==='check'?'border-left:3px solid #ff9060':''}"
-         onclick="zoomToPoint(${p.e},${p.n})" title="${p.desc||p.id}">
-      <span style="font-family:'IBM Plex Mono',monospace;color:var(--st);min-width:24px;font-size:8px">${p.id}</span>
-      <span style="font-family:'IBM Plex Mono',monospace;color:var(--m);flex:1;font-size:7.5px">${p.e.toFixed(1)}</span>
-      <span style="font-family:'IBM Plex Mono',monospace;color:var(--m);flex:1;font-size:7.5px">${p.n.toFixed(1)}</span>
-      <span style="font-family:'IBM Plex Mono',monospace;color:var(--g);width:34px;font-size:7.5px">${p.z.toFixed(1)}</span>
-      <button onclick="event.stopPropagation();cyclePtType(${i})" style="background:none;border:none;cursor:pointer;font-size:10px;padding:0 2px">${p.type==='ctrl'?'🎯':p.type==='check'?'✅':'⚪'}</button>
-    </div>`).join('');
-  const sp=document.getElementById('survStatPts'),sc=document.getElementById('survStatCtrl'),sk=document.getElementById('survStatChk');
-  const ctrl=pts.filter(p=>p.type==='ctrl').length,chk=pts.filter(p=>p.type==='check').length;
-  if(sp)sp.textContent=pts.length+' pts';if(sc)sc.textContent=ctrl+' ctrl';if(sk)sk.textContent=chk+' chk';
-}
-
-function cyclePtType(i){const o=['','ctrl','check'];const cur=ST.surveyPts[i]?.type||'';ST.surveyPts[i].type=o[(o.indexOf(cur)+1)%o.length];renderSurveyList();renderGCPList();}
-function zoomToPoint(e,n){ST.pan.x=W/2-e*ST.zoom;ST.pan.y=H/2+n*ST.zoom;updateZoomBadge();render();}
-function zoomToSurvey(){if(!ST.surveyPts?.length){toast('No survey points','warn');return;}const es=ST.surveyPts.map(p=>p.e),ns=ST.surveyPts.map(p=>p.n);const minE=Math.min(...es),maxE=Math.max(...es),minN=Math.min(...ns),maxN=Math.max(...ns);const dw=maxE-minE||100,dh=maxN-minN||100;ST.zoom=Math.min(W/(dw*1.3),H/(dh*1.3));ST.pan.x=W/2-(minE+maxE)/2*ST.zoom;ST.pan.y=H/2+(minN+maxN)/2*ST.zoom;updateZoomBadge();render();}
-function clearSurveyPts(){if(!confirm('Clear all survey points?'))return;ST.surveyPts=[];ST.tin=null;ST.contours=[];renderSurveyList();render();toast('Survey cleared','ok');}
-function exportSurveyCSV(){if(!ST.surveyPts?.length){toast('No points','warn');return;}let csv='Point,Easting,Northing,Elevation,Desc,Type\n';ST.surveyPts.forEach(p=>{csv+=`${p.id},${p.e.toFixed(4)},${p.n.toFixed(4)},${p.z.toFixed(4)},${p.desc||''},${p.type||''}\n`;});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='survey_points.csv';a.click();toast('CSV exported','ok');}
-
-function drawSurveyPts(){
-  if(!ST.surveyPts?.length) return;
-  const r=Math.max(2,5/ST.zoom);
-  ST.surveyPts.forEach(p=>{
-    const s=w2s(p.e,p.n);
-    if(s.x<-20||s.x>W+20||s.y<-20||s.y>H+20) return;
-    const col=p.type==='ctrl'?'#22C55E':p.type==='check'?'#ff9060':'#4eff91';
-    ctx.strokeStyle=col; ctx.fillStyle=col+'55'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.arc(s.x,s.y,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(s.x-r*1.6,s.y); ctx.lineTo(s.x+r*1.6,s.y); ctx.moveTo(s.x,s.y-r*1.6); ctx.lineTo(s.x,s.y+r*1.6); ctx.stroke();
-    if(ST.zoom>0.05){ctx.font=`${Math.max(7,8*ST.zoom)}px "IBM Plex Mono",monospace`;ctx.fillStyle=col;ctx.fillText(p.id,s.x+r*2,s.y-2);}
-  });
-}
-
-// GCP Manager
-function renderGCPList(){
-  const list=document.getElementById('gcpList');if(!list)return;
-  const stats=document.getElementById('gcpStats');
-  const pts=ST.surveyPts||[];
-  const ctrl=pts.filter(p=>p.type==='ctrl').length,chk=pts.filter(p=>p.type==='check').length;
-  if(stats)stats.textContent=`${ctrl} control / ${chk} checkpoint / ${pts.length-ctrl-chk} unclassified`;
-  list.innerHTML=pts.map((p,i)=>`
-    <div style="display:flex;align-items:center;gap:5px;padding:4px 8px;border-bottom:1px solid rgba(31,168,217,.05);font-size:9px">
-      <span style="font-family:'IBM Plex Mono',monospace;color:var(--st);min-width:26px">${p.id}</span>
-      <span style="font-family:'IBM Plex Mono',monospace;color:var(--m);font-size:8px;flex:1">${p.e.toFixed(2)}, ${p.n.toFixed(2)}, ${p.z.toFixed(2)}</span>
-      <select onchange="setPtType(${i},this.value)" style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:8px;border-radius:2px;padding:1px 2px">
-        <option value="" ${!p.type?'selected':''}>—</option>
-        <option value="ctrl" ${p.type==='ctrl'?'selected':''}>Control</option>
-        <option value="check" ${p.type==='check'?'selected':''}>Checkpoint</option>
-      </select>
-    </div>`).join('');
-}
-function setPtType(i,t){if(ST.surveyPts[i])ST.surveyPts[i].type=t;renderSurveyList();renderGCPList();render();}
-function setAllGCP(t){(ST.surveyPts||[]).forEach(p=>p.type=t==='none'?'':t);renderSurveyList();renderGCPList();render();}
-function calcBearing(){const sels=ST.entities.filter(e=>e.selected&&e.type==='line');if(!sels.length){toast('Select a line','warn');return;}const e=sels[0];const ang=((Math.atan2(e.x2-e.x1,e.y2-e.y1)*180/Math.PI)+360)%360;const dist=Math.hypot(e.x2-e.x1,e.y2-e.y1);toast(`Bearing: ${ang.toFixed(4)}°  Dist: ${dist.toFixed(3)} ${ST.units}`,'ok');setMsg(`Bearing: ${ang.toFixed(4)}° | Dist: ${dist.toFixed(3)} ${ST.units}`);}
-function showCRS(){toast(`CRS: ${ST.crs}`,'ok');}
-
-// ── GEOJSON ───────────────────────────────────────────────────────
-function previewGeoJSON(file){const r=new FileReader();r.onload=ev=>{try{const gj=JSON.parse(ev.target.result);const el=document.getElementById('geoStats');if(el)el.textContent=`Type: ${gj.type} | Features: ${gj.features?.length||1} | CRS: ${gj.crs?.properties?.name||'Not specified'}`;}catch(e){const el=document.getElementById('geoStats');if(el)el.textContent='Parse error: '+e.message;}};r.readAsText(file);}
-function geoDrop(ev){ev.preventDefault();const f=ev.dataTransfer?.files?.[0];if(!f)return;_pendingGeoFile=f;const el=document.getElementById('geoFileName');if(el)el.textContent='🗺️ '+f.name;previewGeoJSON(f);}
-function geoFileChosen(ev){const f=ev.target.files?.[0];if(!f)return;_pendingGeoFile=f;const el=document.getElementById('geoFileName');if(el)el.textContent='🗺️ '+f.name;previewGeoJSON(f);}
-function doImportGeoJSON(){if(!_pendingGeoFile){toast('No GeoJSON selected','warn');return;}const r=new FileReader();r.onload=ev=>{try{parseGeoJSON(JSON.parse(ev.target.result),_pendingGeoFile.name);closeMo('moGeoImport');_pendingGeoFile=null;}catch(e){toast('GeoJSON error: '+e.message,'err');console.error(e);}};r.readAsText(_pendingGeoFile);}
-function parseGeoJSON(gj,filename){
-  if(!gj||(!gj.features&&gj.type!=='Feature')){toast('Invalid GeoJSON','err');return;}
-  const features = gj.features || [gj];
-  const fileBase = (filename||'geo').replace(/\.[^.]+$/,'');
-  const layersByType = {};
-  const layColors = {Point:'#F5BE18',MultiPoint:'#F5BE18',
-    LineString:'#1FA8D9',MultiLineString:'#1FA8D9',
-    Polygon:'#4eff91',MultiPolygon:'#4eff91'};
-
-  function ensureGeoLayer(name, color) {
-    if(layersByType[name]) return layersByType[name];
-    const ex = ST.layers.find(l=>l.name===name);
-    if(ex){ layersByType[name]=ex.id; return ex.id; }
-    const id = Date.now() + (Math.random()*1000|0);
-    layersByType[name] = id;
-    ST.layers.push({id,name:name.toString().slice(0,30),color:color||'#1FA8D9',vis:true,lock:false,frz:false,dis:false});
-    return id;
-  }
-
-  const ents=[];
-  features.forEach(feat=>{
-    const g=feat?.geometry; if(!g) return;
-    const props=feat.properties||{};
-    const rawLayName = props.layer||props.Layer||props.NAME||props.name||
-                       (fileBase+'-'+g.type);
-    const layName = rawLayName.toString().replace(/[^a-zA-Z0-9_\- ]/g,'').slice(0,30)||'geo';
-    const col = layColors[g.type]||'#A78BFA';
-    const layId = ensureGeoLayer(layName, col);
-
-    function mkE(obj){ return {...obj,_id:++ST._eid,layer:layId,selected:false}; }
-    function addLine(coords){
-      if(!coords||coords.length<2)return;
-      ents.push(mkE({type:'polyline',pts:coords.map(c=>({x:+c[0],y:+c[1]})),closed:false}));
-    }
-    function addPoly(rings){
-      rings.forEach((ring,i)=>{
-        if(!ring||ring.length<3)return;
-        ents.push(mkE({type:'polyline',pts:ring.map(c=>({x:+c[0],y:+c[1]})),closed:true}));
-      });
-    }
-    switch(g.type){
-      case 'Point': ents.push(mkE({type:'point',x:+g.coordinates[0],y:+g.coordinates[1]})); break;
-      case 'MultiPoint': g.coordinates.forEach(co=>ents.push(mkE({type:'point',x:+co[0],y:+co[1]}))); break;
-      case 'LineString': addLine(g.coordinates); break;
-      case 'MultiLineString': g.coordinates.forEach(addLine); break;
-      case 'Polygon': addPoly(g.coordinates); break;
-      case 'MultiPolygon': g.coordinates.forEach(poly=>addPoly(poly)); break;
-    }
-  });
-
-  if(!ents.length){toast('No geometry in GeoJSON','warn');return;}
-  pushUndo();
-  ST.entities.push(...ents);
-  renderLayers();
-  setTimeout(()=>zoomExt(),150);
-  if(typeof autoDetectCRS==='function') autoDetectCRS(ents);
-  const lc=Object.keys(layersByType).length;
-  toast(filename+': '+ents.length+' entities on '+lc+' layer'+(lc!==1?'s':''),'ok');
-  setMsg(filename+': '+ents.length+' entities | '+lc+' layers');
-}
 function exportGeoJSON(){const feats=[];ST.entities.forEach(e=>{let g=null;switch(e.type){case'line':g={type:'LineString',coordinates:[[e.x1,e.y1],[e.x2,e.y2]]};break;case'circle':g={type:'Point',coordinates:[e.cx,e.cy]};break;case'polyline':if(e.pts?.length>=2)g={type:'LineString',coordinates:e.pts.map(p=>[p.x,p.y])};break;}if(g)feats.push({type:'Feature',geometry:g,properties:{layer:e.layer}});});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({type:'FeatureCollection',features:feats},null,2)],{type:'application/json'}));a.download='strata_export.geojson';a.click();toast('GeoJSON exported','ok');}
 
 // ── TERRAIN ───────────────────────────────────────────────────────
@@ -6470,17 +5182,18 @@ function utmToWgs84(easting, northing, crsKey) {
 
 // ══ MULTI-FORMAT EXPORT ══════════════════════════════════════════════
 function openExportModal() {
-  openExportModalFull();
-  // Build layer list
+  // Rebuild layer list
   const layList = document.getElementById('exportLayerList');
-  if(!layList) return;
-  layList.innerHTML = ST.layers.map(l => `
-    <label style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer">
-      <input type="checkbox" checked value="${l.id}" style="accent-color:var(--b)">
-      <span style="width:10px;height:10px;border-radius:2px;background:${l.color};flex-shrink:0;display:inline-block"></span>
-      <span style="font-size:10px;color:var(--t)">${l.name}</span>
-      <span style="font-size:8.5px;color:var(--m);margin-left:auto">${ST.entities.filter(e=>e.layer===l.id).length} ents</span>
-    </label>`).join('');
+  if(layList) {
+    layList.innerHTML = ST.layers.length > 0 ? ST.layers.map(l => `
+      <label style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer;font-size:9px">
+        <input type="checkbox" checked value="${l.id}" style="accent-color:var(--b)">
+        <span style="width:8px;height:8px;border-radius:50%;background:${l.color};flex-shrink:0;display:inline-block"></span>
+        <span style="color:var(--t)">${l.name}</span>
+        <span style="color:var(--m);margin-left:auto">${ST.entities.filter(e=>e.layer===l.id).length}</span>
+      </label>`).join('') : '<div style="color:var(--m);font-size:9px">No layers — all entities will be exported</div>';
+  }
+  openMo('moExport');
 }
 
 function doExport(fmt) {
@@ -8596,6 +7309,202 @@ filterProcessing = function(q) {
   });
 };
 
+
+// ════════════════════════════════════════════════════════════════════
+//  COMPREHENSIVE FIXES
+// ════════════════════════════════════════════════════════════════════
+
+// 1. OSNAP helpers
+function selectAllOsnaps(v) {
+  ['osEndpoint','osMidpoint','osCenter','osNode','osQuadrant',
+   'osIntersect','osPerp','osTangent','osNearest','osParallel'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.checked = v;
+  });
+}
+document.getElementById('osAperture')?.addEventListener('input', ev=>{
+  ST.osnapAperture = +ev.target.value;
+  const v = document.getElementById('osApertureVal');
+  if(v) v.textContent = ev.target.value;
+});
+
+function getOsnapFlags() {
+  return {
+    endpoint:  document.getElementById('osEndpoint')?.checked !== false,
+    midpoint:  document.getElementById('osMidpoint')?.checked !== false,
+    center:    document.getElementById('osCenter')?.checked !== false,
+    node:      document.getElementById('osNode')?.checked !== false,
+    intersect: document.getElementById('osIntersect')?.checked !== false,
+  };
+}
+
+// 2. Processing panel toggle (clean version)
+function toggleProcPanel() {
+  const p = document.getElementById('procSidePanel');
+  if(!p) { openMo('moProcessing'); return; }
+  const shown = p.style.display === 'flex';
+  p.style.display = shown ? 'none' : 'flex';
+  if(!shown) buildProcessingSidePanel();
+}
+
+// 3. Fix export — all formats should work
+function exportAll(fmt) {
+  // Always re-open the export modal with the fmt pre-selected
+  openExportModal();
+  // Auto-execute after a tick
+  setTimeout(() => { if(typeof doExport==='function') doExport(fmt); }, 100);
+}
+
+// 4. Wire Processing button in menu bar if not already wired
+(function wireMenuBarProcessing() {
+  const btns = document.querySelectorAll('.mb-btn');
+  btns.forEach(btn => {
+    if(btn.textContent.includes('Processing') || btn.textContent.includes('QGIS')) {
+      btn.onclick = toggleProcPanel;
+    }
+  });
+})();
+
+// 5. Make sure all export formats have the DWG save option working
+const _oldDoExportFmt = doExport;
+doExport = function(fmt) {
+  if(fmt === 'dwg') { saveAsDWG(); closeMo('moExport'); return; }
+  _oldDoExportFmt(fmt);
+};
+
+// 6. Commands: add missing ones + fix case handling
+// Make CAD_COMMANDS lookup fully case-insensitive
+const _originalCAD_COMMANDS_keys = Object.keys(CAD_COMMANDS);
+const _lcCAD_COMMANDS = {};
+_originalCAD_COMMANDS_keys.forEach(k => {
+  _lcCAD_COMMANDS[k.toLowerCase()] = CAD_COMMANDS[k];
+});
+// Override CAD_COMMANDS with a Proxy-like approach
+const _realLookup = (v) => {
+  return CAD_COMMANDS[v] || CAD_COMMANDS[v.toUpperCase()] || _lcCAD_COMMANDS[v.toLowerCase()];
+};
+
+// Patch runCommand to use case-insensitive lookup
+const _prevRunCmd = runCommand;
+runCommand = function(rawCmd) {
+  const raw = (rawCmd || '').trim();
+  if(!raw) { if(ST._lastTool) T(ST._lastTool); return; }
+  
+  const v = raw.toUpperCase();
+  
+  // Close polygon / polyline / line
+  if(v === 'C' && (ST.tool==='polyline'||ST.tool==='boundary'||ST.tool==='line')) {
+    if(ST.tool==='polyline') commitPolyline();
+    else if(ST.tool==='boundary') commitBoundary();
+    else { ST.drawing=false; ST.startPt=null; render(); }
+    return;
+  }
+  
+  // Numeric distance/coordinate input while drawing
+  if(ST.drawing || ST.opState) {
+    if(raw.match(/^[@\d\.\-+]/) || raw.includes('<') || (raw.includes(',') && raw.match(/\d/))) {
+      if(typeof applyDynValue==='function') { applyDynValue(raw); return; }
+    }
+  }
+  
+  // Case-insensitive lookup
+  const target = _realLookup(v);
+  if(target) {
+    const allTools=['line','polyline','circle','arc','rect','ellipse','spline','hatch','text',
+      'point','xline','ray','wipeout','cloud','boundary','polygon','dim-lin','leader',
+      'move','copy','rotate','scale','mirror','offset','trim','extend',
+      'fillet','chamfer','stretch','break','join','explode'];
+    if(allTools.includes(target)) {
+      T(target);
+      setMsg('▶ '+target.toUpperCase()+' — click to start');
+      return;
+    }
+    if(CAD_ACTIONS[target]) { CAD_ACTIONS[target](); setMsg('▶ '+target); return; }
+  }
+  
+  // Number = distance input
+  const num = parseFloat(raw);
+  if(!isNaN(num) && (ST.drawing||ST.opState)) {
+    if(typeof applyDynValue==='function') { applyDynValue(raw); return; }
+  }
+  
+  // Map search fallback
+  if(v.startsWith('FIND ') || v.startsWith('GO ')) {
+    mapSearch(raw.replace(/^(FIND|GO)\s+/i,'')); return;
+  }
+  
+  setMsg('"'+raw+'" not found — press F1 for command list');
+};
+
+// 7. Fix cmdKey — space + enter both work
+document.getElementById('cmdInput')?.addEventListener('keydown', ev => {
+  ev.stopPropagation();
+  if(ev.key === 'Escape') {
+    document.getElementById('cmdInput').value = '';
+    canvas.focus();
+    return;
+  }
+  if(ev.key === 'Enter' || ev.key === ' ') {
+    const inp = document.getElementById('cmdInput');
+    const raw = inp.value.trim();
+    if(!raw) {
+      ev.preventDefault();
+      if(ev.key === ' ') {
+        if(ST.tool==='polyline') commitPolyline();
+        else if(ST.tool==='boundary') commitBoundary();
+        else if(ST._lastTool) T(ST._lastTool);
+      }
+      return;
+    }
+    ev.preventDefault();
+    inp.value = '';
+    runCommand(raw);
+    canvas.focus();
+  }
+});
+
+// 8. Import: ensure routeFile handles SVG and additional formats
+const _prevRouteFile = routeFile;
+routeFile = function(f, source) {
+  const n = f.name.toLowerCase();
+  if(n.endsWith('.svg')) {
+    // Import SVG as image overlay
+    importImageFile(f); return;
+  }
+  if(n.endsWith('.dxf') || n.endsWith('.dxb')) {
+    if(source==='import') closeMo('moImport');
+    toast('Reading DXF: ' + f.name, 'ok');
+    setMsg('Importing DXF…');
+    const r = new FileReader();
+    r.onload = ev => { parseDXF(ev.target.result, f.name); };
+    r.readAsText(f, 'UTF-8');
+    return;
+  }
+  _prevRouteFile(f, source);
+};
+
+// 9. DXF: fix the doImport function to properly read files
+const _prevDoImport = doImport;
+doImport = function() {
+  if(!_pendingFile) { toast('No file selected','warn'); return; }
+  const f = _pendingFile;
+  const n = f.name.toLowerCase();
+  if(n.endsWith('.dxf')) {
+    closeMo('moImport');
+    toast('Reading DXF: ' + f.name + '…', 'ok');
+    const r = new FileReader();
+    r.onload = ev => { parseDXF(ev.target.result, f.name); };
+    r.readAsText(f, 'UTF-8');
+    return;
+  }
+  if(n.endsWith('.dwg')) {
+    closeMo('moImport');
+    showDwgGuide(f);
+    return;
+  }
+  _prevDoImport();
+};
+
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════
@@ -8914,6 +7823,47 @@ filterProcessing = function(q) {
     padding:4px 8px;border-radius:3px;outline:none;font-family:'IBM Plex Mono',monospace">
   <div id="processingContentSide" style="overflow-y:auto;flex:1;padding:4px"></div>
 </div>
+
+
+<!-- OSNAP SETTINGS PANEL -->
+<div id="osnapPanel" style="position:fixed;bottom:90px;left:200px;background:#050F1C;border:1px solid var(--bl);
+  border-radius:8px;padding:12px 15px;width:260px;z-index:600;display:none;
+  box-shadow:0 8px 30px rgba(0,0,0,.8)">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <span style="font-size:9px;font-weight:800;color:var(--b);font-family:'IBM Plex Mono',monospace;letter-spacing:.8px;text-transform:uppercase">◎ OSnap Settings</span>
+    <span onclick="document.getElementById('osnapPanel').style.display='none'" style="cursor:pointer;color:var(--m);font-size:11px">✕</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px">
+    <label class="osnap-chk"><input type="checkbox" id="osEndpoint" checked> Endpoint</label>
+    <label class="osnap-chk"><input type="checkbox" id="osMidpoint" checked> Midpoint</label>
+    <label class="osnap-chk"><input type="checkbox" id="osCenter"   checked> Center</label>
+    <label class="osnap-chk"><input type="checkbox" id="osNode"     checked> Node</label>
+    <label class="osnap-chk"><input type="checkbox" id="osQuadrant">Quadrant</label>
+    <label class="osnap-chk"><input type="checkbox" id="osIntersect" checked>Intersection</label>
+    <label class="osnap-chk"><input type="checkbox" id="osPerp">    Perpendicular</label>
+    <label class="osnap-chk"><input type="checkbox" id="osTangent"> Tangent</label>
+    <label class="osnap-chk"><input type="checkbox" id="osNearest"> Nearest</label>
+    <label class="osnap-chk"><input type="checkbox" id="osParallel">Parallel</label>
+  </div>
+  <div style="display:flex;gap:5px">
+    <button class="btn s" style="font-size:8.5px;flex:1" onclick="selectAllOsnaps(true)">Select All</button>
+    <button class="btn s" style="font-size:8.5px;flex:1" onclick="selectAllOsnaps(false)">Clear All</button>
+  </div>
+  <div style="margin-top:8px;font-size:8.5px;color:var(--m);font-family:'IBM Plex Mono',monospace">
+    <div style="margin-bottom:3px"><b style="color:var(--t)">Aperture:</b>
+      <input type="range" min="3" max="20" value="8" id="osAperture" oninput="ST.osnapAperture=+this.value"
+        style="accent-color:var(--b);width:80px;height:3px">
+      <span id="osApertureVal">8</span>px
+    </div>
+  </div>
+</div>
+
+<style>
+.osnap-chk{display:flex;align-items:center;gap:5px;font-size:9px;cursor:pointer;
+  color:var(--m);font-family:'IBM Plex Mono',monospace;padding:2px 4px;border-radius:2px}
+.osnap-chk:hover{color:var(--t);background:rgba(31,168,217,.05)}
+.osnap-chk input{accent-color:var(--b);cursor:pointer}
+</style>
 
 </body>
 </html>
