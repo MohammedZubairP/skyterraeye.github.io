@@ -1676,31 +1676,102 @@ function drawPreview() {
 
 function drawOpPreview(wp) {
   const op = ST.opState;
-  const sels = ST.entities.filter(e=>e.selected);
-  if(sels.length===0) return;
-  ctx.globalAlpha=0.5;
-  if(op.type==='move'||op.type==='copy') {
-    const dx=wp.x-op.base.x, dy=wp.y-op.base.y;
-    sels.forEach(e=>drawEntity(translateEnt(e,dx,dy), true));
-  } else if(op.type==='rotate') {
-    const ang=Math.atan2(wp.y-op.base.y,wp.x-op.base.x)-Math.atan2(op.refPt?op.refPt.y-op.base.y:1,op.refPt?op.refPt.x-op.base.x:0);
-    sels.forEach(e=>drawEntity(rotateEnt(e,op.base,ang),true));
-  } else if(op.type==='scale') {
-    const d1=Math.hypot(op.refPt.x-op.base.x,op.refPt.y-op.base.y)||1;
-    const d2=Math.hypot(wp.x-op.base.x,wp.y-op.base.y);
-    const f=d2/d1||1;
-    sels.forEach(e=>drawEntity(scaleEnt(e,op.base,f),true));
-  } else if(op.type==='mirror') {
-    if(op.p1) {
-      const p2=wp;
-      sels.forEach(e=>drawEntity(mirrorEnt(e,op.p1,p2),true));
-      // Show mirror axis
-      const a=w2s(op.p1.x,op.p1.y),b=w2s(p2.x,p2.y);
-      ctx.globalAlpha=1; ctx.strokeStyle='rgba(167,139,250,.6)'; ctx.lineWidth=1; ctx.setLineDash([6,4]);
-      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.setLineDash([]);
-    }
+  if(!op || !op.base) return;
+  const sels = ST.entities.filter(e => e.selected);
+  if(!sels.length) return;
+
+  ctx.save();
+  ctx.globalAlpha = 0.45;
+  ctx.setLineDash([5, 4]);
+
+  // Draw ghost of selected entities at new position
+  if(op.type === 'move' && op.base) {
+    const dx = wp.x - op.base.x, dy = wp.y - op.base.y;
+    ctx.strokeStyle = '#4eff91';
+    ctx.lineWidth = 1;
+    sels.forEach(e => {
+      const ghost = translateEnt(JSON.parse(JSON.stringify(e)), dx, dy);
+      drawEntity(ghost, true);
+    });
+    // Draw arrow from base to cursor
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.8;
+    const bs = w2s(op.base.x, op.base.y);
+    const ms = w2s(wp.x, wp.y);
+    ctx.strokeStyle = '#F5BE18'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(bs.x, bs.y); ctx.lineTo(ms.x, ms.y); ctx.stroke();
+    // Arrowhead
+    const ang = Math.atan2(ms.y - bs.y, ms.x - bs.x);
+    ctx.fillStyle = '#F5BE18';
+    ctx.beginPath();
+    ctx.moveTo(ms.x, ms.y);
+    ctx.lineTo(ms.x - 10*Math.cos(ang-0.4), ms.y - 10*Math.sin(ang-0.4));
+    ctx.lineTo(ms.x - 10*Math.cos(ang+0.4), ms.y - 10*Math.sin(ang+0.4));
+    ctx.closePath(); ctx.fill();
+    // Distance label
+    const dist = Math.hypot(dx, dy).toFixed(3);
+    const ang2 = ((Math.atan2(dy, dx)*180/Math.PI+360)%360).toFixed(1);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#F5BE18';
+    ctx.font = '10px IBM Plex Mono,monospace';
+    ctx.fillText(dist + ' ' + ST.units + '  ' + ang2 + '°', ms.x + 8, ms.y - 8);
   }
-  ctx.globalAlpha=1;
+
+  if(op.type === 'copy' && op.base) {
+    const dx = wp.x - op.base.x, dy = wp.y - op.base.y;
+    ctx.strokeStyle = '#A78BFA';
+    sels.forEach(e => drawEntity(translateEnt(JSON.parse(JSON.stringify(e)), dx, dy), true));
+  }
+
+  if(op.type === 'rotate' && op.base && op.refPt) {
+    const ang = Math.atan2(wp.y-op.base.y,wp.x-op.base.x) - Math.atan2(op.refPt.y-op.base.y,op.refPt.x-op.base.x);
+    ctx.strokeStyle = '#4eff91';
+    sels.forEach(e => drawEntity(rotateEnt(JSON.parse(JSON.stringify(e)), op.base, ang), true));
+    // Draw rotation arc
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.6;
+    const bc = w2s(op.base.x, op.base.y);
+    const r = Math.hypot(w2s(op.refPt.x,op.refPt.y).x - bc.x, w2s(op.refPt.x,op.refPt.y).y - bc.y);
+    const a0 = Math.atan2(op.refPt.y-op.base.y, op.refPt.x-op.base.x);
+    ctx.strokeStyle = '#F5BE18'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(bc.x, bc.y, r, -a0, -(a0+ang), ang<0); ctx.stroke();
+    // Angle label
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#F5BE18';
+    ctx.font = '10px IBM Plex Mono,monospace';
+    const lp = w2s(wp.x, wp.y);
+    ctx.fillText((ang*180/Math.PI).toFixed(1)+'°', lp.x+8, lp.y-8);
+  }
+
+  if(op.type === 'scale' && op.base && op.refPt) {
+    const d1 = Math.hypot(op.refPt.x-op.base.x,op.refPt.y-op.base.y)||1;
+    const d2 = Math.hypot(wp.x-op.base.x,wp.y-op.base.y)||0.001;
+    const factor = d2/d1;
+    ctx.strokeStyle = '#4eff91';
+    sels.forEach(e => drawEntity(scaleEnt(JSON.parse(JSON.stringify(e)), op.base, factor), true));
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#F5BE18';
+    ctx.font = '10px IBM Plex Mono,monospace';
+    const sp = w2s(wp.x, wp.y);
+    ctx.fillText('×'+factor.toFixed(3), sp.x+8, sp.y-8);
+  }
+
+  if(op.type === 'stretch' && op.base && op.refPt) {
+    ctx.strokeStyle = '#ff9060';
+    sels.forEach(e => {
+      const ne = JSON.parse(JSON.stringify(e));
+      if(e.type==='line'){
+        const d1=Math.hypot(e.x1-op.refPt.x,e.y1-op.refPt.y);
+        const d2=Math.hypot(e.x2-op.refPt.x,e.y2-op.refPt.y);
+        if(d2<d1){ne.x2=wp.x;ne.y2=wp.y;}else{ne.x1=wp.x;ne.y1=wp.y;}
+      }
+      drawEntity(ne, true);
+    });
+  }
+
+  ctx.restore();
+  ctx.globalAlpha = 1;
+  ctx.setLineDash([]);
 }
 
 function drawLenLabel(v, sx, sy) {
@@ -2144,18 +2215,31 @@ function applyOp(wp){
 
   // OFFSET: click the entity directly
   if(op.type==='offset'){
-    const tol=12/ST.zoom;
-    for(let i=ST.entities.length-1;i>=0;i--){
-      const e=ST.entities[i];
-      if(!layVisible(e.layer))continue;
-      if(ptHitsEnt(wp.x,wp.y,e,tol)){
-        const ne=offsetEnt(e,op.dist);
-        if(ne){pushUndo();ne._id=++ST._eid;ne.selected=false;ST.entities.push(ne);render();toast('Offset created','ok');}
-        else toast('Cannot offset this entity','warn');
-        return;
+    if(!op._pendingEnt){
+      // Phase 1: click entity
+      const tol=12/ST.zoom;
+      for(let i=ST.entities.length-1;i>=0;i--){
+        const e=ST.entities[i];
+        if(!layVisible(e.layer))continue;
+        if(ptHitsEnt(wp.x,wp.y,e,tol)){
+          op._pendingEnt=e;
+          // Show input bar for distance entry
+          const ibDist=document.getElementById('ibDist');
+          if(ibDist){ibDist.value='';ibDist.placeholder='offset distance…';ibDist.focus();}
+          setMsg('Entity selected — type offset distance in input bar above + Enter  |  ESC=cancel');
+          return;
+        }
       }
+      toast('Click an entity to offset first','warn'); return;
     }
-    toast('Click an entity to offset  |  ESC=cancel','warn'); return;
+    // Phase 2: distance was typed via input bar (applyOffsetDist) or clicked (use click dist)
+    const dist=op.dist||Math.hypot(wp.x-op._pendingEnt.x1||0,wp.y-op._pendingEnt.y1||0)||50;
+    const ne=offsetEnt(op._pendingEnt,dist);
+    if(ne){pushUndo();ne._id=++ST._eid;ne.selected=false;ST.entities.push(ne);render();toast('Offset '+dist.toFixed(2)+' '+ST.units,'ok');}
+    else toast('Cannot offset this entity type','warn');
+    op._pendingEnt=null; op.dist=null;
+    setMsg('Offset done — click another entity  |  ESC=cancel');
+    return;
   }
 
   const sels=ST.entities.filter(e=>e.selected);
@@ -2174,9 +2258,11 @@ function applyOp(wp){
     pushUndo();
     const dx=wp.x-op.base.x,dy=wp.y-op.base.y;
     ST.entities=ST.entities.map(e=>e.selected?translateEnt(e,dx,dy):e);
-    toast('Moved '+sels.length+' object(s)','ok');
-    setMsg('Done — ESC to deselect  |  M to move again');
-    ST.opState=null;
+    const dist=Math.hypot(dx,dy).toFixed(3), ang=((Math.atan2(dy,dx)*180/Math.PI+360)%360).toFixed(1);
+    toast('Moved '+sels.length+' obj — dist:'+dist+' '+ST.units+' ang:'+ang+'°','ok');
+    // Keep op active for chaining (like AutoCAD — click again to move more)
+    op.base=null; op.refPt=null;
+    setMsg('Moved — click again for base point  |  TAB=enter distance  |  ESC=done');
   }
   else if(op.type==='copy'){
     pushUndo();
@@ -2189,23 +2275,37 @@ function applyOp(wp){
     toast('Copied — click again for another copy  |  ESC=done','ok');
   }
   else if(op.type==='rotate'){
-    if(!op.refPt){op.refPt=wp;setMsg('Reference set — click end point to define angle  |  ESC=cancel');return;}
+    if(!op.refPt){
+      op.refPt=wp;
+      // Show angle input in ib
+      const ibAng=document.getElementById('ibAng');
+      if(ibAng){ibAng.value='';ibAng.placeholder='angle°…';ibAng.focus();}
+      setMsg('Rotate center set — click to set angle OR type angle° in ANG field above + Enter  |  ESC=cancel');
+      return;
+    }
     const ang=Math.atan2(wp.y-op.base.y,wp.x-op.base.x)-Math.atan2(op.refPt.y-op.base.y,op.refPt.x-op.base.x);
     pushUndo();
     ST.entities=ST.entities.map(e=>e.selected?rotateEnt(e,op.base,ang):e);
     toast('Rotated '+(ang*180/Math.PI).toFixed(1)+'°','ok');
-    setMsg('Rotated  |  ESC=deselect');
-    ST.opState=null;
+    setMsg('Rotated — click base again to rotate more  |  ESC=done');
+    op.refPt=null; // allow chaining
   }
   else if(op.type==='scale'){
-    if(!op.refPt){op.refPt=wp;setMsg('Reference set — click to set new distance  |  ESC=cancel');return;}
+    if(!op.refPt){
+      op.refPt=wp;
+      const ibDist=document.getElementById('ibDist');
+      if(ibDist){ibDist.value='';ibDist.placeholder='scale factor…';ibDist.focus();}
+      setMsg('Scale base set — click reference distance OR type scale factor in DIST field + Enter  |  ESC=cancel');
+      return;
+    }
     const d1=Math.hypot(op.refPt.x-op.base.x,op.refPt.y-op.base.y)||1;
     const d2=Math.hypot(wp.x-op.base.x,wp.y-op.base.y)||0.001;
+    const factor=d2/d1;
     pushUndo();
-    ST.entities=ST.entities.map(e=>e.selected?scaleEnt(e,op.base,d2/d1):e);
-    toast('Scaled ×'+(d2/d1).toFixed(3),'ok');
-    setMsg('Scaled  |  ESC=deselect');
-    ST.opState=null;
+    ST.entities=ST.entities.map(e=>e.selected?scaleEnt(e,op.base,factor):e);
+    toast('Scaled ×'+factor.toFixed(3),'ok');
+    setMsg('Scaled — click base again for more  |  ESC=done');
+    op.refPt=null;
   }
   else if(op.type==='mirror'){
     pushUndo();
@@ -2213,6 +2313,36 @@ function applyOp(wp){
     toast('Mirrored '+sels.length+' object(s)','ok');
     setMsg('Mirrored  |  ESC=deselect');
     ST.opState=null;
+  }
+  else if(op.type==='stretch'){
+    if(!op.refPt){
+      op.refPt=wp; // This is the "anchor" point that stays
+      setMsg('Anchor set ('+wp.x.toFixed(2)+','+wp.y.toFixed(2)+') — click stretch destination  |  ESC=cancel');
+      return;
+    }
+    // Move only the endpoint closest to cursor (stretch semantics)
+    pushUndo();
+    const tol=50/ST.zoom;
+    ST.entities=ST.entities.map(e=>{
+      if(!e.selected) return e;
+      const ne={...e};
+      if(e.type==='line'){
+        const d1=Math.hypot(e.x1-op.refPt.x,e.y1-op.refPt.y);
+        const d2=Math.hypot(e.x2-op.refPt.x,e.y2-op.refPt.y);
+        if(d2<d1){ne.x2=wp.x;ne.y2=wp.y;}
+        else{ne.x1=wp.x;ne.y1=wp.y;}
+      } else if(e.type==='polyline'&&e.pts){
+        const pts=[...e.pts.map(p=>({...p}))];
+        let minD=Infinity,minI=0;
+        pts.forEach((p,i)=>{const d=Math.hypot(p.x-op.refPt.x,p.y-op.refPt.y);if(d<minD){minD=d;minI=i;}});
+        pts[minI]={x:wp.x,y:wp.y};
+        ne.pts=pts;
+      }
+      return ne;
+    });
+    toast('Stretched '+sels.length+' object(s)','ok');
+    setMsg('Stretched — click anchor for more  |  ESC=done');
+    op.refPt=null;
   }
   render();
 }
@@ -2586,17 +2716,15 @@ document.addEventListener('keydown',ev=>{
 function T(tool) {
   if(!['select','pan'].includes(tool)) ST._lastTool=tool;
 
-  const opTools=['move','copy','rotate','scale','mirror','offset'];
+  const opTools=['move','copy','rotate','scale','mirror','offset','stretch'];
   if(opTools.includes(tool)) {
     ST.tool=tool;
     ST.drawing=false; ST.startPt=null; ST.pts=[]; ST.polyPts=null;
     updateToolUI(tool);
     canvas.style.cursor='crosshair';
     if(tool==='offset') {
-      const d=parseFloat(prompt('Offset distance ('+ST.units+'):','100'));
-      if(isNaN(d)||d<=0){ T('select'); return; }
-      ST.opState={type:'offset',dist:d,base:null};
-      setMsg('Click entity to offset  |  ESC=cancel');
+      ST.opState={type:'offset',dist:null,base:null};
+      setMsg('Click entity to offset — then enter distance  |  ESC=cancel');
     } else {
       // Check if anything is selected — if yes, start op immediately; if not, allow selecting first
       const sels=ST.entities.filter(e=>e.selected);
@@ -2615,6 +2743,7 @@ function T(tool) {
     return;
   }
 
+  if(tool==='polygon'){tool='boundary';} // polygon = free boundary
   ST.tool=tool;
   ST.drawing=false; ST.startPt=null; ST.pts=[];
   ST.polyPts=null; ST.opState=null;
@@ -2626,7 +2755,7 @@ function T(tool) {
     line:'Click start point  |  Chain continues — right-click or ESC to stop',
     circle:'Click center point  |  ESC=cancel',
     rect:'Click first corner  |  ESC=cancel',
-    polygon:'Click center point  |  ESC=cancel',
+    polygon:'Click points to draw boundary — C=close  double-click=close  ESC=cancel',
     boundary:'Click points to define boundary — double-click or Enter to close  |  ESC=cancel',
     cloud:'Click center  |  ESC=cancel',
     arc:'Click center point  |  ESC=cancel',
@@ -2642,7 +2771,7 @@ function T(tool) {
     wipeout:'Click first corner  |  ESC=cancel',
     'measure-a':'Click boundary points  |  double-click to finish',
     'dim-lin':'Click start point  |  ESC=cancel',
-    trim:'Click entity to remove  |  ESC=cancel',
+    trim:'Single-click to trim at intersection  |  Double-click to delete  |  ESC=cancel',
     extend:'Click entity to extend  |  ESC=cancel',
     spline:'Click first point  |  ESC=cancel',
     leader:'Click start  |  ESC=cancel',
@@ -4167,6 +4296,23 @@ function routeFile(f,source){
     const r=new FileReader();
     r.onload=e=>{try{loadProjectData(JSON.parse(e.target.result),f.name);}catch(err){toast('Load error: '+err.message,'err');}};
     r.readAsText(f); return;
+  }
+  // Image files — place on canvas as image overlay
+  if(n.endsWith('.png')||n.endsWith('.jpg')||n.endsWith('.jpeg')||n.endsWith('.gif')||n.endsWith('.webp')||n.endsWith('.bmp')){
+    importImageFile(f); return;
+  }
+  // PDF — extract layers/geometry
+  if(n.endsWith('.pdf')){
+    importPDFFile(f); return;
+  }
+  // KML
+  if(n.endsWith('.kml')||n.endsWith('.kmz')){
+    importKMLFile(f); return;
+  }
+  // Shapefile (SHP — needs .dbf too, handle ZIP bundle)
+  if(n.endsWith('.shp')||n.endsWith('.zip')){
+    toast('Shapefile: drop a .zip containing .shp + .dbf + .prj, or use GeoJSON export from QGIS','ok');
+    return;
   }
   _pendingFile=f;
   if(source==='canvas') doImport();
@@ -6507,6 +6653,423 @@ async function convertWithCloudConvert() {
   }
 }
 
+
+// ════════════════════════════════════════════════════════════════════
+//  FEATURE 10: Import Image / PDF
+// ════════════════════════════════════════════════════════════════════
+
+function importImageFile(f) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      pushUndo();
+      // Place image at center of current view
+      const wp = s2w(W/2, H/2);
+      const scaleX = img.width / ST.zoom;
+      const scaleY = img.height / ST.zoom;
+      // Create an image overlay entity
+      if(!ST.imgOverlays) ST.imgOverlays = [];
+      const layId = ensureLayer('Images', '#88aaff');
+      ST.entities.push({
+        _id: ++ST._eid, type: 'image',
+        x: wp.x - scaleX/2, y: wp.y - scaleY/2,
+        w: scaleX, h: scaleY,
+        src: ev.target.result,
+        _imgObj: img,
+        layer: layId, selected: false
+      });
+      render();
+      toast('Image imported: ' + f.name + ' (' + img.width + '×' + img.height + 'px)', 'ok');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(f);
+}
+
+// Draw image entities
+const _origDrawEntity_img = drawEntity;
+drawEntity = function(e, ghost) {
+  if(e.type === 'image') {
+    if(!e._imgObj) {
+      // Lazy-load
+      const img = new Image();
+      img.onload = () => { e._imgObj = img; render(); };
+      img.src = e.src;
+      return;
+    }
+    const p = w2s(e.x, e.y);
+    const w2 = e.w * ST.zoom, h2 = e.h * ST.zoom;
+    ctx.save();
+    ctx.globalAlpha = ghost ? 0.4 : 1;
+    ctx.drawImage(e._imgObj, p.x, p.y - h2, w2, h2);
+    if(e.selected) {
+      ctx.strokeStyle = '#F5BE18'; ctx.lineWidth = 2; ctx.setLineDash([4,4]);
+      ctx.strokeRect(p.x, p.y - h2, w2, h2);
+    }
+    ctx.restore();
+    return;
+  }
+  _origDrawEntity_img(e, ghost);
+};
+
+function importPDFFile(f) {
+  toast('PDF import: loading PDF.js…', 'ok');
+  setMsg('Loading PDF — please wait…');
+  // Load PDF.js dynamically
+  if(typeof pdfjsLib === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.onload = () => {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      _processPDF(f);
+    };
+    script.onerror = () => toast('PDF.js failed to load — check internet connection', 'err');
+    document.head.appendChild(script);
+  } else {
+    _processPDF(f);
+  }
+}
+
+async function _processPDF(f) {
+  try {
+    const arrayBuffer = await f.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+    const numPages = pdf.numPages;
+    toast('PDF: ' + numPages + ' page(s) — rendering as image overlay…', 'ok');
+
+    for(let pageNum = 1; pageNum <= Math.min(numPages, 10); pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const scale = 2.0;
+      const viewport = page.getViewport({scale});
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = viewport.width;
+      offCanvas.height = viewport.height;
+      const ctx2 = offCanvas.getContext('2d');
+      await page.render({canvasContext: ctx2, viewport}).promise;
+
+      // Place page as image
+      const dataUrl = offCanvas.toDataURL('image/png');
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise(r => img.onload = r);
+
+      pushUndo();
+      const wp = s2w(W/2, H/2);
+      const pw = viewport.width / ST.zoom;
+      const ph = viewport.height / ST.zoom;
+      const layId = ensureLayer('PDF-Page' + pageNum, '#ffcc66');
+      ST.entities.push({
+        _id: ++ST._eid, type: 'image',
+        x: wp.x - pw/2 + (pageNum-1)*pw*1.05, y: wp.y - ph/2,
+        w: pw, h: ph, src: dataUrl, _imgObj: img,
+        layer: layId, selected: false
+      });
+    }
+    render(); zoomExt();
+    toast('PDF imported: ' + numPages + ' page(s) as image layers', 'ok');
+    setMsg('PDF imported — use as image reference layer');
+  } catch(e) {
+    toast('PDF error: ' + e.message, 'err');
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  FEATURE 11: Import KML
+// ════════════════════════════════════════════════════════════════════
+
+function importKMLFile(f) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(ev.target.result, 'text/xml');
+      const placemarks = doc.querySelectorAll('Placemark');
+      let count = 0;
+      pushUndo();
+      placemarks.forEach(pm => {
+        const name = pm.querySelector('name')?.textContent || 'KML';
+        const layId = ensureLayer('KML-' + name.slice(0,20).replace(/[^a-zA-Z0-9_\- ]/g,''), '#66ccff');
+        // Points
+        pm.querySelectorAll('Point coordinates').forEach(el => {
+          const [lng, lat] = el.textContent.trim().split(',').map(Number);
+          ST.entities.push({_id:++ST._eid,type:'point',x:lng,y:lat,layer:layId,selected:false});
+          count++;
+        });
+        // Lines
+        pm.querySelectorAll('LineString coordinates').forEach(el => {
+          const pts = el.textContent.trim().split(/\s+/).map(s=>{const[x,y]=s.split(',').map(Number);return{x,y};});
+          if(pts.length>=2){ST.entities.push({_id:++ST._eid,type:'polyline',pts,closed:false,layer:layId,selected:false});count++;}
+        });
+        // Polygons
+        pm.querySelectorAll('Polygon outerBoundaryIs coordinates').forEach(el => {
+          const pts = el.textContent.trim().split(/\s+/).map(s=>{const[x,y]=s.split(',').map(Number);return{x,y};}).filter(p=>!isNaN(p.x));
+          if(pts.length>=3){ST.entities.push({_id:++ST._eid,type:'polyline',pts,closed:true,layer:layId,selected:false});count++;}
+        });
+      });
+      renderLayers(); zoomExt();
+      toast('KML imported: ' + count + ' features from ' + placemarks.length + ' placemarks', 'ok');
+    } catch(e) {
+      toast('KML error: ' + e.message, 'err');
+    }
+  };
+  reader.readAsText(f);
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  FEATURE 13: ensureLayer — auto-create layer by name
+// ════════════════════════════════════════════════════════════════════
+
+function ensureLayer(name, color) {
+  const existing = ST.layers.find(l => l.name === name);
+  if(existing) return existing.id;
+  const id = ++ST._eid + 50000;
+  const col = color || ['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060'][ST.layers.length%6];
+  ST.layers.push({id, name, color:col, vis:true, lock:false, frz:false, dis:false});
+  renderLayers();
+  return id;
+}
+
+// Patch parseDXF to use ensureLayer (auto-creates layers from DXF)
+// Already done in parseDXF via getLayId — this just adds renderLayers after
+const _origParseDXFLayers = parseDXF;
+parseDXF = function(txt, filename) {
+  _origParseDXFLayers(txt, filename);
+  setTimeout(() => renderLayers(), 100);
+};
+
+// Patch parseGeoJSON to auto-create layers by feature type
+const _origParseGeo = parseGeoJSON;
+parseGeoJSON = function(gj, filename) {
+  // Pre-create layers by type
+  const types = new Set();
+  (gj.features || []).forEach(f => types.add(f.geometry?.type || 'Unknown'));
+  types.forEach(t => ensureLayer(filename.replace(/\.[^.]+$/,'')+'-'+t, null));
+  _origParseGeo(gj, filename);
+};
+
+// ════════════════════════════════════════════════════════════════════
+//  FEATURE 12: Save as DWG (via CloudConvert DXF→DWG)
+// ════════════════════════════════════════════════════════════════════
+
+async function saveAsDWG() {
+  toast('Converting DXF → DWG via CloudConvert…', 'ok');
+  setMsg('Exporting as DWG — please wait…');
+  try {
+    // First generate DXF content
+    const dxfContent = buildDXFContent(ST.entities);
+    const dxfBlob = new Blob([dxfContent], {type:'text/plain'});
+    const dxfFile = new File([dxfBlob], 'strata_export.dxf');
+
+    const apiKey = CC_API_KEY;
+    const jobResp = await fetch('https://api.cloudconvert.com/v2/jobs', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'},
+      body:JSON.stringify({tasks:{
+        'upload':{operation:'import/upload'},
+        'convert':{operation:'convert',input:'upload',output_format:'dwg',input_format:'dxf'},
+        'export':{operation:'export/url',input:'convert'}
+      }})
+    });
+    const job = await jobResp.json();
+    const uploadTask = job.data.tasks.find(t=>t.name==='upload');
+    const fd = new FormData();
+    Object.entries(uploadTask.result.form.parameters||{}).forEach(([k,v])=>fd.append(k,v));
+    fd.append('file', dxfFile, 'strata_export.dxf');
+
+    await new Promise((res,rej)=>{
+      const xhr=new XMLHttpRequest();
+      xhr.open('POST', uploadTask.result.form.url);
+      xhr.onload=()=>res();
+      xhr.onerror=()=>rej(new Error('upload failed'));
+      xhr.send(fd);
+    });
+
+    // Poll
+    let dwgUrl=null;
+    for(let i=0;i<60;i++){
+      await new Promise(r=>setTimeout(r,2000));
+      const pd=await (await fetch('https://api.cloudconvert.com/v2/jobs/'+job.data.id,{headers:{'Authorization':'Bearer '+apiKey}})).json();
+      if(pd.data.status==='finished'){
+        dwgUrl=pd.data.tasks.find(t=>t.name==='export')?.result?.files?.[0]?.url;
+        break;
+      }
+      if(pd.data.status==='error') throw new Error('Conversion failed');
+    }
+    if(!dwgUrl) throw new Error('Timed out');
+    const dwgData = await (await fetch(dwgUrl)).arrayBuffer();
+    _download('strata_export.dwg', dwgData, 'application/octet-stream');
+    toast('DWG saved!', 'ok');
+  } catch(e) {
+    toast('DWG save failed: '+e.message, 'err');
+    // Fallback: download as DXF
+    exportDXF(ST.entities);
+  }
+}
+
+function buildDXFContent(ents) {
+  // Use existing DXF export function
+  let dxf = '0\nSECTION\n2\nENTITIES\n';
+  ents.forEach(e => {
+    const lname = ST.layers.find(l=>l.id===e.layer)?.name||'0';
+    if(e.type==='line') dxf+=`0\nLINE\n8\n${lname}\n10\n${e.x1}\n20\n${e.y1}\n11\n${e.x2}\n21\n${e.y2}\n`;
+    else if(e.type==='circle') dxf+=`0\nCIRCLE\n8\n${lname}\n10\n${e.cx}\n20\n${e.cy}\n40\n${e.r}\n`;
+    else if(e.type==='polyline'&&e.pts){
+      dxf+=`0\nLWPOLYLINE\n8\n${lname}\n90\n${e.pts.length}\n70\n${e.closed?1:0}\n`;
+      e.pts.forEach(p=>dxf+=`10\n${p.x}\n20\n${p.y}\n`);
+    }
+  });
+  dxf += '0\nENDSEC\n0\nEOF\n';
+  return dxf;
+}
+
+// Add DWG to doExport dispatcher
+const _origDoExport = doExport;
+doExport = function(fmt) {
+  if(fmt === 'dwg') { saveAsDWG(); return; }
+  _origDoExport(fmt);
+};
+
+// ════════════════════════════════════════════════════════════════════
+//  FEATURE 5: Enhanced doExport with geometry type filter
+// ════════════════════════════════════════════════════════════════════
+const _origDoExport2 = doExport;
+doExport = function(fmt) {
+  if(fmt === 'dwg') { saveAsDWG(); closeMo('moExport'); return; }
+
+  const layChecks = document.querySelectorAll('#exportLayerList input[type=checkbox]');
+  const selectedLayers = new Set(Array.from(layChecks).filter(cb=>cb.checked).map(cb=>parseInt(cb.value)));
+
+  const wantPts  = document.getElementById('expPoints')?.checked !== false;
+  const wantLines= document.getElementById('expLines')?.checked !== false;
+  const wantPolys= document.getElementById('expPolygons')?.checked !== false;
+  const wantText = document.getElementById('expText')?.checked !== false;
+  const separate = document.getElementById('expSeparate')?.checked;
+
+  function filterByType(ents, types) {
+    return ents.filter(e => {
+      if(!selectedLayers.has(e.layer) && selectedLayers.size > 0) return false;
+      const t = e.type;
+      if(types.has('point') && (t==='point')) return true;
+      if(types.has('line') && (t==='line'||t==='arc'||t==='circle'||t==='ellipse'||t==='spline'||t==='xline'||t==='ray')) return true;
+      if(types.has('poly') && (t==='polyline'||t==='rect'||t==='polygon'||t==='cloud'||t==='hatch'||t==='wipeout')) return true;
+      if(types.has('text') && (t==='text'||t==='dim-lin')) return true;
+      return false;
+    });
+  }
+
+  const typeSet = new Set();
+  if(wantPts) typeSet.add('point');
+  if(wantLines) typeSet.add('line');
+  if(wantPolys) typeSet.add('poly');
+  if(wantText) typeSet.add('text');
+
+  let ents = filterByType(ST.entities, typeSet);
+
+  if(separate && ents.length) {
+    // Export separate files for each geometry type
+    const groups = {
+      points:   filterByType(ents, new Set(['point'])),
+      lines:    filterByType(ents, new Set(['line'])),
+      polygons: filterByType(ents, new Set(['poly'])),
+      text:     filterByType(ents, new Set(['text'])),
+    };
+    const ext = fmt === 'geojson' ? 'geojson' : fmt === 'kml' ? 'kml' : fmt === 'csv' ? 'csv' : 'dxf';
+    Object.entries(groups).forEach(([gname, gents]) => {
+      if(gents.length) {
+        switch(fmt) {
+          case 'dxf': exportDXF(gents, 'strata_' + gname + '.dxf'); break;
+          case 'geojson': _exportGeoJSONEnts(gents, 'strata_' + gname + '.geojson'); break;
+          case 'csv': exportCSV(gents, 'strata_' + gname + '.csv'); break;
+          case 'kml': exportKML(gents, 'strata_' + gname + '.kml'); break;
+          case 'shapefile': exportShapefileCSV(gents, 'strata_' + gname + '_wkt.csv'); break;
+        }
+      }
+    });
+    toast('Exported ' + Object.values(groups).filter(g=>g.length).length + ' separate files', 'ok');
+    closeMo('moExport'); return;
+  }
+
+  switch(fmt) {
+    case 'dxf':       exportDXF(ents); break;
+    case 'geojson':   _exportGeoJSONEnts(ents, 'strata_export.geojson'); break;
+    case 'csv':       exportCSV(ents); break;
+    case 'kml':       exportKML(ents); break;
+    case 'shapefile': exportShapefileCSV(ents); break;
+    case 'svg':       exportSVG(ents); break;
+    case 'pdf':       exportPDF(); break;
+  }
+  closeMo('moExport');
+};
+
+function _exportGeoJSONEnts(ents, filename) {
+  const feats = [];
+  ents.forEach(e => {
+    let g = null;
+    const layName = ST.layers.find(l=>l.id===e.layer)?.name||'0';
+    if(e.type==='line') g={type:'LineString',coordinates:[[e.x1,e.y1],[e.x2,e.y2]]};
+    else if(e.type==='point') g={type:'Point',coordinates:[e.x,e.y]};
+    else if(e.type==='circle') g={type:'Point',coordinates:[e.cx,e.cy]};
+    else if(e.type==='polyline'&&e.pts?.length>=2) g={type:e.closed?'Polygon':'LineString',coordinates:e.closed?[e.pts.map(p=>[p.x,p.y])]:(e.pts.map(p=>[p.x,p.y]))};
+    else if(e.type==='rect') g={type:'Polygon',coordinates:[[[e.x,e.y],[e.x+e.w,e.y],[e.x+e.w,e.y+e.h],[e.x,e.y+e.h],[e.x,e.y]]]};
+    if(g) feats.push({type:'Feature',geometry:g,properties:{id:e._id,layer:layName,type:e.type}});
+  });
+  _download(filename, JSON.stringify({type:'FeatureCollection',features:feats},null,2), 'application/json');
+  toast('GeoJSON exported: '+feats.length+' features', 'ok');
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  FEATURE 1: C key closes boundary
+// ════════════════════════════════════════════════════════════════════
+document.addEventListener('keydown', ev => {
+  if(document.activeElement.tagName === 'INPUT') return;
+  if(ST.tool === 'boundary' && ev.key.toLowerCase() === 'c' && !ev.ctrlKey) {
+    ev.preventDefault();
+    commitBoundary();
+    return;
+  }
+  // Offset distance entry via numeric keys
+  if(ST.opState?.type === 'offset' && ST.opState._pendingEnt) {
+    // User can type value directly
+  }
+}, false);
+
+// Apply offset distance from input bar
+function applyOffsetDist() {
+  if(ST.opState?.type==='offset' && ST.opState._pendingEnt) {
+    const distEl = document.getElementById('ibDist');
+    const d = parseFloat(distEl?.value||distEl?.placeholder||'0');
+    if(isNaN(d)||d<=0){toast('Enter a valid offset distance','warn');return;}
+    ST.opState.dist = d;
+    const ne = offsetEnt(ST.opState._pendingEnt, d);
+    if(ne){pushUndo();ne._id=++ST._eid;ne.selected=false;ST.entities.push(ne);render();toast('Offset '+d.toFixed(2)+' '+ST.units,'ok');}
+    ST.opState._pendingEnt=null; ST.opState.dist=null;
+    if(distEl) distEl.value='';
+    setMsg('Offset done — click another entity  |  ESC=cancel');
+  }
+}
+
+// Add to input bar apply button
+const _origIbApply = ibApply;
+ibApply = function() {
+  if(ST.opState?.type==='offset' && ST.opState._pendingEnt) {
+    applyOffsetDist(); return;
+  }
+  _origIbApply();
+};
+
+// Stretch toolbar button
+(function() {
+  const modSection = document.getElementById('tb-extend')?.parentElement;
+  if(modSection && !document.getElementById('tb-stretch2')) {
+    const btn = document.createElement('button');
+    btn.className='tb'; btn.id='tb-stretch2'; btn.title='Stretch (ST)';
+    btn.innerHTML='<span class="tb-i">⟺</span><span class="tb-l">STRETCH</span>';
+    btn.onclick=()=>T('stretch');
+    modSection.appendChild(btn);
+  }
+})();
+
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════
@@ -6603,28 +7166,26 @@ async function convertWithCloudConvert() {
       <div id="exportLayerList" style="max-height:150px;overflow-y:auto;background:var(--bg2);border:1px solid var(--sep);border-radius:4px;padding:6px 10px;margin-bottom:12px"></div>
 
       <div style="font-size:9.5px;font-weight:700;color:var(--st);text-transform:uppercase;letter-spacing:.6px;font-family:'IBM Plex Mono',monospace;margin-bottom:8px">Export Format</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
-        <button class="btn" onclick="doExport('dxf')" style="padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px">
-          <span style="font-size:20px">📐</span>DXF<span style="font-size:8px;color:var(--m);font-weight:400">AutoCAD standard</span>
-        </button>
-        <button class="btn" onclick="doExport('geojson')" style="padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px">
-          <span style="font-size:20px">🗺</span>GeoJSON<span style="font-size:8px;color:var(--m);font-weight:400">Web mapping</span>
-        </button>
-        <button class="btn" onclick="doExport('shapefile')" style="padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px">
-          <span style="font-size:20px">🗃</span>WKT CSV<span style="font-size:8px;color:var(--m);font-weight:400">QGIS / ArcGIS</span>
-        </button>
-        <button class="btn" onclick="doExport('csv')" style="padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px">
-          <span style="font-size:20px">📊</span>CSV<span style="font-size:8px;color:var(--m);font-weight:400">Spreadsheet</span>
-        </button>
-        <button class="btn" onclick="doExport('kml')" style="padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px">
-          <span style="font-size:20px">🌍</span>KML<span style="font-size:8px;color:var(--m);font-weight:400">Google Earth</span>
-        </button>
-        <button class="btn" onclick="doExport('svg')" style="padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px">
-          <span style="font-size:20px">🖼</span>SVG<span style="font-size:8px;color:var(--m);font-weight:400">Vector graphics</span>
-        </button>
-        <button class="btn" onclick="doExport('pdf')" style="padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px">
-          <span style="font-size:20px">📄</span>PDF<span style="font-size:8px;color:var(--m);font-weight:400">Print / Share</span>
-        </button>
+      <!-- Geometry type filter -->
+      <div style="font-size:9.5px;font-weight:700;color:var(--st);text-transform:uppercase;letter-spacing:.6px;font-family:'IBM Plex Mono',monospace;margin-bottom:6px;margin-top:8px">Export Geometry Type</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">
+        <label style="display:flex;align-items:center;gap:4px;font-size:9.5px;cursor:pointer"><input type="checkbox" id="expPoints" checked style="accent-color:var(--b)"> Points</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:9.5px;cursor:pointer"><input type="checkbox" id="expLines" checked style="accent-color:var(--b)"> Lines</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:9.5px;cursor:pointer"><input type="checkbox" id="expPolygons" checked style="accent-color:var(--b)"> Polygons/Rects</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:9.5px;cursor:pointer"><input type="checkbox" id="expText" checked style="accent-color:var(--b)"> Text</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:9.5px;cursor:pointer"><input type="checkbox" id="expSeparate"> Separate files by type</label>
+      </div>
+
+      <div style="font-size:9.5px;font-weight:700;color:var(--st);text-transform:uppercase;letter-spacing:.6px;font-family:'IBM Plex Mono',monospace;margin-bottom:6px">Export Format</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px">
+        <button class="btn" onclick="doExport('dxf')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px">📐<span>DXF</span><span style="font-size:7.5px;color:var(--m)">AutoCAD</span></button>
+        <button class="btn" onclick="doExport('dwg')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px">📐<span>DWG</span><span style="font-size:7.5px;color:var(--m)">AutoCAD binary</span></button>
+        <button class="btn" onclick="doExport('geojson')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px">🗺<span>GeoJSON</span><span style="font-size:7.5px;color:var(--m)">Web maps</span></button>
+        <button class="btn" onclick="doExport('shapefile')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px">🗃<span>Shapefile</span><span style="font-size:7.5px;color:var(--m)">QGIS/ArcGIS</span></button>
+        <button class="btn" onclick="doExport('csv')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px">📊<span>CSV</span><span style="font-size:7.5px;color:var(--m)">Spreadsheet</span></button>
+        <button class="btn" onclick="doExport('kml')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px">🌍<span>KML</span><span style="font-size:7.5px;color:var(--m)">Google Earth</span></button>
+        <button class="btn" onclick="doExport('svg')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px">🖼<span>SVG</span><span style="font-size:7.5px;color:var(--m)">Vector</span></button>
+        <button class="btn" onclick="doExport('pdf')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px">📄<span>PDF</span><span style="font-size:7.5px;color:var(--m)">Print</span></button>
       </div>
     </div>
     <div class="mf"><button class="btn s" onclick="closeMo('moExport')">Close</button></div>
