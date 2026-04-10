@@ -1394,13 +1394,21 @@ const canvas = document.getElementById('cad');
 const ctx = canvas.getContext('2d');
 
 // ── CANVAS SETUP ───────────────────────────────────────────────────
+let _resizing = false;
 function resize() {
+  if(_resizing) return;
+  _resizing = true;
   const vp = document.getElementById('vp');
-  W = canvas.width = vp.clientWidth;
-  H = canvas.height = vp.clientHeight;
+  const newW = vp ? vp.clientWidth : window.innerWidth;
+  const newH = vp ? vp.clientHeight : window.innerHeight;
+  if(newW > 0 && newH > 0) {
+    W = canvas.width = newW;
+    H = canvas.height = newH;
+  }
+  _resizing = false;
   render();
 }
-window.addEventListener('resize', resize);
+window.addEventListener('resize', () => { clearTimeout(resize._t); resize._t = setTimeout(resize, 50); });
 setTimeout(resize, 100);
 
 // ── COORDINATE TRANSFORMS ──────────────────────────────────────────
@@ -1410,7 +1418,11 @@ const w2s = (x,y) => ({x: x*ST.zoom + ST.pan.x, y: -y*ST.zoom + ST.pan.y});
 const s2w = (x,y) => ({x: (x-ST.pan.x)/ST.zoom, y: -(y-ST.pan.y)/ST.zoom});
 
 // ── RENDER ─────────────────────────────────────────────────────────
+let _renderDepth = 0;
 function render() {
+  if(_renderDepth > 5) { _renderDepth=0; return; }
+  _renderDepth++;
+
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle = ST.bgColor; ctx.fillRect(0,0,W,H);
   if(ST.grid) drawGrid(); drawCrosshair();
@@ -1451,6 +1463,7 @@ function render() {
   ctx.strokeStyle='rgba(208,232,245,.1)'; ctx.lineWidth=1; ctx.setLineDash([]);
   ctx.beginPath(); ctx.moveTo(o.x-6,o.y); ctx.lineTo(o.x+6,o.y); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(o.x,o.y-6); ctx.lineTo(o.x,o.y+6); ctx.stroke();
+  _renderDepth--;
 }
 function drawGrid() {
   const sp = 50 * ST.zoom; if(sp < 5) return;
@@ -1811,7 +1824,7 @@ function drawOpPreview(wp) {
     const dx = wp.x - op.base.x, dy = wp.y - op.base.y;
     // Draw ghost entities at destination
     ctx.strokeStyle = '#4eff91'; ctx.lineWidth = 1;
-    sels.forEach(e => drawEntity(translateEnt(JSON.parse(JSON.stringify(e)), dx, dy), true));
+    sels.forEach(e => drawEntity(translateEnt(safeClone(e), dx, dy), true));
 
     // Rubber-band line: FROM selection centroid → TO cursor
     ctx.setLineDash([6, 4]); ctx.globalAlpha = 0.9;
@@ -1846,13 +1859,13 @@ function drawOpPreview(wp) {
   if(op.type === 'copy' && op.base) {
     const dx = wp.x - op.base.x, dy = wp.y - op.base.y;
     ctx.strokeStyle = '#A78BFA';
-    sels.forEach(e => drawEntity(translateEnt(JSON.parse(JSON.stringify(e)), dx, dy), true));
+    sels.forEach(e => drawEntity(translateEnt(safeClone(e), dx, dy), true));
   }
 
   if(op.type === 'rotate' && op.base && op.refPt) {
     const ang = Math.atan2(wp.y-op.base.y,wp.x-op.base.x) - Math.atan2(op.refPt.y-op.base.y,op.refPt.x-op.base.x);
     ctx.strokeStyle = '#4eff91';
-    sels.forEach(e => drawEntity(rotateEnt(JSON.parse(JSON.stringify(e)), op.base, ang), true));
+    sels.forEach(e => drawEntity(rotateEnt(safeClone(e),op.base, ang), true));
     // Draw rotation arc
     ctx.setLineDash([]);
     ctx.globalAlpha = 0.6;
@@ -1874,7 +1887,7 @@ function drawOpPreview(wp) {
     const d2 = Math.hypot(wp.x-op.base.x,wp.y-op.base.y)||0.001;
     const factor = d2/d1;
     ctx.strokeStyle = '#4eff91';
-    sels.forEach(e => drawEntity(scaleEnt(JSON.parse(JSON.stringify(e)), op.base, factor), true));
+    sels.forEach(e => drawEntity(scaleEnt(safeClone(e),op.base, factor), true));
     ctx.globalAlpha = 1;
     ctx.fillStyle = '#F5BE18';
     ctx.font = '10px IBM Plex Mono,monospace';
@@ -1885,7 +1898,7 @@ function drawOpPreview(wp) {
   if(op.type === 'stretch' && op.base && op.refPt) {
     ctx.strokeStyle = '#ff9060';
     sels.forEach(e => {
-      const ne = JSON.parse(JSON.stringify(e));
+      const ne = safeClone(e);
       if(e.type==='line'){
         const d1=Math.hypot(e.x1-op.refPt.x,e.y1-op.refPt.y);
         const d2=Math.hypot(e.x2-op.refPt.x,e.y2-op.refPt.y);
@@ -2250,27 +2263,70 @@ function offsetEnt(e,d) {
 }
 
 // ── UNDO / REDO ────────────────────────────────────────────────────
+// Safe JSON stringify — strips circular DOM refs (_imgObj, _domEl, etc.)
+function safeJSON(obj) {
+  const seen = new WeakSet();
+  return JSON.stringify(obj, (key, val) => {
+    if(key === '_imgObj' || key === '_domEl' || key === '_canvas') return undefined;
+    if(val !== null && typeof val === 'object') {
+      if(seen.has(val)) return undefined;
+      seen.add(val);
+    }
+    return val;
+  });
+}
+function safeClone(obj) {
+  try { return JSON.parse(safeJSON(obj)); }
+  catch(e) { return JSON.parse(JSON.stringify(obj, (k,v) => (k==='_imgObj'||k==='_domEl')?undefined:v)); }
+}
+
+
 function pushUndo() {
-  ST.undoStack.push(JSON.stringify(ST.entities));
-  if(ST.undoStack.length>50) ST.undoStack.shift();
-  ST.redoStack=[];
+  try {
+    // Strip non-serializable properties before storing
+    const safe = ST.entities.map(e => {
+      if(!e._imgObj && !e._domEl) return e;
+      const {_imgObj, _domEl, ...rest} = e;
+      return rest;
+    });
+    ST.undoStack.push(JSON.stringify(safe));
+    if(ST.undoStack.length>50) ST.undoStack.shift();
+    ST.redoStack=[];
+  } catch(ex) {
+    // Fallback: skip undo for this operation
+    console.warn('pushUndo failed:', ex.message);
+  }
 }
 function undo() {
   if(!ST.undoStack.length){toast('Nothing to undo','warn');return;}
-  ST.redoStack.push(JSON.stringify(ST.entities));
+  try {
+    const safe = ST.entities.map(e => {
+      if(!e._imgObj && !e._domEl) return e;
+      const {_imgObj, _domEl, ...rest} = e;
+      return rest;
+    });
+    ST.redoStack.push(JSON.stringify(safe));
+  } catch(ex) { ST.redoStack.push('[]'); }
   ST.entities=JSON.parse(ST.undoStack.pop());
   updateSel(); render(); toast('Undo','ok');
 }
 function redo() {
   if(!ST.redoStack.length){toast('Nothing to redo','warn');return;}
-  ST.undoStack.push(JSON.stringify(ST.entities));
+  try {
+    const safe = ST.entities.map(e => {
+      if(!e._imgObj && !e._domEl) return e;
+      const {_imgObj, _domEl, ...rest} = e;
+      return rest;
+    });
+    ST.undoStack.push(JSON.stringify(safe));
+  } catch(ex) { ST.undoStack.push('[]'); }
   ST.entities=JSON.parse(ST.redoStack.pop());
   updateSel(); render(); toast('Redo','ok');
 }
 
 // ── CLIPBOARD ──────────────────────────────────────────────────────
 function cmdCopy() {
-  ST.clipboard=ST.entities.filter(e=>e.selected).map(e=>JSON.parse(JSON.stringify(e)));
+  ST.clipboard=ST.entities.filter(e=>e.selected).map(e=>safeClone(e));
   toast(ST.clipboard.length+' copied','ok');
 }
 function cmdPaste() {
@@ -2406,7 +2462,7 @@ function applyOp(wp){
   else if(op.type==='copy'){
     pushUndo();
     const dx=wp.x-op.base.x,dy=wp.y-op.base.y;
-    const copies=sels.map(e=>{const ne=translateEnt(JSON.parse(JSON.stringify(e)),dx,dy);ne._id=++ST._eid;ne.selected=true;return ne;});
+    const copies=sels.map(e=>{const ne=translateEnt(safeClone(e),dx,dy);ne._id=++ST._eid;ne.selected=true;return ne;});
     sels.forEach(e=>e.selected=false);
     ST.entities.push(...copies);
     op.base=wp; // update base for next copy
@@ -2747,16 +2803,16 @@ function updateZoomBadge(){
 }
 
 // ── SELECTION BOX ─────────────────────────────────────────────────
-function showSelBox(x1,y1,x2,y2){
-  const box=document.getElementById('selBox');
-  const crossing=x2<x1;
-  box.style.cssText=`display:block;left:${Math.min(x1,x2)}px;top:${Math.min(y1,y2)}px;width:${Math.abs(x2-x1)}px;height:${Math.abs(y2-y1)}px`;
-  box.className='sel-box '+(crossing?'cross':'win');
-  const hint=document.getElementById('selHint');
-  hint.style.display='block'; hint.className='sel-hint '+(crossing?'cross':'win');
-  hint.textContent=crossing?'◈ CROSSING — touches selection':'□ WINDOW — fully enclosed';
-}
-function hideSelBox(){document.getElementById('selBox').style.display='none';document.getElementById('selHint').style.display='none';}
+// [duplicate of showSelBox removed]
+
+
+
+
+
+
+
+
+// [dup hideSelBox removed]
 
 // ── ENTITY HOVER TOOLTIP ──────────────────────────────────────────
 function showEntTip(mx,my){
@@ -2836,7 +2892,7 @@ document.addEventListener('keydown',ev=>{
       case 'y':ev.preventDefault();redo();return;
       case 'c':cmdCopy();return;
       case 'v':cmdPaste();return;
-      case 'x':ev.preventDefault();pushUndo();ST.clipboard=ST.entities.filter(e=>e.selected).map(e=>JSON.parse(JSON.stringify(e)));delSel();return;
+      case 'x':ev.preventDefault();pushUndo();ST.clipboard=ST.entities.filter(e=>e.selected).map(e=>safeClone(e));delSel();return;
       case 'a':ev.preventDefault();selectAll();render();return;
       case 'd':ev.preventDefault();deselectAll();render();return;
       case 'g':ev.preventDefault();groupSel();return;
@@ -3148,44 +3204,7 @@ function vpDrop(ev){ev.preventDefault();const dz=document.getElementById('dz');i
 
 // DWG guide consolidated below
 
-function doImport(){
-  if(!_pendingFile){
-    closeMo('moImport');
-    toast('No file selected','warn');
-    return;
-  }
-  const file = _pendingFile;  // capture reference BEFORE setting null
-  const fname = file.name;
-  const name = fname.toLowerCase();
-  _pendingFile = null;  // clear early to avoid stale reference
-  closeMo('moImport');
-  const reader = new FileReader();
-
-  if(name.endsWith('.dxf')){
-    reader.onload = ev => {
-      try { parseDXF(ev.target.result, fname); }
-      catch(e) { toast('DXF error: '+e.message,'err'); console.error('DXF parse error:',e); }
-    };
-    // Use ISO-8859-1 (latin-1) which handles ANSI/Windows DXF files correctly
-    reader.readAsText(file, 'ISO-8859-1');
-  } else if(name.endsWith('.svg')){
-    reader.onload = ev => {
-      try { parseSVG(ev.target.result, fname); }
-      catch(e) { toast('SVG error: '+e.message,'err'); }
-    };
-    reader.readAsText(file, 'UTF-8');
-  } else if(name.endsWith('.dwg')||name.endsWith('.dwf')||name.endsWith('.dwt')){
-    showDwgGuide(file); return;
-  } else {
-    reader.onload = ev => {
-      const t = ev.target.result;
-      if(t.includes('SECTION') && (t.includes('ENTITIES')||t.includes('BLOCKS'))) parseDXF(t, fname);
-      else if(t.includes('<svg')) parseSVG(t, fname);
-      else toast('Unsupported format. Use .DXF or .SVG','warn');
-    };
-    reader.readAsText(file, 'ISO-8859-1');
-  }
-}
+// [dup doImport removed]
 
 // ── DXF PARSER ────────────────────────────────────────────────────
 function parseDXF(txt,filename){
@@ -3346,7 +3365,7 @@ function parseDXF(txt,filename){
       const rot=e._rot||0;
       bEnts.forEach(be=>{
         try{
-          const ne=JSON.parse(JSON.stringify(be));
+          const ne=safeClone(be);
           ne._id=++ST._eid;ne.selected=false;
           // Apply insertion transform
           if(ox!==0||oy!==0){
@@ -3960,12 +3979,7 @@ function exportDXF(ents, filename) {
 }
 
 // _download helper
-function _download(name, data, mime) {
-  if(typeof _downloadSave==='function') { _downloadSave(name, data, mime); return; }
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([data],{type:mime}));
-  a.download=name; a.click(); URL.revokeObjectURL(a.href);
-}
+// [dup _download removed]
 
 // doImport
 function doImport() {
@@ -4179,17 +4193,7 @@ function ibOpApply() {
   if(wp) applyOp(wp);
 }
 
-function ibOpenCoord() {
-  const popup = document.getElementById('coordEntry');
-  if(!popup) return;
-  const _c = document.getElementById('cad');
-  const r = _c ? _c.getBoundingClientRect() : {left:20, bottom:window.innerHeight-160};
-  popup.style.left = (r.left + 20) + 'px';
-  popup.style.top  = (r.bottom - 160) + 'px';
-  popup.style.display = 'block';
-  const x = document.getElementById('ceX'); if(x) { x.value=''; x.focus(); }
-  const y = document.getElementById('ceY'); if(y) y.value='';
-}
+// [dup ibOpenCoord removed]
 
 // Enter key in input bar fields
 function _ibKeydown(ev, nextId) {
@@ -4919,11 +4923,11 @@ function doPolarArray(){
   sels.forEach(e=>{const b=entBBox(e);if(b){cx+=(b.minX+b.maxX)/2;cy+=(b.minY+b.maxY)/2;cnt++;}});
   cx/=cnt||1;cy/=cnt||1;
   pushUndo();
-  const baseEnts=sels.map(e=>JSON.parse(JSON.stringify(e)));
+  const baseEnts=sels.map(e=>safeClone(e));
   for(let i=1;i<count;i++){
     const ang=(i/count)*Math.PI*2;
     baseEnts.forEach(e=>{
-      const ne=rotateEnt(JSON.parse(JSON.stringify(e)),{x:cx,y:cy},ang);
+      const ne=rotateEnt(safeClone(e),{x:cx,y:cy},ang);
       ne._id=++ST._eid;ne.selected=false;
       ST.entities.push(ne);
     });
@@ -4942,13 +4946,13 @@ function doRectArray(){
   const rowSpacing=parseFloat(prompt('Row spacing ('+ST.units+'):','100'));
   if([cols,rows,colSpacing,rowSpacing].some(isNaN))return;
   pushUndo();
-  const baseEnts=sels.map(e=>JSON.parse(JSON.stringify(e)));
+  const baseEnts=sels.map(e=>safeClone(e));
   for(let r=0;r<rows;r++){
     for(let col=0;col<cols;col++){
       if(r===0&&col===0)continue;
       const dx=col*colSpacing,dy=r*rowSpacing;
       baseEnts.forEach(e=>{
-        const ne=translateEnt(JSON.parse(JSON.stringify(e)),dx,dy);
+        const ne=translateEnt(safeClone(e),dx,dy);
         ne._id=++ST._eid;ne.selected=false;
         ST.entities.push(ne);
       });
@@ -6631,67 +6635,7 @@ function openProcessingToolbox() {
   buildProcessingUI();
 }
 
-function buildProcessingUI() {
-  const container = document.getElementById('processingContent');
-  if(!container) return;
-
-  const tools = [
-    { cat:'Vector General', tools:[
-      {id:'deleteDuplicates', name:'Delete Duplicate Geometries', desc:'Remove entities with identical coordinates'},
-      {id:'mergeLines', name:'Merge Connected Lines', desc:'Join collinear lines on same layer'},
-      {id:'fixGeom', name:'Fix Geometry', desc:'Remove zero-length lines, self-intersections'},
-      {id:'multiToSingle', name:'Multipart to Singlepart', desc:'Explode multipart polylines'},
-      {id:'simplifyGeom', name:'Simplify Geometry', desc:'Reduce vertex count (Douglas-Peucker)'},
-      {id:'smoothGeom', name:'Smooth Geometry', desc:'Smooth polyline vertices'},
-    ]},
-    { cat:'Vector Analysis', tools:[
-      {id:'countPoints', name:'Count Points in Polygons', desc:'Count points within each closed polyline'},
-      {id:'meanCoords', name:'Mean Coordinates', desc:'Calculate centroid of selected features'},
-      {id:'boundingBox', name:'Bounding Box', desc:'Create bounding rectangle around selection'},
-      {id:'convexHull', name:'Convex Hull', desc:'Create convex hull polygon around points'},
-      {id:'nearestNeighbor', name:'Nearest Neighbor', desc:'Find nearest entity for each selected entity'},
-    ]},
-    { cat:'Vector Overlay', tools:[
-      {id:'bufferTool', name:'Buffer', desc:'Create buffer around selected entities'},
-      {id:'intersectTool', name:'Intersection', desc:'Find intersection of two entity sets'},
-      {id:'differenceTool', name:'Difference', desc:'Remove overlapping areas'},
-      {id:'unionTool', name:'Union', desc:'Combine overlapping entities'},
-      {id:'dissolveTool', name:'Dissolve', desc:'Merge features on same layer'},
-    ]},
-    { cat:'Raster / Terrain', tools:[
-      {id:'buildTIN', name:'Build TIN', desc:'Build Triangulated Irregular Network from survey points'},
-      {id:'generateContours', name:'Generate Contours', desc:'Create contour lines from TIN/elevation data'},
-      {id:'slopeAnalysis', name:'Slope Analysis', desc:'Calculate slope angle from elevation data'},
-    ]},
-    { cat:'Database', tools:[
-      {id:'fieldCalculator', name:'Field Calculator', desc:'Calculate attribute values'},
-      {id:'joinByLocation', name:'Join Attributes by Location', desc:'Join attributes from one layer to nearby features'},
-      {id:'selectByExpression', name:'Select by Expression', desc:'Select features matching criteria'},
-      {id:'statistics', name:'Statistics', desc:'Calculate length, area, count per layer'},
-    ]},
-  ];
-
-  container.innerHTML = tools.map(cat => `
-    <div style="margin-bottom:8px">
-      <div style="font-size:8px;font-weight:800;color:var(--b);text-transform:uppercase;letter-spacing:.8px;
-                  font-family:'IBM Plex Mono',monospace;padding:4px 0;border-bottom:1px solid var(--sep);margin-bottom:4px">
-        ${cat.cat}
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
-        ${cat.tools.map(t => `
-          <button onclick="runProcessingTool('${t.id}')"
-            style="text-align:left;background:var(--bg2);border:1px solid var(--sep);border-radius:3px;
-                   padding:5px 8px;cursor:pointer;transition:all .1s"
-            onmouseover="this.style.borderColor='var(--bl)';this.style.background='rgba(31,168,217,.06)'"
-            onmouseout="this.style.borderColor='var(--sep)';this.style.background='var(--bg2)'">
-            <div style="font-size:9.5px;font-weight:700;color:var(--t)">${t.name}</div>
-            <div style="font-size:8px;color:var(--m);margin-top:1px">${t.desc}</div>
-          </button>
-        `).join('')}
-      </div>
-    </div>
-  `).join('');
-}
+// [dup buildProcessingUI removed]
 
 function runProcessingTool(id) {
   closeMo('moProcessing');
@@ -6985,16 +6929,7 @@ openMo = function(id) {
   }
 };
 
-function filterProcessing(q) {
-  const container = document.getElementById('processingContent');
-  if(!container) return;
-  const rows = container.querySelectorAll('button');
-  const lq = q.toLowerCase();
-  rows.forEach(btn => {
-    const text = btn.textContent.toLowerCase();
-    btn.parentElement.style.display = (!q || text.includes(lq)) ? '' : 'none';
-  });
-}
+// [dup filterProcessing removed]
 
 // F12 key → processing
 document.addEventListener('keydown', ev => {
@@ -7359,7 +7294,6 @@ openMo = function(id) {
 // ════════════════════════════════════════════════════════════════════
 
 function openExportModalFull() {
-  openExportModalFull();
   // Rebuild export layer list
   const layList = document.getElementById('exportLayerList');
   if(layList) {
@@ -7463,85 +7397,18 @@ runCommand = function(raw) {
 
 // Add F12 toggle for processing panel
 const procSidePanel = document.getElementById('procSidePanel');
-function toggleProcPanel() {
-  const p = document.getElementById('procSidePanel');
-  if(p) {
-    const visible = p.style.display !== 'none';
-    p.style.display = visible ? 'none' : 'flex';
-  } else {
-    openMo('moProcessing');
-  }
-}
+// [dup toggleProcPanel removed]
 
 
 // ════════════════════════════════════════════════════════════════════
 //  PROCESSING SIDE PANEL — populate on demand
 // ════════════════════════════════════════════════════════════════════
 
-function buildProcessingSidePanel() {
-  const container = document.getElementById('processingContentSide');
-  if(!container || container.children.length > 0) return;
-
-  const tools = [
-    {cat:'Vector General', color:'var(--b)', tools:[
-      {id:'deleteDuplicates',name:'Delete Duplicates'},
-      {id:'mergeLines',name:'Merge Lines'},
-      {id:'fixGeom',name:'Fix Geometry'},
-      {id:'multiToSingle',name:'Multipart→Single'},
-      {id:'simplifyGeom',name:'Simplify (D-P)'},
-      {id:'smoothGeom',name:'Smooth'},
-    ]},
-    {cat:'Vector Analysis', color:'var(--gr)', tools:[
-      {id:'countPoints',name:'Count Points in Poly'},
-      {id:'meanCoords',name:'Mean Coordinates'},
-      {id:'boundingBox',name:'Bounding Box'},
-      {id:'convexHull',name:'Convex Hull'},
-    ]},
-    {cat:'Overlay', color:'var(--st)', tools:[
-      {id:'bufferTool',name:'Buffer'},
-      {id:'intersectTool',name:'Intersection'},
-      {id:'dissolveTool',name:'Dissolve'},
-    ]},
-    {cat:'Terrain', color:'var(--ora)', tools:[
-      {id:'buildTIN',name:'Build TIN'},
-      {id:'generateContours',name:'Generate Contours'},
-    ]},
-    {cat:'Database', color:'#F5BE18', tools:[
-      {id:'statistics',name:'Statistics'},
-      {id:'fieldCalculator',name:'Field Calculator'},
-      {id:'selectByExpression',name:'Select by Expression'},
-    ]},
-  ];
-
-  container.innerHTML = tools.map(cat => `
-    <div style="margin-bottom:2px">
-      <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'"
-        style="padding:4px 8px;background:rgba(31,168,217,.06);border-bottom:1px solid var(--sep);cursor:pointer;
-               display:flex;align-items:center;gap:5px;font-size:8.5px;font-weight:700;color:${cat.color};
-               font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;text-transform:uppercase">
-        ▾ ${cat.cat}
-      </div>
-      <div>
-        ${cat.tools.map(t => `
-          <div onclick="runProcessingTool('${t.id}')"
-            style="padding:5px 12px;font-size:9px;color:var(--m);cursor:pointer;border-bottom:1px solid rgba(31,168,217,.03);
-                   font-family:'IBM Plex Mono',monospace;transition:all .08s;display:flex;align-items:center;gap:6px"
-            onmouseover="this.style.background='rgba(31,168,217,.06)';this.style.color='var(--t)'"
-            onmouseout="this.style.background='';this.style.color='var(--m)'">
-            <span style="color:${cat.color};font-size:10px">▶</span> ${t.name}
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `).join('');
-}
+// [dup buildProcessingSidePanel removed]
 
 // Also populate the modal version
-let _origBuildProcessingUI = buildProcessingUI;
-buildProcessingUI = function() {
-  _origBuildProcessingUI();
-  buildProcessingSidePanel();
-};
+// NOTE: buildProcessingSidePanel is called separately when the panel opens, not here
+// to avoid mutual recursion
 
 // Toggle processing panel — build content when opened
 let _origToggleProc = toggleProcPanel;
@@ -7764,619 +7631,874 @@ doImport = function() {
 
 
 
-// ════ ESSENTIAL HELPER FUNCTIONS ════
-function toggleOrtho(){ST.ortho=!ST.ortho;const e=document.getElementById('stOrtho'),b=document.getElementById('btn-ortho'),ib=document.getElementById('ib-ortho');if(e)e.textContent=ST.ortho?'ON':'OFF';if(b)b.classList.toggle('on',ST.ortho);if(ib)ib.classList.toggle('on',ST.ortho);}
-function toggleSnap(){ST.snap=!ST.snap;const e=document.getElementById('stSnap'),b=document.getElementById('btn-snap');if(e)e.textContent=ST.snap?'ON':'OFF';if(b)b.classList.toggle('on',ST.snap);}
-function toggleOsnap(){ST.osnap=!ST.osnap;const e=document.getElementById('stOsnap'),b=document.getElementById('btn-osnap'),ib=document.getElementById('ib-osnap');if(e)e.textContent=ST.osnap?'ON':'OFF';if(b)b.classList.toggle('on',ST.osnap);if(ib)ib.classList.toggle('on',ST.osnap);}
-function toggleGridF(){ST.grid=!ST.grid;const e=document.getElementById('stGrid'),b=document.getElementById('btn-grid');if(e)e.textContent=ST.grid?'ON':'OFF';if(b)b.classList.toggle('on',ST.grid);render();}
-function toggleLP(show){const el=document.getElementById('lpanel');if(!el)return;const v=show!==undefined?show:el.classList.contains('lp-hidden');el.classList.toggle('lp-hidden',!v);setTimeout(()=>{if(typeof resize==='function')resize();},220);}
-function togglePolar(){ST.polar=!ST.polar;const e=document.getElementById('stPolar');if(e)e.textContent=ST.polar?'ON':'OFF';}
-function toggleRibbon(){const r=document.querySelector('.ribbon');if(r)r.classList.toggle('rh');}
-function toggleRP(){const p=document.getElementById('rpanel');if(p){p.classList.toggle('rp-hidden');}}
-function switchRib(t){document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('act'));document.querySelectorAll('[id^="rib-"]').forEach(r=>r.classList.add('rh'));const btn=document.querySelector('.rtab[data-rib="'+t+'"]');if(btn)btn.classList.add('act');const rib=document.getElementById('rib-'+t);if(rib)rib.classList.remove('rh');}
-function switchLayout(id){document.querySelectorAll('.lt').forEach(t=>t.classList.remove('act-m','act-l'));const t=document.querySelector('.lt[data-lid="'+id+'"]');if(t)t.classList.add(id===0?'act-m':'act-l');}
-function addLayout(){const name=prompt('Layout name:','Layout');if(!name)return;const bar=document.querySelector('.laybar');if(!bar)return;const t=document.createElement('div');t.className='lt';t.setAttribute('data-lid',Date.now());t.textContent=name;const add=bar.querySelector('.lt-add');if(add)bar.insertBefore(t,add);else bar.appendChild(t);}
-function openSetTab(tab){openMo('moSettings');setTimeout(()=>showTab(tab),60);}
-function saveSettings(){if(typeof applyUnits==='function')applyUnits();if(typeof applyScale==='function')applyScale();closeMo('moSettings');toast('Settings saved','ok');}
-function setBg(col){ST.bgColor=col||'#060E1A';render();}
-function setTbSz(sz){document.body.classList.remove('tb-sm','tb-md','tb-lg');if(sz)document.body.classList.add('tb-'+sz);}
-function selCard(el){el?.closest('.oc-g')?.querySelectorAll('.oc').forEach(c=>c.classList.remove('sel'));el?.classList.add('sel');}
-function selectInvert(){ST.entities.forEach(e=>{if(layVisible(e.layer))e.selected=!e.selected;});updateSel();render();}
-function showHelpModal(){openMo('moShortcuts');}
-function showCRS(){openMo('moCRS');}
-function ibOpenCoord(){if(typeof openCE==='function')openCE(null,'Enter absolute X, Y coordinates');}
-function cycleTool(){const tools=['select','line','polyline','circle','arc','rect','move','copy'];T(tools[(tools.indexOf(ST.tool)+1)%tools.length]);}
-function zoomToPoint(x,y){ST.pan.x=W/2-x*ST.zoom;ST.pan.y=H/2+y*ST.zoom;render();}
-function exportLayers(){openExportModal();}
-function addAttr(){const tb=document.getElementById('attrBody');if(!tb)return;const r=document.createElement('tr');r.innerHTML='<td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);padding:2px 5px;border-radius:2px;width:80px;font-size:9px" value="TAG"></td><td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);padding:2px 5px;border-radius:2px;width:120px;font-size:9px" value=""></td><td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px">✕</button></td>';tb.appendChild(r);}
-function doImportGeoJSON(){if(!_pendingGeoFile){toast('No GeoJSON selected','warn');return;}const r=new FileReader();r.onload=ev=>{try{const gj=JSON.parse(ev.target.result);if(typeof parseGeoJSON==='function')parseGeoJSON(gj,_pendingGeoFile.name);closeMo('moGeoImport');}catch(ex){toast('GeoJSON error: '+ex.message,'err');}};r.readAsText(_pendingGeoFile,'UTF-8');}
-function previewCSV(file){const r=new FileReader();r.onload=ev=>{const el=document.getElementById('csvPreview');if(el)el.textContent=ev.target.result.split('\n').slice(0,8).join('\n');};r.readAsText(file);}
-function previewGeoJSON(file){const r=new FileReader();r.onload=ev=>{try{const gj=JSON.parse(ev.target.result);const el=document.getElementById('geoPreview');if(el)el.textContent='Features: '+(gj.features||[]).length;}catch(e){}};r.readAsText(file);}
-function csvDrop(ev){ev.preventDefault();const f=ev.dataTransfer?.files?.[0];if(!f)return;_pendingCSVFile=f;const el=document.getElementById('csvFileName');if(el)el.textContent='📊 '+f.name;previewCSV(f);}
-function csvFileChosen(ev){const f=ev.target.files?.[0];if(!f)return;_pendingCSVFile=f;const el=document.getElementById('csvFileName');if(el)el.textContent='📊 '+f.name;previewCSV(f);}
-function geoDrop(ev){ev.preventDefault();const f=ev.dataTransfer?.files?.[0];if(!f)return;_pendingGeoFile=f;const el=document.getElementById('geoFileName');if(el)el.textContent='🗺 '+f.name;previewGeoJSON(f);}
-function geoFileChosen(ev){const f=ev.target.files?.[0];if(!f)return;_pendingGeoFile=f;const el=document.getElementById('geoFileName');if(el)el.textContent='🗺 '+f.name;previewGeoJSON(f);}
-function showDxfDiag(filename,entCount,imgPaths,tileBounds,isCivil){const el=document.getElementById('diagStats');if(el)el.innerHTML='<span style="color:var(--gr)">'+entCount+'</span> entities';setMsg(filename+': '+entCount+' entities'+(isCivil?' (Civil3D proxy objects may be missing)':''));if(document.getElementById('moDxfDiag'))openMo('moDxfDiag');}
-function tlOpen(){if(document.getElementById('moTileLoader'))openMo('moTileLoader');}
-function tlDrop(ev){ev.preventDefault();tlFiles(ev.dataTransfer?.files);}
-function tlFiles(files){if(!files)return;Array.from(files).forEach((f,i)=>tlLoadFile(f,i));}
-function tlLoadFile(file,idx){const r=new FileReader();r.onload=ev=>{const img=new Image();img.onload=()=>{const layId=typeof ensureLayer==='function'?ensureLayer('Tile-'+(idx+1),'#88aaff'):0;const wp=s2w(W/2,H/2);ST.entities.push({_id:++ST._eid,type:'image',x:wp.x-img.width/(2*ST.zoom),y:wp.y-img.height/(2*ST.zoom),w:img.width/ST.zoom,h:img.height/ST.zoom,src:ev.target.result,_imgObj:img,layer:layId,selected:false});render();toast('Image: '+file.name,'ok');};img.src=ev.target.result;};r.readAsDataURL(file);}
-function tlClear(idx){ST.entities=ST.entities.filter((e,i)=>!(e.type==='image'&&i===idx));render();}
-function tlClearAll(){ST.entities=ST.entities.filter(e=>e.type!=='image');render();toast('All tiles cleared','ok');}
-// ════════════════════════════════════════════════════════════════════
-//  COMPREHENSIVE FIXES v3 — ALL FEATURES WORKING
-// ════════════════════════════════════════════════════════════════════
 
-// ── 1. SINGLE CANONICAL openMo / closeMo ─────────────────────────
-function openMo(id) {
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.classList.add('open');
-  if(typeof renderLayers === 'function') renderLayers();
-  // Make draggable
-  const modal = el.querySelector('.modal');
-  if(modal && !modal._draggable) {
-    modal._draggable = true;
-    const hdr = modal.querySelector('.mh');
-    if(hdr) {
-      hdr.style.cursor = 'move';
-      let sx, sy, ox, oy;
-      hdr.addEventListener('mousedown', ev => {
-        if(ev.target.closest('.mc,.min-btn')) return;
-        sx = ev.clientX; sy = ev.clientY;
-        const r = modal.getBoundingClientRect();
-        ox = r.left; oy = r.top;
-        modal.style.cssText += ';position:fixed;margin:0;transform:none;left:'+ox+'px;top:'+oy+'px';
-        const mm = e2 => { modal.style.left=(ox+e2.clientX-sx)+'px'; modal.style.top=(oy+e2.clientY-sy)+'px'; };
-        const mu = () => { document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu); };
-        document.addEventListener('mousemove', mm);
-        document.addEventListener('mouseup', mu);
-      });
-    }
-  }
+
+// ════════════════════════════════════════════════════════
+// CANONICAL HELPER FUNCTIONS — single definition, no duplicates
+// ════════════════════════════════════════════════════════
+
+function toggleOrtho(){
+  ST.ortho=!ST.ortho;
+  const el=document.getElementById('stOrtho');
+  const btn=document.getElementById('btn-ortho');
+  const ib=document.getElementById('ib-ortho');
+  if(el) el.textContent=ST.ortho?'ON':'OFF';
+  if(btn) btn.classList.toggle('on',ST.ortho);
+  if(ib)  ib.classList.toggle('on',ST.ortho);
+  setMsg('Ortho: '+(ST.ortho?'ON':'OFF'));
 }
-function closeMo(id) {
-  const el = document.getElementById(id);
+
+function toggleSnap(){
+  ST.snap=!ST.snap;
+  const el=document.getElementById('stSnap');
+  const btn=document.getElementById('btn-snap');
+  const ib=document.getElementById('ib-snap');
+  if(el) el.textContent=ST.snap?'ON':'OFF';
+  if(btn) btn.classList.toggle('on',ST.snap);
+  if(ib)  ib.classList.toggle('on',ST.snap);
+}
+
+function toggleOsnap(){
+  ST.osnap=!ST.osnap;
+  const el=document.getElementById('stOsnap');
+  const btn=document.getElementById('btn-osnap');
+  const ib=document.getElementById('ib-osnap');
+  if(el) el.textContent=ST.osnap?'ON':'OFF';
+  if(btn) btn.classList.toggle('on',ST.osnap);
+  if(ib)  ib.classList.toggle('on',ST.osnap);
+}
+
+function toggleGridF(){
+  ST.grid=!ST.grid;
+  const el=document.getElementById('stGrid');
+  const btn=document.getElementById('btn-grid');
+  if(el) el.textContent=ST.grid?'ON':'OFF';
+  if(btn) btn.classList.toggle('on',ST.grid);
+  render();
+}
+
+function toggleLP(show){
+  const el=document.getElementById('lpanel');
+  const chk=document.getElementById('chkLP');
+  const v=show!==undefined?show:el.classList.contains('lp-hidden');
+  el.classList.toggle('lp-hidden',!v);
+  if(chk) chk.checked=v;
+  setTimeout(resize,220);
+}
+
+function togglePolar(){
+  ST.polar=!ST.polar;
+  const btn=document.getElementById('btn-polar');
+  if(btn) btn.classList.toggle('on',ST.polar);
+  setMsg('Polar snap: '+(ST.polar?'ON':'OFF'));
+}
+
+function toggleRibbon(){
+  const rib=document.querySelector('.ribbon');
+  if(rib) rib.classList.toggle('rh');
+  setTimeout(resize,200);
+}
+
+function toggleRP(){
+  const rp=document.getElementById('rpanel');
+  if(rp) rp.classList.toggle('rp-hidden');
+  setTimeout(resize,220);
+}
+
+function switchRib(tab){
+  document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('act'));
+  document.querySelectorAll('.ribbon').forEach(r=>r.classList.add('rh'));
+  const t=document.querySelector('.rtab[data-tab="'+tab+'"]');
+  const r=document.getElementById('rib-'+tab);
+  if(t) t.classList.add('act');
+  if(r) r.classList.remove('rh');
+}
+
+function switchLayout(name){
+  document.querySelectorAll('.lt').forEach(t=>t.classList.remove('act-m','act-l'));
+  const tab=document.querySelector('.lt[data-layout="'+name+'"]');
+  if(tab) tab.classList.add(name==='Model'?'act-m':'act-l');
+  setMsg('Layout: '+name);
+}
+
+function addLayout(){
+  const name=prompt('Layout name:','Layout '+(document.querySelectorAll('.lt').length));
+  if(!name) return;
+  const bar=document.querySelector('.laybar');
+  if(!bar) return;
+  const lt=document.createElement('div');
+  lt.className='lt'; lt.setAttribute('data-layout',name);
+  lt.innerHTML='<span class="lt-dot" style="background:var(--st)"></span>'+name;
+  lt.onclick=()=>switchLayout(name);
+  bar.insertBefore(lt, bar.querySelector('.lt-add'));
+}
+
+function openMo(id){
+  renderLayers();
+  const el=document.getElementById(id);
+  if(el) el.classList.add('open');
+}
+
+function closeMo(id){
+  const el=document.getElementById(id);
   if(el) el.classList.remove('open');
 }
-function showTab(tab) {
-  document.querySelectorAll('.stab').forEach(t => t.classList.remove('act'));
-  document.querySelectorAll('.spanel').forEach(p => p.classList.remove('act'));
-  const t = document.querySelector('.stab[data-tab="'+tab+'"]');
-  const p = document.getElementById('sp-'+tab);
+
+function showTab(tab){
+  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('act'));
+  document.querySelectorAll('.spanel').forEach(p=>p.classList.remove('act'));
+  const t=document.querySelector('.stab[data-tab="'+tab+'"]');
+  const p=document.getElementById('sp-'+tab);
   if(t) t.classList.add('act');
   if(p) p.classList.add('act');
+  const rp=document.getElementById('rpanel');
+  if(rp) rp.classList.remove('rp-hidden');
 }
-function setMsg(m) { const el=document.getElementById('cmdMsg'); if(el) el.textContent=m; }
-function toast(msg, type) {
-  const el = document.getElementById('toastEl');
+
+function openSetTab(tab){
+  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('act'));
+  document.querySelectorAll('.spanel').forEach(p=>p.classList.remove('act'));
+  const btn=document.querySelector('.stab[data-tab="'+tab+'"]');
+  const panel=document.getElementById('sp-'+tab);
+  if(btn) btn.classList.add('act');
+  if(panel) panel.classList.add('act');
+}
+
+function setMsg(m){
+  const el=document.getElementById('cmdMsg');
+  if(el) el.textContent=m;
+}
+
+function toast(msg,type=''){
+  const el=document.getElementById('toastEl');
   if(!el) return;
-  el.textContent = msg;
-  el.className = 'toast show' + (type?' '+type:'');
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.classList.remove('show'), 2800);
+  el.textContent=msg; el.className='toast show'+(type?' '+type:'');
+  clearTimeout(window._tTimer);
+  window._tTimer=setTimeout(()=>el.classList.remove('show'),2800);
 }
 
-// ── 2. OFFSET — direction picker + distance input ────────────────
-const _origT_offset = T;
-T = function(tool) {
-  if(tool === 'offset') {
-    // Show offset input panel immediately
-    const sels = ST.entities.filter(e=>e.selected);
-    if(sels.length > 0) {
-      // Has selection: show distance panel
-      showOffsetPanel();
-    } else {
-      ST.tool = 'offset';
-      ST.opState = {type:'offset', dist:null, base:null};
-      showOffsetPanel();
-      setMsg('OFFSET — click entity to offset  |  ESC=cancel');
-    }
-    return;
+function printDwg(){
+  window.print();
+}
+
+function saveSettings(){
+  const theme=document.getElementById('setTheme')?.value;
+  if(theme) setBg(theme);
+  const sz=parseInt(document.getElementById('setCrossSize')?.value);
+  if(!isNaN(sz)) ST.crosshairSize=sz;
+  closeMo('moSettings');
+  toast('Settings saved','ok');
+}
+
+function setBg(theme){
+  if(theme==='dark'){
+    ST.bgColor='#060E1A';
+    document.documentElement.style.setProperty('--bg','#060E1A');
+  } else if(theme==='light'){
+    ST.bgColor='#f0f2f5';
+    document.documentElement.style.setProperty('--bg','#f0f2f5');
+  } else if(theme==='black'){
+    ST.bgColor='#000';
+    document.documentElement.style.setProperty('--bg','#000');
   }
-  _origT_offset(tool);
-};
-
-function showOffsetPanel() {
-  // Show a small panel asking for offset distance and direction
-  let panel = document.getElementById('offsetPanel');
-  if(!panel) {
-    panel = document.createElement('div');
-    panel.id = 'offsetPanel';
-    panel.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#050F1C;border:1px solid var(--b);border-radius:6px;padding:10px 14px;z-index:600;box-shadow:0 4px 20px rgba(0,0,0,.8);display:flex;flex-direction:column;gap:8px;min-width:280px';
-    panel.innerHTML = `
-      <div style="font-size:9px;font-weight:800;color:var(--b);font-family:'IBM Plex Mono',monospace;letter-spacing:.8px;text-transform:uppercase;display:flex;justify-content:space-between">
-        ↔ OFFSET DISTANCE
-        <span onclick="hideOffsetPanel()" style="cursor:pointer;color:var(--m)">✕</span>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center">
-        <input id="offsetDistInput" placeholder="Distance (e.g. 500)" type="number" step="any"
-          style="flex:1;background:var(--bg2);border:1px solid var(--sep);color:var(--g);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 8px;border-radius:3px;outline:none;border-color:var(--b)"
-          onkeydown="if(event.key==='Enter'){applyOffsetPanel();event.stopPropagation();} if(event.key==='Escape'){hideOffsetPanel();event.stopPropagation();}">
-        <span style="font-size:9px;color:var(--m);font-family:'IBM Plex Mono',monospace">${ST.units}</span>
-      </div>
-      <div style="display:flex;gap:4px;justify-content:center">
-        <button onclick="applyOffsetDir('both')" style="padding:3px 10px;background:rgba(31,168,217,.1);border:1px solid var(--bl);border-radius:3px;color:var(--b);font-size:8.5px;cursor:pointer;font-family:'IBM Plex Mono',monospace">⇔ Both sides</button>
-        <button onclick="applyOffsetDir('left')"  style="padding:3px 10px;background:rgba(31,168,217,.1);border:1px solid var(--bl);border-radius:3px;color:var(--b);font-size:8.5px;cursor:pointer;font-family:'IBM Plex Mono',monospace">← Left</button>
-        <button onclick="applyOffsetDir('right')" style="padding:3px 10px;background:rgba(31,168,217,.1);border:1px solid var(--bl);border-radius:3px;color:var(--b);font-size:8.5px;cursor:pointer;font-family:'IBM Plex Mono',monospace">Right →</button>
-      </div>
-      <div style="font-size:8px;color:var(--m);font-family:'IBM Plex Mono',monospace;text-align:center">
-        Click entity on canvas to set offset side  |  Enter=apply to selection
-      </div>`;
-    document.body.appendChild(panel);
-  }
-  panel.style.display = 'flex';
-  setTimeout(() => document.getElementById('offsetDistInput')?.focus(), 50);
+  render();
 }
 
-function hideOffsetPanel() {
-  const p = document.getElementById('offsetPanel');
-  if(p) p.style.display = 'none';
+function setTbSz(sz){
+  document.querySelectorAll('.tb').forEach(b=>{
+    b.style.fontSize = sz+'px';
+  });
 }
 
-function applyOffsetPanel() {
-  const d = parseFloat(document.getElementById('offsetDistInput')?.value || '0');
-  if(isNaN(d) || d <= 0) { toast('Enter a valid distance','warn'); return; }
-  hideOffsetPanel();
-  const sels = ST.entities.filter(e=>e.selected);
-  if(sels.length > 0) {
-    // Offset all selected entities
-    pushUndo();
-    const news = [];
-    sels.forEach(e => {
-      const ne = offsetEnt(e, d);
-      if(ne) { ne._id = ++ST._eid; ne.selected = false; news.push(ne); }
-    });
-    ST.entities.push(...news);
-    render();
-    toast('Offset '+d+' '+ST.units+' → '+news.length+' entities created','ok');
-    setMsg('Offset done — ESC to deselect');
+function selCard(id){
+  document.querySelectorAll('.szc').forEach(c=>c.classList.remove('act'));
+  const el=document.getElementById('szc-'+id);
+  if(el) el.classList.add('act');
+}
+
+function selectInvert(){
+  ST.entities.forEach(e=>{
+    if(layVisible(e.layer)) e.selected=!e.selected;
+  });
+  updateSel(); render();
+}
+
+function showHelpModal(){ openMo('moHelp'); }
+
+function showCRS(){ openMo('moCRS'); }
+
+function cycleTool(){ const tools=['select','line','polyline','circle','arc','rect']; const i=tools.indexOf(ST.tool); T(tools[(i+1)%tools.length]); }
+
+function zoomToPoint(x,y){ ST.pan.x=W/2-x*ST.zoom; ST.pan.y=H/2+y*ST.zoom; render(); }
+
+function exportLayers(){openExportModal();}
+
+function ibOpenCoord(){openCE&&openCE(null,'Enter absolute X, Y coordinates');}
+
+function addAttr(){
+  const tb=document.getElementById('attrBody');
+  if(!tb) return;
+  const r=document.createElement('tr');
+  r.innerHTML='<td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9.5px;padding:2px 4px;border-radius:2px;width:80px" value="TAG"></td>'+
+    '<td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9.5px;padding:2px 4px;border-radius:2px;width:100px" value="Enter:"></td>'+
+    '<td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9.5px;padding:2px 4px;border-radius:2px;width:80px" value=""></td>'+
+    '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--red);cursor:pointer">✕</button></td>';
+  tb.appendChild(r);
+}
+
+function doImportGeoJSON(){
+  const f=window._pendingGeoFile||window._pendingFile;
+  if(!f){toast('No GeoJSON selected','warn');return;}
+  closeMo('moGeoImport');
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const gj=JSON.parse(ev.target.result);
+      parseGeoJSON(gj,f.name);
+    }catch(e){toast('GeoJSON error: '+e.message,'err');}
+  };
+  r.readAsText(f);
+}
+
+function previewCSV(file){
+  const r=new FileReader();
+  r.onload=ev=>{
+    const el=document.getElementById('csvPreview');
+    if(el) el.textContent=ev.target.result.split('\n').slice(0,8).join('\n');
+  };
+  r.readAsText(file);
+}
+
+function previewGeoJSON(file){
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const gj=JSON.parse(ev.target.result);
+      const cnt=gj.features?gj.features.length:1;
+      const el=document.getElementById('geoPreview');
+      if(el) el.textContent=cnt+' features, types: '+[...new Set((gj.features||[{geometry:gj}]).map(f=>f.geometry?.type||'?'))].join(', ');
+    }catch(e){}
+  };
+  r.readAsText(file);
+}
+
+function csvDrop(ev){
+  ev.preventDefault();
+  const f=ev.dataTransfer?.files?.[0];
+  if(!f) return;
+  window._pendingCSVFile=f;
+  const el=document.getElementById('csvFileName');
+  if(el) el.textContent='📊 '+f.name;
+  previewCSV(f);
+}
+
+function csvFileChosen(ev){
+  const f=ev.target.files?.[0];
+  if(!f) return;
+  window._pendingCSVFile=f;
+  const el=document.getElementById('csvFileName');
+  if(el) el.textContent='📊 '+f.name;
+  previewCSV(f);
+}
+
+function geoDrop(ev){
+  ev.preventDefault();
+  const f=ev.dataTransfer?.files?.[0];
+  if(!f) return;
+  window._pendingGeoFile=f;
+  const el=document.getElementById('geoFileName');
+  if(el) el.textContent='🗺 '+f.name;
+  previewGeoJSON(f);
+}
+
+function geoFileChosen(ev){
+  const f=ev.target.files?.[0];
+  if(!f) return;
+  window._pendingGeoFile=f;
+  const el=document.getElementById('geoFileName');
+  if(el) el.textContent='🗺 '+f.name;
+  previewGeoJSON(f);
+}
+
+function showDxfDiag(filename,entCount,imgPaths,tileBounds,isCivil){
+  const stats=document.getElementById('diagStats');
+  const issues=document.getElementById('diagIssues');
+  const fixes=document.getElementById('diagFixes');
+  if(stats) stats.innerHTML=
+    '<div class="diag-stat"><div class="diag-stat-n" style="color:'+(entCount>0?'var(--gr)':'var(--red)')+'">'+entCount+'</div><div class="diag-stat-l">Entities</div></div>'+
+    '<div class="diag-stat"><div class="diag-stat-n" style="color:'+(imgPaths?.length?'var(--ora)':'var(--m)')+'">'+((imgPaths&&imgPaths.length)||0)+'</div><div class="diag-stat-l">Ext Images</div></div>'+
+    '<div class="diag-stat"><div class="diag-stat-n" style="color:'+(isCivil?'var(--ora)':'var(--m)')+'">'+( isCivil?'C3D':'OK')+'</div><div class="diag-stat-l">Type</div></div>';
+  if(issues) issues.innerHTML=(imgPaths&&imgPaths.length?
+    '<div class="diag-row">🖼 '+imgPaths.length+' external image files not embedded (need PNG tiles)</div>':'')+(
+    isCivil?'<div class="diag-row">🏗 Civil 3D proxy objects may not fully import</div>':'');
+  if(fixes) fixes.innerHTML=isCivil?
+    '<div class="diag-fix"><div class="diag-fix-title">Export as standard DXF from Civil 3D</div><div class="diag-fix-body">Use AECCEXPORTTOAUTOCAD command in Civil 3D to convert proxy objects to standard DXF entities.</div></div>':'';
+  setMsg(filename+': '+entCount+' entities'+(isCivil?' [Civil 3D]':''));
+  openMo('moDxfDiag');
+}
+
+function tlOpen(){ openMo('moTileLoader'); }
+
+function tlDrop(ev){ ev.preventDefault(); const f=ev.dataTransfer?.files?.[0]; if(f) tlLoadFile(f,0); }
+
+function tlFiles(files){ Array.from(files||[]).forEach((f,i)=>tlLoadFile(f,i)); }
+
+function tlLoadFile(file,idx){
+  const r=new FileReader();
+  r.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      if(!ST.imgOverlays) ST.imgOverlays=[];
+      const tb=(ST.tileBounds||[])[idx];
+      const ov={tileIdx:idx,src:ev.target.result,img,filename:file.name,
+        minX:tb?tb.minX:0,minY:tb?tb.minY:0,maxX:tb?tb.maxX:1000,maxY:tb?tb.maxY:1000};
+      ST.imgOverlays=ST.imgOverlays.filter(o=>o.tileIdx!==idx);
+      ST.imgOverlays.push(ov);
+      render();
+      toast('Tile '+idx+' loaded: '+file.name,'ok');
+    };
+    img.src=ev.target.result;
+  };
+  r.readAsDataURL(file);
+}
+
+function tlClear(idx){ ST.imgOverlays=(ST.imgOverlays||[]).filter(o=>o.tileIdx!==idx); render(); }
+
+function tlClearAll(){ ST.imgOverlays=[]; render(); toast('All tiles cleared','ok'); }
+
+function renderSurveyList(){}
+
+function drawSurveyPts(){ render(); }
+
+function clearSurveyPts(){ ST.surveyPts=[]; render(); toast('Survey points cleared','ok'); }
+
+function zoomToSurvey(){
+  if(!ST.surveyPts||!ST.surveyPts.length) return;
+  const xs=ST.surveyPts.map(p=>p.e), ys=ST.surveyPts.map(p=>p.n);
+  const cx=(Math.min(...xs)+Math.max(...xs))/2, cy=(Math.min(...ys)+Math.max(...ys))/2;
+  zoomToPoint(cx,cy);
+}
+
+function renderGCPList(){}
+
+function exportSurveyCSV(){ toast('Export survey CSV — use CSV export from Export menu','ok'); openExportModal(); }
+
+function cyclePtType(){ const types=['control','checkpoint','topo','stake']; const i=types.indexOf(ST._ptType||'control'); ST._ptType=types[(i+1)%types.length]; }
+
+function setPtType(t){ ST._ptType=t; }
+
+function markSz(sz){ ST._markSz=sz; render(); }
+
+function setAllGCP(v){ document.querySelectorAll('.gcp-check').forEach(c=>c.checked=v); }
+
+function calcCoords(bearing,dist,base){ const r=bearing*Math.PI/180; return{x:base.x+dist*Math.sin(r),y:base.y+dist*Math.cos(r)}; }
+
+function calcBearing(p1,p2){ return Math.atan2(p2.x-p1.x,p2.y-p1.y)*180/Math.PI; }
+
+function connectLineToPoint(){}
+
+function smoothChain(){}
+
+function chainSegments(){}
+
+function delaunayTriangulate(pts){ if(typeof buildTIN==='function') buildTIN(); }
+
+function buildContourLegend(){}
+
+function extractContourSegment(){ return []; }
+
+function toggleMap(){
+  _mapActive = !_mapActive;
+  const div = document.getElementById('mapDiv');
+  const btn = document.getElementById('btnMap');
+  const ibBtn = document.getElementById('ibBtnMapToggle');
+  if(!div) { toast('Map container not found','err'); return; }
+
+  if(_mapActive){
+    div.style.display='block';
+    ST.bgColor='rgba(0,0,0,0.02)';
+    if(!_map) _initMap();
+    if(btn) btn.classList.add('on');
+    if(ibBtn) ibBtn.textContent='🗺 Map ON';
+    // Show map control buttons
+    const ibMode=document.getElementById('ibBtnMapMode');
+    if(ibMode) ibMode.style.display='';
+    toast('Map ON — 📍 Calibrate to align drawing','ok');
+    setMsg('Map active — click 📍 to align drawing to real-world coordinates');
   } else {
-    // Set dist and wait for entity click
-    ST.opState = {type:'offset', dist:d, base:null};
-    ST.tool = 'offset';
-    setMsg('OFFSET '+d+' '+ST.units+' — click entity to offset  |  ESC=cancel');
+    div.style.display='none';
+    ST.bgColor='#060E1A';
+    if(btn) btn.classList.remove('on');
+    if(ibBtn) ibBtn.textContent='🗺 Map';
+    const ibMode=document.getElementById('ibBtnMapMode');
+    if(ibMode) ibMode.style.display='none';
+    toast('Map OFF','ok');
+  }
+  render();
+}
+
+function setMapLayer(type){
+  _mapLayer=type;
+  const btn=document.getElementById('ibBtn'+type.charAt(0).toUpperCase()+type.slice(1));
+  if(_map){
+    _map.eachLayer(l=>{ if(l._url) _map.removeLayer(l); });
+    L.tileLayer(_mapLayers[type],{maxZoom:22}).addTo(_map);
+  }
+  toast('Map: '+type.toUpperCase(),'ok');
+}
+
+function setMapDrawMode(mode){
+  _mapMode=mode;
+  const div=document.getElementById('mapDiv');
+  if(!div) return;
+  if(mode==='map'){
+    // Map navigation mode — canvas passes through
+    canvas.style.pointerEvents='none';
+    toast('Map pan mode — use map controls to navigate','ok');
+  } else {
+    canvas.style.pointerEvents='';
+    toast('Draw mode — click on canvas to draw','ok');
   }
 }
 
-function applyOffsetDir(dir) {
-  const d = parseFloat(document.getElementById('offsetDistInput')?.value || '0');
-  if(isNaN(d) || d <= 0) { toast('Enter a valid distance first','warn'); return; }
-  hideOffsetPanel();
-  const sels = ST.entities.filter(e=>e.selected);
-  if(!sels.length) { toast('Select entities first','warn'); return; }
+function startMapCal(){
+  if(!_mapActive) toggleMap();
+  _mapCal={step:0,mapPts:[],worldPts:[]};
+  _pendingCalClick=1;
+  toast('Calibrate: click point 1 on the MAP','ok');
+  setMsg('CALIBRATE step 1: click a known point on the MAP, then click the same spot on the drawing');
+  if(_map) _map.once('click', ev=>{
+    _mapCal.mapPts[0]={lat:ev.latlng.lat,lng:ev.latlng.lng};
+    _pendingCalClick=1; // now wait for canvas click
+    toast('Now click the SAME point on the drawing canvas','ok');
+    setMsg('CALIBRATE step 1b: click the same point on your drawing');
+  });
+}
+
+function mapSearch(query){
+  if(!query){
+    const inp=document.getElementById('ibMapSearch');
+    query=inp?inp.value.trim():prompt('Search location:','');
+  }
+  if(!query) return;
+  fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(query)+'&format=json&limit=1')
+    .then(r=>r.json())
+    .then(data=>{
+      if(!data.length){toast('Location not found','warn');return;}
+      const {lat,lon,display_name}=data[0];
+      if(!_mapActive) toggleMap();
+      if(_map) _map.setView([parseFloat(lat),parseFloat(lon)],15);
+      toast('→ '+display_name.split(',')[0],'ok');
+    })
+    .catch(()=>toast('Search failed — check internet','warn'));
+}
+
+function applyUnits(){ const v=document.getElementById('setUnits')?.value; if(v){ ST.units=v; document.getElementById('stUnits').textContent=v; } }
+
+function applyScale(){ const v=parseFloat(document.getElementById('setScale')?.value); if(!isNaN(v)) ST.drawScale=v; }
+
+function doImportCSV() {
+  if(!window._pendingCSVFile) { toast('No CSV selected','warn'); return; }
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const lines = ev.target.result.split('\n').filter(Boolean);
+      const header = lines[0].split(',').map(h=>h.trim().toLowerCase());
+      const xi = header.findIndex(h=>['x','easting','lon','longitude'].includes(h));
+      const yi = header.findIndex(h=>['y','northing','lat','latitude'].includes(h));
+      const zi = header.findIndex(h=>['z','elevation','elev','height'].includes(h));
+      const ci = header.findIndex(h=>['code','name','id','point'].includes(h));
+      if(xi<0||yi<0){toast('CSV needs X,Y columns','warn');return;}
+      pushUndo();
+      const layId = typeof ensureLayer==='function' ? ensureLayer('CSV-Points','#F5BE18') : 0;
+      let cnt = 0;
+      lines.slice(1).forEach(line=>{
+        const cols = line.split(',');
+        const x=parseFloat(cols[xi]), y=parseFloat(cols[yi]);
+        if(isNaN(x)||isNaN(y)) return;
+        ST.entities.push({_id:++ST._eid,type:'point',x,y,layer:layId,selected:false,
+          z:zi>=0?parseFloat(cols[zi])||0:0, code:ci>=0?cols[ci]?.trim():'',});
+        cnt++;
+      });
+      renderLayers(); zoomExt();
+      toast('Imported '+cnt+' CSV points','ok');
+      closeMo('moCsvImport');
+    } catch(e){ toast('CSV error: '+e.message,'err'); }
+  };
+  r.readAsText(window._pendingCSVFile,'UTF-8');
+}
+
+
+// ════ COMPREHENSIVE RUNTIME FIXES ════
+
+// ── Case-insensitive command router ──────────────────────────────
+(function patchRunCommand() {
+  const _prev = typeof runCommand !== 'undefined' ? runCommand : null;
+  runCommand = function(rawCmd) {
+    const raw = (rawCmd||'').trim();
+    if(!raw) { if(ST._lastTool) T(ST._lastTool); return; }
+    const v = raw.toUpperCase();
+
+    // Close while drawing
+    if(v==='C'&&(ST.drawing||ST.tool==='polyline'||ST.tool==='boundary')) {
+      if(ST.tool==='polyline'&&typeof commitPolyline==='function') commitPolyline();
+      else if(ST.tool==='boundary'&&typeof commitBoundary==='function') commitBoundary();
+      else { ST.drawing=false; ST.startPt=null; render(); }
+      return;
+    }
+
+    // Coordinate input while drawing
+    if((ST.drawing&&ST.startPt)||ST.opState) {
+      if(raw.match(/^[@\d\.\-+]/)||raw.includes('<')||(raw.includes(',')&&/\d/.test(raw))) {
+        if(typeof applyDynValue==='function'){applyDynValue(raw);return;}
+      }
+    }
+
+    const CMDS = {
+      L:'line',LINE:'line',PL:'polyline',PLINE:'polyline',POLYLINE:'polyline',
+      C:'circle',CIRCLE:'circle',A:'arc',ARC:'arc',
+      REC:'rect',RECT:'rect',RECTANG:'rect',RECTANGLE:'rect',
+      EL:'ellipse',ELLIPSE:'ellipse',SPL:'spline',SPLINE:'spline',
+      H:'hatch',BH:'hatch',HATCH:'hatch',
+      T:'text',TEXT:'text',DT:'text',MT:'text',MTEXT:'text',
+      PO:'point',POINT:'point',XL:'xline',XLINE:'xline',RAY:'ray',
+      WI:'wipeout',WIPEOUT:'wipeout',CLD:'cloud',CLOUD:'cloud',REVCLOUD:'cloud',
+      BND:'boundary',BOUNDARY:'boundary',PG:'polygon',POLYGON:'polygon',
+      DIM:'dim-lin',DL:'dim-lin',DIMLIN:'dim-lin',DIMLINEAR:'dim-lin',
+      LE:'leader',LEADER:'leader',
+      M:'move',MOVE:'move',CO:'copy',CP:'copy',COPY:'copy',
+      RO:'rotate',ROTATE:'rotate',SC:'scale',SCALE:'scale',
+      MI:'mirror',MIRROR:'mirror',O:'offset',OFFSET:'offset',
+      TR:'trim',TRIM:'trim',EX:'extend',EXTEND:'extend',
+      F:'fillet',FILLET:'fillet',CHA:'chamfer',CHAMFER:'chamfer',
+      ST:'stretch',STRETCH:'stretch',BR:'break',BREAK:'break',
+      J:'join',JOIN:'join',X:'explode',EXP:'explode',EXPLODE:'explode',
+      AR:'array',ARRAY:'array',
+      Z:'zoom',ZE:'zoom',ZOOM:'zoom',P:'pan',PAN:'pan',
+      S:'select',SEL:'select',SELECT:'select',
+      U:'undo',UNDO:'undo',REDO:'redo',
+      E:'erase',ERASE:'erase',DEL:'erase',DELETE:'erase',
+      DI:'measure-d',DIST:'measure-d',AA:'measure-a',AREA:'measure-a',
+      LA:'layers',LAYER:'layers',LAYERS:'layers',
+      IMPORT:'import',EXPORT:'export',SAVE:'save',
+      HELP:'help','?':'help',
+      PROCESSING:'processing',PROC:'processing',
+      MAP:'map',TIN:'tin',CONTOUR:'contour',
+      BUFFER:'buffer',DISSOLVE:'dissolve',STATS:'stats',
+    };
+
+    const target = CMDS[v];
+    if(target) {
+      const tools=['line','polyline','circle','arc','rect','ellipse','spline','hatch',
+        'text','point','xline','ray','wipeout','cloud','boundary','polygon','dim-lin','leader',
+        'move','copy','rotate','scale','mirror','offset','trim','extend','fillet','chamfer',
+        'stretch','break','join','explode','measure-d','measure-a','pan','select'];
+      if(tools.includes(target)){T(target);setMsg('▶ '+target.toUpperCase()+' — click to start');return;}
+      const acts={
+        zoom:zoomExt,undo:undo,redo:redo,erase:delSel,
+        layers:()=>showTab('layers'),import:()=>openMo('moImport'),
+        export:()=>openExportModal(),
+        save:()=>{if(typeof saveProject==='function')saveProject();else toast('Use Ctrl+S','ok');},
+        help:()=>openMo('moShortcuts'),
+        processing:()=>{if(typeof toggleProcPanel==='function')toggleProcPanel();else openMo('moProcessing');},
+        map:()=>{if(typeof toggleMap==='function')toggleMap();},
+        tin:()=>{if(typeof buildTIN==='function')buildTIN();},
+        contour:()=>openMo('moContour'),
+        buffer:()=>{if(typeof doBuffer==='function')doBuffer();},
+        dissolve:()=>{if(typeof dissolveLayer==='function')dissolveLayer();},
+        stats:()=>{if(typeof showStats==='function')showStats();},
+      };
+      if(acts[target]){acts[target]();setMsg('▶ '+target);return;}
+    }
+
+    const num=parseFloat(raw);
+    if(!isNaN(num)&&(ST.drawing||ST.opState)){
+      if(typeof applyDynValue==='function'){applyDynValue(raw);return;}
+    }
+    if(v.startsWith('FIND ')||v.startsWith('GO ')){
+      if(typeof mapSearch==='function')mapSearch(raw.replace(/^(FIND|GO)\s+/i,''));
+      return;
+    }
+    setMsg('"'+raw+'" unknown — F1 for help');
+  };
+})();
+
+// ── Offset panel with direction picker ────────────────────────────
+function showOffsetPanel() {
+  let p = document.getElementById('offsetDistPanel');
+  if(!p) {
+    p = document.createElement('div');
+    p.id = 'offsetDistPanel';
+    p.style.cssText = 'position:fixed;bottom:95px;left:50%;transform:translateX(-50%);background:#050F1C;border:1px solid var(--b, #1FA8D9);border-radius:6px;padding:10px 14px;z-index:700;display:flex;flex-direction:column;gap:7px;min-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.85)';
+    document.body.appendChild(p);
+  }
+  p.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:9px;font-weight:800;color:#1FA8D9;font-family:'IBM Plex Mono',monospace;letter-spacing:.8px;text-transform:uppercase">↔ OFFSET</span>
+      <span onclick="this.closest('#offsetDistPanel').style.display='none'" style="cursor:pointer;color:#666;font-size:12px">✕</span>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <input id="offDistInp" type="number" step="any" placeholder="Distance…"
+        style="flex:1;background:#0a1a2a;border:1px solid #1FA8D9;color:#4eff91;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 8px;border-radius:3px;outline:none"
+        onkeydown="if(event.key==='Enter'){_applyOffsetDist();event.stopPropagation();}if(event.key==='Escape'){document.getElementById('offsetDistPanel').style.display='none';event.stopPropagation();}">
+      <span style="font-size:9px;color:#666;font-family:'IBM Plex Mono',monospace">${ST.units||'mm'}</span>
+    </div>
+    <div style="display:flex;gap:5px">
+      <button onclick="_applyOffsetDir('both')"  style="flex:1;padding:4px;background:rgba(31,168,217,.1);border:1px solid #1FA8D9;border-radius:3px;color:#1FA8D9;font-size:8.5px;cursor:pointer;font-family:'IBM Plex Mono',monospace">⇔ Both</button>
+      <button onclick="_applyOffsetDir('right')" style="flex:1;padding:4px;background:rgba(31,168,217,.1);border:1px solid #1FA8D9;border-radius:3px;color:#1FA8D9;font-size:8.5px;cursor:pointer;font-family:'IBM Plex Mono',monospace">→ Right</button>
+      <button onclick="_applyOffsetDir('left')"  style="flex:1;padding:4px;background:rgba(31,168,217,.1);border:1px solid #1FA8D9;border-radius:3px;color:#1FA8D9;font-size:8.5px;cursor:pointer;font-family:'IBM Plex Mono',monospace">← Left</button>
+    </div>
+    <div style="font-size:8px;color:#666;text-align:center;font-family:'IBM Plex Mono',monospace">Or click entity to set side interactively</div>`;
+  p.style.display = 'flex';
+  setTimeout(()=>document.getElementById('offDistInp')?.focus(), 30);
+}
+
+function _applyOffsetDist() {
+  const d = parseFloat(document.getElementById('offDistInp')?.value||'0');
+  if(!d||d<=0){toast('Enter offset distance','warn');return;}
+  document.getElementById('offsetDistPanel').style.display='none';
+  const sels=ST.entities.filter(e=>e.selected);
+  if(sels.length){
+    pushUndo();
+    const news=[];
+    sels.forEach(e=>{const ne=offsetEnt(e,d);if(ne){ne._id=++ST._eid;ne.selected=false;news.push(ne);}});
+    ST.entities.push(...news);render();
+    toast('Offset '+d+' '+ST.units+' — '+news.length+' created','ok');
+  } else {
+    ST.opState={type:'offset',dist:d,base:null};
+    ST.tool='offset';
+    setMsg('OFFSET '+d+' — click entity  |  ESC=cancel');
+  }
+}
+
+function _applyOffsetDir(dir) {
+  const d=parseFloat(document.getElementById('offDistInp')?.value||'0');
+  if(!d||d<=0){toast('Enter distance first','warn');return;}
+  document.getElementById('offsetDistPanel').style.display='none';
+  const sels=ST.entities.filter(e=>e.selected);
+  if(!sels.length){toast('Select entities first','warn');return;}
   pushUndo();
-  const news = [];
-  sels.forEach(e => {
-    if(dir === 'both') {
-      const ne1 = offsetEnt(e, d);  if(ne1){ne1._id=++ST._eid;ne1.selected=false;news.push(ne1);}
-      const ne2 = offsetEnt(e,-d);  if(ne2){ne2._id=++ST._eid;ne2.selected=false;news.push(ne2);}
+  const news=[];
+  sels.forEach(e=>{
+    if(dir==='both'){
+      [d,-d].forEach(dist=>{const ne=offsetEnt(e,dist);if(ne){ne._id=++ST._eid;ne.selected=false;news.push(ne);}});
     } else {
-      const ne = offsetEnt(e, dir==='left'?-d:d);
-      if(ne){ne._id=++ST._eid;ne.selected=false;news.push(ne);}
+      const ne=offsetEnt(e,dir==='left'?-d:d);if(ne){ne._id=++ST._eid;ne.selected=false;news.push(ne);}
     }
   });
-  ST.entities.push(...news);
-  render();
-  toast('Offset '+dir+' '+d+' '+ST.units+' → '+news.length+' entities','ok');
+  ST.entities.push(...news);render();
+  toast('Offset '+dir+' '+d+' '+ST.units+' — '+news.length+' created','ok');
 }
 
-// ── 3. SELECTION — yellow highlight rectangle ─────────────────────
-function showSelBox(sx, sy, mx, my) {
-  let box = document.getElementById('selBox');
-  let hint = document.getElementById('selHint');
-  if(!box) {
-    box = document.createElement('div');
-    box.id = 'selBox';
-    box.style.cssText = 'position:absolute;pointer-events:none;z-index:50;border:1px solid;box-sizing:border-box';
-    const vp = document.querySelector('.vport') || document.getElementById('vp');
-    if(vp) vp.style.position='relative', vp.appendChild(box);
-    hint = document.createElement('div');
-    hint.id = 'selHint';
-    hint.style.cssText = 'position:absolute;pointer-events:none;z-index:51;font-size:8.5px;font-family:IBM Plex Mono,monospace;padding:2px 6px;border-radius:3px';
-    if(vp) vp.appendChild(hint);
-  }
-  const crossing = mx < sx;
-  box.style.left = Math.min(sx,mx) + 'px';
-  box.style.top  = Math.min(sy,my) + 'px';
-  box.style.width  = Math.abs(mx-sx) + 'px';
-  box.style.height = Math.abs(my-sy) + 'px';
-  box.style.display = 'block';
-  // AutoCAD style: blue=window(right), green=crossing(left)
-  if(crossing) {
-    box.style.borderColor = '#4eff91';
-    box.style.borderStyle = 'dashed';
-    box.style.background = 'rgba(78,255,145,0.05)';
-    if(hint){hint.textContent='CROSSING';hint.style.color='#4eff91';hint.style.left=Math.min(sx,mx)+'px';hint.style.top=(Math.min(sy,my)-18)+'px';hint.style.display='block';}
-  } else {
-    box.style.borderColor = '#1FA8D9';
-    box.style.borderStyle = 'solid';
-    box.style.background = 'rgba(31,168,217,0.05)';
-    if(hint){hint.textContent='WINDOW';hint.style.color='#1FA8D9';hint.style.left=Math.min(sx,mx)+'px';hint.style.top=(Math.min(sy,my)-18)+'px';hint.style.display='block';}
-  }
-}
-function hideSelBox() {
-  const b=document.getElementById('selBox'), h=document.getElementById('selHint');
-  if(b)b.style.display='none'; if(h)h.style.display='none';
-}
-
-// ── 4. FULL COMMAND SYSTEM — case-insensitive ─────────────────────
-// Override runCommand completely
-runCommand = function(rawCmd) {
-  const raw = (rawCmd || '').trim();
-  if(!raw) { if(ST._lastTool) T(ST._lastTool); return; }
-  const v = raw.toUpperCase();
-
-  // Close polyline/boundary
-  if(v === 'C' && (ST.tool==='polyline'||ST.tool==='boundary'||ST.tool==='line'||ST.drawing)) {
-    if(ST.tool==='polyline') { if(typeof commitPolyline==='function') commitPolyline(); }
-    else if(ST.tool==='boundary') { if(typeof commitBoundary==='function') commitBoundary(); }
-    else { ST.drawing=false; ST.startPt=null; render(); }
-    return;
-  }
-
-  // Coordinate/distance input while drawing
-  if((ST.drawing && ST.startPt) || ST.opState) {
-    if(raw.match(/^[@\d\.\-+]/) || raw.includes('<') || (raw.includes(',') && /\d/.test(raw))) {
-      if(typeof applyDynValue==='function') { applyDynValue(raw); return; }
-    }
-  }
-
-  // Full command table — works regardless of case
-  const CMDS = {
-    // Draw
-    L:'line',LINE:'line',PL:'polyline',PLINE:'polyline',POLYLINE:'polyline',
-    C:'circle',CIRCLE:'circle',A:'arc',ARC:'arc',
-    REC:'rect',RECT:'rect',RECTANG:'rect',RECTANGLE:'rect',
-    EL:'ellipse',ELLIPSE:'ellipse',SPL:'spline',SPLINE:'spline',
-    H:'hatch',BH:'hatch',HATCH:'hatch',
-    T:'text',TEXT:'text',DT:'text',MT:'text',MTEXT:'text',
-    PO:'point',POINT:'point',XL:'xline',XLINE:'xline',
-    RAY:'ray',WI:'wipeout',WIPEOUT:'wipeout',
-    CLD:'cloud',CLOUD:'cloud',REVCLOUD:'cloud',
-    BND:'boundary',BOUNDARY:'boundary',PG:'polygon',POLYGON:'polygon',
-    DIM:'dim-lin',DL:'dim-lin',DIMLIN:'dim-lin',DIMLINEAR:'dim-lin',
-    LE:'leader',LEADER:'leader',
-    // Modify
-    M:'move',MOVE:'move',CO:'copy',CP:'copy',COPY:'copy',
-    RO:'rotate',ROTATE:'rotate',SC:'scale',SCALE:'scale',
-    MI:'mirror',MIRROR:'mirror',O:'offset',OFFSET:'offset',
-    TR:'trim',TRIM:'trim',EX:'extend',EXTEND:'extend',
-    F:'fillet',FILLET:'fillet',CHA:'chamfer',CHAMFER:'chamfer',
-    ST:'stretch',STRETCH:'stretch',BR:'break',BREAK:'break',
-    J:'join',JOIN:'join',X:'explode',EXP:'explode',EXPLODE:'explode',
-    AR:'array',ARRAY:'array',
-    // View
-    Z:'zoom',ZE:'zoom',ZOOM:'zoom',
-    S:'select',SEL:'select',SELECT:'select',
-    P:'pan',PAN:'pan',
-    U:'undo',UNDO:'undo',REDO:'redo',
-    E:'erase',ERASE:'erase',DEL:'erase',DELETE:'erase',
-    // Info
-    DI:'measure-d',DIST:'measure-d',
-    AA:'measure-a',AREA:'measure-a',
-    // Layers/tools
-    LA:'layers',LAYER:'layers',LAYERS:'layers',
-    IMPORT:'import',EXPORT:'export',SAVE:'save',
-    HELP:'help',SHORTCUTS:'help',
-    PROCESSING:'processing',PROC:'processing',
-    MAP:'map',TIN:'tin',CONTOUR:'contour',
-    BUFFER:'buffer',DISSOLVE:'dissolve',STATS:'stats',
-  };
-
-  const target = CMDS[v];
-  if(target) {
-    const drawMods=['line','polyline','circle','arc','rect','ellipse','spline','hatch',
-      'text','point','xline','ray','wipeout','cloud','boundary','polygon','dim-lin','leader',
-      'move','copy','rotate','scale','mirror','offset','trim','extend','fillet','chamfer',
-      'stretch','break','join','explode','measure-d','measure-a','pan','select'];
-    if(drawMods.includes(target)) { T(target); setMsg('▶ '+target.toUpperCase()+' — click to start'); return; }
-    
-    const actions = {
-      zoom: zoomExt, undo: undo, redo: redo,
-      erase: delSel,
-      layers: ()=>showTab('layers'),
-      import: ()=>openMo('moImport'),
-      export: ()=>openExportModal(),
-      save: ()=>{ if(typeof saveProject==='function') saveProject(); else toast('Use File > Save','ok'); },
-      help: ()=>openMo('moShortcuts'),
-      processing: ()=>toggleProcPanel(),
-      map: toggleMap, tin: buildTIN,
-      contour: ()=>openMo('moContour'),
-      buffer: doBuffer, dissolve: dissolveLayer, stats: showStats,
-    };
-    if(actions[target]) { actions[target](); setMsg('▶ '+target); return; }
-  }
-
-  // Number = distance input
-  const num = parseFloat(raw);
-  if(!isNaN(num)) {
-    if(typeof applyDynValue==='function') { applyDynValue(raw); return; }
-  }
-
-  // Map search
-  if(v.startsWith('FIND ') || v.startsWith('GO ') || v.startsWith('GOTO ')) {
-    if(typeof mapSearch==='function') mapSearch(raw.replace(/^(FIND|GO|GOTO)\s+/i,''));
-    return;
-  }
-
-  setMsg('"'+raw+'" not found — press F1 for command list');
+// Patch T() for offset to show panel
+const _T_preOffset=T;
+T=function(tool){
+  if(tool==='offset'){showOffsetPanel();}
+  _T_preOffset(tool);
 };
 
-// ── 5. VALUE INPUT — Enter/Space in cmdInput ─────────────────────
-(function() {
-  const inp = document.getElementById('cmdInput');
+// ── Selection box (AutoCAD style blue/green) ─────────────────────
+function showSelBox(sx,sy,mx,my){
+  let box=document.getElementById('selBox');
+  if(!box){
+    box=document.createElement('div');
+    box.id='selBox';
+    box.style.cssText='position:fixed;pointer-events:none;z-index:100;border:1px solid;box-sizing:border-box;display:none';
+    document.body.appendChild(box);
+  }
+  const crossing=mx<sx;
+  const l=Math.min(sx,mx),t=Math.min(sy,my),w=Math.abs(mx-sx),h=Math.abs(my-sy);
+  // Convert to fixed positioning using canvas bounds
+  const r=document.getElementById('cad')?.getBoundingClientRect()||{left:0,top:0};
+  box.style.left=(r.left+l)+'px'; box.style.top=(r.top+t)+'px';
+  box.style.width=w+'px'; box.style.height=h+'px';
+  box.style.display='block';
+  if(crossing){
+    box.style.borderColor='#4eff91'; box.style.borderStyle='dashed';
+    box.style.background='rgba(78,255,145,0.05)';
+  } else {
+    box.style.borderColor='#1FA8D9'; box.style.borderStyle='solid';
+    box.style.background='rgba(31,168,217,0.05)';
+  }
+}
+function hideSelBox(){const b=document.getElementById('selBox');if(b)b.style.display='none';}
+
+// ── Command line routing ─────────────────────────────────────────
+(function wireCmdInput(){
+  const inp=document.getElementById('cmdInput');
   if(!inp) return;
-  // Remove old handlers and add clean one
-  const newInp = inp.cloneNode(true);
-  inp.parentNode.replaceChild(newInp, inp);
-  newInp.addEventListener('keydown', ev => {
+  const clone=inp.cloneNode(true);
+  inp.parentNode.replaceChild(clone,inp);
+  clone.addEventListener('keydown',ev=>{
     ev.stopPropagation();
-    if(ev.key === 'Escape') { newInp.value = ''; canvas.focus(); return; }
-    const isEnterOrSpace = ev.key === 'Enter' || ev.key === ' ';
-    if(isEnterOrSpace) {
-      const raw = newInp.value.trim();
-      newInp.value = '';
-      if(raw) {
+    if(ev.key==='Escape'){clone.value='';document.getElementById('cad')?.focus();return;}
+    if(ev.key==='Enter'||ev.key===' '){
+      const raw=clone.value.trim();
+      clone.value='';
+      if(raw){ev.preventDefault();runCommand(raw);}
+      else if(ev.key===' '){
         ev.preventDefault();
-        runCommand(raw);
-      } else if(ev.key === ' ') {
-        ev.preventDefault();
-        if(ST.tool==='polyline') { if(typeof commitPolyline==='function') commitPolyline(); }
-        else if(ST.tool==='boundary') { if(typeof commitBoundary==='function') commitBoundary(); }
-        else if(ST._lastTool) T(ST._lastTool);
+        if(ST.tool==='polyline'&&typeof commitPolyline==='function')commitPolyline();
+        else if(ST.tool==='boundary'&&typeof commitBoundary==='function')commitBoundary();
+        else if(ST._lastTool)T(ST._lastTool);
       }
-      canvas.focus();
+      document.getElementById('cad')?.focus();
     }
   });
 })();
 
-// Route typing to command line
-document.addEventListener('keydown', ev => {
-  const tag = document.activeElement?.tagName;
-  if(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-  if(!ev.ctrlKey && !ev.altKey && !ev.metaKey && ev.key.length === 1) {
-    const inp = document.getElementById('cmdInput');
+// Route keystrokes to command line
+document.addEventListener('keydown',ev=>{
+  const tag=document.activeElement?.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
+  if(!ev.ctrlKey&&!ev.altKey&&!ev.metaKey&&ev.key.length===1){
+    const inp=document.getElementById('cmdInput');
     if(inp) inp.focus();
   }
-}, false);
+},false);
 
-// ── 6. PROCESSING TOOLBOX — fix insertBefore error ───────────────
-buildProcessingUI = function() {
-  const container = document.getElementById('processingContent');
-  if(!container) return;
-  const cats = [
-    {cat:'VECTOR GENERAL',color:'var(--b)',tools:[
-      {id:'deleteDuplicates',name:'Delete Duplicates'},
-      {id:'mergeLines',name:'Merge Lines'},
-      {id:'fixGeom',name:'Fix Geometry'},
-      {id:'multiToSingle',name:'Multipart→Single'},
-      {id:'simplifyGeom',name:'Simplify (D-P)'},
-      {id:'smoothGeom',name:'Smooth'},
+// ── QGIS Processing UI (no DOM insertBefore errors) ──────────────
+function buildProcessingUI(){
+  const el=document.getElementById('processingContent');
+  if(!el) return;
+  const cats=[
+    {c:'VECTOR GENERAL',col:'#1FA8D9',tools:[
+      {id:'deleteDuplicates',n:'Delete Duplicates'},{id:'mergeLines',n:'Merge Lines'},
+      {id:'fixGeom',n:'Fix Geometry'},{id:'multiToSingle',n:'Multipart→Single'},
+      {id:'simplifyGeom',n:'Simplify (D-P)'},{id:'smoothGeom',n:'Smooth'},
     ]},
-    {cat:'VECTOR ANALYSIS',color:'var(--gr)',tools:[
-      {id:'countPoints',name:'Count Points in Poly'},
-      {id:'meanCoords',name:'Mean Coordinates'},
-      {id:'boundingBox',name:'Bounding Box'},
-      {id:'convexHull',name:'Convex Hull'},
+    {c:'VECTOR ANALYSIS',col:'#4eff91',tools:[
+      {id:'countPoints',n:'Count Points in Poly'},{id:'meanCoords',n:'Mean Coordinates'},
+      {id:'boundingBox',n:'Bounding Box'},{id:'convexHull',n:'Convex Hull'},
     ]},
-    {cat:'OVERLAY',color:'var(--st)',tools:[
-      {id:'bufferTool',name:'Buffer'},
-      {id:'intersectTool',name:'Intersection'},
-      {id:'dissolveTool',name:'Dissolve'},
+    {c:'OVERLAY',col:'#A78BFA',tools:[
+      {id:'bufferTool',n:'Buffer'},{id:'intersectTool',n:'Intersection'},{id:'dissolveTool',n:'Dissolve'},
     ]},
-    {cat:'TERRAIN',color:'var(--ora)',tools:[
-      {id:'buildTIN',name:'Build TIN'},
-      {id:'generateContours',name:'Generate Contours'},
+    {c:'TERRAIN',col:'#FF9060',tools:[
+      {id:'buildTIN',n:'Build TIN'},{id:'generateContours',n:'Generate Contours'},
     ]},
-    {cat:'DATABASE',color:'#F5BE18',tools:[
-      {id:'statistics',name:'Statistics'},
-      {id:'fieldCalculator',name:'Field Calculator'},
-      {id:'selectByExpression',name:'Select by Expression'},
+    {c:'DATABASE',col:'#F5BE18',tools:[
+      {id:'statistics',n:'Statistics'},{id:'fieldCalculator',n:'Field Calculator'},
+      {id:'selectByExpression',n:'Select by Expression'},
     ]},
   ];
-  container.innerHTML = cats.map(cat => `
-    <div style="margin-bottom:4px">
-      <div style="padding:4px 8px;background:rgba(31,168,217,.06);font-size:8px;font-weight:800;
-                  color:${cat.color};font-family:'IBM Plex Mono',monospace;letter-spacing:.8px;
-                  text-transform:uppercase;cursor:pointer;border-bottom:1px solid var(--sep)"
-           onclick="this.nextSibling.style.display=this.nextSibling.style.display==='none'?'':'none'">
-        ▾ ${cat.cat}
-      </div>
-      <div>
-        ${cat.tools.map(t=>`
-          <div onclick="runProcessingTool('${t.id}')"
-            style="padding:5px 12px;font-size:9px;color:var(--m);cursor:pointer;
-                   border-bottom:1px solid rgba(31,168,217,.03);transition:all .08s"
-            onmouseover="this.style.background='rgba(31,168,217,.06)';this.style.color='var(--t)'"
-            onmouseout="this.style.background='';this.style.color='var(--m)'">
-            ▶ ${t.name}
-          </div>`).join('')}
-      </div>
-    </div>`).join('');
-};
-
-buildProcessingSidePanel = function() {
-  const container = document.getElementById('processingContentSide');
-  if(!container) return;
-  buildProcessingUI.toString(); // ensure it ran
-  // Mirror content
-  const src = document.getElementById('processingContent');
-  if(src && src.innerHTML) container.innerHTML = src.innerHTML;
-  else { buildProcessingUI(); const src2 = document.getElementById('processingContent'); if(src2) container.innerHTML = src2.innerHTML; }
-};
-
-// Auto-open processing panel properly
-toggleProcPanel = function() {
-  const p = document.getElementById('procSidePanel');
-  if(p) {
-    const shown = p.style.display === 'flex';
-    p.style.display = shown ? 'none' : 'flex';
-    if(!shown) buildProcessingSidePanel();
-  } else {
-    openMo('moProcessing');
-    setTimeout(buildProcessingUI, 50);
-  }
-};
-
-// ── 7. DYNAMIC INPUT (value entry while drawing) ─────────────────
-applyDynValue = function(val) {
-  const sp = ST.startPt || (ST.opState?.base);
-  if(!sp && !ST.opState) return;
-  let wp = null;
-
-  if(val.includes('<')) {                           // polar: dist<angle
-    const [d,a] = val.split('<').map(Number);
-    if(!isNaN(d)&&!isNaN(a)) { const r=a*Math.PI/180; wp={x:sp.x+d*Math.cos(r),y:sp.y+d*Math.sin(r)}; }
-  } else if(val.startsWith('@')) {                  // relative: @dx,dy
-    const [dx,dy] = val.slice(1).split(',').map(Number);
-    if(!isNaN(dx)&&!isNaN(dy)) wp={x:sp.x+(dx||0),y:sp.y+(dy||0)};
-  } else if(val.includes(',')) {                    // absolute: x,y
-    const [x,y] = val.split(',').map(Number);
-    if(!isNaN(x)&&!isNaN(y)) wp={x,y};
-  } else {                                          // distance along current dir
-    const num = parseFloat(val);
-    if(!isNaN(num) && sp) {
-      const ang = ST.mouse ? Math.atan2(-(ST.mouse.y - (sp ? w2s(sp.x,sp.y).y : H/2)),
-                                         ST.mouse.x - (sp ? w2s(sp.x,sp.y).x : W/2)) : 0;
-      wp = {x: sp.x + num*Math.cos(ang), y: sp.y + num*Math.sin(ang)};
-    }
-  }
-
-  if(!wp) { toast('Invalid: '+val,'warn'); return; }
-
-  if(ST.opState && ST.opState.base) { applyOp(wp); return; }
-
-  if(ST.drawing && ST.startPt) {
-    const owp = ST.ortho ? applyOrtho(ST.startPt, wp) : wp;
-    const done = commitEntity(owp);
-    if(done) {
-      if(ST.tool === 'line') ST.startPt = owp;
-      else { ST.drawing=false; ST.startPt=null; ST.pts=[]; }
-      render();
-    }
-  }
-};
-
-// ── Initialise on load ───────────────────────────────────────────
-setTimeout(() => {
-  setMsg('Ready — type command or click to draw  |  F1=shortcuts  F12=processing');
-  buildProcessingUI();
-  buildProcessingSidePanel();
-}, 500);
-
-
-// ════ SURVEY + STUB FUNCTIONS ════
-var ST_SURVEY = window.ST_SURVEY || {pts:[], ptTypes:{}};
-
-function renderSurveyList() {
-  const el = document.getElementById('surveyList');
+  el.innerHTML=cats.map(cat=>`<div style="margin-bottom:3px">
+    <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display?'':'none'"
+      style="padding:4px 8px;background:rgba(31,168,217,.07);font-size:8px;font-weight:800;color:${cat.col};
+             font-family:'IBM Plex Mono',monospace;letter-spacing:.8px;text-transform:uppercase;
+             cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05)">▾ ${cat.c}</div>
+    <div>${cat.tools.map(t=>`<div onclick="runProcessingTool('${t.id}')"
+      style="padding:5px 12px;font-size:9px;color:#8899aa;cursor:pointer;
+             border-bottom:1px solid rgba(31,168,217,.03);transition:background .1s"
+      onmouseover="this.style.background='rgba(31,168,217,.07)';this.style.color='#fff'"
+      onmouseout="this.style.background='';this.style.color='#8899aa'">▶ ${t.n}</div>`).join('')}</div>
+  </div>`).join('');
+}
+function buildProcessingSidePanel(){
+  const el=document.getElementById('processingContentSide');
   if(!el) return;
-  if(!ST_SURVEY.pts.length) {
-    el.innerHTML = '<div style="color:var(--m);font-size:9px;padding:10px;text-align:center">No survey points — import CSV with X,Y,Z columns</div>';
-    return;
+  // Fill processingContent first if empty (without triggering the wrapper)
+  const src=document.getElementById('processingContent');
+  if(src && !src.innerHTML.trim()) {
+    // Build content in the modal container first
+    const cats=[
+      {c:'VECTOR GENERAL',col:'#1FA8D9',tools:[
+        {id:'deleteDuplicates',n:'Delete Duplicates'},{id:'mergeLines',n:'Merge Lines'},
+        {id:'fixGeom',n:'Fix Geometry'},{id:'multiToSingle',n:'Multipart→Single'},
+        {id:'simplifyGeom',n:'Simplify (D-P)'},{id:'smoothGeom',n:'Smooth'},
+      ]},
+      {c:'VECTOR ANALYSIS',col:'#4eff91',tools:[
+        {id:'countPoints',n:'Count Points in Poly'},{id:'meanCoords',n:'Mean Coordinates'},
+        {id:'boundingBox',n:'Bounding Box'},{id:'convexHull',n:'Convex Hull'},
+      ]},
+      {c:'OVERLAY',col:'#A78BFA',tools:[
+        {id:'bufferTool',n:'Buffer'},{id:'intersectTool',n:'Intersection'},{id:'dissolveTool',n:'Dissolve'},
+      ]},
+      {c:'TERRAIN',col:'#FF9060',tools:[
+        {id:'buildTIN',n:'Build TIN'},{id:'generateContours',n:'Generate Contours'},
+      ]},
+      {c:'DATABASE',col:'#F5BE18',tools:[
+        {id:'statistics',n:'Statistics'},{id:'fieldCalculator',n:'Field Calculator'},
+        {id:'selectByExpression',n:'Select by Expression'},
+      ]},
+    ];
+    const html=cats.map(cat=>`<div style="margin-bottom:3px">
+      <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display?'':'none'"
+        style="padding:4px 8px;background:rgba(31,168,217,.07);font-size:8px;font-weight:800;color:${cat.col};
+               font-family:'IBM Plex Mono',monospace;letter-spacing:.8px;text-transform:uppercase;
+               cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05)">▾ ${cat.c}</div>
+      <div>${cat.tools.map(t=>`<div onclick="runProcessingTool('${t.id}')"
+        style="padding:5px 12px;font-size:9px;color:#8899aa;cursor:pointer;
+               border-bottom:1px solid rgba(31,168,217,.03);transition:background .1s"
+        onmouseover="this.style.background='rgba(31,168,217,.07)';this.style.color='#fff'"
+        onmouseout="this.style.background='';this.style.color='#8899aa'">▶ ${t.n}</div>`).join('')}</div>
+    </div>`).join('');
+    if(src) src.innerHTML = html;
+    el.innerHTML = html;
+  } else if(src) {
+    el.innerHTML = src.innerHTML;
   }
-  el.innerHTML = ST_SURVEY.pts.slice(0,200).map((p,i) =>
-    `<div style="display:flex;gap:6px;padding:2px 6px;font-size:8.5px;font-family:'IBM Plex Mono',monospace;color:var(--m);border-bottom:1px solid rgba(31,168,217,.04)">
-      <span style="color:var(--t);min-width:24px">${i+1}</span>
-      <span style="min-width:70px">${(p.x||0).toFixed(3)}</span>
-      <span style="min-width:70px">${(p.y||0).toFixed(3)}</span>
-      <span style="color:var(--gr)">${(p.z||0).toFixed(3)}</span>
-      ${p.code?`<span style="color:var(--ora)">${p.code}</span>`:''}
-    </div>`
-  ).join('') + (ST_SURVEY.pts.length>200?`<div style="color:var(--m);font-size:8px;padding:4px 8px">... ${ST_SURVEY.pts.length-200} more points</div>`:'');
+}
+function filterProcessing(q){
+  document.querySelectorAll('#processingContent [onclick^="runProcessingTool"],#processingContentSide [onclick^="runProcessingTool"]')
+    .forEach(el=>{el.style.display=(!q||el.textContent.toLowerCase().includes(q.toLowerCase()))?'':'none';});
 }
 
-function drawSurveyPts() {
-  if(!ST_SURVEY.pts.length || !ctx) return;
-  ST_SURVEY.pts.forEach(p => {
-    const s = w2s(p.x, p.y);
-    ctx.fillStyle = p.selected ? '#F5BE18' : '#4eff91';
-    ctx.beginPath(); ctx.arc(s.x, s.y, 3, 0, Math.PI*2); ctx.fill();
-    if(ST.zoom > 0.5 && p.code) {
-      ctx.fillStyle = '#4eff91'; ctx.font = '8px IBM Plex Mono,monospace';
-      ctx.fillText(p.code, s.x+5, s.y-5);
+// ── applyDynValue (coordinate/distance input) ────────────────────
+applyDynValue=function(val){
+  const sp=ST.startPt||(ST.opState?.base);
+  if(!sp&&!ST.opState){return;}
+  let wp=null;
+  if(val.includes('<')){
+    const[d,a]=val.split('<').map(Number);
+    if(!isNaN(d)&&!isNaN(a)){const r=a*Math.PI/180;wp={x:sp.x+d*Math.cos(r),y:sp.y+d*Math.sin(r)};}
+  } else if(val.startsWith('@')){
+    const[dx,dy]=val.slice(1).split(',').map(Number);
+    if(!isNaN(dx)&&!isNaN(dy)) wp={x:sp.x+(dx||0),y:sp.y+(dy||0)};
+  } else if(val.includes(',')){
+    const[x,y]=val.split(',').map(Number);
+    if(!isNaN(x)&&!isNaN(y)) wp={x,y};
+  } else {
+    const num=parseFloat(val);
+    if(!isNaN(num)&&sp){
+      const ms=w2s(sp.x,sp.y);
+      const ang=Math.atan2(ST.mouse.y-ms.y,ST.mouse.x-ms.x);
+      wp={x:sp.x+num*Math.cos(ang),y:sp.y+num*Math.sin(ang)};
     }
-  });
-}
-
-function clearSurveyPts() {
-  ST_SURVEY.pts = [];
-  renderSurveyList();
-  render();
-  toast('Survey points cleared', 'ok');
-}
-
-function zoomToSurvey() {
-  if(!ST_SURVEY.pts.length) { toast('No survey points', 'warn'); return; }
-  const xs = ST_SURVEY.pts.map(p=>p.x), ys = ST_SURVEY.pts.map(p=>p.y);
-  const cx = (Math.min(...xs)+Math.max(...xs))/2, cy = (Math.min(...ys)+Math.max(...ys))/2;
-  zoomToPoint(cx, cy);
-  toast('Zoomed to survey points', 'ok');
-}
-
-function renderGCPList() {
-  const el = document.getElementById('gcpList');
-  if(el) el.innerHTML = '<div style="color:var(--m);font-size:9px;padding:6px">No GCPs defined</div>';
-}
-
-function exportSurveyCSV() {
-  if(!ST_SURVEY.pts.length) { toast('No survey points', 'warn'); return; }
-  const rows = ['Point,X,Y,Z,Code'];
-  ST_SURVEY.pts.forEach((p,i) => rows.push(`${i+1},${p.x},${p.y},${p.z||0},${p.code||''}`));
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([rows.join('\n')], {type:'text/csv'}));
-  a.download = 'survey_points.csv'; a.click();
-  toast('Survey CSV exported', 'ok');
-}
-
-function cyclePtType(idx) {
-  const types = ['BM','CP','TP','SP','FP'];
-  if(ST_SURVEY.pts[idx]) {
-    const cur = types.indexOf(ST_SURVEY.pts[idx].code||'SP');
-    ST_SURVEY.pts[idx].code = types[(cur+1)%types.length];
-    renderSurveyList();
   }
-}
+  if(!wp){toast('Invalid: '+val,'warn');return;}
+  if(ST.opState&&ST.opState.base){applyOp(wp);return;}
+  if(ST.drawing&&ST.startPt){
+    const owp=ST.ortho?applyOrtho(ST.startPt,wp):wp;
+    const done=commitEntity(owp);
+    if(done){if(ST.tool==='line')ST.startPt=owp;else{ST.drawing=false;ST.startPt=null;ST.pts=[];}render();}
+  }
+};
 
-function setPtType(t) {
-  ST_SURVEY.pts.filter(p=>p.selected).forEach(p=>p.code=t);
-  renderSurveyList();
-}
+// ── Init ─────────────────────────────────────────────────────────
+setTimeout(()=>{
+  if(typeof setMsg==='function') setMsg('Ready — type any command  |  F1=shortcuts  F12=processing');
+  if(typeof buildProcessingUI==='function') buildProcessingUI();
+  // buildProcessingSidePanel called lazily when panel opens
+  if(typeof renderSurveyList==='function') renderSurveyList();
+},600);
 
-function markSz(s) {
-  ST_SURVEY.markSize = s;
-  render();
-}
 
-function setAllGCP(v) {
-  toast('GCP: ' + v, 'ok');
-}
+// Global error handler to catch and identify stack overflows
+window.addEventListener('error', function(ev) {
+  if(ev.error && ev.error.name === 'RangeError') {
+    console.error('Stack overflow caught at:', ev.error.stack ? ev.error.stack.split('\n').slice(0,15).join('\n') : ev.message);
+    // Show user-friendly message
+    if(typeof toast === 'function') toast('Error: ' + ev.message.slice(0,60), 'err');
+  }
+});
 
-function calcCoords(bearing, dist, base) {
-  const r = bearing*Math.PI/180;
-  return {x: base.x + dist*Math.sin(r), y: base.y + dist*Math.cos(r)};
-}
-
-function calcBearing() {
-  const sels = ST.entities.filter(e=>e.selected&&e.type==='line');
-  if(!sels.length) { toast('Select a line first', 'warn'); return; }
-  const e = sels[0];
-  const ang = Math.atan2(e.y2-e.y1, e.x2-e.x1)*180/Math.PI;
-  const bearing = ((90-ang)+360)%360;
-  toast('Bearing: ' + bearing.toFixed(2) + '°  Dist: ' + Math.hypot(e.x2-e.x1,e.y2-e.y1).toFixed(3)+' '+ST.units, 'ok');
-}
-
-function connectLineToPoint() { toast('Select line + point, then run', 'ok'); }
-function smoothChain() { toast('Smooth: select polylines first', 'ok'); }
-function chainSegments() { toast('Chain: select lines to join', 'ok'); }
-function delaunayTriangulate(pts) { return []; }
-function buildContourLegend() {}
-function extractContourSegment() { return []; }
-function cycleTool() {
-  const tools=['select','line','polyline','circle','arc','rect','move','copy'];
-  T(tools[(tools.indexOf(ST.tool)+1)%tools.length]);
-}
+// Also protect all render() wrapper calls
+const _safeRender = render;
+render = function() {
+  if(typeof _renderDepth !== 'undefined' && _renderDepth > 0) return;
+  _safeRender();
+};
 
 </script>
 
