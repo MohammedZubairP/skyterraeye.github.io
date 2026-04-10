@@ -7764,920 +7764,619 @@ doImport = function() {
 
 
 
-// ═══ RECOVERED FUNCTIONS FROM v2 ═══
-function toggleOrtho(){ST.ortho=!ST.ortho;document.getElementById('stOrtho').textContent=ST.ortho?'ON':'OFF';document.getElementById('btn-ortho').classList.toggle('on',ST.ortho);}
-
-
-function toggleSnap(){ST.snap=!ST.snap;document.getElementById('stSnap').textContent=ST.snap?'ON':'OFF';document.getElementById('btn-snap').classList.toggle('on',ST.snap);}
-
-
-function toggleOsnap(){ST.osnap=!ST.osnap;document.getElementById('stOsnap').textContent=ST.osnap?'ON':'OFF';document.getElementById('btn-osnap').classList.toggle('on',ST.osnap);}
-
-
-function toggleGridF(){ST.grid=!ST.grid;document.getElementById('stGrid').textContent=ST.grid?'ON':'OFF';document.getElementById('btn-grid').classList.toggle('on',ST.grid);render();}
-
-
-function toggleLP(show){const el=document.getElementById('lpanel');const chk=document.getElementById('chkLP');const v=show!==undefined?show:el.classList.contains('lp-hidden');el.classList.toggle('lp-hidden',!v);if(chk)chk.checked=v;setTimeout(resize,220);}
-
-
-function togglePolar(){ST.polar=!ST.polar;toast('Polar '+(ST.polar?'ON':'OFF'),'ok');}
-
-
-function toggleRibbon(show){const el=document.getElementById('ribbonEl');const tabs=document.getElementById('ribTabsEl');const chk=document.getElementById('chkRib');const v=show!==undefined?show:el.classList.contains('rh');el.classList.toggle('rh',!v);tabs.classList.toggle('rh',!v);if(chk)chk.checked=v;setTimeout(resize,220);}
-
-
-function openMo(id){renderLayers();document.getElementById(id)?.classList.add('open');}
-
-
-function closeMo(id){document.getElementById(id)?.classList.remove('open');}
-
-// [v2 stubs replaced with clean versions above]
-
-function doImportGeoJSON(){if(!_pendingGeoFile){toast('No GeoJSON selected','warn');return;}const r=new FileReader();r.onload=ev=>{try{const gj=JSON.parse(ev.target.result);parseGeoJSON(gj,_pendingGeoFile.name);closeMo('moGeoImport');}catch(ex){toast('GeoJSON error: '+ex.message,'err');}};r.readAsText(_pendingGeoFile,'UTF-8');}
-
-function addAttr(){const tb=document.getElementById('attrBody');if(!tb)return;const r=document.createElement('tr');r.innerHTML='<td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9.5px;padding:2px 4px;border-radius:2px;width:80px" value="TAG"></td><td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9.5px;padding:2px 4px;border-radius:2px;width:100px" value=""></td><td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--red);cursor:pointer">✕</button></td>';tb.appendChild(r);}
-
-function switchLayout(id){document.querySelectorAll('.lt').forEach(t=>t.classList.remove('act-m','act-l'));const t=document.querySelector('.lt[data-lid="'+id+'"]');if(t)t.classList.add(id===0?'act-m':'act-l');}
-function exportLayers(){openExportModal();}
-function openSetTab(t){openMo('moSettings');setTimeout(()=>showTab(t),60);}
-
-function saveSettings(){applyUnits();applyScale();closeMo('moSettings');toast('Settings saved','ok');}
-
-
-function setBg(col){ST.bgColor=col||'#060E1A';render();}
-
-function setTbSz(sz){document.body.classList.remove('tb-sm','tb-lg');if(sz)document.body.classList.add('tb-'+sz);}
-
-function selCard(el){el.closest('.oc-g')?.querySelectorAll('.oc').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');}
-
-
-function selectInvert(){ST.entities.forEach(e=>{if(layVisible(e.layer))e.selected=!e.selected;});updateSel();render();}
-
-function showHelpModal(){openMo('moShortcuts');}
-
-function showCRS(){openMo('moCRS');}
-
-// ════════════════════════════════════════════════════════════════════
-//  RESTORED MISSING FUNCTIONS
-// ════════════════════════════════════════════════════════════════════
-
-// ── Toggle helpers ────────────────────────────────────────────────
-function toggleOrtho(){ST.ortho=!ST.ortho;const el=document.getElementById('stOrtho');if(el)el.textContent=ST.ortho?'ON':'OFF';const b=document.getElementById('btn-ortho');if(b)b.classList.toggle('on',ST.ortho);const ib=document.getElementById('ib-ortho');if(ib)ib.classList.toggle('on',ST.ortho);}
-function toggleSnap(){ST.snap=!ST.snap;const el=document.getElementById('stSnap');if(el)el.textContent=ST.snap?'ON':'OFF';const b=document.getElementById('btn-snap');if(b)b.classList.toggle('on',ST.snap);}
-function toggleOsnap(){ST.osnap=!ST.osnap;const el=document.getElementById('stOsnap');if(el)el.textContent=ST.osnap?'ON':'OFF';const b=document.getElementById('btn-osnap');if(b)b.classList.toggle('on',ST.osnap);const ib=document.getElementById('ib-osnap');if(ib)ib.classList.toggle('on',ST.osnap);}
-function toggleGridF(){ST.grid=!ST.grid;const el=document.getElementById('stGrid');if(el)el.textContent=ST.grid?'ON':'OFF';const b=document.getElementById('btn-grid');if(b)b.classList.toggle('on',ST.grid);render();}
-function togglePolar(){ST.polar=!ST.polar;const el=document.getElementById('stPolar');if(el)el.textContent=ST.polar?'ON':'OFF';}
-function toggleLP(show){const el=document.getElementById('lpanel');if(!el)return;const v=show!==undefined?show:el.classList.contains('lp-hidden');el.classList.toggle('lp-hidden',!v);const chk=document.getElementById('chkLP');if(chk)chk.checked=v;setTimeout(()=>{if(typeof resize==='function')resize();},220);}
+// ════ ESSENTIAL HELPER FUNCTIONS ════
+function toggleOrtho(){ST.ortho=!ST.ortho;const e=document.getElementById('stOrtho'),b=document.getElementById('btn-ortho'),ib=document.getElementById('ib-ortho');if(e)e.textContent=ST.ortho?'ON':'OFF';if(b)b.classList.toggle('on',ST.ortho);if(ib)ib.classList.toggle('on',ST.ortho);}
+function toggleSnap(){ST.snap=!ST.snap;const e=document.getElementById('stSnap'),b=document.getElementById('btn-snap');if(e)e.textContent=ST.snap?'ON':'OFF';if(b)b.classList.toggle('on',ST.snap);}
+function toggleOsnap(){ST.osnap=!ST.osnap;const e=document.getElementById('stOsnap'),b=document.getElementById('btn-osnap'),ib=document.getElementById('ib-osnap');if(e)e.textContent=ST.osnap?'ON':'OFF';if(b)b.classList.toggle('on',ST.osnap);if(ib)ib.classList.toggle('on',ST.osnap);}
+function toggleGridF(){ST.grid=!ST.grid;const e=document.getElementById('stGrid'),b=document.getElementById('btn-grid');if(e)e.textContent=ST.grid?'ON':'OFF';if(b)b.classList.toggle('on',ST.grid);render();}
+function toggleLP(show){const el=document.getElementById('lpanel');if(!el)return;const v=show!==undefined?show:el.classList.contains('lp-hidden');el.classList.toggle('lp-hidden',!v);setTimeout(()=>{if(typeof resize==='function')resize();},220);}
+function togglePolar(){ST.polar=!ST.polar;const e=document.getElementById('stPolar');if(e)e.textContent=ST.polar?'ON':'OFF';}
 function toggleRibbon(){const r=document.querySelector('.ribbon');if(r)r.classList.toggle('rh');}
-function toggleRP(){const p=document.getElementById('rpanel');if(p)p.style.display=p.style.display==='none'?'':'none';}
-function switchRib(t){document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('act'));document.querySelectorAll('.ribbon').forEach(r=>r.classList.add('rh'));const btn=document.querySelector('.rtab[data-rib="'+t+'"]');if(btn)btn.classList.add('act');const rib=document.getElementById('rib-'+t);if(rib)rib.classList.remove('rh');}
+function toggleRP(){const p=document.getElementById('rpanel');if(p){p.classList.toggle('rp-hidden');}}
+function switchRib(t){document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('act'));document.querySelectorAll('[id^="rib-"]').forEach(r=>r.classList.add('rh'));const btn=document.querySelector('.rtab[data-rib="'+t+'"]');if(btn)btn.classList.add('act');const rib=document.getElementById('rib-'+t);if(rib)rib.classList.remove('rh');}
 function switchLayout(id){document.querySelectorAll('.lt').forEach(t=>t.classList.remove('act-m','act-l'));const t=document.querySelector('.lt[data-lid="'+id+'"]');if(t)t.classList.add(id===0?'act-m':'act-l');}
-function addLayout(){const name=prompt('New layout name:','Layout '+(document.querySelectorAll('.lt').length));if(!name)return;const bar=document.querySelector('.laybar');if(!bar)return;const t=document.createElement('div');t.className='lt';t.textContent=name;bar.insertBefore(t,bar.querySelector('.lt-add'));toast('Layout "'+name+'" added','ok');}
-
-// ── Modal helpers ─────────────────────────────────────────────────
-function openMo(id){const el=document.getElementById(id);if(el){el.classList.add('open');if(typeof renderLayers==='function')renderLayers();}}
-function closeMo(id){const el=document.getElementById(id);if(el)el.classList.remove('open');}
-function showTab(t){document.querySelectorAll('.spanel').forEach(p=>p.classList.remove('act'));document.querySelectorAll('.stab').forEach(b=>b.classList.remove('act'));const panel=document.getElementById('sp-'+t);const tab=document.querySelector('.stab[data-tab="'+t+'"]');if(panel)panel.classList.add('act');if(tab)tab.classList.add('act');}
-function openSetTab(t){openMo('moSettings');setTimeout(()=>showTab(t),50);}
-
-// ── UI helpers ────────────────────────────────────────────────────
-function setMsg(m){const el=document.getElementById('cmdMsg');if(el)el.textContent=m;}
-function toast(msg,type){const el=document.getElementById('toastEl');if(!el)return;el.textContent=msg;el.className='toast show'+(type?' '+type:'');clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('show'),2800);}
-function printDwg(){const c2=document.getElementById('cad');if(!c2)return;const w=window.open('','_blank');w.document.write('<html><body style="margin:0"><img src="'+c2.toDataURL()+'" style="max-width:100%"><script>window.onload=()=>{window.print();window.close();}<\/script></body></html>');w.document.close();}
-function setBg(col){ST.bgColor=col;render();}
-function setTbSz(s){document.querySelectorAll('.tb-i').forEach(el=>el.style.fontSize=s+'px');}
-function saveSettings(){toast('Settings saved','ok');closeMo('moSettings');}
-function selCard(id){document.querySelectorAll('.szc').forEach(c=>c.classList.remove('act'));const el=document.getElementById(id);if(el)el.classList.add('act');}
+function addLayout(){const name=prompt('Layout name:','Layout');if(!name)return;const bar=document.querySelector('.laybar');if(!bar)return;const t=document.createElement('div');t.className='lt';t.setAttribute('data-lid',Date.now());t.textContent=name;const add=bar.querySelector('.lt-add');if(add)bar.insertBefore(t,add);else bar.appendChild(t);}
+function openSetTab(tab){openMo('moSettings');setTimeout(()=>showTab(tab),60);}
+function saveSettings(){if(typeof applyUnits==='function')applyUnits();if(typeof applyScale==='function')applyScale();closeMo('moSettings');toast('Settings saved','ok');}
+function setBg(col){ST.bgColor=col||'#060E1A';render();}
+function setTbSz(sz){document.body.classList.remove('tb-sm','tb-md','tb-lg');if(sz)document.body.classList.add('tb-'+sz);}
+function selCard(el){el?.closest('.oc-g')?.querySelectorAll('.oc').forEach(c=>c.classList.remove('sel'));el?.classList.add('sel');}
 function selectInvert(){ST.entities.forEach(e=>{if(layVisible(e.layer))e.selected=!e.selected;});updateSel();render();}
 function showHelpModal(){openMo('moShortcuts');}
 function showCRS(){openMo('moCRS');}
-function ibOpenCoord(){openCE&&openCE(null,'Enter absolute X, Y coordinates');}
+function ibOpenCoord(){if(typeof openCE==='function')openCE(null,'Enter absolute X, Y coordinates');}
 function cycleTool(){const tools=['select','line','polyline','circle','arc','rect','move','copy'];T(tools[(tools.indexOf(ST.tool)+1)%tools.length]);}
 function zoomToPoint(x,y){ST.pan.x=W/2-x*ST.zoom;ST.pan.y=H/2+y*ST.zoom;render();}
-
-// ── Survey stubs ──────────────────────────────────────────────────
-if(!window.ST_SURVEY)window.ST_SURVEY={pts:[]};
-function renderSurveyList(){const el=document.getElementById('surveyList');if(el)el.innerHTML='<div style="color:var(--m);font-size:9px;padding:8px">No survey points loaded — import CSV</div>';}
-function drawSurveyPts(){if(!ST_SURVEY.pts.length)return;}
-function clearSurveyPts(){ST_SURVEY.pts=[];renderSurveyList();render();toast('Survey cleared','ok');}
-function zoomToSurvey(){if(!ST_SURVEY.pts.length)return;const xs=ST_SURVEY.pts.map(p=>p.x),ys=ST_SURVEY.pts.map(p=>p.y);const cx=(Math.min(...xs)+Math.max(...xs))/2,cy=(Math.min(...ys)+Math.max(...ys))/2;zoomToPoint(cx,cy);}
-function cyclePtType(idx){toast('Cycle pt type: '+idx,'ok');}
-function setPtType(t){toast('Pt type: '+t,'ok');}
-function markSz(s){toast('Mark size: '+s,'ok');}
-function exportSurveyCSV(){toast('Export survey CSV','ok');}
-function renderGCPList(){const el=document.getElementById('gcpList');if(el)el.innerHTML='';}
-function setAllGCP(v){toast('GCP: '+v,'ok');}
-function calcCoords(){toast('Calc coords','ok');}
-function calcBearing(){toast('Calc bearing','ok');}
-
-// ── Stubs for advanced operations ─────────────────────────────────
-function connectLineToPoint(){toast('Connect line to point','ok');}
-function chainSegments(){toast('Chain segments','ok');}
-function smoothChain(){toast('Smooth chain','ok');}
-function delaunayTriangulate(pts){return[];}
-function buildContourLegend(){toast('Contour legend','ok');}
-function extractContourSegment(){toast('Extract contour segment','ok');}
-function filletTwoLines(l1,l2,r){toast('Fillet lines r='+r,'ok');}
-function applyUnits(u){ST.units=u;const el=document.getElementById('stUnits');if(el)el.textContent=u;const b=document.getElementById('stUnitBtn');if(b)b.textContent=u;}
-function applyScale(s){ST.scale=parseFloat(s)||1;const el=document.getElementById('stScale');if(el)el.textContent='1:'+s;toast('Scale 1:'+s,'ok');}
-
-// ── CSV/GeoJSON import modal helpers ──────────────────────────────
-function previewCSV(file){const r=new FileReader();r.onload=ev=>{const el=document.getElementById('csvPreview');if(el)el.textContent=ev.target.result.split('\n').slice(0,8).join('\n');};r.readAsText(file,'UTF-8');}
-function previewGeoJSON(file){const r=new FileReader();r.onload=ev=>{try{const gj=JSON.parse(ev.target.result);const el=document.getElementById('geoPreview');if(el)el.textContent='Features: '+(gj.features||[]).length+' | Type: '+gj.type;}catch(e){}};r.readAsText(file,'UTF-8');}
+function exportLayers(){openExportModal();}
+function addAttr(){const tb=document.getElementById('attrBody');if(!tb)return;const r=document.createElement('tr');r.innerHTML='<td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);padding:2px 5px;border-radius:2px;width:80px;font-size:9px" value="TAG"></td><td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);padding:2px 5px;border-radius:2px;width:120px;font-size:9px" value=""></td><td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px">✕</button></td>';tb.appendChild(r);}
+function doImportGeoJSON(){if(!_pendingGeoFile){toast('No GeoJSON selected','warn');return;}const r=new FileReader();r.onload=ev=>{try{const gj=JSON.parse(ev.target.result);if(typeof parseGeoJSON==='function')parseGeoJSON(gj,_pendingGeoFile.name);closeMo('moGeoImport');}catch(ex){toast('GeoJSON error: '+ex.message,'err');}};r.readAsText(_pendingGeoFile,'UTF-8');}
+function previewCSV(file){const r=new FileReader();r.onload=ev=>{const el=document.getElementById('csvPreview');if(el)el.textContent=ev.target.result.split('\n').slice(0,8).join('\n');};r.readAsText(file);}
+function previewGeoJSON(file){const r=new FileReader();r.onload=ev=>{try{const gj=JSON.parse(ev.target.result);const el=document.getElementById('geoPreview');if(el)el.textContent='Features: '+(gj.features||[]).length;}catch(e){}};r.readAsText(file);}
 function csvDrop(ev){ev.preventDefault();const f=ev.dataTransfer?.files?.[0];if(!f)return;_pendingCSVFile=f;const el=document.getElementById('csvFileName');if(el)el.textContent='📊 '+f.name;previewCSV(f);}
 function csvFileChosen(ev){const f=ev.target.files?.[0];if(!f)return;_pendingCSVFile=f;const el=document.getElementById('csvFileName');if(el)el.textContent='📊 '+f.name;previewCSV(f);}
 function geoDrop(ev){ev.preventDefault();const f=ev.dataTransfer?.files?.[0];if(!f)return;_pendingGeoFile=f;const el=document.getElementById('geoFileName');if(el)el.textContent='🗺 '+f.name;previewGeoJSON(f);}
 function geoFileChosen(ev){const f=ev.target.files?.[0];if(!f)return;_pendingGeoFile=f;const el=document.getElementById('geoFileName');if(el)el.textContent='🗺 '+f.name;previewGeoJSON(f);}
-function doImportGeoJSON(){if(!_pendingGeoFile){toast('No GeoJSON selected','warn');return;}const r=new FileReader();r.onload=ev=>{try{const gj=JSON.parse(ev.target.result);parseGeoJSON(gj,_pendingGeoFile.name);closeMo('moGeoImport');}catch(e){toast('GeoJSON error: '+e.message,'err');}};r.readAsText(_pendingGeoFile,'UTF-8');}
-
-// ── Show/hide diagnostic modal ────────────────────────────────────
-function showDxfDiag(filename,entCount,imgPaths,tileBounds,isCivil){
-  const el=document.getElementById('diagStats');
-  if(el)el.innerHTML='<span style="color:var(--gr)">'+entCount+'</span> entities &nbsp;|&nbsp; <span style="color:var(--ora)">'+imgPaths.length+'</span> ext images &nbsp;|&nbsp; <span style="color:'+(isCivil?'var(--ora)':'var(--m)')+'">Civil3D:'+(isCivil?'YES':'no')+'</span>';
-  setMsg(filename+': '+entCount+' entities'+(isCivil?' (Civil3D proxy objects may be missing)':''));
-  openMo('moDxfDiag');
-}
-
-// ── Tile loader ───────────────────────────────────────────────────
-function tlOpen(){openMo('moTileLoader');}
-function tlDrop(ev){ev.preventDefault();tlFiles(ev.dataTransfer.files);}
-function tlFiles(files){Array.from(files).forEach((f,i)=>tlLoadFile(f,i));}
-function tlLoadFile(file,idx){
-  const r=new FileReader();
-  r.onload=ev=>{
-    const img=new Image();
-    img.onload=()=>{
-      if(!ST.imgOverlays)ST.imgOverlays=[];
-      const layId=typeof ensureLayer==='function'?ensureLayer('TileImg-'+(idx+1),'#88aaff'):ST.curLayer;
-      const wp=s2w(W/2,H/2);
-      ST.entities.push({_id:++ST._eid,type:'image',x:wp.x-img.width/(2*ST.zoom),y:wp.y-img.height/(2*ST.zoom),w:img.width/ST.zoom,h:img.height/ST.zoom,src:ev.target.result,_imgObj:img,layer:layId,selected:false});
-      render();toast('Image loaded: '+file.name,'ok');
-    };
-    img.src=ev.target.result;
-  };
-  r.readAsDataURL(file);
-}
+function showDxfDiag(filename,entCount,imgPaths,tileBounds,isCivil){const el=document.getElementById('diagStats');if(el)el.innerHTML='<span style="color:var(--gr)">'+entCount+'</span> entities';setMsg(filename+': '+entCount+' entities'+(isCivil?' (Civil3D proxy objects may be missing)':''));if(document.getElementById('moDxfDiag'))openMo('moDxfDiag');}
+function tlOpen(){if(document.getElementById('moTileLoader'))openMo('moTileLoader');}
+function tlDrop(ev){ev.preventDefault();tlFiles(ev.dataTransfer?.files);}
+function tlFiles(files){if(!files)return;Array.from(files).forEach((f,i)=>tlLoadFile(f,i));}
+function tlLoadFile(file,idx){const r=new FileReader();r.onload=ev=>{const img=new Image();img.onload=()=>{const layId=typeof ensureLayer==='function'?ensureLayer('Tile-'+(idx+1),'#88aaff'):0;const wp=s2w(W/2,H/2);ST.entities.push({_id:++ST._eid,type:'image',x:wp.x-img.width/(2*ST.zoom),y:wp.y-img.height/(2*ST.zoom),w:img.width/ST.zoom,h:img.height/ST.zoom,src:ev.target.result,_imgObj:img,layer:layId,selected:false});render();toast('Image: '+file.name,'ok');};img.src=ev.target.result;};r.readAsDataURL(file);}
 function tlClear(idx){ST.entities=ST.entities.filter((e,i)=>!(e.type==='image'&&i===idx));render();}
 function tlClearAll(){ST.entities=ST.entities.filter(e=>e.type!=='image');render();toast('All tiles cleared','ok');}
+// ════════════════════════════════════════════════════════════════════
+//  COMPREHENSIVE FIXES v3 — ALL FEATURES WORKING
+// ════════════════════════════════════════════════════════════════════
 
-// ── Export layers (legacy) ────────────────────────────────────────
-function exportLayers(){openExportModal();}
-
-// ── Map system ────────────────────────────────────────────────────
-// map vars declared at top
-// _mapCal declared at top
-const _mapLayers={
-  osm:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  sat:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  topo:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-};
-
-function toggleMap(){
-  _mapActive=!_mapActive;
-  const div=document.getElementById('mapDiv');
-  const btn=document.getElementById('btnMap');
-  if(!div)return;
-  if(_mapActive){
-    div.style.display='block';
-    ST.bgColor='rgba(5,15,28,0.15)';
-    if(!_map)_initLeaflet();
-    if(btn)btn.classList.add('on');
-    // Update input bar buttons
-    const ibBtn=document.getElementById('ibBtnMapToggle');
-    if(ibBtn)ibBtn.classList.add('on');
-    const modeBtn=document.getElementById('ibBtnMapMode');
-    if(modeBtn)modeBtn.style.display='inline-flex';
-    toast('Map ON — use 📍 Calibrate to align drawing','ok');
-    setMsg('Map active — click Calibrate to georefence your drawing');
-  } else {
-    div.style.display='none';
-    ST.bgColor='#060E1A';
-    if(btn)btn.classList.remove('on');
-    const ibBtn=document.getElementById('ibBtnMapToggle');
-    if(ibBtn)ibBtn.classList.remove('on');
-    const modeBtn=document.getElementById('ibBtnMapMode');
-    if(modeBtn)modeBtn.style.display='none';
-    toast('Map OFF','ok');
-  }
-  render();
-}
-
-function _initLeaflet(){
-  const div=document.getElementById('mapDiv');
-  if(!div)return;
-  if(typeof L==='undefined'){
-    // Load Leaflet dynamically
-    const link=document.createElement('link');
-    link.rel='stylesheet';link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
-    const script=document.createElement('script');
-    script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload=()=>{_createMap(div);};
-    document.head.appendChild(script);
-  } else {
-    _createMap(div);
+// ── 1. SINGLE CANONICAL openMo / closeMo ─────────────────────────
+function openMo(id) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.classList.add('open');
+  if(typeof renderLayers === 'function') renderLayers();
+  // Make draggable
+  const modal = el.querySelector('.modal');
+  if(modal && !modal._draggable) {
+    modal._draggable = true;
+    const hdr = modal.querySelector('.mh');
+    if(hdr) {
+      hdr.style.cursor = 'move';
+      let sx, sy, ox, oy;
+      hdr.addEventListener('mousedown', ev => {
+        if(ev.target.closest('.mc,.min-btn')) return;
+        sx = ev.clientX; sy = ev.clientY;
+        const r = modal.getBoundingClientRect();
+        ox = r.left; oy = r.top;
+        modal.style.cssText += ';position:fixed;margin:0;transform:none;left:'+ox+'px;top:'+oy+'px';
+        const mm = e2 => { modal.style.left=(ox+e2.clientX-sx)+'px'; modal.style.top=(oy+e2.clientY-sy)+'px'; };
+        const mu = () => { document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu); };
+        document.addEventListener('mousemove', mm);
+        document.addEventListener('mouseup', mu);
+      });
+    }
   }
 }
-
-function _createMap(div){
-  if(_map)return;
-  _map=L.map(div,{zoomControl:false,attributionControl:true,preferCanvas:true}).setView([25.2048,55.2708],13);
-  L.tileLayer(_mapLayers[_mapLayer],{maxZoom:22,attribution:'© OpenStreetMap'}).addTo(_map);
-  toast('Map loaded — navigate to your area then Calibrate','ok');
-}
-
-function setMapLayer(type){
-  _mapLayer=type;
-  if(!_map)return;
-  _map.eachLayer(l=>{if(l instanceof L.TileLayer)_map.removeLayer(l);});
-  L.tileLayer(_mapLayers[type]||_mapLayers.osm,{maxZoom:22}).addTo(_map);
-  toast('Map: '+type.toUpperCase(),'ok');
-}
-
-function setMapDrawMode(mode){
-  _mapMode=mode;
-  if(!_map)return;
-  if(mode==='map'){
-    canvas.style.pointerEvents='none';
-    _map.dragging.enable();
-    toast('MAP PAN mode — scroll/drag to navigate','ok');
-  } else {
-    canvas.style.pointerEvents='auto';
-    _map.dragging.disable();
-    toast('DRAW mode — draw on canvas','ok');
-  }
-  const b=document.getElementById('ibBtnMapMode');
-  if(b)b.textContent=mode==='map'?'✏ Draw Mode':'🗺 Pan Map';
-}
-
-function startMapCal(){
-  if(!_mapActive)toggleMap();
-  _mapCal={step:1,pts:[],wpts:[]};
-  toast('Calibrate: click point 1 on the MAP','ok');
-  setMsg('CAL step 1/4: Click a known point on the MAP');
-  if(_map)_map.once('click',ev=>{
-    _mapCal.pts[0]={lat:ev.latlng.lat,lng:ev.latlng.lng};
-    _mapCal.step=2;
-    toast('Now click the same point on the DRAWING','ok');
-    setMsg('CAL step 2/4: Click the same point on your DRAWING');
-  });
-}
-
-function _checkCalCanvasClick(wp){
-  if(_mapCal.step===2){
-    _mapCal.wpts[0]={x:wp.x,y:wp.y};
-    _mapCal.step=3;
-    toast('Now click point 2 on the MAP','ok');
-    setMsg('CAL step 3/4: Click a second known point on the MAP');
-    if(_map)_map.once('click',ev=>{
-      _mapCal.pts[1]={lat:ev.latlng.lat,lng:ev.latlng.lng};
-      _mapCal.step=4;
-      toast('Now click the same point 2 on the DRAWING','ok');
-      setMsg('CAL step 4/4: Click the same second point on your DRAWING');
-    });
-    return true;
-  }
-  if(_mapCal.step===4){
-    _mapCal.wpts[1]={x:wp.x,y:wp.y};
-    _mapCal.step=0;
-    _mapCal.ready=true;
-    toast('✅ Map calibrated! Drawing is georeferenced','ok');
-    setMsg('Map calibrated — coordinates are georeferenced');
-    return true;
-  }
-  return false;
-}
-
-function mapSearch(query){
-  if(!query){query=document.getElementById('ibMapSearch')?.value?.trim()||'';}
-  if(!query)return;
-  fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(query)+'&format=json&limit=1')
-    .then(r=>r.json())
-    .then(data=>{
-      if(!data.length){toast('Location not found','warn');return;}
-      const {lat,lon,display_name}=data[0];
-      if(!_mapActive)toggleMap();
-      setTimeout(()=>{if(_map)_map.setView([parseFloat(lat),parseFloat(lon)],16);},600);
-      toast('Map → '+display_name.split(',')[0],'ok');
-    })
-    .catch(()=>toast('Search failed — check internet','warn'));
-}
-
-// Patch mousedown to intercept calibration clicks
-canvas.addEventListener('mousedown',ev=>{
-  if(_mapCal&&_mapCal.step>0&&ev.button===0){
-    const r=canvas.getBoundingClientRect();
-    const wp=s2w(ev.clientX-r.left,ev.clientY-r.top);
-    if(_checkCalCanvasClick(wp)){ev.stopImmediatePropagation();ev.preventDefault();}
-  }
-},true);
-
-// ── Patch render to handle transparent background for map ─────────
-const _origRenderMap=render;
-render=function(){
-  if(_mapActive){
-    ctx.clearRect(0,0,W,H);
-    ctx.fillStyle='rgba(5,15,28,0.1)';
-    ctx.fillRect(0,0,W,H);
-  }
-  _origRenderMap();
-};
-
-// ── applyDynValue ─────────────────────────────────────────────────
-if(typeof applyDynValue==='undefined'){
-function applyDynValue(val){
-  if(!ST.startPt)return;
-  const sp=ST.startPt;
-  let wp=null;
-  if(val.includes('<')){
-    const[d,a]=val.split('<').map(Number);
-    const rad=(a||0)*Math.PI/180;
-    wp={x:sp.x+d*Math.cos(rad),y:sp.y+d*Math.sin(rad)};
-  } else if(val.startsWith('@')){
-    const[dx,dy]=val.slice(1).split(',').map(Number);
-    wp={x:sp.x+(dx||0),y:sp.y+(dy||0)};
-  } else if(val.includes(',')){
-    const[x,y]=val.split(',').map(Number);
-    wp={x,y};
-  } else {
-    const num=parseFloat(val);
-    if(isNaN(num)){toast('Invalid: '+val,'warn');return;}
-    const ang=Math.atan2(ST.mouse.y-w2s(sp.x,sp.y).y,ST.mouse.x-w2s(sp.x,sp.y).x);
-    wp={x:sp.x+num*Math.cos(ang),y:sp.y+num*Math.sin(ang)};
-  }
-  if(!wp)return;
-  if(ST.opState){applyOp(wp);return;}
-  const owp=ST.ortho?applyOrtho(ST.startPt,wp):wp;
-  const done=commitEntity(owp);
-  if(done){
-    if(ST.tool==='line'){ST.startPt=owp;}
-    else{ST.drawing=false;ST.startPt=null;ST.pts=[];}
-    render();
-  }
-}
-}
-
-// ── ibApply (input bar apply button) ─────────────────────────────
-if(typeof ibApply==='undefined'){
-function ibApply(){
-  const distEl=document.getElementById('ibDist');
-  const angEl=document.getElementById('ibAng');
-  const d=parseFloat(distEl?.value||0);
-  const a=parseFloat(angEl?.value||0);
-  if(!isNaN(d)&&d>0&&ST.startPt){
-    const rad=a*Math.PI/180;
-    applyDynValue(d+'<'+a);
-  }
-  if(distEl)distEl.value='';
-  if(angEl)angEl.value='';
-}
-}
-
-// ── ibOpApply ─────────────────────────────────────────────────────
-if(typeof ibOpApply==='undefined'){
-function ibOpApply(){
-  const v1=parseFloat(document.getElementById('ibOpV1')?.value||0);
-  const v2=parseFloat(document.getElementById('ibOpV2')?.value||0);
-  const op=ST.opState;
-  if(!op||!op.base)return;
-  if(op.type==='move'){
-    const wp={x:op.base.x+v1,y:op.base.y+v2};
-    applyOp(wp);
-  } else if(op.type==='rotate'){
-    const rad=v1*Math.PI/180;
-    pushUndo();
-    ST.entities=ST.entities.map(e=>e.selected?rotateEnt(e,op.base,rad):e);
-    toast('Rotated '+v1+'°','ok');ST.opState=null;render();
-  } else if(op.type==='scale'){
-    pushUndo();
-    ST.entities=ST.entities.map(e=>e.selected?scaleEnt(e,op.base,v1||1):e);
-    toast('Scaled ×'+(v1||1),'ok');ST.opState=null;render();
-  }
-}
-}
-
-// Ensure DXF diagnostic modal exists if not in HTML
-if(!document.getElementById('moDxfDiag')){
-  const d=document.createElement('div');
-  d.className='mo';d.id='moDxfDiag';
-  d.innerHTML='<div class="modal"><div class="mh"><div class="mh-t">DXF Diagnostic</div><span class="mc" onclick="closeMo(\'moDxfDiag\')">✕</span></div><div class="mb"><div id="diagStats"></div><div id="diagIssues" style="margin-top:8px"></div><div id="diagFixes" style="margin-top:8px"></div></div><div class="mf"><button class="btn" id="diagTileBtn" style="display:none" onclick="tlOpen()">🖼 Load Tiles</button><button class="btn s" onclick="closeMo(\'moDxfDiag\')">Close</button></div></div>';
-  document.body.appendChild(d);
-}
-
-
-// ═══════════════════════════════════════════════════════════════════
-//  RESTORED MISSING FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════
-
-function toggleOrtho(){
-  ST.ortho=!ST.ortho;
-  const el=document.getElementById('stOrtho');
-  const btn=document.getElementById('btn-ortho');
-  const ib=document.getElementById('ib-ortho');
-  if(el) el.textContent=ST.ortho?'ON':'OFF';
-  if(btn) btn.classList.toggle('on',ST.ortho);
-  if(ib)  ib.classList.toggle('on',ST.ortho);
-  setMsg('Ortho: '+(ST.ortho?'ON':'OFF'));
-}
-
-function toggleSnap(){
-  ST.snap=!ST.snap;
-  const el=document.getElementById('stSnap');
-  const btn=document.getElementById('btn-snap');
-  const ib=document.getElementById('ib-snap');
-  if(el) el.textContent=ST.snap?'ON':'OFF';
-  if(btn) btn.classList.toggle('on',ST.snap);
-  if(ib)  ib.classList.toggle('on',ST.snap);
-}
-
-function toggleOsnap(){
-  ST.osnap=!ST.osnap;
-  const el=document.getElementById('stOsnap');
-  const btn=document.getElementById('btn-osnap');
-  const ib=document.getElementById('ib-osnap');
-  if(el) el.textContent=ST.osnap?'ON':'OFF';
-  if(btn) btn.classList.toggle('on',ST.osnap);
-  if(ib)  ib.classList.toggle('on',ST.osnap);
-}
-
-function toggleGridF(){
-  ST.grid=!ST.grid;
-  const el=document.getElementById('stGrid');
-  const btn=document.getElementById('btn-grid');
-  if(el) el.textContent=ST.grid?'ON':'OFF';
-  if(btn) btn.classList.toggle('on',ST.grid);
-  render();
-}
-
-function toggleLP(show){
-  const el=document.getElementById('lpanel');
-  const chk=document.getElementById('chkLP');
-  const v=show!==undefined?show:el.classList.contains('lp-hidden');
-  el.classList.toggle('lp-hidden',!v);
-  if(chk) chk.checked=v;
-  setTimeout(resize,220);
-}
-
-function toggleRibbon(){
-  const rib=document.querySelector('.ribbon');
-  if(rib) rib.classList.toggle('rh');
-  setTimeout(resize,200);
-}
-
-function togglePolar(){
-  ST.polar=!ST.polar;
-  const btn=document.getElementById('btn-polar');
-  if(btn) btn.classList.toggle('on',ST.polar);
-  setMsg('Polar snap: '+(ST.polar?'ON':'OFF'));
-}
-
-function toggleRP(){
-  const rp=document.getElementById('rpanel');
-  if(rp) rp.classList.toggle('rp-hidden');
-  setTimeout(resize,220);
-}
-
-function switchRib(tab){
-  document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('act'));
-  document.querySelectorAll('.ribbon').forEach(r=>r.classList.add('rh'));
-  const t=document.querySelector('.rtab[data-tab="'+tab+'"]');
-  const r=document.getElementById('rib-'+tab);
-  if(t) t.classList.add('act');
-  if(r) r.classList.remove('rh');
-}
-
-function switchLayout(name){
-  document.querySelectorAll('.lt').forEach(t=>t.classList.remove('act-m','act-l'));
-  const tab=document.querySelector('.lt[data-layout="'+name+'"]');
-  if(tab) tab.classList.add(name==='Model'?'act-m':'act-l');
-  setMsg('Layout: '+name);
-}
-
-function addLayout(){
-  const name=prompt('Layout name:','Layout '+(document.querySelectorAll('.lt').length));
-  if(!name) return;
-  const bar=document.querySelector('.laybar');
-  if(!bar) return;
-  const lt=document.createElement('div');
-  lt.className='lt'; lt.setAttribute('data-layout',name);
-  lt.innerHTML='<span class="lt-dot" style="background:var(--st)"></span>'+name;
-  lt.onclick=()=>switchLayout(name);
-  bar.insertBefore(lt, bar.querySelector('.lt-add'));
-}
-
-function openMo(id){
-  renderLayers();
-  const el=document.getElementById(id);
-  if(el) el.classList.add('open');
-}
-
-function closeMo(id){
-  const el=document.getElementById(id);
+function closeMo(id) {
+  const el = document.getElementById(id);
   if(el) el.classList.remove('open');
 }
-
-function showTab(tab){
-  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('act'));
-  document.querySelectorAll('.spanel').forEach(p=>p.classList.remove('act'));
-  const t=document.querySelector('.stab[data-tab="'+tab+'"]');
-  const p=document.getElementById('sp-'+tab);
+function showTab(tab) {
+  document.querySelectorAll('.stab').forEach(t => t.classList.remove('act'));
+  document.querySelectorAll('.spanel').forEach(p => p.classList.remove('act'));
+  const t = document.querySelector('.stab[data-tab="'+tab+'"]');
+  const p = document.getElementById('sp-'+tab);
   if(t) t.classList.add('act');
   if(p) p.classList.add('act');
-  const rp=document.getElementById('rpanel');
-  if(rp) rp.classList.remove('rp-hidden');
 }
-
-function openSetTab(tab){
-  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('act'));
-  document.querySelectorAll('.spanel').forEach(p=>p.classList.remove('act'));
-  const btn=document.querySelector('.stab[data-tab="'+tab+'"]');
-  const panel=document.getElementById('sp-'+tab);
-  if(btn) btn.classList.add('act');
-  if(panel) panel.classList.add('act');
-}
-
-function saveSettings(){
-  const theme=document.getElementById('setTheme')?.value;
-  if(theme) setBg(theme);
-  const sz=parseInt(document.getElementById('setCrossSize')?.value);
-  if(!isNaN(sz)) ST.crosshairSize=sz;
-  closeMo('moSettings');
-  toast('Settings saved','ok');
-}
-
-function setBg(theme){
-  if(theme==='dark'){
-    ST.bgColor='#060E1A';
-    document.documentElement.style.setProperty('--bg','#060E1A');
-  } else if(theme==='light'){
-    ST.bgColor='#f0f2f5';
-    document.documentElement.style.setProperty('--bg','#f0f2f5');
-  } else if(theme==='black'){
-    ST.bgColor='#000';
-    document.documentElement.style.setProperty('--bg','#000');
-  }
-  render();
-}
-
-function setTbSz(sz){
-  document.querySelectorAll('.tb').forEach(b=>{
-    b.style.fontSize = sz+'px';
-  });
-}
-
-function setMsg(m){
-  const el=document.getElementById('cmdMsg');
-  if(el) el.textContent=m;
-}
-
-function toast(msg,type=''){
-  const el=document.getElementById('toastEl');
+function setMsg(m) { const el=document.getElementById('cmdMsg'); if(el) el.textContent=m; }
+function toast(msg, type) {
+  const el = document.getElementById('toastEl');
   if(!el) return;
-  el.textContent=msg; el.className='toast show'+(type?' '+type:'');
-  clearTimeout(window._tTimer);
-  window._tTimer=setTimeout(()=>el.classList.remove('show'),2800);
+  el.textContent = msg;
+  el.className = 'toast show' + (type?' '+type:'');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 2800);
 }
 
-function printDwg(){
-  window.print();
-}
-
-function zoomToPoint(x,y){
-  ST.pan.x = W/2 - x*ST.zoom;
-  ST.pan.y = H/2 + y*ST.zoom;
-  render();
-}
-
-function selCard(id){
-  document.querySelectorAll('.szc').forEach(c=>c.classList.remove('act'));
-  const el=document.getElementById('szc-'+id);
-  if(el) el.classList.add('act');
-}
-
-function selectInvert(){
-  ST.entities.forEach(e=>{
-    if(layVisible(e.layer)) e.selected=!e.selected;
-  });
-  updateSel(); render();
-}
-
-function showHelpModal(){ openMo('moHelp'); }
-function showCRS(){ openMo('moCRS'); }
-
-function addAttr(){
-  const tb=document.getElementById('attrBody');
-  if(!tb) return;
-  const r=document.createElement('tr');
-  r.innerHTML='<td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9.5px;padding:2px 4px;border-radius:2px;width:80px" value="TAG"></td>'+
-    '<td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9.5px;padding:2px 4px;border-radius:2px;width:100px" value="Enter:"></td>'+
-    '<td><input style="background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9.5px;padding:2px 4px;border-radius:2px;width:80px" value=""></td>'+
-    '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--red);cursor:pointer">✕</button></td>';
-  tb.appendChild(r);
-}
-
-// ── MAP SYSTEM ──────────────────────────────────────────────────────
-_map = null;
-_mapActive = false;
-_mapMode = 'draw';
-_mapLayer = 'osm';
-_mapCal = null;
-_pendingCalClick = 0;
-
-
-
-function toggleMap(){
-  _mapActive = !_mapActive;
-  const div = document.getElementById('mapDiv');
-  const btn = document.getElementById('btnMap');
-  const ibBtn = document.getElementById('ibBtnMapToggle');
-  if(!div) { toast('Map container not found','err'); return; }
-
-  if(_mapActive){
-    div.style.display='block';
-    ST.bgColor='rgba(0,0,0,0.02)';
-    if(!_map) _initMap();
-    if(btn) btn.classList.add('on');
-    if(ibBtn) ibBtn.textContent='🗺 Map ON';
-    // Show map control buttons
-    const ibMode=document.getElementById('ibBtnMapMode');
-    if(ibMode) ibMode.style.display='';
-    toast('Map ON — 📍 Calibrate to align drawing','ok');
-    setMsg('Map active — click 📍 to align drawing to real-world coordinates');
-  } else {
-    div.style.display='none';
-    ST.bgColor='#060E1A';
-    if(btn) btn.classList.remove('on');
-    if(ibBtn) ibBtn.textContent='🗺 Map';
-    const ibMode=document.getElementById('ibBtnMapMode');
-    if(ibMode) ibMode.style.display='none';
-    toast('Map OFF','ok');
-  }
-  render();
-}
-
-function _initMap(){
-  const div=document.getElementById('mapDiv');
-  if(!div){ toast('No map div','err'); return; }
-  if(typeof L==='undefined'){
-    // Load Leaflet dynamically
-    const link=document.createElement('link');
-    link.rel='stylesheet';
-    link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
-    const script=document.createElement('script');
-    script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload=()=>_initMap();
-    document.head.appendChild(script);
+// ── 2. OFFSET — direction picker + distance input ────────────────
+const _origT_offset = T;
+T = function(tool) {
+  if(tool === 'offset') {
+    // Show offset input panel immediately
+    const sels = ST.entities.filter(e=>e.selected);
+    if(sels.length > 0) {
+      // Has selection: show distance panel
+      showOffsetPanel();
+    } else {
+      ST.tool = 'offset';
+      ST.opState = {type:'offset', dist:null, base:null};
+      showOffsetPanel();
+      setMsg('OFFSET — click entity to offset  |  ESC=cancel');
+    }
     return;
   }
-  _map=L.map(div,{zoomControl:false,attributionControl:true,preferCanvas:true})
-    .setView([25.2048,55.2708],13);
-  L.tileLayer(_mapLayers[_mapLayer],{maxZoom:22,
-    attribution:_mapLayer==='sat'?'© Esri':'© OpenStreetMap'}).addTo(_map);
-  toast('Map loaded — 📍 Calibrate to align drawing','ok');
-}
+  _origT_offset(tool);
+};
 
-function setMapLayer(type){
-  _mapLayer=type;
-  const btn=document.getElementById('ibBtn'+type.charAt(0).toUpperCase()+type.slice(1));
-  if(_map){
-    _map.eachLayer(l=>{ if(l._url) _map.removeLayer(l); });
-    L.tileLayer(_mapLayers[type],{maxZoom:22}).addTo(_map);
+function showOffsetPanel() {
+  // Show a small panel asking for offset distance and direction
+  let panel = document.getElementById('offsetPanel');
+  if(!panel) {
+    panel = document.createElement('div');
+    panel.id = 'offsetPanel';
+    panel.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#050F1C;border:1px solid var(--b);border-radius:6px;padding:10px 14px;z-index:600;box-shadow:0 4px 20px rgba(0,0,0,.8);display:flex;flex-direction:column;gap:8px;min-width:280px';
+    panel.innerHTML = `
+      <div style="font-size:9px;font-weight:800;color:var(--b);font-family:'IBM Plex Mono',monospace;letter-spacing:.8px;text-transform:uppercase;display:flex;justify-content:space-between">
+        ↔ OFFSET DISTANCE
+        <span onclick="hideOffsetPanel()" style="cursor:pointer;color:var(--m)">✕</span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input id="offsetDistInput" placeholder="Distance (e.g. 500)" type="number" step="any"
+          style="flex:1;background:var(--bg2);border:1px solid var(--sep);color:var(--g);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 8px;border-radius:3px;outline:none;border-color:var(--b)"
+          onkeydown="if(event.key==='Enter'){applyOffsetPanel();event.stopPropagation();} if(event.key==='Escape'){hideOffsetPanel();event.stopPropagation();}">
+        <span style="font-size:9px;color:var(--m);font-family:'IBM Plex Mono',monospace">${ST.units}</span>
+      </div>
+      <div style="display:flex;gap:4px;justify-content:center">
+        <button onclick="applyOffsetDir('both')" style="padding:3px 10px;background:rgba(31,168,217,.1);border:1px solid var(--bl);border-radius:3px;color:var(--b);font-size:8.5px;cursor:pointer;font-family:'IBM Plex Mono',monospace">⇔ Both sides</button>
+        <button onclick="applyOffsetDir('left')"  style="padding:3px 10px;background:rgba(31,168,217,.1);border:1px solid var(--bl);border-radius:3px;color:var(--b);font-size:8.5px;cursor:pointer;font-family:'IBM Plex Mono',monospace">← Left</button>
+        <button onclick="applyOffsetDir('right')" style="padding:3px 10px;background:rgba(31,168,217,.1);border:1px solid var(--bl);border-radius:3px;color:var(--b);font-size:8.5px;cursor:pointer;font-family:'IBM Plex Mono',monospace">Right →</button>
+      </div>
+      <div style="font-size:8px;color:var(--m);font-family:'IBM Plex Mono',monospace;text-align:center">
+        Click entity on canvas to set offset side  |  Enter=apply to selection
+      </div>`;
+    document.body.appendChild(panel);
   }
-  toast('Map: '+type.toUpperCase(),'ok');
+  panel.style.display = 'flex';
+  setTimeout(() => document.getElementById('offsetDistInput')?.focus(), 50);
 }
 
-function setMapDrawMode(mode){
-  _mapMode=mode;
-  const div=document.getElementById('mapDiv');
-  if(!div) return;
-  if(mode==='map'){
-    // Map navigation mode — canvas passes through
-    canvas.style.pointerEvents='none';
-    toast('Map pan mode — use map controls to navigate','ok');
+function hideOffsetPanel() {
+  const p = document.getElementById('offsetPanel');
+  if(p) p.style.display = 'none';
+}
+
+function applyOffsetPanel() {
+  const d = parseFloat(document.getElementById('offsetDistInput')?.value || '0');
+  if(isNaN(d) || d <= 0) { toast('Enter a valid distance','warn'); return; }
+  hideOffsetPanel();
+  const sels = ST.entities.filter(e=>e.selected);
+  if(sels.length > 0) {
+    // Offset all selected entities
+    pushUndo();
+    const news = [];
+    sels.forEach(e => {
+      const ne = offsetEnt(e, d);
+      if(ne) { ne._id = ++ST._eid; ne.selected = false; news.push(ne); }
+    });
+    ST.entities.push(...news);
+    render();
+    toast('Offset '+d+' '+ST.units+' → '+news.length+' entities created','ok');
+    setMsg('Offset done — ESC to deselect');
   } else {
-    canvas.style.pointerEvents='';
-    toast('Draw mode — click on canvas to draw','ok');
+    // Set dist and wait for entity click
+    ST.opState = {type:'offset', dist:d, base:null};
+    ST.tool = 'offset';
+    setMsg('OFFSET '+d+' '+ST.units+' — click entity to offset  |  ESC=cancel');
   }
 }
 
-function startMapCal(){
-  if(!_mapActive) toggleMap();
-  _mapCal={step:0,mapPts:[],worldPts:[]};
-  _pendingCalClick=1;
-  toast('Calibrate: click point 1 on the MAP','ok');
-  setMsg('CALIBRATE step 1: click a known point on the MAP, then click the same spot on the drawing');
-  if(_map) _map.once('click', ev=>{
-    _mapCal.mapPts[0]={lat:ev.latlng.lat,lng:ev.latlng.lng};
-    _pendingCalClick=1; // now wait for canvas click
-    toast('Now click the SAME point on the drawing canvas','ok');
-    setMsg('CALIBRATE step 1b: click the same point on your drawing');
+function applyOffsetDir(dir) {
+  const d = parseFloat(document.getElementById('offsetDistInput')?.value || '0');
+  if(isNaN(d) || d <= 0) { toast('Enter a valid distance first','warn'); return; }
+  hideOffsetPanel();
+  const sels = ST.entities.filter(e=>e.selected);
+  if(!sels.length) { toast('Select entities first','warn'); return; }
+  pushUndo();
+  const news = [];
+  sels.forEach(e => {
+    if(dir === 'both') {
+      const ne1 = offsetEnt(e, d);  if(ne1){ne1._id=++ST._eid;ne1.selected=false;news.push(ne1);}
+      const ne2 = offsetEnt(e,-d);  if(ne2){ne2._id=++ST._eid;ne2.selected=false;news.push(ne2);}
+    } else {
+      const ne = offsetEnt(e, dir==='left'?-d:d);
+      if(ne){ne._id=++ST._eid;ne.selected=false;news.push(ne);}
+    }
+  });
+  ST.entities.push(...news);
+  render();
+  toast('Offset '+dir+' '+d+' '+ST.units+' → '+news.length+' entities','ok');
+}
+
+// ── 3. SELECTION — yellow highlight rectangle ─────────────────────
+function showSelBox(sx, sy, mx, my) {
+  let box = document.getElementById('selBox');
+  let hint = document.getElementById('selHint');
+  if(!box) {
+    box = document.createElement('div');
+    box.id = 'selBox';
+    box.style.cssText = 'position:absolute;pointer-events:none;z-index:50;border:1px solid;box-sizing:border-box';
+    const vp = document.querySelector('.vport') || document.getElementById('vp');
+    if(vp) vp.style.position='relative', vp.appendChild(box);
+    hint = document.createElement('div');
+    hint.id = 'selHint';
+    hint.style.cssText = 'position:absolute;pointer-events:none;z-index:51;font-size:8.5px;font-family:IBM Plex Mono,monospace;padding:2px 6px;border-radius:3px';
+    if(vp) vp.appendChild(hint);
+  }
+  const crossing = mx < sx;
+  box.style.left = Math.min(sx,mx) + 'px';
+  box.style.top  = Math.min(sy,my) + 'px';
+  box.style.width  = Math.abs(mx-sx) + 'px';
+  box.style.height = Math.abs(my-sy) + 'px';
+  box.style.display = 'block';
+  // AutoCAD style: blue=window(right), green=crossing(left)
+  if(crossing) {
+    box.style.borderColor = '#4eff91';
+    box.style.borderStyle = 'dashed';
+    box.style.background = 'rgba(78,255,145,0.05)';
+    if(hint){hint.textContent='CROSSING';hint.style.color='#4eff91';hint.style.left=Math.min(sx,mx)+'px';hint.style.top=(Math.min(sy,my)-18)+'px';hint.style.display='block';}
+  } else {
+    box.style.borderColor = '#1FA8D9';
+    box.style.borderStyle = 'solid';
+    box.style.background = 'rgba(31,168,217,0.05)';
+    if(hint){hint.textContent='WINDOW';hint.style.color='#1FA8D9';hint.style.left=Math.min(sx,mx)+'px';hint.style.top=(Math.min(sy,my)-18)+'px';hint.style.display='block';}
+  }
+}
+function hideSelBox() {
+  const b=document.getElementById('selBox'), h=document.getElementById('selHint');
+  if(b)b.style.display='none'; if(h)h.style.display='none';
+}
+
+// ── 4. FULL COMMAND SYSTEM — case-insensitive ─────────────────────
+// Override runCommand completely
+runCommand = function(rawCmd) {
+  const raw = (rawCmd || '').trim();
+  if(!raw) { if(ST._lastTool) T(ST._lastTool); return; }
+  const v = raw.toUpperCase();
+
+  // Close polyline/boundary
+  if(v === 'C' && (ST.tool==='polyline'||ST.tool==='boundary'||ST.tool==='line'||ST.drawing)) {
+    if(ST.tool==='polyline') { if(typeof commitPolyline==='function') commitPolyline(); }
+    else if(ST.tool==='boundary') { if(typeof commitBoundary==='function') commitBoundary(); }
+    else { ST.drawing=false; ST.startPt=null; render(); }
+    return;
+  }
+
+  // Coordinate/distance input while drawing
+  if((ST.drawing && ST.startPt) || ST.opState) {
+    if(raw.match(/^[@\d\.\-+]/) || raw.includes('<') || (raw.includes(',') && /\d/.test(raw))) {
+      if(typeof applyDynValue==='function') { applyDynValue(raw); return; }
+    }
+  }
+
+  // Full command table — works regardless of case
+  const CMDS = {
+    // Draw
+    L:'line',LINE:'line',PL:'polyline',PLINE:'polyline',POLYLINE:'polyline',
+    C:'circle',CIRCLE:'circle',A:'arc',ARC:'arc',
+    REC:'rect',RECT:'rect',RECTANG:'rect',RECTANGLE:'rect',
+    EL:'ellipse',ELLIPSE:'ellipse',SPL:'spline',SPLINE:'spline',
+    H:'hatch',BH:'hatch',HATCH:'hatch',
+    T:'text',TEXT:'text',DT:'text',MT:'text',MTEXT:'text',
+    PO:'point',POINT:'point',XL:'xline',XLINE:'xline',
+    RAY:'ray',WI:'wipeout',WIPEOUT:'wipeout',
+    CLD:'cloud',CLOUD:'cloud',REVCLOUD:'cloud',
+    BND:'boundary',BOUNDARY:'boundary',PG:'polygon',POLYGON:'polygon',
+    DIM:'dim-lin',DL:'dim-lin',DIMLIN:'dim-lin',DIMLINEAR:'dim-lin',
+    LE:'leader',LEADER:'leader',
+    // Modify
+    M:'move',MOVE:'move',CO:'copy',CP:'copy',COPY:'copy',
+    RO:'rotate',ROTATE:'rotate',SC:'scale',SCALE:'scale',
+    MI:'mirror',MIRROR:'mirror',O:'offset',OFFSET:'offset',
+    TR:'trim',TRIM:'trim',EX:'extend',EXTEND:'extend',
+    F:'fillet',FILLET:'fillet',CHA:'chamfer',CHAMFER:'chamfer',
+    ST:'stretch',STRETCH:'stretch',BR:'break',BREAK:'break',
+    J:'join',JOIN:'join',X:'explode',EXP:'explode',EXPLODE:'explode',
+    AR:'array',ARRAY:'array',
+    // View
+    Z:'zoom',ZE:'zoom',ZOOM:'zoom',
+    S:'select',SEL:'select',SELECT:'select',
+    P:'pan',PAN:'pan',
+    U:'undo',UNDO:'undo',REDO:'redo',
+    E:'erase',ERASE:'erase',DEL:'erase',DELETE:'erase',
+    // Info
+    DI:'measure-d',DIST:'measure-d',
+    AA:'measure-a',AREA:'measure-a',
+    // Layers/tools
+    LA:'layers',LAYER:'layers',LAYERS:'layers',
+    IMPORT:'import',EXPORT:'export',SAVE:'save',
+    HELP:'help',SHORTCUTS:'help',
+    PROCESSING:'processing',PROC:'processing',
+    MAP:'map',TIN:'tin',CONTOUR:'contour',
+    BUFFER:'buffer',DISSOLVE:'dissolve',STATS:'stats',
+  };
+
+  const target = CMDS[v];
+  if(target) {
+    const drawMods=['line','polyline','circle','arc','rect','ellipse','spline','hatch',
+      'text','point','xline','ray','wipeout','cloud','boundary','polygon','dim-lin','leader',
+      'move','copy','rotate','scale','mirror','offset','trim','extend','fillet','chamfer',
+      'stretch','break','join','explode','measure-d','measure-a','pan','select'];
+    if(drawMods.includes(target)) { T(target); setMsg('▶ '+target.toUpperCase()+' — click to start'); return; }
+    
+    const actions = {
+      zoom: zoomExt, undo: undo, redo: redo,
+      erase: delSel,
+      layers: ()=>showTab('layers'),
+      import: ()=>openMo('moImport'),
+      export: ()=>openExportModal(),
+      save: ()=>{ if(typeof saveProject==='function') saveProject(); else toast('Use File > Save','ok'); },
+      help: ()=>openMo('moShortcuts'),
+      processing: ()=>toggleProcPanel(),
+      map: toggleMap, tin: buildTIN,
+      contour: ()=>openMo('moContour'),
+      buffer: doBuffer, dissolve: dissolveLayer, stats: showStats,
+    };
+    if(actions[target]) { actions[target](); setMsg('▶ '+target); return; }
+  }
+
+  // Number = distance input
+  const num = parseFloat(raw);
+  if(!isNaN(num)) {
+    if(typeof applyDynValue==='function') { applyDynValue(raw); return; }
+  }
+
+  // Map search
+  if(v.startsWith('FIND ') || v.startsWith('GO ') || v.startsWith('GOTO ')) {
+    if(typeof mapSearch==='function') mapSearch(raw.replace(/^(FIND|GO|GOTO)\s+/i,''));
+    return;
+  }
+
+  setMsg('"'+raw+'" not found — press F1 for command list');
+};
+
+// ── 5. VALUE INPUT — Enter/Space in cmdInput ─────────────────────
+(function() {
+  const inp = document.getElementById('cmdInput');
+  if(!inp) return;
+  // Remove old handlers and add clean one
+  const newInp = inp.cloneNode(true);
+  inp.parentNode.replaceChild(newInp, inp);
+  newInp.addEventListener('keydown', ev => {
+    ev.stopPropagation();
+    if(ev.key === 'Escape') { newInp.value = ''; canvas.focus(); return; }
+    const isEnterOrSpace = ev.key === 'Enter' || ev.key === ' ';
+    if(isEnterOrSpace) {
+      const raw = newInp.value.trim();
+      newInp.value = '';
+      if(raw) {
+        ev.preventDefault();
+        runCommand(raw);
+      } else if(ev.key === ' ') {
+        ev.preventDefault();
+        if(ST.tool==='polyline') { if(typeof commitPolyline==='function') commitPolyline(); }
+        else if(ST.tool==='boundary') { if(typeof commitBoundary==='function') commitBoundary(); }
+        else if(ST._lastTool) T(ST._lastTool);
+      }
+      canvas.focus();
+    }
+  });
+})();
+
+// Route typing to command line
+document.addEventListener('keydown', ev => {
+  const tag = document.activeElement?.tagName;
+  if(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if(!ev.ctrlKey && !ev.altKey && !ev.metaKey && ev.key.length === 1) {
+    const inp = document.getElementById('cmdInput');
+    if(inp) inp.focus();
+  }
+}, false);
+
+// ── 6. PROCESSING TOOLBOX — fix insertBefore error ───────────────
+buildProcessingUI = function() {
+  const container = document.getElementById('processingContent');
+  if(!container) return;
+  const cats = [
+    {cat:'VECTOR GENERAL',color:'var(--b)',tools:[
+      {id:'deleteDuplicates',name:'Delete Duplicates'},
+      {id:'mergeLines',name:'Merge Lines'},
+      {id:'fixGeom',name:'Fix Geometry'},
+      {id:'multiToSingle',name:'Multipart→Single'},
+      {id:'simplifyGeom',name:'Simplify (D-P)'},
+      {id:'smoothGeom',name:'Smooth'},
+    ]},
+    {cat:'VECTOR ANALYSIS',color:'var(--gr)',tools:[
+      {id:'countPoints',name:'Count Points in Poly'},
+      {id:'meanCoords',name:'Mean Coordinates'},
+      {id:'boundingBox',name:'Bounding Box'},
+      {id:'convexHull',name:'Convex Hull'},
+    ]},
+    {cat:'OVERLAY',color:'var(--st)',tools:[
+      {id:'bufferTool',name:'Buffer'},
+      {id:'intersectTool',name:'Intersection'},
+      {id:'dissolveTool',name:'Dissolve'},
+    ]},
+    {cat:'TERRAIN',color:'var(--ora)',tools:[
+      {id:'buildTIN',name:'Build TIN'},
+      {id:'generateContours',name:'Generate Contours'},
+    ]},
+    {cat:'DATABASE',color:'#F5BE18',tools:[
+      {id:'statistics',name:'Statistics'},
+      {id:'fieldCalculator',name:'Field Calculator'},
+      {id:'selectByExpression',name:'Select by Expression'},
+    ]},
+  ];
+  container.innerHTML = cats.map(cat => `
+    <div style="margin-bottom:4px">
+      <div style="padding:4px 8px;background:rgba(31,168,217,.06);font-size:8px;font-weight:800;
+                  color:${cat.color};font-family:'IBM Plex Mono',monospace;letter-spacing:.8px;
+                  text-transform:uppercase;cursor:pointer;border-bottom:1px solid var(--sep)"
+           onclick="this.nextSibling.style.display=this.nextSibling.style.display==='none'?'':'none'">
+        ▾ ${cat.cat}
+      </div>
+      <div>
+        ${cat.tools.map(t=>`
+          <div onclick="runProcessingTool('${t.id}')"
+            style="padding:5px 12px;font-size:9px;color:var(--m);cursor:pointer;
+                   border-bottom:1px solid rgba(31,168,217,.03);transition:all .08s"
+            onmouseover="this.style.background='rgba(31,168,217,.06)';this.style.color='var(--t)'"
+            onmouseout="this.style.background='';this.style.color='var(--m)'">
+            ▶ ${t.name}
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+};
+
+buildProcessingSidePanel = function() {
+  const container = document.getElementById('processingContentSide');
+  if(!container) return;
+  buildProcessingUI.toString(); // ensure it ran
+  // Mirror content
+  const src = document.getElementById('processingContent');
+  if(src && src.innerHTML) container.innerHTML = src.innerHTML;
+  else { buildProcessingUI(); const src2 = document.getElementById('processingContent'); if(src2) container.innerHTML = src2.innerHTML; }
+};
+
+// Auto-open processing panel properly
+toggleProcPanel = function() {
+  const p = document.getElementById('procSidePanel');
+  if(p) {
+    const shown = p.style.display === 'flex';
+    p.style.display = shown ? 'none' : 'flex';
+    if(!shown) buildProcessingSidePanel();
+  } else {
+    openMo('moProcessing');
+    setTimeout(buildProcessingUI, 50);
+  }
+};
+
+// ── 7. DYNAMIC INPUT (value entry while drawing) ─────────────────
+applyDynValue = function(val) {
+  const sp = ST.startPt || (ST.opState?.base);
+  if(!sp && !ST.opState) return;
+  let wp = null;
+
+  if(val.includes('<')) {                           // polar: dist<angle
+    const [d,a] = val.split('<').map(Number);
+    if(!isNaN(d)&&!isNaN(a)) { const r=a*Math.PI/180; wp={x:sp.x+d*Math.cos(r),y:sp.y+d*Math.sin(r)}; }
+  } else if(val.startsWith('@')) {                  // relative: @dx,dy
+    const [dx,dy] = val.slice(1).split(',').map(Number);
+    if(!isNaN(dx)&&!isNaN(dy)) wp={x:sp.x+(dx||0),y:sp.y+(dy||0)};
+  } else if(val.includes(',')) {                    // absolute: x,y
+    const [x,y] = val.split(',').map(Number);
+    if(!isNaN(x)&&!isNaN(y)) wp={x,y};
+  } else {                                          // distance along current dir
+    const num = parseFloat(val);
+    if(!isNaN(num) && sp) {
+      const ang = ST.mouse ? Math.atan2(-(ST.mouse.y - (sp ? w2s(sp.x,sp.y).y : H/2)),
+                                         ST.mouse.x - (sp ? w2s(sp.x,sp.y).x : W/2)) : 0;
+      wp = {x: sp.x + num*Math.cos(ang), y: sp.y + num*Math.sin(ang)};
+    }
+  }
+
+  if(!wp) { toast('Invalid: '+val,'warn'); return; }
+
+  if(ST.opState && ST.opState.base) { applyOp(wp); return; }
+
+  if(ST.drawing && ST.startPt) {
+    const owp = ST.ortho ? applyOrtho(ST.startPt, wp) : wp;
+    const done = commitEntity(owp);
+    if(done) {
+      if(ST.tool === 'line') ST.startPt = owp;
+      else { ST.drawing=false; ST.startPt=null; ST.pts=[]; }
+      render();
+    }
+  }
+};
+
+// ── Initialise on load ───────────────────────────────────────────
+setTimeout(() => {
+  setMsg('Ready — type command or click to draw  |  F1=shortcuts  F12=processing');
+  buildProcessingUI();
+  buildProcessingSidePanel();
+}, 500);
+
+
+// ════ SURVEY + STUB FUNCTIONS ════
+var ST_SURVEY = window.ST_SURVEY || {pts:[], ptTypes:{}};
+
+function renderSurveyList() {
+  const el = document.getElementById('surveyList');
+  if(!el) return;
+  if(!ST_SURVEY.pts.length) {
+    el.innerHTML = '<div style="color:var(--m);font-size:9px;padding:10px;text-align:center">No survey points — import CSV with X,Y,Z columns</div>';
+    return;
+  }
+  el.innerHTML = ST_SURVEY.pts.slice(0,200).map((p,i) =>
+    `<div style="display:flex;gap:6px;padding:2px 6px;font-size:8.5px;font-family:'IBM Plex Mono',monospace;color:var(--m);border-bottom:1px solid rgba(31,168,217,.04)">
+      <span style="color:var(--t);min-width:24px">${i+1}</span>
+      <span style="min-width:70px">${(p.x||0).toFixed(3)}</span>
+      <span style="min-width:70px">${(p.y||0).toFixed(3)}</span>
+      <span style="color:var(--gr)">${(p.z||0).toFixed(3)}</span>
+      ${p.code?`<span style="color:var(--ora)">${p.code}</span>`:''}
+    </div>`
+  ).join('') + (ST_SURVEY.pts.length>200?`<div style="color:var(--m);font-size:8px;padding:4px 8px">... ${ST_SURVEY.pts.length-200} more points</div>`:'');
+}
+
+function drawSurveyPts() {
+  if(!ST_SURVEY.pts.length || !ctx) return;
+  ST_SURVEY.pts.forEach(p => {
+    const s = w2s(p.x, p.y);
+    ctx.fillStyle = p.selected ? '#F5BE18' : '#4eff91';
+    ctx.beginPath(); ctx.arc(s.x, s.y, 3, 0, Math.PI*2); ctx.fill();
+    if(ST.zoom > 0.5 && p.code) {
+      ctx.fillStyle = '#4eff91'; ctx.font = '8px IBM Plex Mono,monospace';
+      ctx.fillText(p.code, s.x+5, s.y-5);
+    }
   });
 }
 
-function _checkCalCanvasClick(wp){
-  if(_pendingCalClick===1){
-    _mapCal.worldPts[0]={x:wp.x,y:wp.y};
-    _pendingCalClick=2;
-    toast('Good! Now click point 2 on the MAP','ok');
-    setMsg('CALIBRATE step 2: click second known point on MAP');
-    if(_map) _map.once('click',ev=>{
-      _mapCal.mapPts[1]={lat:ev.latlng.lat,lng:ev.latlng.lng};
-      _pendingCalClick=3;
-      toast('Now click the SAME second point on the drawing','ok');
-      setMsg('CALIBRATE step 2b: click the second point on the drawing');
-    });
-    return true;
+function clearSurveyPts() {
+  ST_SURVEY.pts = [];
+  renderSurveyList();
+  render();
+  toast('Survey points cleared', 'ok');
+}
+
+function zoomToSurvey() {
+  if(!ST_SURVEY.pts.length) { toast('No survey points', 'warn'); return; }
+  const xs = ST_SURVEY.pts.map(p=>p.x), ys = ST_SURVEY.pts.map(p=>p.y);
+  const cx = (Math.min(...xs)+Math.max(...xs))/2, cy = (Math.min(...ys)+Math.max(...ys))/2;
+  zoomToPoint(cx, cy);
+  toast('Zoomed to survey points', 'ok');
+}
+
+function renderGCPList() {
+  const el = document.getElementById('gcpList');
+  if(el) el.innerHTML = '<div style="color:var(--m);font-size:9px;padding:6px">No GCPs defined</div>';
+}
+
+function exportSurveyCSV() {
+  if(!ST_SURVEY.pts.length) { toast('No survey points', 'warn'); return; }
+  const rows = ['Point,X,Y,Z,Code'];
+  ST_SURVEY.pts.forEach((p,i) => rows.push(`${i+1},${p.x},${p.y},${p.z||0},${p.code||''}`));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([rows.join('\n')], {type:'text/csv'}));
+  a.download = 'survey_points.csv'; a.click();
+  toast('Survey CSV exported', 'ok');
+}
+
+function cyclePtType(idx) {
+  const types = ['BM','CP','TP','SP','FP'];
+  if(ST_SURVEY.pts[idx]) {
+    const cur = types.indexOf(ST_SURVEY.pts[idx].code||'SP');
+    ST_SURVEY.pts[idx].code = types[(cur+1)%types.length];
+    renderSurveyList();
   }
-  if(_pendingCalClick===3){
-    _mapCal.worldPts[1]={x:wp.x,y:wp.y};
-    _pendingCalClick=0;
-    _finishCal();
-    return true;
-  }
-  return false;
 }
 
-function _finishCal(){
-  if(!_mapCal||_mapCal.mapPts.length<2||_mapCal.worldPts.length<2) return;
-  _mapCal.ready=true;
-  const p1w=_mapCal.worldPts[0],p2w=_mapCal.worldPts[1];
-  const p1m=_mapCal.mapPts[0],p2m=_mapCal.mapPts[1];
-  const dx_w=p2w.x-p1w.x||1, dy_w=p2w.y-p1w.y||1;
-  const dlat=p2m.lat-p1m.lat, dlng=p2m.lng-p1m.lng;
-  window._worldToLatLng=(x,y)=>{
-    const fx=(x-p1w.x)/dx_w, fy=(y-p1w.y)/dy_w;
-    if(typeof L!=='undefined') return L.latLng(p1m.lat+fy*dlat,p1m.lng+fx*dlng);
-    return {lat:p1m.lat+fy*dlat,lng:p1m.lng+fx*dlng};
-  };
-  toast('✅ Map calibrated! Drawing is now georeferenced','ok');
-  setMsg('Map calibrated — drawing coordinates are now linked to real-world positions');
+function setPtType(t) {
+  ST_SURVEY.pts.filter(p=>p.selected).forEach(p=>p.code=t);
+  renderSurveyList();
 }
 
-function mapSearch(query){
-  if(!query){
-    const inp=document.getElementById('ibMapSearch');
-    query=inp?inp.value.trim():prompt('Search location:','');
-  }
-  if(!query) return;
-  fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(query)+'&format=json&limit=1')
-    .then(r=>r.json())
-    .then(data=>{
-      if(!data.length){toast('Location not found','warn');return;}
-      const {lat,lon,display_name}=data[0];
-      if(!_mapActive) toggleMap();
-      if(_map) _map.setView([parseFloat(lat),parseFloat(lon)],15);
-      toast('→ '+display_name.split(',')[0],'ok');
-    })
-    .catch(()=>toast('Search failed — check internet','warn'));
+function markSz(s) {
+  ST_SURVEY.markSize = s;
+  render();
 }
 
-// ── SURVEY FUNCTIONS ──────────────────────────────────────────────
-function previewCSV(file){
-  const r=new FileReader();
-  r.onload=ev=>{
-    const el=document.getElementById('csvPreview');
-    if(el) el.textContent=ev.target.result.split('\n').slice(0,8).join('\n');
-  };
-  r.readAsText(file);
+function setAllGCP(v) {
+  toast('GCP: ' + v, 'ok');
 }
 
-function previewGeoJSON(file){
-  const r=new FileReader();
-  r.onload=ev=>{
-    try{
-      const gj=JSON.parse(ev.target.result);
-      const cnt=gj.features?gj.features.length:1;
-      const el=document.getElementById('geoPreview');
-      if(el) el.textContent=cnt+' features, types: '+[...new Set((gj.features||[{geometry:gj}]).map(f=>f.geometry?.type||'?'))].join(', ');
-    }catch(e){}
-  };
-  r.readAsText(file);
+function calcCoords(bearing, dist, base) {
+  const r = bearing*Math.PI/180;
+  return {x: base.x + dist*Math.sin(r), y: base.y + dist*Math.cos(r)};
 }
 
-function csvDrop(ev){
-  ev.preventDefault();
-  const f=ev.dataTransfer?.files?.[0];
-  if(!f) return;
-  window._pendingCSVFile=f;
-  const el=document.getElementById('csvFileName');
-  if(el) el.textContent='📊 '+f.name;
-  previewCSV(f);
+function calcBearing() {
+  const sels = ST.entities.filter(e=>e.selected&&e.type==='line');
+  if(!sels.length) { toast('Select a line first', 'warn'); return; }
+  const e = sels[0];
+  const ang = Math.atan2(e.y2-e.y1, e.x2-e.x1)*180/Math.PI;
+  const bearing = ((90-ang)+360)%360;
+  toast('Bearing: ' + bearing.toFixed(2) + '°  Dist: ' + Math.hypot(e.x2-e.x1,e.y2-e.y1).toFixed(3)+' '+ST.units, 'ok');
 }
 
-function csvFileChosen(ev){
-  const f=ev.target.files?.[0];
-  if(!f) return;
-  window._pendingCSVFile=f;
-  const el=document.getElementById('csvFileName');
-  if(el) el.textContent='📊 '+f.name;
-  previewCSV(f);
+function connectLineToPoint() { toast('Select line + point, then run', 'ok'); }
+function smoothChain() { toast('Smooth: select polylines first', 'ok'); }
+function chainSegments() { toast('Chain: select lines to join', 'ok'); }
+function delaunayTriangulate(pts) { return []; }
+function buildContourLegend() {}
+function extractContourSegment() { return []; }
+function cycleTool() {
+  const tools=['select','line','polyline','circle','arc','rect','move','copy'];
+  T(tools[(tools.indexOf(ST.tool)+1)%tools.length]);
 }
-
-function geoDrop(ev){
-  ev.preventDefault();
-  const f=ev.dataTransfer?.files?.[0];
-  if(!f) return;
-  window._pendingGeoFile=f;
-  const el=document.getElementById('geoFileName');
-  if(el) el.textContent='🗺 '+f.name;
-  previewGeoJSON(f);
-}
-
-function geoFileChosen(ev){
-  const f=ev.target.files?.[0];
-  if(!f) return;
-  window._pendingGeoFile=f;
-  const el=document.getElementById('geoFileName');
-  if(el) el.textContent='🗺 '+f.name;
-  previewGeoJSON(f);
-}
-
-function doImportGeoJSON(){
-  const f=window._pendingGeoFile||window._pendingFile;
-  if(!f){toast('No GeoJSON selected','warn');return;}
-  closeMo('moGeoImport');
-  const r=new FileReader();
-  r.onload=ev=>{
-    try{
-      const gj=JSON.parse(ev.target.result);
-      parseGeoJSON(gj,f.name);
-    }catch(e){toast('GeoJSON error: '+e.message,'err');}
-  };
-  r.readAsText(f);
-}
-
-// ── SHOW DXF DIAGNOSTIC ─────────────────────────────────────────
-function showDxfDiag(filename,entCount,imgPaths,tileBounds,isCivil){
-  const stats=document.getElementById('diagStats');
-  const issues=document.getElementById('diagIssues');
-  const fixes=document.getElementById('diagFixes');
-  if(stats) stats.innerHTML=
-    '<div class="diag-stat"><div class="diag-stat-n" style="color:'+(entCount>0?'var(--gr)':'var(--red)')+'">'+entCount+'</div><div class="diag-stat-l">Entities</div></div>'+
-    '<div class="diag-stat"><div class="diag-stat-n" style="color:'+(imgPaths?.length?'var(--ora)':'var(--m)')+'">'+((imgPaths&&imgPaths.length)||0)+'</div><div class="diag-stat-l">Ext Images</div></div>'+
-    '<div class="diag-stat"><div class="diag-stat-n" style="color:'+(isCivil?'var(--ora)':'var(--m)')+'">'+( isCivil?'C3D':'OK')+'</div><div class="diag-stat-l">Type</div></div>';
-  if(issues) issues.innerHTML=(imgPaths&&imgPaths.length?
-    '<div class="diag-row">🖼 '+imgPaths.length+' external image files not embedded (need PNG tiles)</div>':'')+(
-    isCivil?'<div class="diag-row">🏗 Civil 3D proxy objects may not fully import</div>':'');
-  if(fixes) fixes.innerHTML=isCivil?
-    '<div class="diag-fix"><div class="diag-fix-title">Export as standard DXF from Civil 3D</div><div class="diag-fix-body">Use AECCEXPORTTOAUTOCAD command in Civil 3D to convert proxy objects to standard DXF entities.</div></div>':'';
-  setMsg(filename+': '+entCount+' entities'+(isCivil?' [Civil 3D]':''));
-  openMo('moDxfDiag');
-}
-
-// ── TILE IMAGE LOADER STUBS ──────────────────────────────────────
-function tlOpen(){ openMo('moTileLoader'); }
-function tlDrop(ev){ ev.preventDefault(); const f=ev.dataTransfer?.files?.[0]; if(f) tlLoadFile(f,0); }
-function tlFiles(files){ Array.from(files||[]).forEach((f,i)=>tlLoadFile(f,i)); }
-function tlClear(idx){ ST.imgOverlays=(ST.imgOverlays||[]).filter(o=>o.tileIdx!==idx); render(); }
-function tlClearAll(){ ST.imgOverlays=[]; render(); toast('All tiles cleared','ok'); }
-function tlLoadFile(file,idx){
-  const r=new FileReader();
-  r.onload=ev=>{
-    const img=new Image();
-    img.onload=()=>{
-      if(!ST.imgOverlays) ST.imgOverlays=[];
-      const tb=(ST.tileBounds||[])[idx];
-      const ov={tileIdx:idx,src:ev.target.result,img,filename:file.name,
-        minX:tb?tb.minX:0,minY:tb?tb.minY:0,maxX:tb?tb.maxX:1000,maxY:tb?tb.maxY:1000};
-      ST.imgOverlays=ST.imgOverlays.filter(o=>o.tileIdx!==idx);
-      ST.imgOverlays.push(ov);
-      render();
-      toast('Tile '+idx+' loaded: '+file.name,'ok');
-    };
-    img.src=ev.target.result;
-  };
-  r.readAsDataURL(file);
-}
-
-// ── SURVEY STUBS ─────────────────────────────────────────────────
-function drawSurveyPts(){ render(); }
-function clearSurveyPts(){ ST.surveyPts=[]; render(); toast('Survey points cleared','ok'); }
-function zoomToSurvey(){
-  if(!ST.surveyPts||!ST.surveyPts.length) return;
-  const xs=ST.surveyPts.map(p=>p.e), ys=ST.surveyPts.map(p=>p.n);
-  const cx=(Math.min(...xs)+Math.max(...xs))/2, cy=(Math.min(...ys)+Math.max(...ys))/2;
-  zoomToPoint(cx,cy);
-}
-function renderSurveyList(){}
-function renderGCPList(){}
-function setPtType(t){ ST._ptType=t; }
-function cyclePtType(){ const types=['control','checkpoint','topo','stake']; const i=types.indexOf(ST._ptType||'control'); ST._ptType=types[(i+1)%types.length]; }
-function cycleTool(){ const tools=['select','line','polyline','circle','arc','rect']; const i=tools.indexOf(ST.tool); T(tools[(i+1)%tools.length]); }
-function markSz(sz){ ST._markSz=sz; render(); }
-function exportSurveyCSV(){ toast('Export survey CSV — use CSV export from Export menu','ok'); openExportModal(); }
-function setAllGCP(v){ document.querySelectorAll('.gcp-check').forEach(c=>c.checked=v); }
-function connectLineToPoint(){}
-function chainSegments(){}
-function smoothChain(){}
-function calcBearing(p1,p2){ return Math.atan2(p2.x-p1.x,p2.y-p1.y)*180/Math.PI; }
-function calcCoords(bearing,dist,base){ const r=bearing*Math.PI/180; return{x:base.x+dist*Math.sin(r),y:base.y+dist*Math.cos(r)}; }
-function buildContourLegend(){}
-function extractContourSegment(){ return []; }
-function delaunayTriangulate(pts){ if(typeof buildTIN==='function') buildTIN(); }
-function zoomToPoint(x,y){ ST.pan.x=W/2-x*ST.zoom; ST.pan.y=H/2+y*ST.zoom; render(); }
-function applyScale(){ const v=parseFloat(document.getElementById('setScale')?.value); if(!isNaN(v)) ST.drawScale=v; }
-function applyUnits(){ const v=document.getElementById('setUnits')?.value; if(v){ ST.units=v; document.getElementById('stUnits').textContent=v; } }
 
 </script>
 
