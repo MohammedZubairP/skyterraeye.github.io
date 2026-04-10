@@ -1376,6 +1376,19 @@ const ST = {
 
 // Draw state helpers
 const DRAG_THR = 4;
+// Map calibration state (declared early to avoid TDZ errors)
+var _mapCal = {step:0, pts:[], wpts:[], ready:false};
+// Built-in CloudConvert API key
+const CC_API_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiMmUwMjE3OWE3YTQ3Zjk4ODYzZGMwNGQwMGEwODdmMmY2YWQxODA5YmI3NDc5ODNmNTM1M2JjZjg1NmFkMzUxNzkwY2FmMjFlZmZhYjdjYzgiLCJpYXQiOjE3NzU2NDcxMDMuNjQxNjI3LCJuYmYiOjE3NzU2NDcxMDMuNjQxNjI5LCJleHAiOjQ5MzEzMjA3MDMuNjM0MDIsInN1YiI6IjU1NzE1MTUxIiwic2NvcGVzIjpbInVzZXIucmVhZCIsInVzZXIud3JpdGUiLCJ0YXNrLnJlYWQiLCJ0YXNrLndyaXRlIiwid2ViaG9vay5yZWFkIiwid2ViaG9vay53cml0ZSIsInByZXNldC5yZWFkIiwicHJlc2V0LndyaXRlIl19.JJfY2UDUF_u_Jq_cNNekVilmE3vd7vIjcqo1FaK9aYhO9Iqb_eckL6VVWIS5EoiidfixJQozFiLkvZry9did7aVgC1TfmZStHKhtVfROt-F09yjNSRjf-loRqRgNtedZ5pOzbXQp3kdHqIUKuzNFyd9FJQS4qNYfKR4Ze1M7ddRujvdcI_H6Wi0-YJf7lH7_aAMnGCQ-dIKYk2zdymOMxAZsirYDFhCyDbcd8Hk28XfqqG8bpYcwRoai9uBkK0K_8P_hPbhGU3XVPuOX1Hze-eKnkAkkR_t8CzMu0QIIOXelDdYjBasPyuw2rD2eiF1vMtsYOhvfmIRgW1_4GTMkkaeViIgSJlXXwQHGdN0cREzH7jZ3W4tt5RPg9oEKR1DRh0OZjoQUZcRslZm_SI_j6hmXPJEADt4nNsM2__lnWP_UrgBWVjx9zkPxMTNYLUXmfYD9TwVegvn_hSNyGt32nJC_CP6MP4kLTn9qSbEndi7hX2ffqg0J7rU3TofdvqCl0pc-hLTQPDYNdr3sgxvl451OPOftoKaOL-PrA3rk25g5o_4nzhfkR9_CQ_9-SdVzUDb50RwVr4sVHYYxWamROD6getBvpd7q202cbv7gu2Z1lRQZM0X-dULtsR5ZwFibOaCY8xY0gmKkHBgVuxHgCsnaGhNY5Lav--z5XU1UcaU';
+
+// ── Global state variables (var for hoisting safety) ─────────────
+// _pendingGeoFile, _pendingCalClick declared below
+var _lastTool = null;
+
+var _mapActive = false;
+var _map = null;
+var _mapMode = 'draw';
+var _mapLayer = 'osm';
 let W, H;
 const canvas = document.getElementById('cad');
 const ctx = canvas.getContext('2d');
@@ -3892,7 +3905,7 @@ function routeFile(f, source) {
   }
   if(n.endsWith('.json')||n.endsWith('.geojson')) {
     const r=new FileReader();
-    r.onload=ev=>{try{const gj=JSON.parse(ev.target.result);parseGeoJSON(gj,f.name);}catch(e){toast('GeoJSON error: '+e.message,'err');}};
+    r.onload=ev=>{try{const gj=JSON.parse(ev.target.result);if(typeof parseGeoJSON==='function'){parseGeoJSON(gj,f.name);}else{toast('GeoJSON handler not ready','err');};}catch(e){toast('GeoJSON error: '+e.message,'err');}};
     r.readAsText(f,'UTF-8'); return;
   }
   if(n.endsWith('.csv')||n.endsWith('.txt')) {
@@ -6150,15 +6163,69 @@ parseDXF = function(txt, filename) {
   setTimeout(() => renderLayers(), 100);
 };
 
-// Patch parseGeoJSON to auto-create layers by feature type
-let _origParseGeo = parseGeoJSON;
-parseGeoJSON = function(gj, filename) {
-  // Pre-create layers by type
-  const types = new Set();
-  (gj.features || []).forEach(f => types.add(f.geometry?.type || 'Unknown'));
-  types.forEach(t => ensureLayer(filename.replace(/\.[^.]+$/,'')+'-'+t, null));
-  _origParseGeo(gj, filename);
-};
+// Real parseGeoJSON implementation (must be declared before patch)
+function parseGeoJSON(gj, filename) {
+  if(!gj || (!gj.features && gj.type !== 'Feature')) { toast('Invalid GeoJSON','err'); return; }
+  const features = gj.features || [gj];
+  const fileBase = (filename||'geo').replace(/\.[^.]+$/, '');
+  const layersByType = {};
+  const layColors = {Point:'#F5BE18', MultiPoint:'#F5BE18',
+    LineString:'#1FA8D9', MultiLineString:'#1FA8D9',
+    Polygon:'#4eff91', MultiPolygon:'#4eff91'};
+
+  function ensureGeoLayer(name, color) {
+    if(layersByType[name]) return layersByType[name];
+    const ex = ST.layers.find(l => l.name === name);
+    if(ex) { layersByType[name] = ex.id; return ex.id; }
+    const id = Date.now() + (Math.random()*1000|0);
+    layersByType[name] = id;
+    ST.layers.push({id, name: name.toString().slice(0,30), color: color||'#1FA8D9', vis:true, lock:false, frz:false, dis:false});
+    return id;
+  }
+
+  const ents = [];
+  features.forEach(feat => {
+    const g = feat?.geometry; if(!g) return;
+    const props = feat.properties || {};
+    const rawName = props.layer || props.Layer || props.NAME || props.name ||
+                    (fileBase + '-' + g.type);
+    const layName = rawName.toString().replace(/[^a-zA-Z0-9_\- ]/g,'').slice(0,30) || 'geo';
+    const col = layColors[g.type] || '#A78BFA';
+    const layId = ensureGeoLayer(layName, col);
+
+    function mkE(obj){ return {...obj, _id:++ST._eid, layer:layId, selected:false}; }
+    function addLine(coords) {
+      if(!coords || coords.length < 2) return;
+      ents.push(mkE({type:'polyline', pts:coords.map(c=>({x:+c[0], y:+c[1]})), closed:false}));
+    }
+    function addPoly(rings) {
+      rings.forEach((ring, i) => {
+        if(!ring || ring.length < 3) return;
+        ents.push(mkE({type:'polyline', pts:ring.map(c=>({x:+c[0], y:+c[1]})), closed:true}));
+      });
+    }
+    switch(g.type) {
+      case 'Point': ents.push(mkE({type:'point', x:+g.coordinates[0], y:+g.coordinates[1]})); break;
+      case 'MultiPoint': g.coordinates.forEach(co => ents.push(mkE({type:'point', x:+co[0], y:+co[1]}))); break;
+      case 'LineString': addLine(g.coordinates); break;
+      case 'MultiLineString': g.coordinates.forEach(addLine); break;
+      case 'Polygon': addPoly(g.coordinates); break;
+      case 'MultiPolygon': g.coordinates.forEach(poly => addPoly(poly)); break;
+    }
+  });
+
+  if(!ents.length) { toast('No geometry in GeoJSON','warn'); return; }
+  pushUndo();
+  ST.entities.push(...ents);
+  renderLayers();
+  setTimeout(() => zoomExt(), 150);
+  if(typeof autoDetectCRS === 'function') autoDetectCRS(ents);
+  const lc = Object.keys(layersByType).length;
+  toast(filename + ': ' + ents.length + ' entities on ' + lc + ' layer' + (lc!==1?'s':''), 'ok');
+  setMsg(filename + ': ' + ents.length + ' entities | ' + lc + ' layers');
+}
+
+// parseGeoJSON is fully defined above — no patch needed
 
 // ════════════════════════════════════════════════════════════════════
 //  FEATURE 12: Save as DWG (via CloudConvert DXF→DWG)
@@ -7719,9 +7786,6 @@ function togglePolar(){ST.polar=!ST.polar;toast('Polar '+(ST.polar?'ON':'OFF'),'
 function toggleRibbon(show){const el=document.getElementById('ribbonEl');const tabs=document.getElementById('ribTabsEl');const chk=document.getElementById('chkRib');const v=show!==undefined?show:el.classList.contains('rh');el.classList.toggle('rh',!v);tabs.classList.toggle('rh',!v);if(chk)chk.checked=v;setTimeout(resize,220);}
 
 
-function switchRib(t){
-  document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('act'));
-
 function openMo(id){renderLayers();document.getElementById(id)?.classList.add('open');}
 
 
@@ -7860,8 +7924,8 @@ function tlClearAll(){ST.entities=ST.entities.filter(e=>e.type!=='image');render
 function exportLayers(){openExportModal();}
 
 // ── Map system ────────────────────────────────────────────────────
-let _map=null, _mapActive=false, _mapMode='draw', _mapLayer='osm';
-let _mapCal={step:0,pts:[],wpts:[]};
+// map vars declared at top
+// _mapCal declared at top
 const _mapLayers={
   osm:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   sat:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
