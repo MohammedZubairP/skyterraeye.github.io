@@ -2034,6 +2034,8 @@ function entBBox(e) {
     case 'ellipse':  return {minX:e.cx-(e.rx||10),minY:e.cy-(e.ry||10),maxX:e.cx+(e.rx||10),maxY:e.cy+(e.ry||10)};
     case 'rect':
       if(e._blockRef) return null; // unresolved INSERT — don't affect bbox
+      // Skip tiny rects (< 1 unit area) — these are block placeholder markers
+      if(Math.abs((e.w||0)*(e.h||0)) < 1) return null;
       return {minX:Math.min(e.x,e.x+e.w),minY:Math.min(e.y,e.y+e.h),maxX:Math.max(e.x,e.x+e.w),maxY:Math.max(e.y,e.y+e.h)};
     case 'polyline': {
       if(!e.pts||!e.pts.length) return null;
@@ -3163,8 +3165,8 @@ function groupSel() {
 
 // ── ZOOM EXTENTS ──────────────────────────────────────────────────
 function zoomExt() {
-  // Phase 1: collect GEOMETRY entities only (no text/dims — they drift far from drawings)
-  const geomTypes=new Set(['line','circle','arc','ellipse','polyline','hatch-poly','solid-quad','rect']);
+  // Use only structural geometry — no rect/text/dim (these scatter far from drawings)
+  const geomTypes=new Set(['line','polyline','circle','arc','ellipse','hatch-poly','solid-quad']);
   const allPts=[], geomPts=[];
   ST.entities.forEach(e=>{
     if(e.type==='viewport'||e.type==='wipeout'||e.type==='xline-inf') return;
@@ -3176,31 +3178,36 @@ function zoomExt() {
     allPts.push(pt);
     if(geomTypes.has(e.type)) geomPts.push(pt);
   });
-  const pts=geomPts.length>=10?geomPts:allPts; // prefer geometry-only
+  const pts=geomPts.length>=20?geomPts:allPts;
   if(!pts.length){ST.zoom=1;ST.pan.x=W/2;ST.pan.y=H/2;updateZoomBadge();render();return;}
 
-  // Phase 2: 5th–95th percentile range (robust against outliers at both ends)
-  // IQR fails with asymmetric drawings; percentile handles it correctly
+  // 10th–90th percentile: more aggressive than 3rd–97th, handles sparse outer regions
   const sortX=pts.map(p=>p.cx).sort((a,b)=>a-b);
   const sortY=pts.map(p=>p.cy).sort((a,b)=>a-b);
   const n=sortX.length;
-  const p05x=sortX[Math.floor(n*0.03)], p95x=sortX[Math.floor(n*0.97)];
-  const p05y=sortY[Math.floor(n*0.03)], p95y=sortY[Math.floor(n*0.97)];
-  // Allow 20% padding beyond 3rd–97th percentile to catch real edges
-  const padX=(p95x-p05x)*0.25||Math.abs(p95x)*0.05||100;
-  const padY=(p95y-p05y)*0.25||Math.abs(p95y)*0.05||100;
-  const loX=p05x-padX, hiX=p95x+padX;
-  const loY=p05y-padY, hiY=p95y+padY;
+  const p10x=sortX[Math.floor(n*0.10)], p90x=sortX[Math.floor(n*0.90)];
+  const p10y=sortY[Math.floor(n*0.10)], p90y=sortY[Math.floor(n*0.90)];
+  // Small 5% padding — enough to show edges, not enough to create empty space
+  const padX=(p90x-p10x)*0.05||Math.abs(p90x)*0.02||100;
+  const padY=(p90y-p10y)*0.05||Math.abs(p90y)*0.02||100;
+  const loX=p10x-padX, hiX=p90x+padX;
+  const loY=p10y-padY, hiY=p90y+padY;
 
-  // Phase 3: compute bbox from in-range entities
+  // Bbox from in-range entities
   let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
   pts.forEach(p=>{
     if(p.cx<loX||p.cx>hiX||p.cy<loY||p.cy>hiY) return;
     minX=Math.min(minX,p.bb.minX); maxX=Math.max(maxX,p.bb.maxX);
     minY=Math.min(minY,p.bb.minY); maxY=Math.max(maxY,p.bb.maxY);
   });
-  if(!isFinite(minX)){minX=p05x-padX;maxX=p95x+padX;minY=p05y-padY;maxY=p95y+padY;}
-  const dw=maxX-minX||1, dh=maxY-minY||1, margin=0.07;
+  if(!isFinite(minX)){minX=p10x-padX;maxX=p90x+padX;minY=p10y-padY;maxY=p90y+padY;}
+
+  // Safety: if result is unreasonably narrow, fall back to wider range
+  if((maxX-minX)<1||(maxY-minY)<1){
+    minX=sortX[0];maxX=sortX[n-1];minY=sortY[0];maxY=sortY[n-1];
+  }
+
+  const dw=maxX-minX||1, dh=maxY-minY||1, margin=0.05;
   ST.zoom=Math.min(W/(dw*(1+margin)), H/(dh*(1+margin)));
   ST.zoom=Math.max(0.0001,Math.min(500,ST.zoom));
   ST.pan.x=W/2-((minX+maxX)/2)*ST.zoom;
@@ -3574,7 +3581,7 @@ function parseDXF(txt,filename){
     const _q1y=_cy[Math.floor(_n*0.25)],_q3y=_cy[Math.floor(_n*0.75)];
     const _iqrX=(_q3x-_q1x)||Math.abs(_q3x)*0.1||1;
     const _iqrY=(_q3y-_q1y)||Math.abs(_q3y)*0.1||1;
-    const _f=6.0; // fence multiplier — relaxed to keep tall buildings
+    const _f=3.0; // fence — AND logic prevents removing valid asymmetric buildings
     const _lx=_q1x-_f*_iqrX,_hx=_q3x+_f*_iqrX;
     const _ly=_q1y-_f*_iqrY,_hy=_q3y+_f*_iqrY;
     _filteredEnts=finalEnts.filter(e=>{
@@ -3583,6 +3590,8 @@ function parseDXF(txt,filename){
       // (avoids removing tall/wide buildings that are asymmetric)
       const _len2=e.type==='line'?(e.x2-e.x1)**2+(e.y2-e.y1)**2:0;
       if(_len2>1e10) return false; // skip giant lines regardless
+      // Skip giant rects (likely paper border frames, not building elements)
+      if(e.type==='rect'&&Math.abs((e.w||0)*(e.h||0))>1e8) return false;
       const _ecx=e.type==='line'?(e.x1+e.x2)/2:
                  e.type==='circle'||e.type==='arc'?e.cx:
                  e.type==='text'?e.x:
