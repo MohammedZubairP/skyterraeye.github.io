@@ -2020,7 +2020,9 @@ function entBBox(e) {
     case 'circle':   return {minX:e.cx-e.r,minY:e.cy-e.r,maxX:e.cx+e.r,maxY:e.cy+e.r};
     case 'arc':      return {minX:e.cx-e.r,minY:e.cy-e.r,maxX:e.cx+e.r,maxY:e.cy+e.r};
     case 'ellipse':  return {minX:e.cx-(e.rx||10),minY:e.cy-(e.ry||10),maxX:e.cx+(e.rx||10),maxY:e.cy+(e.ry||10)};
-    case 'rect':     return {minX:Math.min(e.x,e.x+e.w),minY:Math.min(e.y,e.y+e.h),maxX:Math.max(e.x,e.x+e.w),maxY:Math.max(e.y,e.y+e.h)};
+    case 'rect':
+      if(e._blockRef) return null; // unresolved INSERT — don't affect bbox
+      return {minX:Math.min(e.x,e.x+e.w),minY:Math.min(e.y,e.y+e.h),maxX:Math.max(e.x,e.x+e.w),maxY:Math.max(e.y,e.y+e.h)};
     case 'polyline': {
       if(!e.pts||!e.pts.length) return null;
       const xs=e.pts.map(p=>p.x), ys=e.pts.map(p=>p.y);
@@ -2029,7 +2031,11 @@ function entBBox(e) {
     case 'point':    return {minX:e.x-2,minY:e.y-2,maxX:e.x+2,maxY:e.y+2};
     case 'xline': case 'ray': return {minX:Math.min(e.x1||0,e.x2||0),minY:Math.min(e.y1||0,e.y2||0),maxX:Math.max(e.x1||0,e.x2||0),maxY:Math.max(e.y1||0,e.y2||0)};
     case 'wipeout':  return {minX:e.x,minY:e.y,maxX:e.x+(e.w||10),maxY:e.y+(e.h||10)};
-        case 'text':     return {minX:e.x,minY:e.y,maxX:e.x+40,maxY:e.y+10};
+        case 'text': {
+      // Estimate text bounds from sz — but exclude from zoom if text is likely annotation
+      const tsz=Math.min(e.sz||12, 500); // cap at 500 units to avoid massive annotation text
+      return {minX:e.x,minY:e.y-tsz,maxX:e.x+tsz*0.6*(e.txt||'').length,maxY:e.y};
+    }
     case 'polygon': case 'cloud': return {minX:e.cx-(e.r||10),minY:e.cy-(e.r||10),maxX:e.cx+(e.r||10),maxY:e.cy+(e.r||10)};
         case 'hatch-poly':
     case 'solid-quad':
@@ -3135,35 +3141,45 @@ function groupSel() {
 
 // ── ZOOM EXTENTS ──────────────────────────────────────────────────
 function zoomExt() {
-  // Collect entity centres, excluding viewport entities
-  const pts=[];
+  // Phase 1: collect GEOMETRY entities only (no text/dims — they drift far from drawings)
+  const geomTypes=new Set(['line','circle','arc','ellipse','polyline','hatch-poly','solid-quad','rect']);
+  const allPts=[], geomPts=[];
   ST.entities.forEach(e=>{
     if(e.type==='viewport'||e.type==='wipeout'||e.type==='xline-inf') return;
     if(!layVisible(e.layer)) return;
     const bb=entBBox(e); if(!bb) return;
     const cx=(bb.minX+bb.maxX)/2, cy=(bb.minY+bb.maxY)/2;
-    if(isFinite(cx)&&isFinite(cy)) pts.push({cx,cy,bb});
+    if(!isFinite(cx)||!isFinite(cy)) return;
+    const pt={cx,cy,bb};
+    allPts.push(pt);
+    if(geomTypes.has(e.type)) geomPts.push(pt);
   });
+  const pts=geomPts.length>=10?geomPts:allPts; // prefer geometry-only
   if(!pts.length){ST.zoom=1;ST.pan.x=W/2;ST.pan.y=H/2;updateZoomBadge();render();return;}
-  // IQR filtering: discard outlier entities (XREF inserts, stray viewports)
+
+  // Phase 2: 5th–95th percentile range (robust against outliers at both ends)
+  // IQR fails with asymmetric drawings; percentile handles it correctly
   const sortX=pts.map(p=>p.cx).sort((a,b)=>a-b);
   const sortY=pts.map(p=>p.cy).sort((a,b)=>a-b);
-  const q1x=sortX[Math.floor(sortX.length*0.25)], q3x=sortX[Math.floor(sortX.length*0.75)];
-  const q1y=sortY[Math.floor(sortY.length*0.25)], q3y=sortY[Math.floor(sortY.length*0.75)];
-  const iqrX=(q3x-q1x)||Math.abs(q3x)*0.1||1;
-  const iqrY=(q3y-q1y)||Math.abs(q3y)*0.1||1;
-  const fence=1.5; // tighter fence catches more outliers
-  const loX=q1x-fence*iqrX, hiX=q3x+fence*iqrX;
-  const loY=q1y-fence*iqrY, hiY=q3y+fence*iqrY;
+  const n=sortX.length;
+  const p05x=sortX[Math.floor(n*0.03)], p95x=sortX[Math.floor(n*0.97)];
+  const p05y=sortY[Math.floor(n*0.03)], p95y=sortY[Math.floor(n*0.97)];
+  // Allow 20% padding beyond 3rd–97th percentile to catch real edges
+  const padX=(p95x-p05x)*0.25||Math.abs(p95x)*0.05||100;
+  const padY=(p95y-p05y)*0.25||Math.abs(p95y)*0.05||100;
+  const loX=p05x-padX, hiX=p95x+padX;
+  const loY=p05y-padY, hiY=p95y+padY;
+
+  // Phase 3: compute bbox from in-range entities
   let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
   pts.forEach(p=>{
     if(p.cx<loX||p.cx>hiX||p.cy<loY||p.cy>hiY) return;
     minX=Math.min(minX,p.bb.minX); maxX=Math.max(maxX,p.bb.maxX);
     minY=Math.min(minY,p.bb.minY); maxY=Math.max(maxY,p.bb.maxY);
   });
-  if(!isFinite(minX)){minX=sortX[0];maxX=sortX[sortX.length-1];minY=sortY[0];maxY=sortY[sortY.length-1];}
-  const dw=maxX-minX||1, dh=maxY-minY||1, pad=0.08;
-  ST.zoom=Math.min(W/(dw*(1+pad)), H/(dh*(1+pad)));
+  if(!isFinite(minX)){minX=p05x-padX;maxX=p95x+padX;minY=p05y-padY;maxY=p95y+padY;}
+  const dw=maxX-minX||1, dh=maxY-minY||1, margin=0.07;
+  ST.zoom=Math.min(W/(dw*(1+margin)), H/(dh*(1+margin)));
   ST.zoom=Math.max(0.0001,Math.min(500,ST.zoom));
   ST.pan.x=W/2-((minX+maxX)/2)*ST.zoom;
   ST.pan.y=H/2+((minY+maxY)/2)*ST.zoom;
@@ -3534,7 +3550,7 @@ function parseDXF(txt,filename){
     const _q1y=_cy[Math.floor(_n*0.25)],_q3y=_cy[Math.floor(_n*0.75)];
     const _iqrX=(_q3x-_q1x)||Math.abs(_q3x)*0.1||1;
     const _iqrY=(_q3y-_q1y)||Math.abs(_q3y)*0.1||1;
-    const _f=4.0; // fence multiplier
+    const _f=6.0; // fence multiplier — relaxed to keep tall buildings
     const _lx=_q1x-_f*_iqrX,_hx=_q3x+_f*_iqrX;
     const _ly=_q1y-_f*_iqrY,_hy=_q3y+_f*_iqrY;
     _filteredEnts=finalEnts.filter(e=>{
@@ -3552,7 +3568,7 @@ function parseDXF(txt,filename){
       if(_ecx==null||!isFinite(_ecx)) return true;
       return _ecx>=_lx&&_ecx<=_hx&&_ecy>=_ly&&_ecy<=_hy;
     });
-    if(_filteredEnts.length < _allEnts.length*0.5) _filteredEnts=finalEnts; // safety: don't over-filter
+    if(_filteredEnts.length < _allEnts.length*0.7) _filteredEnts=finalEnts; // safety: don't over-filter
   }
 
   const totalEnts=_filteredEnts.filter(e=>e&&e.type);
