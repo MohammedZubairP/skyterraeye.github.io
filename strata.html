@@ -1582,7 +1582,10 @@ function drawEntity(e, ghost) {
 
   switch(e.type) {
     case 'line': {
+      // Skip lines that would span more than 50× the canvas (construction remnants)
       const a=w2s(e.x1,e.y1), b=w2s(e.x2,e.y2);
+      const screenLen2=(b.x-a.x)**2+(b.y-a.y)**2;
+      if(screenLen2 > (Math.max(W,H)*50)**2) break;
       ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); break;
     }
     case 'circle': {
@@ -1640,15 +1643,27 @@ function drawEntity(e, ghost) {
       ctx.beginPath();ctx.moveTo(pp.x,pp.y-psz*2);ctx.lineTo(pp.x,pp.y+psz*2);ctx.stroke();
       break;
     }
+    case 'xline-inf': {
+      // Infinite construction line — render clipped to canvas bounds
+      if(!isFinite(e.bx)||!isFinite(e.by)) break;
+      const xa=w2s(e.bx,e.by);
+      const ang2=Math.atan2(e.dy||0,e.dx||1);
+      const ext=Math.max(W,H)*2;
+      ctx.save(); ctx.setLineDash([4,6]); ctx.globalAlpha=0.35;
+      ctx.beginPath();
+      ctx.moveTo(xa.x-ext*Math.cos(ang2),xa.y+ext*Math.sin(ang2));
+      ctx.lineTo(xa.x+ext*Math.cos(ang2),xa.y-ext*Math.sin(ang2));
+      ctx.stroke(); ctx.restore(); break;
+    }
     case 'xline': {
       if(!isFinite(e.x1)||!isFinite(e.y1)) break;
       const xa=w2s(e.x1,e.y1);
       const ang2=Math.atan2(e.y2-e.y1,e.x2-e.x1);
-      const ext=1e6;
-      ctx.save();ctx.setLineDash([4,6]);
+      const ext=Math.max(W,H)*2;
+      ctx.save();ctx.setLineDash([4,6]);ctx.globalAlpha=0.35;
       ctx.beginPath();
-      ctx.moveTo(xa.x-ext*Math.cos(ang2)*ST.zoom,xa.y+ext*Math.sin(ang2)*ST.zoom);
-      ctx.lineTo(xa.x+ext*Math.cos(ang2)*ST.zoom,xa.y-ext*Math.sin(ang2)*ST.zoom);
+      ctx.moveTo(xa.x-ext*Math.cos(ang2),xa.y+ext*Math.sin(ang2));
+      ctx.lineTo(xa.x+ext*Math.cos(ang2),xa.y-ext*Math.sin(ang2));
       ctx.stroke();ctx.restore();break;
     }
     case 'ray': {
@@ -1995,7 +2010,13 @@ function drawMeasure() {
 // ── ENTITY BBOX ────────────────────────────────────────────────────
 function entBBox(e) {
   switch(e.type) {
-    case 'line':     return {minX:Math.min(e.x1,e.x2),minY:Math.min(e.y1,e.y2),maxX:Math.max(e.x1,e.x2),maxY:Math.max(e.y1,e.y2)};
+    case 'xline-inf':  return null; // infinite line — never affects bbox
+    case 'line': {
+      // Skip lines with extreme length (construction lines, exploded XREFs)
+      const len2=(e.x2-e.x1)**2+(e.y2-e.y1)**2;
+      if(len2>1e10) return null; // > ~100,000 units = likely XLINE or stray
+      return {minX:Math.min(e.x1,e.x2),minY:Math.min(e.y1,e.y2),maxX:Math.max(e.x1,e.x2),maxY:Math.max(e.y1,e.y2)};
+    }
     case 'circle':   return {minX:e.cx-e.r,minY:e.cy-e.r,maxX:e.cx+e.r,maxY:e.cy+e.r};
     case 'arc':      return {minX:e.cx-e.r,minY:e.cy-e.r,maxX:e.cx+e.r,maxY:e.cy+e.r};
     case 'ellipse':  return {minX:e.cx-(e.rx||10),minY:e.cy-(e.ry||10),maxX:e.cx+(e.rx||10),maxY:e.cy+(e.ry||10)};
@@ -2107,15 +2128,27 @@ function ptHitsEnt(wx,wy,e,tol) {
       ctx.beginPath();ctx.moveTo(pp.x,pp.y-psz*2);ctx.lineTo(pp.x,pp.y+psz*2);ctx.stroke();
       break;
     }
+    case 'xline-inf': {
+      // Infinite construction line — render clipped to canvas bounds
+      if(!isFinite(e.bx)||!isFinite(e.by)) break;
+      const xa=w2s(e.bx,e.by);
+      const ang2=Math.atan2(e.dy||0,e.dx||1);
+      const ext=Math.max(W,H)*2;
+      ctx.save(); ctx.setLineDash([4,6]); ctx.globalAlpha=0.35;
+      ctx.beginPath();
+      ctx.moveTo(xa.x-ext*Math.cos(ang2),xa.y+ext*Math.sin(ang2));
+      ctx.lineTo(xa.x+ext*Math.cos(ang2),xa.y-ext*Math.sin(ang2));
+      ctx.stroke(); ctx.restore(); break;
+    }
     case 'xline': {
       if(!isFinite(e.x1)||!isFinite(e.y1)) break;
       const xa=w2s(e.x1,e.y1);
       const ang2=Math.atan2(e.y2-e.y1,e.x2-e.x1);
-      const ext=1e6;
-      ctx.save();ctx.setLineDash([4,6]);
+      const ext=Math.max(W,H)*2;
+      ctx.save();ctx.setLineDash([4,6]);ctx.globalAlpha=0.35;
       ctx.beginPath();
-      ctx.moveTo(xa.x-ext*Math.cos(ang2)*ST.zoom,xa.y+ext*Math.sin(ang2)*ST.zoom);
-      ctx.lineTo(xa.x+ext*Math.cos(ang2)*ST.zoom,xa.y-ext*Math.sin(ang2)*ST.zoom);
+      ctx.moveTo(xa.x-ext*Math.cos(ang2),xa.y+ext*Math.sin(ang2));
+      ctx.lineTo(xa.x+ext*Math.cos(ang2),xa.y-ext*Math.sin(ang2));
       ctx.stroke();ctx.restore();break;
     }
     case 'ray': {
@@ -3105,7 +3138,7 @@ function zoomExt() {
   // Collect entity centres, excluding viewport entities
   const pts=[];
   ST.entities.forEach(e=>{
-    if(e.type==='viewport'||e.type==='wipeout') return;
+    if(e.type==='viewport'||e.type==='wipeout'||e.type==='xline-inf') return;
     if(!layVisible(e.layer)) return;
     const bb=entBBox(e); if(!bb) return;
     const cx=(bb.minX+bb.maxX)/2, cy=(bb.minY+bb.maxY)/2;
@@ -3119,7 +3152,7 @@ function zoomExt() {
   const q1y=sortY[Math.floor(sortY.length*0.25)], q3y=sortY[Math.floor(sortY.length*0.75)];
   const iqrX=(q3x-q1x)||Math.abs(q3x)*0.1||1;
   const iqrY=(q3y-q1y)||Math.abs(q3y)*0.1||1;
-  const fence=3.0;
+  const fence=1.5; // tighter fence catches more outliers
   const loX=q1x-fence*iqrX, hiX=q3x+fence*iqrX;
   const loY=q1y-fence*iqrY, hiY=q3y+fence*iqrY;
   let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
@@ -3480,7 +3513,49 @@ function parseDXF(txt,filename){
     });
   }
 
-  const totalEnts=finalEnts.filter(e=>e&&e.type);
+  // Statistical filter: remove expanded entities that are outliers
+  // This eliminates block entities inserted at distant XREF coordinates
+  const _allEnts=finalEnts.filter(e=>e&&e.type&&e.type!=='xline-inf');
+  const _cx=[], _cy=[];
+  _allEnts.forEach(e=>{
+    const bb=e.type==='line'?{cx:(e.x1+e.x2)/2,cy:(e.y1+e.y2)/2}:
+             e.type==='circle'||e.type==='arc'?{cx:e.cx,cy:e.cy}:
+             e.type==='text'?{cx:e.x,cy:e.y}:
+             e.pts&&e.pts.length?{cx:e.pts[0].x,cy:e.pts[0].y}:null;
+    if(bb&&isFinite(bb.cx)&&isFinite(bb.cy)&&Math.abs(bb.cx)<1e9&&Math.abs(bb.cy)<1e9){
+      _cx.push(bb.cx); _cy.push(bb.cy);
+    }
+  });
+  let _filteredEnts=finalEnts;
+  if(_cx.length>20){
+    _cx.sort((a,b)=>a-b); _cy.sort((a,b)=>a-b);
+    const _n=_cx.length;
+    const _q1x=_cx[Math.floor(_n*0.25)],_q3x=_cx[Math.floor(_n*0.75)];
+    const _q1y=_cy[Math.floor(_n*0.25)],_q3y=_cy[Math.floor(_n*0.75)];
+    const _iqrX=(_q3x-_q1x)||Math.abs(_q3x)*0.1||1;
+    const _iqrY=(_q3y-_q1y)||Math.abs(_q3y)*0.1||1;
+    const _f=4.0; // fence multiplier
+    const _lx=_q1x-_f*_iqrX,_hx=_q3x+_f*_iqrX;
+    const _ly=_q1y-_f*_iqrY,_hy=_q3y+_f*_iqrY;
+    _filteredEnts=finalEnts.filter(e=>{
+      if(!e||!e.type||e.type==='xline-inf') return true;
+      const _len2=e.type==='line'?(e.x2-e.x1)**2+(e.y2-e.y1)**2:0;
+      if(_len2>1e10) return false; // skip giant lines
+      const _ecx=e.type==='line'?(e.x1+e.x2)/2:
+                 e.type==='circle'||e.type==='arc'?e.cx:
+                 e.type==='text'?e.x:
+                 e.pts&&e.pts.length?e.pts[0].x:null;
+      const _ecy=e.type==='line'?(e.y1+e.y2)/2:
+                 e.type==='circle'||e.type==='arc'?e.cy:
+                 e.type==='text'?e.y:
+                 e.pts&&e.pts.length?e.pts[0].y:null;
+      if(_ecx==null||!isFinite(_ecx)) return true;
+      return _ecx>=_lx&&_ecx<=_hx&&_ecy>=_ly&&_ecy<=_hy;
+    });
+    if(_filteredEnts.length < _allEnts.length*0.5) _filteredEnts=finalEnts; // safety: don't over-filter
+  }
+
+  const totalEnts=_filteredEnts.filter(e=>e&&e.type);
   const layerCount=Object.keys(layerMap).length;
 
   if(!totalEnts.length&&!imgPaths.length){
@@ -3631,9 +3706,9 @@ function buildDXFEnt(cur,getLayId){
 
     case 'XLINE':
     case 'RAY':{
+      // Use dedicated type so bbox calculation can ignore these infinite lines
       const bx=gf('10'),by=gf('20'),dx=gf('11'),dy=gf('21');
-      const L=1e6;
-      return{type:'line',x1:bx-dx*L,y1:by-dy*L,x2:bx+dx*L,y2:by+dy*L,layer};
+      return{type:'xline-inf',bx,by,dx,dy,layer};
     }
 
     default: return null;
