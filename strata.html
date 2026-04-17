@@ -3165,18 +3165,7 @@ function groupSel() {
 
 // ── ZOOM EXTENTS ──────────────────────────────────────────────────
 function zoomExt() {
-  // BEST: use $EXTMIN/$EXTMAX from DXF header — gives the exact model-space drawing bounds
-  if(ST.dxfExtents){
-    const {minX,maxX,minY,maxY}=ST.dxfExtents;
-    const dw=maxX-minX||1,dh=maxY-minY||1,m=0.04;
-    ST.zoom=Math.min(W/(dw*(1+m)),H/(dh*(1+m)));
-    ST.zoom=Math.max(0.0001,Math.min(500,ST.zoom));
-    ST.pan.x=W/2-((minX+maxX)/2)*ST.zoom;
-    ST.pan.y=H/2+((minY+maxY)/2)*ST.zoom;
-    updateZoomBadge();render();return;
-  }
-  // Fallback: statistical method
-  // Use only structural geometry — no rect/text/dim (these scatter far from drawings)
+  // Step 1: statistical bounds from actual geometry entities (10th-90th percentile)
   const geomTypes=new Set(['line','polyline','circle','arc','ellipse','hatch-poly','solid-quad']);
   const allPts=[], geomPts=[];
   ST.entities.forEach(e=>{
@@ -3192,34 +3181,51 @@ function zoomExt() {
   const pts=geomPts.length>=20?geomPts:allPts;
   if(!pts.length){ST.zoom=1;ST.pan.x=W/2;ST.pan.y=H/2;updateZoomBadge();render();return;}
 
-  // 10th–90th percentile: more aggressive than 3rd–97th, handles sparse outer regions
   const sortX=pts.map(p=>p.cx).sort((a,b)=>a-b);
   const sortY=pts.map(p=>p.cy).sort((a,b)=>a-b);
   const n=sortX.length;
   const p10x=sortX[Math.floor(n*0.10)], p90x=sortX[Math.floor(n*0.90)];
   const p10y=sortY[Math.floor(n*0.10)], p90y=sortY[Math.floor(n*0.90)];
-  // Small 5% padding — enough to show edges, not enough to create empty space
   const padX=(p90x-p10x)*0.05||Math.abs(p90x)*0.02||100;
   const padY=(p90y-p10y)*0.05||Math.abs(p90y)*0.02||100;
   const loX=p10x-padX, hiX=p90x+padX;
   const loY=p10y-padY, hiY=p90y+padY;
 
-  // Bbox from in-range entities
   let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
   pts.forEach(p=>{
     if(p.cx<loX||p.cx>hiX||p.cy<loY||p.cy>hiY) return;
     minX=Math.min(minX,p.bb.minX); maxX=Math.max(maxX,p.bb.maxX);
     minY=Math.min(minY,p.bb.minY); maxY=Math.max(maxY,p.bb.maxY);
   });
-  if(!isFinite(minX)){minX=p10x-padX;maxX=p90x+padX;minY=p10y-padY;maxY=p90y+padY;}
-
-  // Safety: if result is unreasonably narrow, fall back to wider range
-  if((maxX-minX)<1||(maxY-minY)<1){
-    minX=sortX[0];maxX=sortX[n-1];minY=sortY[0];maxY=sortY[n-1];
+  if(!isFinite(minX)||maxX<=minX||maxY<=minY){
+    minX=p10x-padX;maxX=p90x+padX;minY=p10y-padY;maxY=p90y+padY;
   }
 
-  const dw=maxX-minX||1, dh=maxY-minY||1, margin=0.05;
-  ST.zoom=Math.min(W/(dw*(1+margin)), H/(dh*(1+margin)));
+  // Step 2: if DXF header extents exist, use them only when they improve the result
+  if(ST.dxfExtents){
+    const h=ST.dxfExtents;
+    const statW=maxX-minX, statH=maxY-minY;
+    const hdrW=h.maxX-h.minX, hdrH=h.maxY-h.minY;
+    if(hdrW>0.5&&hdrH>0.5){
+      if(hdrW<=statW*1.5&&hdrH<=statH*1.5){
+        // Header is similar size or tighter — use it directly
+        minX=h.minX;maxX=h.maxX;minY=h.minY;maxY=h.maxY;
+      } else {
+        // Header is much larger (includes empty XREF space) — intersect with stat bounds
+        const ix0=Math.max(minX,h.minX), ix1=Math.min(maxX,h.maxX);
+        const iy0=Math.max(minY,h.minY), iy1=Math.min(maxY,h.maxY);
+        if(ix1>ix0&&iy1>iy0){
+          // Expand intersection by 5% to not clip building edges
+          const ew=(ix1-ix0)*0.05, eh=(iy1-iy0)*0.05;
+          minX=ix0-ew;maxX=ix1+ew;minY=iy0-eh;maxY=iy1+eh;
+        }
+        // else: keep stat bounds unchanged
+      }
+    }
+  }
+
+  const dw=maxX-minX||1, dh=maxY-minY||1, margin=0.04;
+  ST.zoom=Math.min(W/(dw*(1+margin)),H/(dh*(1+margin)));
   ST.zoom=Math.max(0.0001,Math.min(500,ST.zoom));
   ST.pan.x=W/2-((minX+maxX)/2)*ST.zoom;
   ST.pan.y=H/2+((minY+maxY)/2)*ST.zoom;
