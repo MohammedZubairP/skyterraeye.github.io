@@ -1458,7 +1458,7 @@ function render() {
   const hideVec=(ST.imgOverlays||[]).length&&document.getElementById('tlShowVec')&&!document.getElementById('tlShowVec').checked;
   if(!hideVec){
     // Pass 1: filled areas (hatch, solid) — drawn underneath everything
-    const _fills=['hatch-poly','hatch','solid-quad'];
+    const _fills=['hatch-poly','hatch','hatch-dot','solid-quad'];
     const _top=['text','dim-lin'];
     ST.entities.forEach(e=>{if(layVisible(e.layer)&&_fills.includes(e.type)) drawEntity(e,false);});
     // Pass 2: lines, arcs, circles, polylines
@@ -1695,12 +1695,24 @@ function drawEntity(e, ghost) {
     case 'hatch':
     case 'hatch-poly': {
       if(!e.pts||e.pts.length<3) break;
-      ctx.globalAlpha=(e.selected?0.55:0.16);
+      // Solid fills (GC 70=1) at higher opacity; pattern fills as semi-transparent
+      const hAlpha=e.solid?(e.selected?0.9:0.65):(e.selected?0.5:0.28);
+      ctx.globalAlpha=hAlpha;
       ctx.fillStyle=col;
       ctx.beginPath();
       const _hp0=w2s(e.pts[0].x,e.pts[0].y); ctx.moveTo(_hp0.x,_hp0.y);
       for(let i=1;i<e.pts.length;i++){const _hp=w2s(e.pts[i].x,e.pts[i].y);ctx.lineTo(_hp.x,_hp.y);}
-      ctx.closePath(); ctx.fill(); ctx.globalAlpha=1; break;
+      ctx.closePath(); ctx.fill();
+      // Draw boundary outline at low opacity for pattern fills
+      if(!e.solid){ctx.globalAlpha=0.25;ctx.stroke();}
+      ctx.globalAlpha=1; break;
+    }
+    case 'hatch-dot': {
+      // Fallback for hatches with no parseable boundary — small filled circle at seed
+      const _hd=w2s(e.x,e.y);
+      ctx.globalAlpha=0.4;
+      ctx.beginPath(); ctx.arc(_hd.x,_hd.y,Math.max(2,3*ST.zoom),0,Math.PI*2);
+      ctx.fill(); ctx.globalAlpha=1; break;
     }
     case 'solid-quad': {
       if(!e.pts||e.pts.length<3) break;
@@ -2044,6 +2056,7 @@ function entBBox(e) {
       const _bx=e.pts.map(p=>p.x), _by=e.pts.map(p=>p.y);
       return {minX:Math.min(..._bx),minY:Math.min(..._by),maxX:Math.max(..._bx),maxY:Math.max(..._by)};
     }
+    case 'hatch-dot': return {minX:e.x-5,minY:e.y-5,maxX:e.x+5,maxY:e.y+5};
     default:         return null;
   }
 }
@@ -2299,6 +2312,8 @@ function translateEnt(e,dx,dy) {
     case 'xline': case 'ray': ne.x1+=dx;ne.y1+=dy;ne.x2+=dx;ne.y2+=dy; break;
     case 'wipeout':  ne.x+=dx;ne.y+=dy; break;
     case 'polyline': ne.pts=(e.pts||[]).map(p=>({x:p.x+dx,y:p.y+dy})); break;
+    case 'hatch-poly': case 'solid-quad': case 'hatch': ne.pts=(e.pts||[]).map(p=>({x:p.x+dx,y:p.y+dy})); break;
+    case 'hatch-dot': ne.x+=dx;ne.y+=dy; break;
     case 'dim-lin':  ne.x1+=dx;ne.y1+=dy;ne.x2+=dx;ne.y2+=dy;ne.dx=(ne.dx||ne.x1)+dx;ne.dy=(ne.dy||ne.y1)+dy; break;
   }
   return ne;
@@ -2313,6 +2328,9 @@ function rotateEnt(e,base,ang) {
     case 'rect':    {const p=rot(e.x,e.y);ne.x=p.x;ne.y=p.y;break;}
     case 'text':    {const p=rot(e.x,e.y);ne.x=p.x;ne.y=p.y;ne.rot=(e.rot||0)+ang*180/Math.PI;break;}
     case 'polyline':{ne.pts=(e.pts||[]).map(p=>{const r=rot(p.x,p.y);return{x:r.x,y:r.y};});break;}
+    case 'hatch-poly': case 'solid-quad': case 'hatch':
+      {ne.pts=(e.pts||[]).map(p=>{const r=rot(p.x,p.y);return{x:r.x,y:r.y};});break;}
+    case 'hatch-dot': {const r=rot(e.x,e.y);ne.x=r.x;ne.y=r.y;break;}
   }
   return ne;
 }
@@ -2328,6 +2346,8 @@ function scaleEnt(e,base,f) {
     case 'rect':    {const p=sc(e.x,e.y);ne.x=p.x;ne.y=p.y;ne.w=e.w*f;ne.h=e.h*f;break;}
     case 'text':    {const p=sc(e.x,e.y);ne.x=p.x;ne.y=p.y;ne.sz=(e.sz||12)*f;break;}
     case 'polyline':{ne.pts=(e.pts||[]).map(p=>{const s=sc(p.x,p.y);return{x:s.x,y:s.y};});break;}
+    case 'hatch-poly': case 'solid-quad': case 'hatch':{ne.pts=(e.pts||[]).map(p=>{const s=sc(p.x,p.y);return{x:s.x,y:s.y};});break;}
+    case 'hatch-dot':{const s=sc(e.x,e.y);ne.x=s.x;ne.y=s.y;break;}
   }
   return ne;
 }
@@ -2347,6 +2367,8 @@ function mirrorEnt(e,p1,p2) {
     case 'rect':    {const p=mirPt(e.x,e.y);ne.x=p.x;ne.y=p.y;ne.w=-e.w;break;}
     case 'text':    {const p=mirPt(e.x,e.y);ne.x=p.x;ne.y=p.y;break;}
     case 'polyline':{ne.pts=(e.pts||[]).map(p=>{const m=mirPt(p.x,p.y);return{x:m.x,y:m.y};});break;}
+    case 'hatch-poly': case 'solid-quad': case 'hatch':{ne.pts=(e.pts||[]).map(p=>{const m=mirPt(p.x,p.y);return{x:m.x,y:m.y};});break;}
+    case 'hatch-dot':{const m=mirPt(e.x,e.y);ne.x=m.x;ne.y=m.y;break;}
   }
   return ne;
 }
@@ -3441,7 +3463,9 @@ function parseDXF(txt,filename){
 
   function flush(){
     if(!cur) return;
-    const b=buildDXFEnt(cur,getLayId);
+    let b;
+    try{ b=buildDXFEnt(cur,getLayId); }
+    catch(err){ cur=null; return; } // skip malformed entity silently
     if(!b){cur=null;return;}
     // Stamp entity-level ACI color (GC 62) and linetype (GC 6)
     const _aci=parseInt((cur.d['62']||['0'])[0])||0;
@@ -3555,8 +3579,10 @@ function parseDXF(txt,filename){
     const _ly=_q1y-_f*_iqrY,_hy=_q3y+_f*_iqrY;
     _filteredEnts=finalEnts.filter(e=>{
       if(!e||!e.type||e.type==='xline-inf') return true;
+      // Only remove entities that are clear outliers in BOTH X and Y
+      // (avoids removing tall/wide buildings that are asymmetric)
       const _len2=e.type==='line'?(e.x2-e.x1)**2+(e.y2-e.y1)**2:0;
-      if(_len2>1e10) return false; // skip giant lines
+      if(_len2>1e10) return false; // skip giant lines regardless
       const _ecx=e.type==='line'?(e.x1+e.x2)/2:
                  e.type==='circle'||e.type==='arc'?e.cx:
                  e.type==='text'?e.x:
@@ -3566,9 +3592,12 @@ function parseDXF(txt,filename){
                  e.type==='text'?e.y:
                  e.pts&&e.pts.length?e.pts[0].y:null;
       if(_ecx==null||!isFinite(_ecx)) return true;
-      return _ecx>=_lx&&_ecx<=_hx&&_ecy>=_ly&&_ecy<=_hy;
+      // Must be outlier in BOTH axes to be removed (not just one)
+      const _outX=_ecx<_lx||_ecx>_hx;
+      const _outY=_ecy<_ly||_ecy>_hy;
+      return !(_outX&&_outY); // keep if not outlier in both axes simultaneously
     });
-    if(_filteredEnts.length < _allEnts.length*0.7) _filteredEnts=finalEnts; // safety: don't over-filter
+    if(_filteredEnts.length < _allEnts.length*0.8) _filteredEnts=finalEnts; // safety
   }
 
   const totalEnts=_filteredEnts.filter(e=>e&&e.type);
@@ -3692,10 +3721,39 @@ function buildDXFEnt(cur,getLayId){
       return{type:'circle',cx:gf('10'),cy:gf('20'),r:Math.max(0.3,gf('39')||0.5),layer};
 
     case 'HATCH':{
-      const xs=ga('10'),ys=ga('20');
-      if(xs.length<3) return null;
-      const pts=xs.map((x,i)=>({x,y:ys[i]||0}));
-      return {type:'hatch-poly',pts,layer};
+      // DXF HATCH structure:
+      // d['10'][0] = elevation/seed X (INTERIOR point, NOT a boundary vertex!)
+      // d['10'][1..N] = boundary polygon vertices X
+      // d['20'][0] = elevation/seed Y
+      // d['20'][1..N] = boundary polygon vertices Y
+      // GC 70 = 1 → solid fill, 0 → pattern fill
+      // GC 98 = number of seed points appended at END (skip from tail)
+      const xs=ga('10'), ys=ga('20');
+      const solidFill=parseInt(g('70'))||0; // 1=solid, 0=pattern
+      const nSeeds=parseInt(g('98'))||0;    // seed points appended after boundary
+      
+      // Skip the first point (elevation/center point) and any trailing seed points
+      const tailSkip=nSeeds>0?nSeeds:0;
+      const bxs=xs.slice(1, tailSkip>0?xs.length-tailSkip:xs.length);
+      const bys=ys.slice(1, tailSkip>0?ys.length-tailSkip:ys.length);
+      
+      if(bxs.length>=3){
+        const pts=bxs.map((x,i)=>({x,y:bys[i]||0}));
+        return {type:'hatch-poly',pts,solid:solidFill===1,layer};
+      }
+      
+      // Edge-type boundary: read GC 11/21 (line end points) as boundary edges
+      const exs=ga('11'), eys=ga('21');
+      if(exs.length>=3){
+        const pts=exs.map((x,i)=>({x,y:eys[i]||0}));
+        return {type:'hatch-poly',pts,solid:solidFill===1,layer};
+      }
+      
+      // Fallback: solid circle at seed point to show hatch presence
+      if(xs.length>0&&isFinite(xs[0])&&isFinite(ys[0])){
+        return {type:'hatch-dot',x:xs[0],y:ys[0],layer};
+      }
+      return null;
     }
 
     case 'DIMENSION':{
