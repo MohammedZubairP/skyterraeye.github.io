@@ -1,9 +1,13 @@
+---
+layout: null
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WorkSpace Pro — Sky Terra Eye</title>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
@@ -75,7 +79,10 @@
 const {createElement:h,useState,useEffect,useCallback}=React;
 
 // ── credentials ──────────────────────────────────────────────
-const CRED={email:'info@skyterraeye.com',pass:'Alsimt@2026'};
+const CRED_EMAIL='info@skyterraeye.com';
+const DEFAULT_PASS='Alsimt@2026';
+function getPass(){try{return localStorage.getItem('wsp:password')||DEFAULT_PASS;}catch{return DEFAULT_PASS;}}
+function savePass(p){try{localStorage.setItem('wsp:password',p);}catch{}}
 
 // ── helpers ───────────────────────────────────────────────────
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -110,6 +117,24 @@ const DEPTS=['Development','Design','Sales','Marketing','Operations','Finance','
 // ── localStorage persistence ──────────────────────────────────
 function ld(k,def=[]){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch{return def;}}
 function sv(k,d){try{localStorage.setItem(k,JSON.stringify(d));}catch{}}
+
+
+// ── email notifications ───────────────────────────────────────
+function getNcfg(){try{const v=localStorage.getItem('wsp:notif');return v?JSON.parse(v):null;}catch{return null;}}
+function saveNcfg(c){try{localStorage.setItem('wsp:notif',JSON.stringify(c));}catch{}}
+function wspNotify(subject,detail){
+  const cfg=getNcfg();
+  if(!cfg||!cfg.serviceId||!cfg.templateId||!cfg.pubKey||cfg.enabled===false)return;
+  try{
+    emailjs.init(cfg.pubKey);
+    emailjs.send(cfg.serviceId,cfg.templateId,{
+      to_email:'zubair@skyterraeye.com',
+      subject:'[WorkSpace Pro] '+subject,
+      message:detail,
+      time:new Date().toLocaleString('en-AE',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+    }).catch(()=>{});
+  }catch(e){}
+}
 
 // ── design tokens ─────────────────────────────────────────────
 const S={
@@ -176,6 +201,130 @@ function Bar({pct,c='#7F77DD'}){
 }
 
 // ─────────────────────────────────────────────────────────────
+// NOTIFICATION SETTINGS
+// ─────────────────────────────────────────────────────────────
+function NotifSettings({onClose}){
+  const cfg=getNcfg()||{serviceId:'',templateId:'',pubKey:'',enabled:true};
+  const [f,setF]=useState({serviceId:cfg.serviceId||'',templateId:cfg.templateId||'',pubKey:cfg.pubKey||'',enabled:cfg.enabled!==false});
+  const [msg,setMsg]=useState('');const[ok,setOk]=useState(false);const[tab,setTab]=useState('config');
+  const s=k=>e=>setF(p=>({...p,[k]:typeof e==='boolean'?e:e.target.value}));
+
+  const test=()=>{
+    if(!f.serviceId||!f.templateId||!f.pubKey){setMsg('Please fill in all three fields first.');setOk(false);return;}
+    saveNcfg(f);
+    try{
+      emailjs.init(f.pubKey);
+      emailjs.send(f.serviceId,f.templateId,{to_email:'zubair@skyterraeye.com',subject:'[WorkSpace Pro] Test Notification',message:'This is a test notification from WorkSpace Pro. If you received this, notifications are working correctly!',time:new Date().toLocaleString('en-AE')})
+        .then(()=>{setMsg('Test email sent! Check zubair@skyterraeye.com');setOk(true);})
+        .catch(e=>{setMsg('Failed: '+e.text+'. Check your credentials.');setOk(false);});
+    }catch(e){setMsg('Error: '+e.message);setOk(false);}
+  };
+
+  const save=()=>{
+    if(f.enabled&&(!f.serviceId||!f.templateId||!f.pubKey)){setMsg('Fill in all fields to enable notifications.');setOk(false);return;}
+    saveNcfg(f);setMsg('Settings saved!');setOk(true);setTimeout(onClose,1000);
+  };
+
+  return h('div',{},
+    h(Tabs2,{tabs:[{id:'config',l:'Configuration'},{id:'setup',l:'Setup Guide'}],active:tab,onChange:setTab}),
+
+    tab==='config'&&h('div',{},
+      h('div',{style:{...S.surf,marginBottom:14,fontSize:12}},
+        h('div',{style:{...S.btw}},
+          h('div',{},h('div',{style:{fontWeight:500,marginBottom:2}},'Enable Email Notifications'),h('div',{style:{color:'var(--color-text-secondary)'}},'Send alerts to zubair@skyterraeye.com')),
+          h('button',{onClick:()=>setF(p=>({...p,enabled:!p.enabled})),style:{width:42,height:24,borderRadius:12,border:'none',cursor:'pointer',background:f.enabled?'#3B6D11':'var(--color-bg-tertiary)',position:'relative',transition:'background 0.2s',flexShrink:0}},
+            h('div',{style:{width:18,height:18,borderRadius:'50%',background:'white',position:'absolute',top:3,transition:'left 0.2s',left:f.enabled?21:3}})
+          )
+        )
+      ),
+      h('div',{style:{opacity:f.enabled?1:0.5,pointerEvents:f.enabled?'auto':'none'}},
+        h(Inp,{label:'EmailJS Service ID',value:f.serviceId,onChange:s('serviceId'),ph:'e.g. service_xxxxxxx'}),
+        h(Inp,{label:'EmailJS Template ID',value:f.templateId,onChange:s('templateId'),ph:'e.g. template_xxxxxxx'}),
+        h(Inp,{label:'EmailJS Public Key',value:f.pubKey,onChange:s('pubKey'),ph:'e.g. aBcDeFgHiJkLmNoPq'})
+      ),
+      h('div',{style:{fontSize:11,color:'var(--color-text-secondary)',background:'var(--color-bg-secondary)',borderRadius:'var(--radius-md)',padding:'10px 12px',marginBottom:14}},'Notifications will be sent for: new contacts, new projects, payments received, new invoices, and leave requests.'),
+      msg&&h('div',{style:{fontSize:12,padding:'9px 13px',borderRadius:'var(--radius-md)',marginBottom:12,background:ok?'#EAF3DE':'#FCEBEB',color:ok?'#3B6D11':'#A32D2D',border:'0.5px solid '+(ok?'#97C459':'#F09595')}},msg),
+      h('div',{style:{display:'flex',gap:8,justifyContent:'flex-end'}},
+        h(Btn,{ch:'Cancel',onClick:onClose}),
+        h(Btn,{ch:'Send Test Email',onClick:test}),
+        h(Btn,{ch:'Save Settings',pri:true,onClick:save})
+      )
+    ),
+
+    tab==='setup'&&h('div',{style:{fontSize:13}},
+      h('div',{style:{fontWeight:500,marginBottom:12}},'How to set up free email notifications:'),
+      [
+        ['1','Go to emailjs.com','Create a free account (200 emails/month free)'],
+        ['2','Add Email Service','Click "Email Services" → "Add New Service" → choose Gmail → connect info@skyterraeye.com'],
+        ['3','Create a Template','Click "Email Templates" → "Create New Template". Set:
+• To Email: zubair@skyterraeye.com
+• Subject: {{subject}}
+• Body: {{message}}
+
+Sent at: {{time}}'],
+        ['4','Get your keys','Go to "Account" → "General" to find your Public Key. Copy the Service ID and Template ID from their pages.'],
+        ['5','Enter keys here','Paste all three values in the Configuration tab and click Save.']
+      ].map(([n,title,desc])=>h('div',{key:n,style:{display:'flex',gap:12,marginBottom:14,paddingBottom:14,borderBottom:'0.5px solid var(--color-border)'}},
+        h('div',{style:{width:26,height:26,borderRadius:'50%',background:'var(--color-text-primary)',color:'var(--color-bg-primary)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:600,flexShrink:0}},n),
+        h('div',{},h('div',{style:{fontWeight:500,marginBottom:3}},title),h('div',{style:{color:'var(--color-text-secondary)',fontSize:12,whiteSpace:'pre-line'}},desc))
+      )),
+      h('a',{href:'https://emailjs.com',target:'_blank',style:{display:'block',textAlign:'center',padding:'9px',background:'var(--color-bg-info)',color:'var(--color-text-info)',borderRadius:'var(--radius-md)',fontWeight:500,fontSize:13,textDecoration:'none'}},'Open emailjs.com →')
+    )
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHANGE PASSWORD
+// ─────────────────────────────────────────────────────────────
+function ChangePassword({onClose}){
+  const [cur,setCur]=useState('');
+  const [np,setNp]=useState('');
+  const [np2,setNp2]=useState('');
+  const [msg,setMsg]=useState('');
+  const [ok,setOk]=useState(false);
+  const [showCur,setShowCur]=useState(false);
+  const [showNp,setShowNp]=useState(false);
+
+  const submit=()=>{
+    setMsg('');
+    if(!cur||!np||!np2){setMsg('All fields are required.');return;}
+    if(cur!==getPass()){setMsg('Current password is incorrect.');return;}
+    if(np.length<6){setMsg('New password must be at least 6 characters.');return;}
+    if(np!==np2){setMsg('New passwords do not match.');return;}
+    savePass(np);
+    setOk(true);
+    setMsg('Password changed successfully!');
+    setTimeout(onClose,1500);
+  };
+
+  return h('div',{},
+    h('div',{style:{marginBottom:14}},
+      h('label',{style:{display:'block',fontSize:12,color:'var(--color-text-secondary)',marginBottom:4}},'Current Password'),
+      h('div',{style:{position:'relative'}},
+        h('input',{type:showCur?'text':'password',value:cur,onChange:e=>setCur(e.target.value),placeholder:'Enter current password',style:{paddingRight:52}}),
+        h('button',{onClick:()=>setShowCur(!showCur),style:{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--color-text-secondary)',fontSize:11,padding:0,fontWeight:500}},showCur?'Hide':'Show')
+      )
+    ),
+    h('div',{style:{marginBottom:14}},
+      h('label',{style:{display:'block',fontSize:12,color:'var(--color-text-secondary)',marginBottom:4}},'New Password'),
+      h('div',{style:{position:'relative'}},
+        h('input',{type:showNp?'text':'password',value:np,onChange:e=>setNp(e.target.value),placeholder:'Min. 6 characters',style:{paddingRight:52}}),
+        h('button',{onClick:()=>setShowNp(!showNp),style:{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--color-text-secondary)',fontSize:11,padding:0,fontWeight:500}},showNp?'Hide':'Show')
+      )
+    ),
+    h('div',{style:{marginBottom:16}},
+      h('label',{style:{display:'block',fontSize:12,color:'var(--color-text-secondary)',marginBottom:4}},'Confirm New Password'),
+      h('input',{type:'password',value:np2,onChange:e=>setNp2(e.target.value),placeholder:'Re-enter new password',onKeyDown:e=>e.key==='Enter'&&submit()})
+    ),
+    msg&&h('div',{style:{fontSize:12,padding:'9px 13px',borderRadius:'var(--radius-md)',marginBottom:14,textAlign:'center',background:ok?'#EAF3DE':'#FCEBEB',color:ok?'#3B6D11':'#A32D2D',border:'0.5px solid '+(ok?'#97C459':'#F09595')}},msg),
+    h('div',{style:{display:'flex',justifyContent:'flex-end',gap:8}},
+      h(Btn,{ch:'Cancel',onClick:onClose}),
+      h(Btn,{ch:'Change Password',pri:true,onClick:submit})
+    )
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // LOGIN
 // ─────────────────────────────────────────────────────────────
 function LoginScreen({onLogin}){
@@ -189,7 +338,7 @@ function LoginScreen({onLogin}){
     if(!email||!pass){setErr('Please enter your email and password.');return;}
     setLoading(true);setErr('');
     setTimeout(()=>{
-      if(email.trim().toLowerCase()===CRED.email&&pass===CRED.pass){onLogin();}
+      if(email.trim().toLowerCase()===CRED_EMAIL&&pass===getPass()){onLogin();}
       else{setErr('Invalid email or password.');setLoading(false);}
     },500);
   };
@@ -287,7 +436,7 @@ function CRM({clients,projects,team,saveClients}){
   const [tab,setTab]=useState('contacts');const[q,setQ]=useState('');const[sf,setSf]=useState('');
   const [modal,setModal]=useState(null);const[edit,setEdit]=useState(null);const[det,setDet]=useState(null);
   const fil=clients.filter(c=>(!q||(c.name+' '+(c.company||'')).toLowerCase().includes(q.toLowerCase()))&&(!sf||c.stage===sf));
-  const saveC=data=>{if(edit)saveClients(clients.map(c=>c.id===edit.id?{...c,...data}:c));else saveClients([...clients,{id:uid(),createdAt:new Date().toISOString(),activities:[],...data}]);setModal(null);};
+  const saveC=data=>{if(edit){saveClients(clients.map(c=>c.id===edit.id?{...c,...data}:c));}else{saveClients([...clients,{id:uid(),createdAt:new Date().toISOString(),activities:[],...data}]);wspNotify('New Contact Added','Name: '+data.name+(data.company?' | Company: '+data.company:'')+(data.stage?' | Stage: '+data.stage:'')+(data.dealValue?' | Deal Value: AED '+Number(data.dealValue).toLocaleString():''));}setModal(null);};
   const addAct=(cid,act)=>{const up=clients.map(c=>c.id===cid?{...c,activities:[...(c.activities||[]),{id:uid(),createdAt:new Date().toISOString(),...act}]}:c);saveClients(up);if(det?.id===cid)setDet(up.find(c=>c.id===cid));};
   return h('div',{style:{position:'relative'}},
     h(Tabs2,{tabs:[{id:'contacts',l:'Contacts ('+clients.length+')'},{id:'pipeline',l:'Sales Pipeline'}],active:tab,onChange:setTab}),
@@ -409,7 +558,7 @@ function Projects({clients,projects,team,saveProjects}){
   const [modal,setModal]=useState(null);const[edit,setEdit]=useState(null);const[det,setDet]=useState(null);
   const fil=projects.filter(p=>(!q||p.name.toLowerCase().includes(q.toLowerCase()))&&(!sf||p.status===sf)&&(!pf||p.priority===pf)&&(!cf||p.clientId===cf));
   const upd=(id,u)=>{const np=projects.map(p=>p.id===id?{...p,...u}:p);saveProjects(np);if(det?.id===id)setDet(np.find(p=>p.id===id));};
-  const saveP=data=>{if(edit)saveProjects(projects.map(p=>p.id===edit.id?{...p,...data}:p));else saveProjects([...projects,{id:uid(),createdAt:new Date().toISOString(),tasks:[],payments:[],notes:[],customFields:{},...data}]);setModal(null);};
+  const saveP=data=>{if(edit){saveProjects(projects.map(p=>p.id===edit.id?{...p,...data}:p));}else{const cl=clients.find(c=>c.id===data.clientId);saveProjects([...projects,{id:uid(),createdAt:new Date().toISOString(),tasks:[],payments:[],notes:[],customFields:{},...data}]);wspNotify('New Project Created','Project: '+data.name+(cl?' | Client: '+cl.name:'')+(data.projectValue?' | Value: AED '+Number(data.projectValue).toLocaleString():'')+(data.status?' | Status: '+PS[data.status]?.l:''));}setModal(null);};
   return h('div',{style:{position:'relative'}},
     h('div',{style:{...S.btw,marginBottom:12,flexWrap:'wrap',gap:10}},
       h('div',{style:{display:'flex',gap:8,flexWrap:'wrap'}},
@@ -555,7 +704,7 @@ function ProjDetail({project,clients,team,onEdit,onClose,onUpdate,onDelete}){
         ),
         h('div',{style:{display:'flex',justifyContent:'flex-end',gap:8}},
           h(Btn,{ch:'Cancel',sm:true,onClick:()=>setPf(false)}),
-          h(Btn,{ch:'Add Payment',sm:true,pri:true,onClick:()=>{if(py.amount){onUpdate({payments:[...(project.payments||[]),{id:uid(),...py}]});setPy({amount:'',method:'Cash',date:today(),reference:''});setPf(false);}}})
+          h(Btn,{ch:'Add Payment',sm:true,pri:true,onClick:()=>{if(py.amount){onUpdate({payments:[...(project.payments||[]),{id:uid(),...py}]});wspNotify('Payment Received','Amount: AED '+Number(py.amount).toLocaleString()+' | Method: '+py.method+' | Project: '+project.name+(py.reference?' | Ref: '+py.reference:''));setPy({amount:'',method:'Cash',date:today(),reference:''});setPf(false);}}})
         )
       ),
       (project.payments||[]).length===0&&h('div',{style:{textAlign:'center',color:'var(--color-text-secondary)',fontSize:13,padding:'16px'}},'No payments recorded'),
@@ -683,7 +832,7 @@ function LeaveForm({team,onSave,onClose}){
       h(Inp,{label:'From',value:f.startDate,onChange:s('startDate'),type:'date'}),h(Inp,{label:'To',value:f.endDate,onChange:s('endDate'),type:'date'}),h(Inp,{label:'Days',value:f.days,onChange:s('days'),type:'number'})
     ),
     h(Inp,{label:'Reason',value:f.reason,onChange:s('reason'),rows:2}),
-    h('div',{style:{display:'flex',justifyContent:'flex-end',gap:8,marginTop:6}},h(Btn,{ch:'Cancel',onClick:onClose}),h(Btn,{ch:'Submit Leave',pri:true,onClick:()=>{if(f.employeeId)onSave(f);}}))
+    h('div',{style:{display:'flex',justifyContent:'flex-end',gap:8,marginTop:6}},h(Btn,{ch:'Cancel',onClick:onClose}),h(Btn,{ch:'Submit Leave',pri:true,onClick:()=>{if(f.employeeId){const mbr=team.find(m=>m.id===f.employeeId);wspNotify('New Leave Request','Employee: '+(mbr?.name||'Unknown')+' | Type: '+f.type+' | Days: '+f.days+' | From: '+f.startDate+' to '+f.endDate+(f.reason?' | Reason: '+f.reason:''));onSave(f);}}}))
   );
 }
 
@@ -696,7 +845,7 @@ function Finance({clients,projects,invoices,expenses,saveInvoices,saveExpenses})
   const invPaid=invoices.filter(i=>i.status==='paid').reduce((s,i)=>s+(+i.total||0),0);
   const invOD=invoices.filter(i=>i.status==='sent'&&i.dueDate&&isOD(i.dueDate)).length;
   const expTot=expenses.reduce((s,e)=>s+(+e.amount||0),0);
-  const saveInv=data=>{if(edit)saveInvoices(invoices.map(i=>i.id===edit.id?{...i,...data}:i));else saveInvoices([...invoices,{id:uid(),createdAt:new Date().toISOString(),invoiceNo:'INV-'+String(invoices.length+1).padStart(3,'0'),status:'draft',...data}]);setModal(null);};
+  const saveInv=data=>{if(edit){saveInvoices(invoices.map(i=>i.id===edit.id?{...i,...data}:i));}else{const cl=clients.find(c=>c.id===data.clientId);const invNo='INV-'+String(invoices.length+1).padStart(3,'0');saveInvoices([...invoices,{id:uid(),createdAt:new Date().toISOString(),invoiceNo:invNo,status:'draft',...data}]);wspNotify('New Invoice Created','Invoice: '+invNo+(cl?' | Client: '+cl.name:'')+(data.total?' | Amount: AED '+Number(data.total).toLocaleString():'')+' | Status: Draft');}setModal(null);};
   const SC={draft:{c:'#888',bg:'#f1f1f1'},sent:{c:'#185FA5',bg:'#E6F1FB'},paid:{c:'#3B6D11',bg:'#EAF3DE'},overdue:{c:'#A32D2D',bg:'#FCEBEB'}};
   return h('div',{style:{position:'relative'}},
     h(Tabs2,{tabs:[{id:'invoices',l:'Invoices ('+invoices.length+')'},{id:'expenses',l:'Expenses ('+expenses.length+')'}],active:tab,onChange:setTab}),
@@ -834,6 +983,8 @@ function Reports({clients,projects,team,invoices,expenses}){
 // ─────────────────────────────────────────────────────────────
 function App(){
   const [loggedIn,setLoggedIn]=useState(false);
+  const [chgPass,setChgPass]=useState(false);
+  const [showNotif,setShowNotif]=useState(false);
   const [sec,setSec]=useState('dashboard');
   const [data,setData]=useState(null);
 
@@ -891,6 +1042,8 @@ function App(){
       h('div',{style:{padding:'12px 16px',borderTop:'0.5px solid var(--color-border)'}},
         od>0&&h('div',{style:{fontSize:11,color:'#854F0B',marginBottom:7}},'⚠ '+od+' overdue follow-up'+(od>1?'s':'')),
         h('div',{style:{fontSize:11,color:'var(--color-text-tertiary)',marginBottom:8}},new Date().toLocaleDateString('en-AE',{weekday:'short',day:'2-digit',month:'short'})),
+        h('button',{onClick:()=>setShowNotif(true),style:{width:'100%',padding:'7px',fontSize:12,border:'0.5px solid var(--color-border)',borderRadius:'var(--radius-md)',background:'transparent',cursor:'pointer',color:'var(--color-text-secondary)',marginBottom:6}},'🔔 Notifications'),
+        h('button',{onClick:()=>setChgPass(true),style:{width:'100%',padding:'7px',fontSize:12,border:'0.5px solid var(--color-border)',borderRadius:'var(--radius-md)',background:'transparent',cursor:'pointer',color:'var(--color-text-secondary)',marginBottom:6}},'🔑 Change Password'),
         h('button',{onClick:()=>{setLoggedIn(false);setData(null);},style:{width:'100%',padding:'7px',fontSize:12,border:'0.5px solid var(--color-border)',borderRadius:'var(--radius-md)',background:'transparent',cursor:'pointer',color:'var(--color-text-secondary)'}},'Sign Out')
       )
     ),
@@ -908,7 +1061,9 @@ function App(){
         sec==='finance'&&h(Finance,pp),
         sec==='reports'&&h(Reports,pp)
       )
-    )
+    ),
+    chgPass&&h(Modal2,{title:'Change Password',onClose:()=>setChgPass(false),w:420},h(ChangePassword,{onClose:()=>setChgPass(false)})),
+    showNotif&&h(Modal2,{title:'Email Notifications',onClose:()=>setShowNotif(false),w:520},h(NotifSettings,{onClose:()=>setShowNotif(false)}))
   );
 }
 
