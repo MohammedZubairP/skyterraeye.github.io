@@ -1456,7 +1456,18 @@ function render() {
     ctx.restore();
   }
   const hideVec=(ST.imgOverlays||[]).length&&document.getElementById('tlShowVec')&&!document.getElementById('tlShowVec').checked;
-  if(!hideVec) ST.entities.forEach(e=>{if(layVisible(e.layer)) drawEntity(e,false);});
+  if(!hideVec){
+    // Pass 1: filled areas (hatch, solid) — drawn underneath everything
+    const _fills=['hatch-poly','hatch','solid-quad'];
+    const _top=['text','dim-lin'];
+    ST.entities.forEach(e=>{if(layVisible(e.layer)&&_fills.includes(e.type)) drawEntity(e,false);});
+    // Pass 2: lines, arcs, circles, polylines
+    ST.entities.forEach(e=>{if(layVisible(e.layer)&&!_fills.includes(e.type)&&!_top.includes(e.type)) drawEntity(e,false);});
+    // Pass 3: text and dimensions — on top, hidden below readable zoom threshold
+    if(ST.zoom>0.0003){
+      ST.entities.forEach(e=>{if(layVisible(e.layer)&&_top.includes(e.type)) drawEntity(e,false);});
+    }
+  }
   if(ST.drawing&&ST.startPt) drawPreview();
   if(ST.measurePts.length>0) drawMeasure();
   const o=w2s(0,0);
@@ -1540,16 +1551,32 @@ function layVisible(lid) {
   return l ? (l.vis && !l.frz && !l.dis) : true;
 }
 
+// ACI (AutoCAD Color Index) → hex for entity-level color override
+const _ACI=['#000000','#FF0000','#FFFF00','#00FF00','#00FFFF','#0000FF','#FF00FF','#FFFFFF',
+  '#808080','#C0C0C0','#FF0000','#FF8080','#CC0000','#CC6666','#990000','#994C4C','#7F0000',
+  '#7F3F3F','#4C0000','#4C2626','#FF4000','#FF9F80','#CC3300','#CC7F66','#992600','#995F4C',
+  '#7F1F00','#7F4F3F','#4C1300','#4C2F26','#FF8000','#FFBF80','#CC6600','#CC9966','#994C00',
+  '#99724C','#7F3F00','#7F5F3F','#4C2600','#4C3926','#FFBF00','#FFDF80','#CC9900','#CCB266',
+  '#997300','#99854C','#7F5F00','#7F6C3F','#4C3900','#4C4126','#FFFF00','#FFFF80','#CCCC00',
+  '#CCCC66','#999900','#99994C','#7F7F00','#7F7F3F','#4C4C00','#4C4C26','#80FF00','#BFFF80',
+  '#66CC00','#99CC66','#4C9900','#73994C','#3F7F00','#5F7F3F','#264C00','#394C26','#00FF00',
+  '#80FF80','#00CC00','#66CC66','#009900','#4C994C','#007F00','#3F7F3F','#004C00','#264C26'];
 function getLayColor(e) {
-  const l = ST.layers.find(la=>la.id===(e.layer||0));
-  return e.color || (l?l.color:'#1FA8D9');
+  if(e.aciColor&&e.aciColor>0&&e.aciColor<256) return _ACI[e.aciColor]||_ACI[7];
+  if(e.color) return e.color;
+  const l=ST.layers.find(la=>la.id===(e.layer||0));
+  return l?l.color:'#1FA8D9';
 }
 
 function drawEntity(e, ghost) {
   const col = e.selected ? '#F5BE18' : (ghost?'rgba(167,139,250,.4)':getLayColor(e));
   ctx.strokeStyle = col;
   ctx.fillStyle = col;
-  ctx.lineWidth = e.selected ? 1.8 : Math.max(0.4, (e.lw||0.35)*ST.zoom*0.6);
+  const _ln=(ST.layers.find(l=>l.id===e.layer)||{}).name||'';
+  const _thick=/a-wall|s-col|i-wall|s-str|a-slab|struc|column|beam/i.test(_ln);
+  const _thin=/text|anno|dim|hatch|defpoint|a-anno/i.test(_ln);
+  const _baseLw=_thick?0.65:_thin?0.22:0.35;
+  ctx.lineWidth = e.selected ? 1.8 : Math.max(0.3, (e.lw||_baseLw)*ST.zoom*0.8);
   ctx.setLineDash(getLDash(e.linetype));
   ctx.globalAlpha = e.selected ? 1 : (ghost?0.5:1);
 
@@ -1644,20 +1671,30 @@ function drawEntity(e, ghost) {
         case 'text': {
       const p=w2s(e.x,e.y);
       ctx.setLineDash([]);
-      const sz = Math.max(2,(e.sz||12)*ST.zoom);
-      ctx.font = `${sz}px "Plus Jakarta Sans",sans-serif`;
-      ctx.fillStyle = col; ctx.textBaseline='bottom';
-      ctx.fillText(e.txt||'',p.x,p.y); break;
+      const sz=Math.min(180,Math.max(2,(e.sz||12)*ST.zoom));
+      if(sz<1.2) break; // too small to be readable — skip
+      ctx.font=`${sz}px "Plus Jakarta Sans",sans-serif`;
+      ctx.fillStyle=col; ctx.textBaseline='bottom';
+      ctx.fillText(e.txt||'',p.x,p.y,Math.max(60,W*0.35)); break;
     }
-    case 'hatch': {
-      // Draw hatch as filled rect with pattern
-      if(e.pts && e.pts.length>=2) {
-        ctx.globalAlpha=(e.selected?0.4:0.25);
-        ctx.fillStyle=col;
-        const p=w2s(e.pts[0].x,e.pts[0].y);
-        ctx.fillRect(p.x,p.y,e.w*ST.zoom,-e.h*ST.zoom);
-        ctx.globalAlpha=1;
-      } break;
+    case 'hatch':
+    case 'hatch-poly': {
+      if(!e.pts||e.pts.length<3) break;
+      ctx.globalAlpha=(e.selected?0.55:0.16);
+      ctx.fillStyle=col;
+      ctx.beginPath();
+      const _hp0=w2s(e.pts[0].x,e.pts[0].y); ctx.moveTo(_hp0.x,_hp0.y);
+      for(let i=1;i<e.pts.length;i++){const _hp=w2s(e.pts[i].x,e.pts[i].y);ctx.lineTo(_hp.x,_hp.y);}
+      ctx.closePath(); ctx.fill(); ctx.globalAlpha=1; break;
+    }
+    case 'solid-quad': {
+      if(!e.pts||e.pts.length<3) break;
+      ctx.globalAlpha=(e.selected?1:0.88);
+      ctx.fillStyle=col;
+      ctx.beginPath();
+      const _sq0=w2s(e.pts[0].x,e.pts[0].y); ctx.moveTo(_sq0.x,_sq0.y);
+      for(let i=1;i<e.pts.length;i++){const _sq=w2s(e.pts[i].x,e.pts[i].y);ctx.lineTo(_sq.x,_sq.y);}
+      ctx.closePath(); ctx.fill(); ctx.globalAlpha=1; break;
     }
     case 'dim-lin': {
       drawDimLin(e, col); break;
@@ -1679,21 +1716,42 @@ function drawEntity(e, ghost) {
 }
 
 function drawDimLin(e, col) {
-  const a=w2s(e.x1,e.y1), b=w2s(e.x2,e.y2), d=w2s(e.dx||e.x1, (e.dy||e.y1)+20);
-  const len=Math.hypot(e.x2-e.x1,e.y2-e.y1).toFixed(3)+' '+ST.units;
-  ctx.strokeStyle=col; ctx.lineWidth=0.7;
-  ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(a.x,d.y); ctx.moveTo(b.x,b.y); ctx.lineTo(b.x,d.y);
-  ctx.moveTo(a.x,d.y); ctx.lineTo(b.x,d.y); ctx.stroke();
-  // Arrows
-  const dx=b.x-a.x, mid=(a.x+b.x)/2;
-  const arr=8;
-  ctx.beginPath(); ctx.moveTo(a.x,d.y); ctx.lineTo(a.x+arr,d.y-3); ctx.lineTo(a.x+arr,d.y+3); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(b.x,d.y); ctx.lineTo(b.x-arr,d.y-3); ctx.lineTo(b.x-arr,d.y+3); ctx.closePath(); ctx.fill();
-  // Text
-  ctx.font=`${Math.max(9,9*ST.zoom)}px "Plus Jakarta Sans",sans-serif`;
-  ctx.fillStyle=col; ctx.textAlign='center'; ctx.textBaseline='bottom';
-  ctx.fillText(len, mid, d.y-3);
-  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  const a=w2s(e.x1,e.y1), b=w2s(e.x2,e.y2);
+  const d=w2s(e.dx!=null?e.dx:(e.x1+e.x2)/2, e.dy!=null?e.dy:(e.y1+e.y2)/2);
+  ctx.strokeStyle=col; ctx.lineWidth=Math.max(0.4,0.6*ST.zoom);
+  ctx.globalAlpha=0.8;
+  // Extension lines
+  ctx.beginPath();
+  ctx.moveTo(a.x,a.y); ctx.lineTo(d.x-(d.x-a.x)*0.05,d.y-(d.y-a.y)*0.05);
+  ctx.moveTo(b.x,b.y); ctx.lineTo(d.x-(d.x-b.x)*0.05,d.y-(d.y-b.y)*0.05);
+  ctx.stroke();
+  // Dim line
+  ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+  ctx.globalAlpha=1;
+  // Arrowheads (only when visible)
+  const screenLen=Math.hypot(b.x-a.x,b.y-a.y);
+  if(screenLen>14){
+    const ang=Math.atan2(b.y-a.y,b.x-a.x);
+    const arr=Math.min(8,screenLen*0.1);
+    ctx.fillStyle=col;
+    [{ex:a.x,ey:a.y,dir:1},{ex:b.x,ey:b.y,dir:-1}].forEach(({ex,ey,dir})=>{
+      ctx.beginPath();
+      ctx.moveTo(ex,ey);
+      ctx.lineTo(ex+dir*arr*Math.cos(ang)-arr*0.3*Math.sin(ang),ey+dir*arr*Math.sin(ang)+arr*0.3*Math.cos(ang));
+      ctx.lineTo(ex+dir*arr*Math.cos(ang)+arr*0.3*Math.sin(ang),ey+dir*arr*Math.sin(ang)-arr*0.3*Math.cos(ang));
+      ctx.closePath(); ctx.fill();
+    });
+  }
+  // Label
+  const sz=Math.min(14,Math.max(6,9*ST.zoom));
+  if(sz>=2){
+    const len=Math.hypot(e.x2-e.x1,e.y2-e.y1);
+    const label=len<0.001?'':len.toFixed(len>=10?1:2)+' '+ST.units;
+    ctx.font=`${sz}px "Plus Jakarta Sans",sans-serif`;
+    ctx.fillStyle=col; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText(label,d.x,d.y-2);
+    ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  }
 }
 
 function getLDash(lt) {
@@ -1952,7 +2010,14 @@ function entBBox(e) {
     case 'wipeout':  return {minX:e.x,minY:e.y,maxX:e.x+(e.w||10),maxY:e.y+(e.h||10)};
         case 'text':     return {minX:e.x,minY:e.y,maxX:e.x+40,maxY:e.y+10};
     case 'polygon': case 'cloud': return {minX:e.cx-(e.r||10),minY:e.cy-(e.r||10),maxX:e.cx+(e.r||10),maxY:e.cy+(e.r||10)};
-        default:         return null;
+        case 'hatch-poly':
+    case 'solid-quad':
+    case 'hatch': {
+      if(!e.pts||!e.pts.length) return null;
+      const _bx=e.pts.map(p=>p.x), _by=e.pts.map(p=>p.y);
+      return {minX:Math.min(..._bx),minY:Math.min(..._by),maxX:Math.max(..._bx),maxY:Math.max(..._by)};
+    }
+    default:         return null;
   }
 }
 
@@ -3037,25 +3102,38 @@ function groupSel() {
 
 // ── ZOOM EXTENTS ──────────────────────────────────────────────────
 function zoomExt() {
-  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
-  let count=0;
+  // Collect entity centres, excluding viewport entities
+  const pts=[];
   ST.entities.forEach(e=>{
+    if(e.type==='viewport'||e.type==='wipeout') return;
     if(!layVisible(e.layer)) return;
     const bb=entBBox(e); if(!bb) return;
-    minX=Math.min(minX,bb.minX);maxX=Math.max(maxX,bb.maxX);
-    minY=Math.min(minY,bb.minY);maxY=Math.max(maxY,bb.maxY);
-    count++;
+    const cx=(bb.minX+bb.maxX)/2, cy=(bb.minY+bb.maxY)/2;
+    if(isFinite(cx)&&isFinite(cy)) pts.push({cx,cy,bb});
   });
-  if(!count||!isFinite(minX)){
-    ST.zoom=1;ST.pan.x=W/2;ST.pan.y=H/2;
-  } else {
-    const dw=maxX-minX||1,dh=maxY-minY||1,pad=0.1;
-    ST.zoom=Math.min(W/(dw*(1+pad)),H/(dh*(1+pad)));
-    ST.zoom=Math.max(0.0001,Math.min(500,ST.zoom));
-    const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
-    ST.pan.x=W/2-cx*ST.zoom;
-    ST.pan.y=H/2+cy*ST.zoom;
-  }
+  if(!pts.length){ST.zoom=1;ST.pan.x=W/2;ST.pan.y=H/2;updateZoomBadge();render();return;}
+  // IQR filtering: discard outlier entities (XREF inserts, stray viewports)
+  const sortX=pts.map(p=>p.cx).sort((a,b)=>a-b);
+  const sortY=pts.map(p=>p.cy).sort((a,b)=>a-b);
+  const q1x=sortX[Math.floor(sortX.length*0.25)], q3x=sortX[Math.floor(sortX.length*0.75)];
+  const q1y=sortY[Math.floor(sortY.length*0.25)], q3y=sortY[Math.floor(sortY.length*0.75)];
+  const iqrX=(q3x-q1x)||Math.abs(q3x)*0.1||1;
+  const iqrY=(q3y-q1y)||Math.abs(q3y)*0.1||1;
+  const fence=3.0;
+  const loX=q1x-fence*iqrX, hiX=q3x+fence*iqrX;
+  const loY=q1y-fence*iqrY, hiY=q3y+fence*iqrY;
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  pts.forEach(p=>{
+    if(p.cx<loX||p.cx>hiX||p.cy<loY||p.cy>hiY) return;
+    minX=Math.min(minX,p.bb.minX); maxX=Math.max(maxX,p.bb.maxX);
+    minY=Math.min(minY,p.bb.minY); maxY=Math.max(maxY,p.bb.maxY);
+  });
+  if(!isFinite(minX)){minX=sortX[0];maxX=sortX[sortX.length-1];minY=sortY[0];maxY=sortY[sortY.length-1];}
+  const dw=maxX-minX||1, dh=maxY-minY||1, pad=0.08;
+  ST.zoom=Math.min(W/(dw*(1+pad)), H/(dh*(1+pad)));
+  ST.zoom=Math.max(0.0001,Math.min(500,ST.zoom));
+  ST.pan.x=W/2-((minX+maxX)/2)*ST.zoom;
+  ST.pan.y=H/2+((minY+maxY)/2)*ST.zoom;
   updateZoomBadge(); render();
 }
 
@@ -3316,9 +3394,18 @@ function parseDXF(txt,filename){
     if(!cur) return;
     const b=buildDXFEnt(cur,getLayId);
     if(!b){cur=null;return;}
+    // Stamp entity-level ACI color (GC 62) and linetype (GC 6)
+    const _aci=parseInt((cur.d['62']||['0'])[0])||0;
+    const _lt=(cur.d['6']||[null])[0];
+    const _lw=parseFloat((cur.d['370']||['0'])[0])*0.01||null;
+    function _stamp(e){
+      if(_aci>0&&_aci<256) e.aciColor=_aci;
+      if(_lt&&_lt!=='BYLAYER') e.linetype=_lt;
+      if(_lw) e.lw=_lw;
+    }
     const target=inBlock&&curBlockEnts?curBlockEnts:ents;
-    if(Array.isArray(b)) b.forEach(e=>{e._id=++ST._eid;target.push(e);});
-    else{b._id=++ST._eid;target.push(b);}
+    if(Array.isArray(b)) b.forEach(e=>{e._id=++ST._eid;_stamp(e);target.push(e);});
+    else{b._id=++ST._eid;_stamp(b);target.push(b);}
     cur=null;
   }
 
@@ -3505,21 +3592,32 @@ function buildDXFEnt(cur,getLayId){
 
     case 'SOLID':
     case 'TRACE':{
-      const segs=[];
-      const pts=[[gf('10'),gf('20')],[gf('11'),gf('21')],[gf('13'),gf('23')],[gf('12'),gf('22')]];
-      for(let i=0;i<4;i++){const n=(i+1)%4;segs.push({type:'line',x1:pts[i][0],y1:pts[i][1],x2:pts[n][0],y2:pts[n][1],layer});}
-      return segs;
+      const pts=[{x:gf('10'),y:gf('20')},{x:gf('11'),y:gf('21')},
+                 {x:gf('13'),y:gf('23')},{x:gf('12'),y:gf('22')}];
+      return {type:'solid-quad',pts,layer};
     }
 
     case 'POINT':
       return{type:'circle',cx:gf('10'),cy:gf('20'),r:Math.max(0.3,gf('39')||0.5),layer};
 
-    case 'HATCH': return null; // complex — skip boundary for now
+    case 'HATCH':{
+      const xs=ga('10'),ys=ga('20');
+      if(xs.length<3) return null;
+      const pts=xs.map((x,i)=>({x,y:ys[i]||0}));
+      return {type:'hatch-poly',pts,layer};
+    }
 
     case 'DIMENSION':{
       const x1=gf('13'),y1=gf('23'),x2=gf('14'),y2=gf('24');
-      if(Math.hypot(x2-x1,y2-y1)<0.01) return null;
-      return{type:'dim-lin',x1,y1,x2,y2,dy:Math.max(y1,y2)+20,layer};
+      const tx=gf('11'),ty=gf('21');
+      const dimType=parseInt(g('70'))||0;
+      if((dimType&6)!==0) return null; // skip angular/ordinate
+      if(!isFinite(x1)||!isFinite(x2)) return null;
+      const dist=Math.hypot(x2-x1,y2-y1);
+      if(dist<0.001) return null;
+      const dmx=isFinite(tx)&&tx?tx:(x1+x2)/2;
+      const dmy=isFinite(ty)&&ty?ty:(y1+y2)/2;
+      return{type:'dim-lin',x1,y1,x2,y2,dx:dmx,dy:dmy,layer};
     }
 
     case 'LEADER':{
