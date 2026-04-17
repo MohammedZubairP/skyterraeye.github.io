@@ -256,12 +256,7 @@ function NotifSettings({onClose}){
       [
         ['1','Go to emailjs.com','Create a free account (200 emails/month free)'],
         ['2','Add Email Service','Click "Email Services" → "Add New Service" → choose Gmail → connect info@skyterraeye.com'],
-        ['3','Create a Template','Click "Email Templates" → "Create New Template". Set:
-• To Email: zubair@skyterraeye.com
-• Subject: {{subject}}
-• Body: {{message}}
-
-Sent at: {{time}}'],
+        ['3','Create a Template','Click "Email Templates" → "Create New Template". Set:\n• To Email: zubair@skyterraeye.com\n• Subject: {{subject}}\n• Body: {{message}}\n\nSent at: {{time}}'],
         ['4','Get your keys','Go to "Account" → "General" to find your Public Key. Copy the Service ID and Template ID from their pages.'],
         ['5','Enter keys here','Paste all three values in the Configuration tab and click Save.']
       ].map(([n,title,desc])=>h('div',{key:n,style:{display:'flex',gap:12,marginBottom:14,paddingBottom:14,borderBottom:'0.5px solid var(--color-border)'}},
