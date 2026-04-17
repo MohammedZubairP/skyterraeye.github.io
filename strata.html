@@ -1341,7 +1341,7 @@ const ST = {
   snap: true, grid: true, ortho: false, osnap: true, polar: false,
   drawing: false, startPt: null, pts: [],   // multi-point draw
   entities: [],
-  imgOverlays:[],tileBounds:[],imgDefs:[],imgOpacity:0.85,
+  imgOverlays:[],tileBounds:[],imgDefs:[],imgOpacity:0.85,dxfExtents:null,
   layers: [
     {id:0,name:'0 – Default',color:'#1FA8D9',vis:true,lock:false,frz:false,dis:false},
     {id:1,name:'Walls',      color:'#D0E8F5',vis:true,lock:false,frz:false,dis:false},
@@ -3165,6 +3165,17 @@ function groupSel() {
 
 // ── ZOOM EXTENTS ──────────────────────────────────────────────────
 function zoomExt() {
+  // BEST: use $EXTMIN/$EXTMAX from DXF header — gives the exact model-space drawing bounds
+  if(ST.dxfExtents){
+    const {minX,maxX,minY,maxY}=ST.dxfExtents;
+    const dw=maxX-minX||1,dh=maxY-minY||1,m=0.04;
+    ST.zoom=Math.min(W/(dw*(1+m)),H/(dh*(1+m)));
+    ST.zoom=Math.max(0.0001,Math.min(500,ST.zoom));
+    ST.pan.x=W/2-((minX+maxX)/2)*ST.zoom;
+    ST.pan.y=H/2+((minY+maxY)/2)*ST.zoom;
+    updateZoomBadge();render();return;
+  }
+  // Fallback: statistical method
   // Use only structural geometry — no rect/text/dim (these scatter far from drawings)
   const geomTypes=new Set(['line','polyline','circle','arc','ellipse','hatch-poly','solid-quad']);
   const allPts=[], geomPts=[];
@@ -3374,6 +3385,21 @@ function parseDXF(txt,filename){
      if(gc==='0'){inIDef=(v==='IMAGEDEF');continue;}
      if(inIDef&&gc==='1'){imgPaths.push(v);inIDef=false;}
    }
+  }
+  // Read $EXTMIN/$EXTMAX from HEADER section — gives exact drawing extents for perfect zoom
+  let dxfExtMin=null,dxfExtMax=null;
+  {
+    let inHdr=false,curV=null,vx=null;
+    for(let i=0;i+1<lines.length;i+=2){
+      const gc=lines[i].trim(),v=(lines[i+1]||'').trim();
+      if(gc==='0'&&v==='SECTION'){if(i+2<lines.length&&lines[i+2].trim()==='2'&&lines[i+3]?.trim()==='HEADER')inHdr=true;}
+      if(gc==='0'&&v==='ENDSEC'){inHdr=false;}
+      if(!inHdr)continue;
+      if(gc==='9'){curV=v;vx=null;continue;}
+      if(gc==='10')vx=parseFloat(v);
+      if(gc==='20'&&curV==='$EXTMIN'&&vx!=null){const y=parseFloat(v);if(isFinite(vx)&&isFinite(y))dxfExtMin={x:vx,y};}
+      if(gc==='20'&&curV==='$EXTMAX'&&vx!=null){const y=parseFloat(v);if(isFinite(vx)&&isFinite(y))dxfExtMax={x:vx,y};}
+    }
   }
 
   // Build pairs
@@ -3622,6 +3648,12 @@ function parseDXF(txt,filename){
   ST.entities=totalEnts;
   ST.imgDefs=imgPaths;
   ST.imgOverlays=[];
+  // Store verified extents for zoomExt
+  ST.dxfExtents=(dxfExtMin&&dxfExtMax&&
+    Math.abs(dxfExtMax.x-dxfExtMin.x)>10&&
+    Math.abs(dxfExtMax.y-dxfExtMin.y)>10)?
+    {minX:Math.min(dxfExtMin.x,dxfExtMax.x),maxX:Math.max(dxfExtMin.x,dxfExtMax.x),
+     minY:Math.min(dxfExtMin.y,dxfExtMax.y),maxY:Math.max(dxfExtMin.y,dxfExtMax.y)}:null;
   renderLayers();
   setTimeout(()=>zoomExt(),150);
 
