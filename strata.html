@@ -24,6 +24,20 @@ input,select{font-family:inherit}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+/* ── XREF (External Reference) Modal ── */
+.xref-row{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg2);border:1px solid var(--sep);border-radius:4px;margin-bottom:5px}
+.xref-icon{font-size:18px;flex-shrink:0}
+.xref-info{flex:1;min-width:0}
+.xref-name{font-size:10px;font-weight:700;color:var(--t);font-family:'IBM Plex Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xref-detail{font-size:9px;color:var(--m);margin-top:1px}
+.xref-badge{font-size:8px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+.xref-missing{background:rgba(255,68,102,.15);color:#ff4466;border:1px solid rgba(255,68,102,.4)}
+.xref-loaded{background:rgba(34,197,94,.15);color:#22C55E;border:1px solid rgba(34,197,94,.4)}
+.xref-drop-zone{border:2px dashed var(--sep);border-radius:6px;padding:20px;text-align:center;cursor:pointer;transition:all .15s;margin-top:10px}
+.xref-drop-zone:hover,.xref-drop-zone.dov{border-color:var(--b);background:rgba(31,168,217,.05)}
+.xref-drop-label{font-size:11px;font-weight:700;color:var(--m);margin-top:6px}
+.xref-note{font-size:10px;line-height:1.6;padding:10px 12px;background:rgba(255,68,102,.06);border:1px solid rgba(255,68,102,.25);border-radius:5px;color:var(--t);margin-bottom:10px}
+
 
 .sh-col{background:var(--bg2);border:1px solid var(--sep);border-radius:4px;padding:6px 8px}
 .sh-hd{font-size:8px;font-weight:800;letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid var(--sep)}
@@ -3821,7 +3835,13 @@ class DXFImporter {
       if (e._blockRef) {
         const blockEnts = this.blocks[e._blockRef];
         if (!blockEnts || blockEnts.length === 0) {
-          // Unknown block — skip (don't leave dead rect)
+          // Unknown block — track XREF refs (pipe/dollar separator = XREF block name)
+          if (e._blockRef && (e._blockRef.includes('|') || e._blockRef.includes('$0$'))) {
+            const _xfn = e._blockRef.split('|')[0].split('$0$')[0];
+            if (!this.debug.missingXrefs) this.debug.missingXrefs = {};
+            if (!this.debug.missingXrefs[_xfn]) this.debug.missingXrefs[_xfn] = { count: 0 };
+            this.debug.missingXrefs[_xfn].count++;
+          }
           this.debug.skipped++;
           continue;
         }
@@ -4232,6 +4252,19 @@ class DXFImporter {
     // 11. Debug summary
     const blockCount = Object.keys(this.blocks).length;
     const layerCount = layerArray.length;
+    // Pass missingXrefs from expandInserts back into debug
+    if (!this.debug.missingXrefs) {
+      // Also scan rawEnts for XREF-style block references
+      this.debug.missingXrefs = {};
+      rawEnts.forEach(e => {
+        if (e._blockRef && (e._blockRef.includes('|') || e._blockRef.includes('$0$'))) {
+          const _xfn = e._blockRef.split('|')[0].split('$0$')[0];
+          if (!this.debug.missingXrefs[_xfn]) this.debug.missingXrefs[_xfn] = { count: 0 };
+          this.debug.missingXrefs[_xfn].count++;
+        }
+      });
+    }
+
     console.log(
       `%c[DXF] ${filename}`,
       'color:#1FA8D9;font-weight:bold',
@@ -4328,6 +4361,19 @@ function parseDXF(txt, filename) {
 
   // Apply entities to state
   ST.entities = entities;
+  // Cache INSERT entities that reference missing XREFs — for later XREF file upload
+  ST._pendingXrefInserts = [];
+  if (xrefNames.length > 0) {
+    try {
+      const _tp = new DXFImporter();
+      const _p = _tp._tokenize(txt);
+      _tp._parseTables(_p); _tp._parseBlocks(_p);
+      _tp._parseEntities(_p).forEach(e => {
+        if (e._blockRef && (e._blockRef.includes('|') || xrefNames.some(x=>e._blockRef.startsWith(x))))
+          ST._pendingXrefInserts.push(e);
+      });
+    } catch(_) {}
+  }
 
   // Rebuild ST.layers from parser output (preserves existing defaults, adds new)
   layers.forEach(l => {
@@ -4353,7 +4399,9 @@ function parseDXF(txt, filename) {
 
   // Status message
   const msg = `${filename}: ${entities.length} entities on ${debug.layerCount} layers`;
-  if (imageDefs.length > 0 || isCivil) {
+  if (xrefNames.length > 0) {
+    setTimeout(() => showXrefWarning(filename, xrefNames, missingXrefs, entities.length), 300);
+  } else if (imageDefs.length > 0 || isCivil) {
     setTimeout(() => showDxfDiag(filename, entities.length, imageDefs, [], isCivil), 300);
   } else {
     toast(msg, 'ok');
@@ -6341,7 +6389,52 @@ function exportPDF() {
   const printWin = window.open('', '_blank');
   if(!printWin){toast('Allow popups to export PDF','warn');return;}
   const canvas2 = document.getElementById('cad');
-  printWin.document.write(`<html><body style="margin:0"><img src="${canvas2.toDataURL()}" style="max-width:100%;page-break-inside:avoid"><script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
+  printWin.document.write(`<html><body style="margin:0"><img src="${canvas2.toDataURL()}" style="max-width:100%;page-break-inside:avoid"><script>window.onload=()=>{window.print();window.close();}<\/script>
+<!-- XREF (External Reference) Warning & Merge Modal -->
+<div class="mo" id="moXref">
+  <div class="modal w" style="max-width:600px">
+    <div class="mh">
+      <div class="mh-t"><span class="i">🔗</span>External References (XREFs) Detected</div>
+      <span class="mc" onclick="closeMo('moXref')">✕</span>
+    </div>
+    <div class="mb">
+      <div class="xref-note" id="xrefNote">XREFs detected in this drawing.</div>
+
+      <div style="font-size:9px;font-weight:700;color:var(--st);letter-spacing:1px;text-transform:uppercase;padding-bottom:4px;border-bottom:1px solid var(--sep);margin-bottom:8px;font-family:'IBM Plex Mono',monospace">Referenced External Files</div>
+      <div id="xrefFileList"></div>
+
+      <div style="font-size:9px;font-weight:700;color:var(--b);letter-spacing:1px;text-transform:uppercase;padding:10px 0 5px;border-top:1px solid var(--sep);margin-top:10px;font-family:'IBM Plex Mono',monospace">Upload XREF DXF Files</div>
+      <div class="xref-drop-zone" id="xrefDropZone"
+        onclick="document.getElementById('xrefFileIn').click()"
+        ondragover="event.preventDefault();this.classList.add('dov')"
+        ondragleave="this.classList.remove('dov')"
+        ondrop="event.preventDefault();this.classList.remove('dov');[...event.dataTransfer.files].forEach(f=>loadXrefFile(f))">
+        <div style="font-size:28px">📂</div>
+        <div class="xref-drop-label">Drop XREF DXF files here or click to browse</div>
+        <div style="font-size:9px;color:var(--m);margin-top:4px">Upload all DXF files that were linked to the original DWG</div>
+      </div>
+      <input type="file" id="xrefFileIn" accept=".dxf,.dwg" multiple style="display:none"
+        onchange="[...this.files].forEach(f=>loadXrefFile(f));this.value=''">
+
+      <div style="margin-top:12px;padding:10px;background:rgba(31,168,217,.07);border:1px solid rgba(31,168,217,.2);border-radius:5px">
+        <div style="font-size:9px;font-weight:800;color:var(--b);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Best Solution: Bind XREFs Before Export</div>
+        <div style="font-size:9.5px;color:var(--m);line-height:1.7">
+          In <b style="color:var(--t)">AutoCAD / DWG TrueView:</b><br>
+          &nbsp;1. Open the DWG file<br>
+          &nbsp;2. Type <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--g)">XREF</code> → right-click each reference → <b style="color:var(--t)">Bind</b> → <b>Insert</b><br>
+          &nbsp;3. Save → re-export as DXF → import here<br><br>
+          This creates a single self-contained DXF with everything embedded.
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn s" onclick="closeMo('moXref')">Close</button>
+      <button class="btn" onclick="closeMo('moXref');openMo('moImport')">Import Different File</button>
+    </div>
+  </div>
+</div>
+
+</body></html>`);
   printWin.document.close();
   toast('PDF export: use browser print dialog','ok');
 }
@@ -6630,6 +6723,8 @@ showDwgGuide = function(f) {
     }
     const parseBtn = document.getElementById('dwgParseBtn');
     if(parseBtn) parseBtn.style.display = 'inline-flex';
+    // Show XREF upload section so user can add referenced DWG files
+    const _xs=document.getElementById('xrefDwgSection');if(_xs)_xs.style.display='block';
     openMo('moDwgGuide');
   };
   reader.readAsArrayBuffer(f.slice(0, 200000)); // Read first 200KB for header + thumbnail
@@ -6693,14 +6788,27 @@ async function convertWithCloudConvert() {
 
     setS('Creating CloudConvert job…');
 
+    // Build tasks for main DWG + any staged XREF files
+    const _xrefs = _stagedXrefFiles || [];
+    const _xrefTasks = {};
+    _xrefs.forEach((_, i) => { _xrefTasks['upload-xref-'+i] = { operation: 'import/upload' }; });
+    const _allInputs = ['upload', ..._xrefs.map((_,i) => 'upload-xref-'+i)];
+
     const jobData = await ccPost('/v2/jobs', {
       tasks: {
-        'upload':  { operation: 'import/upload' },
+        'upload': { operation: 'import/upload' },
+        ..._xrefTasks,
         'convert': {
           operation: 'convert',
-          input: 'upload',
+          input: _allInputs,
           output_format: 'dxf',
-          input_format: 'dwg'
+          input_format: 'dwg',
+          engine: 'cadconverter',
+          options: {
+            bind_xrefs: true,
+            resolve_xrefs: true,
+            output_action: 'modelspace'
+          }
         },
         'export': { operation: 'export/url', input: 'convert' }
       }
@@ -6756,6 +6864,23 @@ async function convertWithCloudConvert() {
       });
       // no-cors returns opaque response — we can't read it but upload proceeds
     });
+
+    // Upload any staged XREF DWG files
+    for (let _xi = 0; _xi < _xrefs.length; _xi++) {
+      const _xf = _xrefs[_xi];
+      const _xt = jobData.data.tasks.find(t => t.name === 'upload-xref-' + _xi);
+      if (!_xt?.result?.form) continue;
+      setS(`Uploading XREF ${_xi+1}/${_xrefs.length}: ${_xf.name}…`);
+      const _xfd = new FormData();
+      Object.entries(_xt.result.form.parameters||{}).forEach(([k,v])=>_xfd.append(k,v));
+      _xfd.append('file', _xf, _xf.name);
+      await new Promise((res,rej)=>{
+        const xhr=new XMLHttpRequest(); xhr.open('POST',_xt.result.form.url,true);
+        xhr.onload=()=>(xhr.status<300?res():rej(new Error('XREF upload '+xhr.status)));
+        xhr.onerror=()=>res(); // non-fatal
+        xhr.send(_xfd);
+      }).catch(e=>console.warn('[CC] XREF upload failed:',e.message));
+    }
 
     setS('Converting DWG → DXF (may take 1–3 minutes for large files)…');
 
@@ -8749,6 +8874,66 @@ function geoFileChosen(ev){
   previewGeoJSON(f);
 }
 
+function showXrefWarning(filename, xrefNames, xrefStats, loadedCount) {
+  const modal = document.getElementById('moXref');
+  if (!modal) return;
+  const xrefList = document.getElementById('xrefFileList');
+  const xrefNote = document.getElementById('xrefNote');
+  if (xrefNote) {
+    xrefNote.innerHTML = loadedCount > 0
+      ? `⚠ <b>${loadedCount} entities</b> loaded — but <b>${xrefNames.length} XREF file(s) missing</b>. Upload the XREF DXFs below to complete the drawing.`
+      : `⛔ <b>0 entities visible</b> — all geometry is inside ${xrefNames.length} XREF file(s). Upload the XREF DXFs below.`;
+  }
+  if (xrefList) {
+    xrefList.innerHTML = xrefNames.map(name => {
+      const info = xrefStats[name] || {};
+      return `<div class="xref-row" id="xrow-${CSS.escape(name)}">
+        <div class="xref-icon">🔗</div>
+        <div class="xref-info"><div class="xref-name">${name}</div>
+        <div class="xref-detail">${info.count||0} INSERT reference(s)</div></div>
+        <span class="xref-badge xref-missing">Missing</span></div>`;
+    }).join('') +
+    `<div style="margin-top:8px;padding:8px 10px;background:rgba(245,190,24,.07);border:1px solid rgba(245,190,24,.25);border-radius:4px;font-size:9.5px;color:var(--m);line-height:1.6">
+      <b style="color:var(--g)">💡 How to get XREF files:</b> Ask the file provider for ALL linked DWG files. Convert each to DXF and upload them here.<br>
+      Or in AutoCAD: type <b>XREF</b> → right-click each → <b>Bind</b> → re-export DXF. This embeds all XREFs into one file.
+    </div>`;
+  }
+  setMsg(`${filename}: ${loadedCount} entities + ${xrefNames.length} missing XREFs`);
+  openMo('moXref');
+}
+
+function mergeXrefDxf(txt, xfilename) {
+  let xr;
+  try { xr = DXFImporter.parse(txt, xfilename); }
+  catch(err) { toast('XREF parse error: ' + err.message, 'err'); return; }
+  const xrefName = xfilename.replace(/\.dxf$/i,'').replace(/\.dwg$/i,'');
+  let resolved = 0;
+  const allBlocks = {};
+  if (xr.blocks['*Model_Space']) allBlocks[xrefName] = xr.blocks['*Model_Space'];
+  for (const [bn,be] of Object.entries(xr.blocks||{})) {
+    allBlocks[xrefName+'|'+bn] = be; allBlocks[bn] = be;
+  }
+  xr.layers.forEach(l => { if (!ST.layers.find(sl=>sl.name===l.name)) ST.layers.push(l); });
+  if (ST._pendingXrefInserts && ST._pendingXrefInserts.length) {
+    const tp = new DXFImporter(); tp.blocks = allBlocks; tp._eid = ST._eid;
+    for (const l of (ST.layers||[])) tp.layers[l.name] = l;
+    ST._pendingXrefInserts = ST._pendingXrefInserts.filter(ins => {
+      const fp = (ins._blockRef||'').split('|')[0];
+      const match = fp===xrefName||xrefName.includes(fp)||fp.includes(xrefName.split('-').slice(-2).join('-'));
+      if (!match) return true;
+      tp._expandInserts([ins],0).forEach(e=>{e._id=++ST._eid;ST.entities.push(e);resolved++;});
+      return false;
+    });
+    ST._eid = tp._eid;
+  }
+  const row = document.getElementById('xrow-'+CSS.escape(xrefName));
+  if (row) row.querySelector('.xref-badge').innerHTML='✓ Loaded';
+  renderLayers(); setTimeout(()=>zoomExt(),100);
+  toast(`XREF: ${xfilename} — ${resolved} entities added`, resolved>0?'ok':'warn');
+  setMsg(`Drawing + XREF: ${ST.entities.length} total entities`);
+  if (!resolved) toast('Tip: In AutoCAD type XREF → Bind all → re-export DXF (this embeds XREFs)', 'warn');
+}
+
 function showDxfDiag(filename,entCount,imgPaths,tileBounds,isCivil){
   const stats=document.getElementById('diagStats');
   const issues=document.getElementById('diagIssues');
@@ -8767,6 +8952,31 @@ function showDxfDiag(filename,entCount,imgPaths,tileBounds,isCivil){
 }
 
 function tlOpen(){ openMo('moTileLoader'); }
+
+// Load an XREF DXF file from file input or drop
+function addXrefDwgFiles(files) {
+  files.forEach(f=>{if(f.name.toLowerCase().endsWith('.dwg')&&!_stagedXrefFiles.find(x=>x.name===f.name))_stagedXrefFiles.push(f);});
+  const list=document.getElementById('xrefDwgList');
+  if(list) list.innerHTML=_stagedXrefFiles.map((f,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:var(--bg3);border:1px solid var(--sep);border-radius:3px">
+    <span>📐</span><span style="flex:1;font-size:9.5px;color:var(--t);font-family:'IBM Plex Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
+    <span style="font-size:9px;color:var(--m)">${(f.size/1024/1024).toFixed(1)}MB</span>
+    <button onclick="_stagedXrefFiles.splice(${i},1);addXrefDwgFiles([])" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">✕</button></div>`).join('');
+}
+
+function loadXrefFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'dwg') {
+    toast('DWG XREFs need to be converted to DXF first. Use ODA/CloudConvert on each XREF file.', 'warn');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    toast('Loading XREF: ' + file.name + '…', 'ok');
+    setTimeout(() => mergeXrefDxf(ev.target.result, file.name), 50);
+  };
+  reader.readAsText(file, 'UTF-8');
+}
 
 function tlDrop(ev){ ev.preventDefault(); const f=ev.dataTransfer?.files?.[0]; if(f) tlLoadFile(f,0); }
 
@@ -9688,6 +9898,51 @@ render = function() {
 .osnap-chk:hover{color:var(--t);background:rgba(31,168,217,.05)}
 .osnap-chk input{accent-color:var(--b);cursor:pointer}
 </style>
+
+
+<!-- XREF (External Reference) Warning & Merge Modal -->
+<div class="mo" id="moXref">
+  <div class="modal w" style="max-width:600px">
+    <div class="mh">
+      <div class="mh-t"><span class="i">🔗</span>External References (XREFs) Detected</div>
+      <span class="mc" onclick="closeMo('moXref')">✕</span>
+    </div>
+    <div class="mb">
+      <div class="xref-note" id="xrefNote">XREFs detected in this drawing.</div>
+
+      <div style="font-size:9px;font-weight:700;color:var(--st);letter-spacing:1px;text-transform:uppercase;padding-bottom:4px;border-bottom:1px solid var(--sep);margin-bottom:8px;font-family:'IBM Plex Mono',monospace">Referenced External Files</div>
+      <div id="xrefFileList"></div>
+
+      <div style="font-size:9px;font-weight:700;color:var(--b);letter-spacing:1px;text-transform:uppercase;padding:10px 0 5px;border-top:1px solid var(--sep);margin-top:10px;font-family:'IBM Plex Mono',monospace">Upload XREF DXF Files</div>
+      <div class="xref-drop-zone" id="xrefDropZone"
+        onclick="document.getElementById('xrefFileIn').click()"
+        ondragover="event.preventDefault();this.classList.add('dov')"
+        ondragleave="this.classList.remove('dov')"
+        ondrop="event.preventDefault();this.classList.remove('dov');[...event.dataTransfer.files].forEach(f=>loadXrefFile(f))">
+        <div style="font-size:28px">📂</div>
+        <div class="xref-drop-label">Drop XREF DXF files here or click to browse</div>
+        <div style="font-size:9px;color:var(--m);margin-top:4px">Upload all DXF files that were linked to the original DWG</div>
+      </div>
+      <input type="file" id="xrefFileIn" accept=".dxf,.dwg" multiple style="display:none"
+        onchange="[...this.files].forEach(f=>loadXrefFile(f));this.value=''">
+
+      <div style="margin-top:12px;padding:10px;background:rgba(31,168,217,.07);border:1px solid rgba(31,168,217,.2);border-radius:5px">
+        <div style="font-size:9px;font-weight:800;color:var(--b);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Best Solution: Bind XREFs Before Export</div>
+        <div style="font-size:9.5px;color:var(--m);line-height:1.7">
+          In <b style="color:var(--t)">AutoCAD / DWG TrueView:</b><br>
+          &nbsp;1. Open the DWG file<br>
+          &nbsp;2. Type <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--g)">XREF</code> → right-click each reference → <b style="color:var(--t)">Bind</b> → <b>Insert</b><br>
+          &nbsp;3. Save → re-export as DXF → import here<br><br>
+          This creates a single self-contained DXF with everything embedded.
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn s" onclick="closeMo('moXref')">Close</button>
+      <button class="btn" onclick="closeMo('moXref');openMo('moImport')">Import Different File</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
