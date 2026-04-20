@@ -4419,6 +4419,152 @@ function parseDXF(txt, filename) {
 }
 
 
+
+// ── Civil 3D Keyboard Shortcuts (from SourceCAD PDF) ──────────────────────
+document.addEventListener('keydown', ev => {
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  const inInput = (tag === 'input' || tag === 'textarea' || tag === 'select');
+
+  // F-key shortcuts (F1-F12) — only when NOT in input
+  if (!inInput) {
+    switch(ev.key) {
+      case 'F1':  ev.preventDefault(); openMo('moShortcuts'); return;                 // Help
+      case 'F2':  ev.preventDefault(); { const ci=document.getElementById('cmdInput'); if(ci)ci.focus(); } return; // Command line
+      case 'F3':  ev.preventDefault(); ST.osnap=!ST.osnap; if(typeof updateOsnapUI==='function')updateOsnapUI(); toast('OSNAP '+(ST.osnap?'ON':'OFF'),'ok'); return;
+      case 'F7':  ev.preventDefault(); ST.grid=!ST.grid; const g=document.getElementById('stGrid'); if(g)g.textContent=ST.grid?'ON':'OFF'; render(); toast('Grid '+(ST.grid?'ON':'OFF'),'ok'); return;
+      case 'F8':  ev.preventDefault(); ST.ortho=!ST.ortho; const o=document.getElementById('stOrtho'); if(o)o.textContent=ST.ortho?'ON':'OFF'; toast('ORTHO '+(ST.ortho?'ON':'OFF'),'ok'); return;
+      case 'F9':  ev.preventDefault(); ST.snap=!ST.snap; const s=document.getElementById('stSnap'); if(s)s.textContent=ST.snap?'ON':'OFF'; toast('SNAP '+(ST.snap?'ON':'OFF'),'ok'); return;
+      case 'F10': ev.preventDefault(); ST.polar=!ST.polar; const p=document.getElementById('stPolar'); if(p)p.textContent=ST.polar?'ON':'OFF'; toast('POLAR '+(ST.polar?'ON':'OFF'),'ok'); return;
+      case 'F11': ev.preventDefault(); ST.snaptrack=!ST.snaptrack; toast('Snap tracking '+(ST.snaptrack?'ON':'OFF'),'ok'); return;
+      case 'F12': ev.preventDefault(); ST.dynInput=!ST.dynInput; toast('Dynamic input '+(ST.dynInput?'ON':'OFF'),'ok'); return;
+    }
+  }
+
+  // Ctrl shortcuts
+  if (ev.ctrlKey && !ev.altKey) {
+    switch(ev.key.toLowerCase()) {
+      case 'n':
+        ev.preventDefault();
+        if(confirm('Start new drawing? Unsaved changes will be lost.')) newDrawing();
+        return;
+      case 'o':
+        ev.preventDefault();
+        openMo('moImport');
+        return;
+      case 's':
+        ev.preventDefault();
+        if(ev.shiftKey) { openMo('moExport'); }
+        else { if(typeof saveProject==='function') saveProject(); else toast('QSAVE','ok'); }
+        return;
+      case 'a':
+        if (!inInput) {
+          ev.preventDefault();
+          ST.entities.forEach(e=>e.selected=true);
+          render();
+          toast('All '+ST.entities.length+' objects selected','ok');
+        }
+        return;
+      case 'z':
+        if (!inInput) { ev.preventDefault(); undo(); }
+        return;
+      case 'y':
+        if (!inInput) { ev.preventDefault(); redo(); }
+        return;
+      case 'p':
+        ev.preventDefault();
+        openMo('moExport');
+        return;
+      case 'g':
+        if (!inInput) {
+          ev.preventDefault();
+          ST.grid=!ST.grid;
+          const gel=document.getElementById('stGrid');
+          if(gel)gel.textContent=ST.grid?'ON':'OFF';
+          render(); toast('Grid '+(ST.grid?'ON':'OFF'),'ok');
+        }
+        return;
+      case 'f':
+        if (!inInput) {
+          ev.preventDefault();
+          ST.osnap=!ST.osnap;
+          if(typeof updateOsnapUI==='function') updateOsnapUI();
+          toast('OSNAP '+(ST.osnap?'ON':'OFF'),'ok');
+        }
+        return;
+      case 'q':
+        if (ev.shiftKey) {
+          ev.preventDefault();
+          if(confirm('Exit?')) window.close();
+        }
+        return;
+      case '0':
+        ev.preventDefault();
+        // Clean screen — toggle sidebars
+        ['sidebar','rightPanel','.sidebar','.right-panel'].forEach(id=>{
+          const el=id.startsWith('.')?document.querySelector(id):document.getElementById(id);
+          if(el)el.style.display=el.style.display==='none'?'':'none';
+        });
+        toast('Clean screen toggle','ok');
+        return;
+      case '1':
+        ev.preventDefault();
+        if(typeof showTab==='function') showTab('props');
+        return;
+      case '9':
+        ev.preventDefault();
+        { const ci=document.getElementById('cmdInput'); if(ci)ci.focus(); }
+        return;
+    }
+  }
+});
+
+// ── Ctrl+C / Ctrl+V for CAD copy/paste ────────────────────────
+document.addEventListener('keydown', ev => {
+  if (ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
+    if (ev.key === 'c' || ev.key === 'C') {
+      const sels = ST.entities.filter(e=>e.selected);
+      if (sels.length) {
+        ST._clipboard = JSON.parse(JSON.stringify(sels));
+        toast('Copied '+sels.length+' object(s) to clipboard  |  Ctrl+V to paste','ok');
+      }
+    }
+    if (ev.key === 'v' || ev.key === 'V') {
+      if (ST._clipboard && ST._clipboard.length) {
+        pushUndo();
+        ST.entities.forEach(e=>e.selected=false);
+        ST._clipboard.forEach(e=>{
+          const ne={...JSON.parse(JSON.stringify(e)), _id:++ST._eid, selected:true};
+          // Offset slightly so user sees the paste
+          if(typeof translateEnt==='function') Object.assign(ne, translateEnt(ne,10,10));
+          ST.entities.push(ne);
+        });
+        render();
+        toast('Pasted '+ST._clipboard.length+' object(s)','ok');
+        setMsg('Pasted — move to final position  |  M=Move');
+      }
+    }
+    if (ev.key === 'x' || ev.key === 'X') {
+      const sels = ST.entities.filter(e=>e.selected);
+      if (sels.length) {
+        ST._clipboard = JSON.parse(JSON.stringify(sels));
+        pushUndo();
+        ST.entities = ST.entities.filter(e=>!e.selected);
+        render();
+        toast('Cut '+sels.length+' object(s)','ok');
+      }
+    }
+  }
+  // Delete key = erase selected
+  if ((ev.key === 'Delete' || ev.key === 'Backspace') && document.activeElement?.tagName?.toLowerCase()!=='input') {
+    const sels = ST.entities.filter(e=>e.selected);
+    if (sels.length) {
+      ev.preventDefault();
+      if(typeof delSel==='function') delSel();
+    }
+  }
+});
+
+
 // ── CAD PARITY PATCH (AutoCAD behavior) ─────────────────────────────
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -6463,11 +6609,284 @@ const CAD_COMMANDS = (function() {
     'J':'join','JOIN':'join','X':'explode','EXP':'explode','EXPLODE':'explode',
     'LEN':'lengthen','AR':'array','ARRAY':'array',
   };
-  Object.assign(m, draw, modify);
+  // Civil 3D specific + missing general commands (from SourceCAD PDF)
+  const civil3d = {
+    // Units & Settings
+    'UN':'units','UNITS':'units','DWGUNITS':'units',
+    // Dimensions (from PDF #50-54)
+    'D':'dim-lin','DAR':'dim-diameter','DIAMETER':'dim-diameter',
+    'RA':'dim-radius','RADIUS':'dim-radius',
+    'DAN':'dim-angular','ANGULAR':'dim-angular',
+    'BA':'dim-baseline','BASELINE':'dim-baseline',
+    'DCE':'dim-center','DBA':'dim-baseline',
+    // Hatch (PDF #44)
+    'HA':'hatch','BH':'hatch',
+    // Navigation (PDF #47-48)
+    'PA':'pan','Z':'zoom','ZOOM':'zoom',
+    // Area/Distance measuring (PDF #41-43)
+    'ARE':'area','AREA':'area','DI':'dist','DISTANCE':'dist',
+    'ID':'idpt','IDPT':'idpt',
+    // Blocks (PDF #40)
+    'BL':'block','BLOCK':'block','INSERT':'block','I':'block',
+    // Polyline edit (PDF #38)
+    'PE':'pedit',
+    // Align (PDF #39)
+    'AL':'align',
+    // Save (PDF #45)
+    'QS':'save','QSAVE':'save',
+    // OSNAP toggle (PDF #46)
+    'OS':'osnap',
+    // General shortcuts from PDF
+    'BC':'bclose','BO':'boundary',
+    'ADC':'adcenter','AA':'area',
+    // Navigation commands (PDF #88-99)
+    'CAM':'camera','CAMERA':'camera',
+    'CBAR':'constraintbar',
+    'CH':'properties',
+    'CHK':'checkstandards',
+    'CLI':'commandline',
+    'COL':'color','COLOR':'color',
+    'CT':'tablestyle',
+    'CUBE':'navvcube',
+    'DCE':'dimcenter',
+    // Color
+    'COLOUR':'color',
+    // Extra shortcuts matching AutoCAD
+    'DIMRAD':'dim-radius','DIMANG':'dim-angular','DIMDIA':'dim-diameter',
+    'DIMALIGNED':'dim-lin','DIMLINEAR':'dim-lin',
+    'DIMEDIT':'dimedit','DIMSTYLE':'dimstyle','DDIM':'dimstyle','DST':'dimstyle',
+    'DTEXT':'text','MLINE':'mline','ML':'mline',
+    'WBLOCK':'wblock','WB':'wblock',
+    'ATTDEF':'attdef','ATT':'attdef',
+    'ATTEDIT':'attedit','ATE':'attedit',
+    'ATTEXT':'attext',
+    'BEDIT':'bedit','BE':'bedit',
+    'BSAVE':'bsave',
+    'BURST':'burst',
+    'DATAEXTRACTION':'dataextraction','DX':'dataextraction',
+    'DATALINK':'datalink','DL':'datalink',
+    'DIST':'dist',
+    'DONUT':'donut','DO':'donut',
+    'DRAWORDER':'draworder','DR':'draworder',
+    'DVIEW':'dview',
+    'FILTER':'filter','FI':'filter',
+    'FIND':'find',
+    'FLATTEN':'flatten',
+    'GCCOINCIDENT':'gccoincident',
+    'GCCOLLINEAR':'gccollinear',
+    'GCCONCENTRIC':'gcconcentric',
+    'GCEQUAL':'gcequal',
+    'GCFIX':'gcfix',
+    'GCHORIZONTAL':'gchorizontal',
+    'GCPARALLEL':'gcparallel',
+    'GCPERPENDICULAR':'gcperpendicular',
+    'GCSMOOTH':'gcsmooth',
+    'GCSYMMETRIC':'gcsymmetric',
+    'GCTANGENT':'gctangent',
+    'GCVERTICAL':'gcvertical',
+    'GROUP':'group','G':'group',
+    'HYPERLINK':'hyperlink','CTRL+K':'hyperlink',
+    'IMAGE':'imageattach','IAT':'imageattach',
+    'IMAGEADJUST':'imageadjust','IAD':'imageadjust',
+    'IMAGECLIP':'imageclip','ICL':'imageclip',
+    'IMAGEFRAME':'imageframe',
+    'IMPORT':'import','IMP':'import',
+    'LAYON':'layon','LAYOFF':'layoff','LAYFRZ':'layfrz','LAYTHW':'laythw',
+    'LAYLCK':'laylck','LAYULK':'layulk','LAYMCH':'laymch',
+    'LAYCUR':'laycur','LAYDEL':'laydel','LAYMRG':'laymrg',
+    'LT':'linetype','LINETYPE':'linetype','LTYPE':'linetype',
+    'LTSCALE':'ltscale','LTS':'ltscale',
+    'LWEIGHT':'lineweight','LW':'lineweight',
+    'MASSPROP':'massprop','MP':'massprop',
+    'MEASURE':'measure','ME':'measure',
+    'MINSERT':'minsert',
+    'MIRROR3D':'mirror3d',
+    'MOVE3D':'move3d',
+    'MREDO':'mredo',
+    'MSPACE':'mspace','MS':'mspace',
+    'MULTIPLE':'multiple','MU':'multiple',
+    'MVIEW':'mview','MV':'mview',
+    'NETLOAD':'netload',
+    'OFFSET':'offset',
+    'OPTIONS':'settings','OP':'settings',
+    'ORTHO':'ortho',
+    'OSNAP':'osnap',
+    'PAGESETUP':'pagesetup',
+    'PAN':'pan',
+    'PASTEBLOCK':'pasteblock','PB':'pasteblock',
+    'PASTESPEC':'pastespec','PA':'pastespec',
+    'PLAN':'plan',
+    'PLOT':'plot',
+    'PLOTSTYLE':'plotstyle','PS':'plotstyle',
+    'POINT':'point',
+    'POLAR':'polar',
+    'PREVIEW':'preview','PRE':'preview',
+    'PRINT':'plot',
+    'PROPERTIES':'properties','PR':'properties',
+    'PROPERTIESCLOSE':'propertiesclose','PRC':'propertiesclose',
+    'PURGE':'purge','PU':'purge',
+    'QLEADER':'leader','QL':'leader',
+    'QNEW':'new',
+    'QOPEN':'open',
+    'QPRINT':'plot',
+    'QSAVE':'save',
+    'QSELECT':'qselect','QSE':'qselect',
+    'QUIT':'exit',
+    'RECOVER':'recover','REC':'rect', // rect takes priority for REC
+    'RECTANG':'rect',
+    'REDO':'redo',
+    'REDRAWALL':'regen',
+    'REFCLOSE':'refclose','RC':'refclose',
+    'REFEDIT':'refedit','REF':'refedit',
+    'REFSET':'refset',
+    'REGEN':'regen',
+    'REGENALL':'regen',
+    'REGENAUTO':'regen',
+    'RENAME':'rename','REN':'rename',
+    'RENDER':'render',
+    'RENDERWIN':'renderwin','RW':'renderwin',
+    'REVOLVE':'revolve','REV':'revolve',
+    'REVCLOUD':'cloud',
+    'ROTATE':'rotate',
+    'ROTATE3D':'rotate3d',
+    'RSCRIPT':'rscript',
+    'SAVEAS':'saveas',
+    'SAVEIMG':'saveimg',
+    'SCALE':'scale',
+    'SCALETEXT':'scaletext','TS':'scaletext',
+    'SELECT':'select','SE':'select',
+    'SETVAR':'setvar','SET':'setvar',
+    'SHADEMODE':'shademode','SHA':'shademode',
+    'SKETCH':'sketch','SK':'sketch',
+    'SLICE':'slice','SL':'slice',
+    'SNAP':'snap','SN':'snap',
+    'SOLID':'solid','SO':'solid',
+    'SPELL':'spell','SP':'spell',
+    'SPLINE':'spline',
+    'SPLINEDIT':'splinedit','SPE':'splinedit',
+    'STANDARDS':'checkstandards',
+    'STATUS':'status',
+    'STYLE':'style','ST_':'style',
+    'SUBTRACT':'subtract','SU':'subtract',
+    'SWEEP':'sweep','SW':'sweep',
+    'TABLET':'tablet','TA':'tablet',
+    'TABLE':'table','TB':'table',
+    'TABLESTYLE':'tablestyle',
+    'TEXTFIT':'textfit',
+    'TEXTEDIT':'textedit','ED':'textedit',
+    'THICKNESS':'thickness','TH':'thickness',
+    'TILEMODE':'tilemode','TM':'tilemode',
+    'TIME':'time','TI':'time',
+    'TOLERANCE':'tolerance','TOL':'tolerance',
+    'TOOLBAR':'toolbar','TO':'toolbar',
+    'TOOLPALETTES':'toolpalettes','TP':'toolpalettes',
+    'TPNAVIGATE':'tpnavigate',
+    'TRIM':'trim',
+    'UCSICON':'ucsicon',
+    'UNDO':'undo',
+    'UNION':'union','UNI':'union',
+    'UNITS':'units',
+    'VIEW':'view','V':'view',
+    'VIEWRES':'viewres',
+    'VPCLIP':'vpclip',
+    'VPLAYER':'vplayer',
+    'VPOINT':'vpoint','VP':'vpoint',
+    'VPORTS':'vports',
+    'VSCURRENT':'vscurrent','VSC':'vscurrent',
+    'WALKFLY':'walkfly',
+    'WBLOCK':'wblock','W':'wblock',
+    'WEDGE':'wedge','WE':'wedge',
+    'XATTACH':'xattach','XA':'xattach',
+    'XBIND':'xbind','XB':'xbind',
+    'XCLIP':'xclip','XC':'xclip',
+    'XLINE':'xline',
+    'XOPEN':'xopen','XO':'xopen',
+    'XREF':'xref','XR':'xref',
+    'ZOOM':'zoom',
+    // Civil 3D specific surface/alignment commands
+    'AECCCREATECORRIDOR':'corridor',
+    'CORRIDOREDIT':'corridor',
+    'TINSURF':'tin','TINSURFACE':'tin',
+    'GRADEDOBJECT':'grading',
+    'ALIGNMENTCREATE':'alignment',
+    'PROFILECREATE':'profile',
+    'SECTIONCREATE':'section',
+    'PIPE':'pipe','PIPERUN':'pipe',
+    'STRUCTURE':'structure',
+    'PARCELCREATE':'parcel',
+    'POINTGROUP':'pointgroup','PTGROUP':'pointgroup',
+    'POINTIMPORT':'import','PTIMPORT':'import',
+    'POINTEXPORT':'export','PTEXPORT':'export',
+    'DESCRIPTION':'description',
+    'SURFACE':'tin','SRF':'tin',
+    'CONTOUR':'contour',
+  };
+  Object.assign(m, draw, modify, civil3d);
   return m;
 })();
 
 const CAD_ACTIONS = {
+  // Missing actions for Civil 3D commands
+  units:       () => openUnitsModal(),
+  area:        () => T('measure-a'),
+  dist:        () => T('measure-d'),
+  idpt:        () => { setMsg('ID — click a point to display its coordinates  |  ESC=cancel'); ST.tool='idpt'; },
+  block:       () => openBlockModal(),
+  save:        () => { if(typeof saveProject==='function') saveProject(); else toast('QSAVE — project saved','ok'); },
+  open:        () => openMo('moImport'),
+  new:         () => { if(confirm('Start new drawing? Unsaved changes will be lost.')) newDrawing(); },
+  exit:        () => { if(confirm('Exit drawing?')) window.close(); },
+  color:       () => openColorDialog(),
+  linetype:    () => toast('LINETYPE — use Layer Manager to set linetypes','ok'),
+  lineweight:  () => toast('LINEWEIGHT — use Layer Manager to set line weights','ok'),
+  purge:       () => purgeEntities(),
+  rename:      () => toast('RENAME — double-click a layer to rename it','ok'),
+  settings:    () => openMo('moSettings'),
+  xref:        () => openMo('moXref'),
+  plot:        () => openMo('moExport'),
+  camera:      () => toast('CAMERA — 2D view only in Strata Web','ok'),
+  constraintbar: () => toast('CONSTRAINTBAR — geometric constraints panel','ok'),
+  checkstandards: () => toast('CHECKSTANDARDS — drawing standards check','ok'),
+  commandline: () => { const i=document.getElementById('cmdInput'); if(i){i.focus();} },
+  tablestyle:  () => toast('TABLESTYLE — table styles not yet implemented','ok'),
+  navvcube:    () => toast('VIEWCUBE — 3D navigation not available in 2D mode','ok'),
+  dimstyle:    () => toast('DIMSTYLE — dimension styles: use Properties panel','ok'),
+  dimedit:     () => toast('DIMEDIT — click a dimension to edit it','ok'),
+  donut:       () => T('circle'),
+  draworder:   () => toast('DRAWORDER — use layer z-order instead','ok'),
+  filter:      () => toast('FILTER — selection filter: not yet implemented','ok'),
+  find:        () => toast('FIND — use Ctrl+F in browser to search','ok'),
+  group:       () => toast('GROUP — select objects and press Ctrl+G to group (coming soon)','ok'),
+  imageattach: () => openMo('moImport'),
+  layon:       () => { ST.layers.forEach(l=>l.vis=true); renderLayers(); render(); toast('All layers on','ok'); },
+  layoff:      () => { const sels=ST.entities.filter(e=>e.selected); if(!sels.length){toast('Select entity to turn off its layer','warn');return;} const ids=new Set(sels.map(e=>e.layer)); ST.layers.forEach(l=>{if(ids.has(l.id))l.vis=false;}); renderLayers(); render(); toast('Layer(s) off','ok'); },
+  layfrz:      () => { ST.layers.forEach(l=>l.frz=true); renderLayers(); render(); toast('All layers frozen','ok'); },
+  laythw:      () => { ST.layers.forEach(l=>l.frz=false); renderLayers(); render(); toast('All layers thawed','ok'); },
+  laylck:      () => { ST.layers.forEach(l=>l.lock=true); renderLayers(); toast('All layers locked','ok'); },
+  layulk:      () => { ST.layers.forEach(l=>l.lock=false); renderLayers(); toast('All layers unlocked','ok'); },
+  laycur:      () => { const sels=ST.entities.filter(e=>e.selected); if(!sels.length){toast('Select entity to set current layer','warn');return;} const layId=sels[0].layer; const lay=ST.layers.find(l=>l.id===layId); if(lay){ST._curLayerId=layId;toast('Current layer: '+lay.name,'ok');}},
+  ltscale:     () => { const v=parseFloat(prompt('Enter linetype scale factor:','1')); if(!isNaN(v)&&v>0){ST.ltscale=v;render();toast('Linetype scale: '+v,'ok');} },
+  polar:       () => { ST.polar=!ST.polar; const el=document.getElementById('stPolar'); if(el)el.textContent=ST.polar?'ON':'OFF'; toast('POLAR '+(ST.polar?'ON':'OFF'),'ok'); },
+  snap:        () => { ST.snap=!ST.snap; const el=document.getElementById('stSnap'); if(el)el.textContent=ST.snap?'ON':'OFF'; toast('SNAP '+(ST.snap?'ON':'OFF'),'ok'); },
+  ortho:       () => { ST.ortho=!ST.ortho; const el=document.getElementById('stOrtho'); if(el)el.textContent=ST.ortho?'ON':'OFF'; toast('ORTHO '+(ST.ortho?'ON':'OFF'),'ok'); },
+  purgeEntities: () => purgeEntities(),
+  bclose:      () => toast('BCLOSE — block editor closed','ok'),
+  adcenter:    () => toast('ADCENTER — use the BLOCKS panel to manage blocks','ok'),
+  mline:       () => T('polyline'),
+  render:      () => { render(); toast('REGEN — view regenerated','ok'); },
+  tin:         () => buildTIN(),
+  corridor:    () => toast('CORRIDOR — Civil 3D corridors: not yet implemented','ok'),
+  alignment:   () => toast('ALIGNMENT — create via Civil 3D tab → Roads','ok'),
+  profile:     () => toast('PROFILE — create from alignment in Civil 3D tab','ok'),
+  contour:     () => openMo('moContour'),
+  pointgroup:  () => showTab('survey'),
+  donut:       () => T('circle'),
+  splinedit:   () => { const sels=ST.entities.filter(e=>e.selected&&e.type==='polyline'); if(!sels.length){toast('SPLINEDIT — select a spline/polyline first','warn');return;} toast('SPLINEDIT — use PEDIT to edit this polyline','ok'); T('select'); },
+  textedit:    () => { const sels=ST.entities.filter(e=>e.selected&&e.type==='text'); if(!sels.length){T('text');return;} openTextEdit(sels[0]); },
+  qselect:     () => toast('QSELECT — use Ctrl+A to select all, or click entities','ok'),
+  refedit:     () => openMo('moXref'),
+  view:        () => zoomExt(),
+
   zoom:()=>zoomExt(), pan:()=>T('pan'), select:()=>T('select'),
   delete:()=>delSel(), undo:()=>undo(), redo:()=>redo(),
   layers:()=>showTab('layers'), import:()=>openMo('moImport'),
@@ -6477,6 +6896,122 @@ const CAD_ACTIONS = {
   shortcuts:()=>openMo('moShortcuts'), map:()=>toggleMap(),
   tin:()=>buildTIN(), contour:()=>openMo('moContour'),
 };
+
+// ── Helper: Units Modal ──────────────────────────────────────
+function openUnitsModal() {
+  const cur = ST.units || 'mm';
+  const units = ['mm','cm','m','km','in','ft','yd','mi'];
+  const modal = document.createElement('div');
+  modal.id = 'moUnits'; modal.className = 'mo';
+  modal.innerHTML = `<div class="modal w" style="max-width:380px">
+    <div class="mh"><div class="mh-t"><span class="i">📐</span>Drawing Units (UN)</div>
+    <span class="mc" onclick="closeMo('moUnits')">✕</span></div>
+    <div class="mb">
+      <div class="fsect">Linear Units</div>
+      <select id="unitsSel" class="fs" style="width:100%">
+        ${units.map(u=>`<option value="${u}" ${u===cur?'selected':''}>${u.toUpperCase()} — ${u==='mm'?'Millimeters':u==='cm'?'Centimeters':u==='m'?'Meters':u==='km'?'Kilometers':u==='in'?'Inches':u==='ft'?'Feet':u==='yd'?'Yards':'Miles'}</option>`).join('')}
+      </select>
+      <div class="fsect" style="margin-top:10px">Precision</div>
+      <select id="unitsPrecision" class="fs" style="width:100%">
+        <option value="0">0 (integer)</option>
+        <option value="1">0.0</option>
+        <option value="2" selected>0.00</option>
+        <option value="3">0.000</option>
+        <option value="4">0.0000</option>
+      </select>
+      <div class="fsect" style="margin-top:10px">Scale Factor</div>
+      <input type="number" id="unitsScale" class="fs" value="${ST.unitScale||1}" min="0.0001" step="any" style="width:100%" placeholder="1.0">
+    </div>
+    <div class="mf">
+      <button class="btn s" onclick="closeMo('moUnits')">Cancel</button>
+      <button class="btn" onclick="applyUnits()">Apply</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  openMo('moUnits');
+}
+
+function applyUnits() {
+  const sel = document.getElementById('unitsSel');
+  const prec = document.getElementById('unitsPrecision');
+  const scale = document.getElementById('unitsScale');
+  if (sel)   ST.units = sel.value;
+  if (prec)  ST.unitPrecision = parseInt(prec.value) || 2;
+  if (scale) ST.unitScale = parseFloat(scale.value) || 1;
+  const unitsEl = document.getElementById('unitsDisp');
+  if (unitsEl) unitsEl.textContent = ST.units;
+  closeMo('moUnits');
+  toast('Units set to ' + (ST.units||'mm').toUpperCase(), 'ok');
+}
+
+// ── Helper: Open Color Dialog ─────────────────────────────────
+function openColorDialog() {
+  const cur = ST._overrideColor || '#1FA8D9';
+  const picker = document.createElement('input');
+  picker.type = 'color'; picker.value = cur;
+  picker.style.cssText = 'position:absolute;opacity:0;pointer-events:none';
+  document.body.appendChild(picker);
+  picker.click();
+  picker.oninput = () => { ST._overrideColor = picker.value; };
+  picker.onchange = () => {
+    ST._overrideColor = picker.value;
+    document.body.removeChild(picker);
+    toast('Color set to ' + picker.value, 'ok');
+  };
+}
+
+// ── Helper: Purge unused entities/layers ─────────────────────
+function purgeEntities() {
+  const usedLayers = new Set(ST.entities.map(e=>e.layer));
+  const before = ST.layers.length;
+  ST.layers = ST.layers.filter(l => l.id===0 || usedLayers.has(l.id) || l.name==='0');
+  const removed = before - ST.layers.length;
+  renderLayers();
+  toast(`PURGE — removed ${removed} unused layer(s)`, 'ok');
+}
+
+// ── Helper: New Drawing ───────────────────────────────────────
+function newDrawing() {
+  pushUndo();
+  ST.entities = [];
+  ST.layers = ST.layers.slice(0, Math.min(3, ST.layers.length)); // keep defaults
+  ST.dxfExtents = null;
+  ST._eid = 100;
+  renderLayers();
+  render();
+  toast('New drawing started','ok');
+}
+
+// ── Helper: Block Modal stub ──────────────────────────────────
+function openBlockModal() {
+  openMo('moBlocks'); // existing blocks panel
+}
+
+// ── Helper: ID Point tool ─────────────────────────────────────
+// Sets up a one-shot click to show coordinates
+(function(){
+  const _origCanvasClick = canvas.onclick;
+  function handleIdPt(ev) {
+    if (ST.tool !== 'idpt') return;
+    const wp = s2w(ev.offsetX, ev.offsetY);
+    toast(`ID: X=${wp.x.toFixed(4)}  Y=${wp.y.toFixed(4)}`, 'ok');
+    setMsg(`Point: X=${wp.x.toFixed(4)}  Y=${wp.y.toFixed(4)}  Z=0.0000`);
+    ST.tool = 'select';
+  }
+  canvas.addEventListener('click', handleIdPt, true);
+})();
+
+// ── Helper: Text Edit ─────────────────────────────────────────
+function openTextEdit(ent) {
+  if (!ent || ent.type !== 'text') return;
+  const newTxt = prompt('Edit text:', ent.txt || '');
+  if (newTxt !== null) {
+    pushUndo();
+    ent.txt = newTxt;
+    render();
+    toast('Text updated', 'ok');
+  }
+}
 
 function runCommand(rawCmd) {
   const raw = (rawCmd||'').trim();
@@ -7626,6 +8161,7 @@ const DWG_VERSIONS = {
 };
 
 let _dwgFile = null;
+let _stagedXrefFiles = []; // XREF DWG files staged for CloudConvert batch upload
 
 function showDwgGuide(f) {
   _dwgFile = f;
@@ -10798,6 +11334,49 @@ function buildContourLegend(){}
 
 function extractContourSegment(){ return []; }
 
+function _initMap() {
+  // Initialise Leaflet map inside #mapDiv
+  const div = document.getElementById('mapDiv');
+  if (!div) { console.warn('[Map] mapDiv not found'); return; }
+  if (_map) return; // already initialised
+
+  // Default center: Dubai (suits the user's project area)
+  const defaultLat = 25.2048, defaultLng = 55.2708, defaultZoom = 10;
+
+  _map = L.map('mapDiv', {
+    zoomControl: true,
+    attributionControl: true,
+    preferCanvas: true,
+  }).setView([defaultLat, defaultLng], defaultZoom);
+
+  // Base layers
+  const layers = {
+    osm:    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              { maxZoom: 22, attribution: '© OpenStreetMap contributors' }),
+    sat:    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+              { maxZoom: 22, attribution: '© Esri World Imagery' }),
+    topo:   L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+              { maxZoom: 17, attribution: '© OpenTopoMap' }),
+  };
+
+  // Add default layer
+  const startLayer = _mapLayers && _mapLayer ? _mapLayer : 'osm';
+  (layers[startLayer] || layers.osm).addTo(_map);
+
+  // Store layer refs for switching
+  _map._tileLayers = layers;
+
+  // Click handler: if in 'draw' mode, pass clicks to CAD canvas
+  _map.on('click', function(e) {
+    if (_mapMode !== 'georef') return;
+    const snap = document.getElementById('mapSnapPt');
+    if (snap) { snap.style.display='none'; }
+    if (typeof _handleMapClick === 'function') _handleMapClick(e.latlng.lat, e.latlng.lng);
+  });
+
+  console.log('[Map] Leaflet map initialised');
+}
+
 function toggleMap(){
   _mapActive = !_mapActive;
   const div = document.getElementById('mapDiv');
@@ -10832,8 +11411,14 @@ function setMapLayer(type){
   _mapLayer=type;
   const btn=document.getElementById('ibBtn'+type.charAt(0).toUpperCase()+type.slice(1));
   if(_map){
-    _map.eachLayer(l=>{ if(l._url) _map.removeLayer(l); });
-    L.tileLayer(_mapLayers[type],{maxZoom:22}).addTo(_map);
+    // Remove existing tile layers
+    _map.eachLayer(l=>{ if(l instanceof L.TileLayer) _map.removeLayer(l); });
+    // Add the new one from stored refs if available, else create fresh
+    if(_map._tileLayers && _map._tileLayers[type]) {
+      _map._tileLayers[type].addTo(_map);
+    } else if(_mapLayers && _mapLayers[type]) {
+      L.tileLayer(_mapLayers[type],{maxZoom:22}).addTo(_map);
+    }
   }
   toast('Map: '+type.toUpperCase(),'ok');
 }
