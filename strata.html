@@ -3381,424 +3381,965 @@ function vpDrop(ev){ev.preventDefault();const dz=document.getElementById('dz');i
 // [dup doImport removed]
 
 // ── DXF PARSER ────────────────────────────────────────────────────
-function parseDXF(txt,filename){
-  txt=txt.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
-  const lines=txt.split('\n');
-  const isCivil=/AeccDb|AeccuDb|AecDb/.test(txt);
-  const imgPaths=[];
-  {let inIDef=false;
-   for(let i=0;i+1<lines.length;i+=2){
-     const gc=lines[i].trim(),v=(lines[i+1]||'').trim();
-     if(gc==='0'){inIDef=(v==='IMAGEDEF');continue;}
-     if(inIDef&&gc==='1'){imgPaths.push(v);inIDef=false;}
-   }
+
+/**
+ * ════════════════════════════════════════════════════════════════════
+ *  STRATA DXF IMPORT ENGINE  v2.0
+ *  Production-grade DXF parser for browser-based CAD
+ *
+ *  Handles: LINE, LWPOLYLINE, POLYLINE+VERTEX, CIRCLE, ARC, ELLIPSE,
+ *           SPLINE, TEXT, MTEXT, ATTRIB, INSERT (recursive), HATCH,
+ *           SOLID, TRACE, DIMENSION, LEADER, XLINE, RAY, POINT,
+ *           WIPEOUT + all unknown entities gracefully skipped
+ *
+ *  Architecture:
+ *    DXFImporter.parse(txt, filename) → { entities, layers, blocks, meta }
+ * ════════════════════════════════════════════════════════════════════
+ */
+
+// ─── DWG HANDLING NOTE ──────────────────────────────────────────────
+// DWG is Autodesk's proprietary binary format. For a production system:
+//
+//  SERVER-SIDE (recommended):
+//    Option A: ODA File Converter CLI (free, open source)
+//      https://www.opendesign.com/guestfiles/oda_file_converter
+//      Usage: ODAFileConverter input.dwg output_dir/ ACAD2018 DXF 0 1
+//
+//    Option B: LibreCAD / FreeCAD server process
+//      FreeCAD can be scripted: freecad --headless convert.py
+//
+//    Option C: Cloud API
+//      Autodesk Platform Services (APS/Forge) Model Derivative API
+//      https://aps.autodesk.com/developer/overview/model-derivative
+//
+//  BROWSER-ONLY (limited):
+//    Option D: libredwg WASM build (experimental, partial support)
+//      https://github.com/LibreDWG/libredwg
+//
+//  Recommended: Set up a small server endpoint:
+//    POST /api/convert  { file: dwgBuffer } → returns DXF text
+// ────────────────────────────────────────────────────────────────────
+
+class DXFImporter {
+
+  // ══════════════════════════════════════════════════════════════════
+  //  PUBLIC ENTRY POINT
+  // ══════════════════════════════════════════════════════════════════
+  static parse(rawText, filename = 'drawing.dxf') {
+    const imp = new DXFImporter();
+    return imp._parse(rawText, filename);
   }
-  // Read $EXTMIN/$EXTMAX from HEADER section — gives exact drawing extents for perfect zoom
-  let dxfExtMin=null,dxfExtMax=null;
-  {
-    let inHdr=false,curV=null,vx=null;
-    for(let i=0;i+1<lines.length;i+=2){
-      const gc=lines[i].trim(),v=(lines[i+1]||'').trim();
-      if(gc==='0'&&v==='SECTION'){if(i+2<lines.length&&lines[i+2].trim()==='2'&&lines[i+3]?.trim()==='HEADER')inHdr=true;}
-      if(gc==='0'&&v==='ENDSEC'){inHdr=false;}
-      if(!inHdr)continue;
-      if(gc==='9'){curV=v;vx=null;continue;}
-      if(gc==='10')vx=parseFloat(v);
-      if(gc==='20'&&curV==='$EXTMIN'&&vx!=null){const y=parseFloat(v);if(isFinite(vx)&&isFinite(y))dxfExtMin={x:vx,y};}
-      if(gc==='20'&&curV==='$EXTMAX'&&vx!=null){const y=parseFloat(v);if(isFinite(vx)&&isFinite(y))dxfExtMax={x:vx,y};}
+
+  constructor() {
+    // ── ACI (AutoCAD Color Index) → hex, full 256-color palette ──
+    this.ACI = [
+      '#000000','#FF0000','#FFFF00','#00FF00','#00FFFF','#0000FF','#FF00FF','#FFFFFF',
+      '#808080','#C0C0C0','#FF0000','#FF8080','#CC0000','#CC6666','#990000','#994C4C',
+      '#7F0000','#7F3F3F','#4C0000','#4C2626','#FF4000','#FF9F80','#CC3300','#CC7F66',
+      '#992600','#995F4C','#7F1F00','#7F4F3F','#4C1300','#4C2F26','#FF8000','#FFBF80',
+      '#CC6600','#CC9966','#994C00','#99724C','#7F3F00','#7F5F3F','#4C2600','#4C3926',
+      '#FFBF00','#FFDF80','#CC9900','#CCB266','#997300','#99854C','#7F5F00','#7F6C3F',
+      '#4C3900','#4C4126','#FFFF00','#FFFF80','#CCCC00','#CCCC66','#999900','#99994C',
+      '#7F7F00','#7F7F3F','#4C4C00','#4C4C26','#80FF00','#BFFF80','#66CC00','#99CC66',
+      '#4C9900','#73994C','#3F7F00','#5F7F3F','#264C00','#394C26','#00FF00','#80FF80',
+      '#00CC00','#66CC66','#009900','#4C994C','#007F00','#3F7F3F','#004C00','#264C26',
+      '#00FF40','#80FFBF','#00CC33','#66CC99','#009926','#4C9966','#007F1F','#3F7F5F',
+      '#004C13','#264C39','#00FF80','#80FFD9','#00CC66','#66CCB2','#009943','#4C997F',
+      '#007F33','#3F7F66','#004C1F','#264C3F','#00FFBF','#80FFEF','#00CC99','#66CCCC',
+      '#009973','#4C9999','#007F59','#3F7F7F','#004C33','#264C4C','#00FFFF','#80FFFF',
+      '#00CCCC','#66CCCC','#009999','#4C9999','#007F7F','#3F7F7F','#004C4C','#264C4C',
+      '#00BFFF','#80DFFF','#0099CC','#66B2CC','#007399','#4C8599','#005F7F','#3F6C7F',
+      '#00394C','#264059','#0080FF','#80BFFF','#0066CC','#6699CC','#004C99','#4C7299',
+      '#00397F','#3F597F','#00204C','#26334C','#0040FF','#809FFF','#0033CC','#6680CC',
+      '#002699','#4C5F99','#001F7F','#3F4C7F','#00124C','#26264C','#0000FF','#8080FF',
+      '#0000CC','#6666CC','#000099','#4C4C99','#00007F','#3F3F7F','#00004C','#26264C',
+      '#4000FF','#9F80FF','#3300CC','#8066CC','#260099','#5F4C99','#1F007F','#4C3F7F',
+      '#12004C','#2C264C','#8000FF','#BF80FF','#6600CC','#9966CC','#4C0099','#724C99',
+      '#33007F','#59397F','#1F004C','#391F4C','#BF00FF','#DF80FF','#9900CC','#B266CC',
+      '#730099','#854C99','#59007F','#6C3F7F','#33004C','#400040','#FF00FF','#FF80FF',
+      '#CC00CC','#CC66CC','#990099','#994C99','#7F007F','#7F3F7F','#4C004C','#4C264C',
+      '#FF00BF','#FF80DF','#CC0099','#CC66B2','#990073','#994C85','#7F0059','#7F3F6C',
+      '#4C0033','#4C2640','#FF0080','#FF80BF','#CC0066','#CC6699','#990043','#994C72',
+      '#7F0033','#7F3F59','#4C001F','#4C2639','#FF0040','#FF809F','#CC0033','#CC6680',
+      '#990026','#994C5F','#7F001F','#7F3F4C','#4C0013','#4C2633','#FF0000','#FF8080',
+    ];
+
+    // Layer name → color heuristics for common CAD conventions
+    this.LAYER_COLORS = {
+      'a-wall': '#E8D5A3', 'a-wall-patt': '#C4A96A', 'wall': '#E8D5A3',
+      'a-glaz': '#88CCFF', 'a-glaz-curt': '#77BBFF', 'a-glaz-cwmg': '#66AAFF',
+      's-cols': '#FF9966',  's-strs': '#FFAA44',      'struct': '#FF9966',
+      'a-door': '#AADDAA',  'door': '#AADDAA',
+      'i-wall': '#FFDDAA',  'a-detl': '#DDAAFF',
+      'a-anno': '#88FFEE',  'dim': '#FFFF88',          'text': '#AAFFEE',
+      'c-road': '#FFAA66',  'c-road-cntr': '#FF6644',  'c-prop': '#FF4488',
+      'defpoints': '#888888',
+    };
+
+    // Internal state
+    this._eid    = 0;       // entity ID counter
+    this.pairs   = [];      // [gc, value][] tokenized pairs
+    this.layers  = {};      // name → {id, name, color, vis, ltype}
+    this.ltypes  = {};      // name → dash pattern
+    this.blocks  = {};      // name → entity[]
+    this.meta    = {};      // $EXTMIN, $EXTMAX, $INSUNITS, etc.
+    this.debug   = { skipped: 0, skippedTypes: {} };
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  //  STEP 1 — TOKENISER: text → pairs[]
+  // ══════════════════════════════════════════════════════════════════
+  _tokenize(txt) {
+    // Normalise line endings and BOM
+    txt = txt.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = txt.split('\n');
+    const pairs = [];
+    for (let i = 0; i + 1 < lines.length; i += 2) {
+      const gc  = lines[i].trim();
+      const val = (lines[i + 1] || '').trim();
+      if (gc !== '') pairs.push([gc, val]);
     }
+    return pairs;
   }
 
-  // Build pairs
-  const pairs=[];
-  for(let i=0;i+1<lines.length;i+=2){
-    const gc=lines[i].trim(),val=lines[i+1]===undefined?'':lines[i+1].trim();
-    if(gc!=='') pairs.push([gc,val]);
-  }
+  // ══════════════════════════════════════════════════════════════════
+  //  STEP 2 — HEADER: reads $EXTMIN/$EXTMAX/$INSUNITS etc.
+  // ══════════════════════════════════════════════════════════════════
+  _parseHeader(pairs) {
+    const meta = {};
+    let inHdr = false, curVar = null, vx = null;
+    for (let i = 0; i < pairs.length; i++) {
+      const [gc, v] = pairs[i];
+      if (gc === '0' && v === 'SECTION') {
+        if (i + 1 < pairs.length && pairs[i+1][0] === '2') {
+          if (pairs[i+1][1] === 'HEADER') inHdr = true;
+          i++;
+        }
+        continue;
+      }
+      if (gc === '0' && v === 'ENDSEC') { inHdr = false; continue; }
+      if (!inHdr) continue;
 
-  // ACI color table (AutoCAD standard 256 colors)
-  const ACI=[
-    '#000000','#FF0000','#FFFF00','#00FF00','#00FFFF','#0000FF','#FF00FF','#FFFFFF',
-    '#808080','#C0C0C0','#FF0000','#FF8080','#CC0000','#CC6666','#990000','#994C4C',
-    '#7F0000','#7F3F3F','#4C0000','#4C2626','#FF4000','#FF9F80','#CC3300','#CC7F66',
-    '#992600','#995F4C','#7F1F00','#7F4F3F','#4C1300','#4C2F26','#FF8000','#FFBF80',
-    '#CC6600','#CC9966','#994C00','#99724C','#7F3F00','#7F5F3F','#4C2600','#4C3926',
-    '#FFBF00','#FFDF80','#CC9900','#CCB266','#997300','#99854C','#7F5F00','#7F6C3F',
-    '#4C3900','#4C4126','#FFFF00','#FFFF80','#CCCC00','#CCCC66','#999900','#99994C',
-    '#7F7F00','#7F7F3F','#4C4C00','#4C4C26','#80FF00','#BFFF80','#66CC00','#99CC66',
-    '#4C9900','#73994C','#3F7F00','#5F7F3F','#264C00','#394C26','#00FF00','#80FF80',
-    '#00CC00','#66CC66','#009900','#4C994C','#007F00','#3F7F3F','#004C00','#264C26',
-    '#00FF40','#80FFBF','#00CC33','#66CC99','#009926','#4C9966','#007F1F','#3F7F5F',
-    '#004C13','#264C39','#00FF80','#80FFD9','#00CC66','#66CCB2','#009943','#4C997F',
-    '#007F33','#3F7F66','#004C1F','#264C3F','#00FFBF','#80FFEF','#00CC99','#66CCCC',
-    '#009973','#4C9999','#007F59','#3F7F7F','#004C33','#264C4C','#00FFFF','#80FFFF',
-    '#00CCCC','#66CCCC','#009999','#4C9999','#007F7F','#3F7F7F','#004C4C','#264C4C',
-    '#00BFFF','#80DFFF','#0099CC','#66B2CC','#007399','#4C8599','#005F7F','#3F6C7F',
-    '#00394C','#264059','#0080FF','#80BFFF','#0066CC','#6699CC','#004C99','#4C7299',
-    '#00397F','#3F597F','#00204C','#26334C','#0040FF','#809FFF','#0033CC','#6680CC',
-    '#002699','#4C5F99','#001F7F','#3F4C7F','#00124C','#26264C','#0000FF','#8080FF',
-    '#0000CC','#6666CC','#000099','#4C4C99','#00007F','#3F3F7F','#00004C','#26264C',
-    '#4000FF','#9F80FF','#3300CC','#8066CC','#260099','#5F4C99','#1F007F','#4C3F7F',
-    '#12004C','#2C264C','#8000FF','#BF80FF','#6600CC','#9966CC','#4C0099','#724C99',
-    '#33007F','#59397F','#1F004C','#391F4C','#BF00FF','#DF80FF','#9900CC','#B266CC',
-    '#730099','#854C99','#59007F','#6C3F7F','#33004C','#400040','#FF00FF','#FF80FF',
-    '#CC00CC','#CC66CC','#990099','#994C99','#7F007F','#7F3F7F','#4C004C','#4C264C',
-    '#FF00BF','#FF80DF','#CC0099','#CC66B2','#990073','#994C85','#7F0059','#7F3F6C',
-    '#4C0033','#4C2640','#FF0080','#FF80BF','#CC0066','#CC6699','#990043','#994C72',
-    '#7F0033','#7F3F59','#4C001F','#4C2639','#FF0040','#FF809F','#CC0033','#CC6680',
-    '#990026','#994C5F','#7F001F','#7F3F4C','#4C0013','#4C2633','#FF0000','#FF8080',
-  ];
-  function aciToHex(n){return ACI[Math.abs(n)%256]||'#1FA8D9';}
+      if (gc === '9') { curVar = v; vx = null; continue; }
+      if (!curVar)    continue;
 
-  // Layer table — stores name, color, linetype
-  const layerTable={};  // name -> {color, ltype, id}
-  const layerMap={};    // name -> ST layer id
-
-  function getLayId(name, aci){
-    const n=(name||'0').trim();
-    if(layerMap[n]===undefined){
-      const ex=ST.layers.find(l=>l.name===n);
-      if(ex){layerMap[n]=ex.id;}
-      else{
-        const lt=layerTable[n];
-        const col=lt?.color||aciToHex(aci||7);
-        const id=Date.now()+Math.random()|0;
-        layerMap[n]=id;
-        ST.layers.push({id,name:n,color:col,vis:true,lock:false,frz:false,dis:false});
+      // Coordinate variables
+      if (gc === '10') vx = parseFloat(v);
+      if (gc === '20' && vx != null) {
+        const y = parseFloat(v);
+        if (isFinite(vx) && isFinite(y)) {
+          meta[curVar] = { x: vx, y };
+        }
+      }
+      // Scalar variables
+      if (gc === '70' || gc === '40' || gc === '1') {
+        if (!meta[curVar]) meta[curVar] = v;
       }
     }
-    return layerMap[n];
+    return meta;
   }
 
-  // First pass: read TABLES section to get layer colors
-  let inTables=false, inLayerTable=false, curLayerEntry=null;
-  for(let p=0;p<pairs.length;p++){
-    const [gc,val]=pairs[p];
-    if(gc==='0'){
-      if(curLayerEntry){layerTable[curLayerEntry.name]=curLayerEntry;}
-      curLayerEntry=null;
-      if(val==='SECTION'){
-        const nextPair=pairs[p+1];
-        if(nextPair&&nextPair[1]==='TABLES') inTables=true;
-        else if(nextPair&&nextPair[1]==='ENTITIES') inTables=false;
+  // ══════════════════════════════════════════════════════════════════
+  //  STEP 3 — TABLES: reads LAYER and LTYPE tables
+  // ══════════════════════════════════════════════════════════════════
+  _parseTables(pairs) {
+    let inTables = false, inLayerTbl = false, inLtypeTbl = false;
+    let curLayer = null, curLtype = null;
+
+    const commitLayer = () => {
+      if (!curLayer) return;
+      const name = curLayer.name || '0';
+      const col  = curLayer.color || this._layerColorForName(name) || '#D0E8F5';
+      const id   = ++this._eid;
+      this.layers[name] = { id, name, color: col, vis: curLayer.vis !== false,
+                            ltype: curLayer.ltype || 'Continuous', lock: false, frz: false, dis: false };
+      curLayer = null;
+    };
+    const commitLtype = () => {
+      if (!curLtype || !curLtype.name) return;
+      this.ltypes[curLtype.name] = curLtype.pattern || [];
+      curLtype = null;
+    };
+
+    for (let i = 0; i < pairs.length; i++) {
+      const [gc, v] = pairs[i];
+
+      if (gc === '0' && v === 'SECTION') {
+        if (i + 1 < pairs.length && pairs[i+1][0] === '2') {
+          inTables = (pairs[i+1][1] === 'TABLES');
+          i++;
+        }
+        continue;
       }
-      if(val==='ENDSEC') inTables=false;
-      if(inTables&&val==='LAYER') curLayerEntry={name:'0',color:'#FFFFFF',ltype:'Continuous'};
-      else if(inTables&&val==='TABLE'){ const nxt=pairs[p+1]; if(nxt&&nxt[1]==='LAYER') inLayerTable=true; }
-      else if(inTables&&val==='ENDTAB') inLayerTable=false;
+      if (gc === '0' && v === 'ENDSEC') { commitLayer(); commitLtype(); inTables = inLayerTbl = inLtypeTbl = false; continue; }
+      if (!inTables) continue;
+
+      if (gc === '0' && v === 'TABLE') {
+        if (i + 1 < pairs.length) {
+          inLayerTbl = (pairs[i+1][1] === 'LAYER');
+          inLtypeTbl = (pairs[i+1][1] === 'LTYPE');
+        }
+        continue;
+      }
+      if (gc === '0' && v === 'ENDTAB') { inLayerTbl = inLtypeTbl = false; continue; }
+
+      // LAYER entries
+      if (inLayerTbl && gc === '0' && v === 'LAYER') { commitLayer(); curLayer = { name: '0', color: null, vis: true }; continue; }
+      if (curLayer) {
+        if (gc === '2')  curLayer.name  = v;
+        if (gc === '62') {
+          const n = parseInt(v);
+          curLayer.vis   = n >= 0;                // negative ACI = layer off
+          curLayer.color = this._aciToHex(Math.abs(n));
+        }
+        if (gc === '6')  curLayer.ltype = v;
+      }
+
+      // LTYPE entries
+      if (inLtypeTbl && gc === '0' && v === 'LTYPE') { commitLtype(); curLtype = { name: null, pattern: [] }; continue; }
+      if (curLtype) {
+        if (gc === '2')  curLtype.name = v;
+        if (gc === '49') curLtype.pattern.push(parseFloat(v)); // positive=dash, negative=gap
+      }
     }
-    if(curLayerEntry){
-      if(gc==='2') curLayerEntry.name=val;
-      if(gc==='62') curLayerEntry.color=aciToHex(Math.abs(parseInt(val)||7));
-      if(gc==='6') curLayerEntry.ltype=val;
+    commitLayer();
+    commitLtype();
+
+    // Always ensure layer '0' exists
+    if (!this.layers['0']) {
+      this.layers['0'] = { id: ++this._eid, name: '0', color: '#D0E8F5', vis: true, lock: false, frz: false, dis: false, ltype: 'Continuous' };
     }
   }
-  if(curLayerEntry) layerTable[curLayerEntry.name]=curLayerEntry;
 
-  // Block definitions
-  const blockDefs={};
-  let cur=null,inEnt=false,inBlock=false,curBlockName=null,curBlockEnts=null;
+  // ══════════════════════════════════════════════════════════════════
+  //  STEP 4 — BLOCKS: reads BLOCKS section, stores block definitions
+  //           Also reads *Model_Space for DXFs that put geometry there
+  // ══════════════════════════════════════════════════════════════════
+  _parseBlocks(pairs) {
+    let inBlocks = false, curBlockName = null, curBlockEnts = null;
+    let cur = null;
 
-  const ents=[];
+    const flush = () => {
+      if (!cur) return;
+      const e = this._buildEntity(cur);
+      if (e && curBlockEnts) {
+        (Array.isArray(e) ? e : [e]).forEach(ent => { ent._id = ++this._eid; curBlockEnts.push(ent); });
+      }
+      cur = null;
+    };
 
-  function flush(){
-    if(!cur) return;
-    let b;
-    try{ b=buildDXFEnt(cur,getLayId); }
-    catch(err){ cur=null; return; } // skip malformed entity silently
-    if(!b){cur=null;return;}
-    // Stamp entity-level ACI color (GC 62) and linetype (GC 6)
-    const _aci=parseInt((cur.d['62']||['0'])[0])||0;
-    const _lt=(cur.d['6']||[null])[0];
-    const _lw=parseFloat((cur.d['370']||['0'])[0])*0.01||null;
-    function _stamp(e){
-      if(_aci>0&&_aci<256) e.aciColor=_aci;
-      if(_lt&&_lt!=='BYLAYER') e.linetype=_lt;
-      if(_lw) e.lw=_lw;
-    }
-    const target=inBlock&&curBlockEnts?curBlockEnts:ents;
-    if(Array.isArray(b)) b.forEach(e=>{e._id=++ST._eid;_stamp(e);target.push(e);});
-    else{b._id=++ST._eid;_stamp(b);target.push(b);}
-    cur=null;
-  }
+    // POLYLINE/VERTEX buffer for BLOCKS section
+    let polyBuffer = null;
 
-  for(let p=0;p<pairs.length;p++){
-    const [gc,val]=pairs[p];
-    if(gc==='0'){
-      flush();
-      if(val==='ENDSEC'){inEnt=false;inBlock=false;curBlockName=null;curBlockEnts=null;continue;}
-      if(val==='SECTION'){
-        if(p+1<pairs.length&&pairs[p+1][0]==='2'){
-          const sec=pairs[p+1][1];
-          if(sec==='ENTITIES'){inEnt=true;inBlock=false;}
-          else if(sec==='BLOCKS'){inBlock=true;inEnt=false;}
+    for (let p = 0; p < pairs.length; p++) {
+      const [gc, v] = pairs[p];
+
+      if (gc === '0' && v === 'SECTION') {
+        if (p + 1 < pairs.length && pairs[p+1][0] === '2') {
+          inBlocks = (pairs[p+1][1] === 'BLOCKS');
           p++;
         }
         continue;
       }
-      if(val==='BLOCK'){
-        for(let j=p+1;j<Math.min(p+8,pairs.length);j++){
-          if(pairs[j][0]==='2'){curBlockName=pairs[j][1];break;}
+      if (gc === '0' && v === 'ENDSEC') { flush(); inBlocks = false; curBlockName = null; curBlockEnts = null; continue; }
+      if (!inBlocks) continue;
+
+      if (gc === '0') {
+        flush();
+
+        if (v === 'BLOCK') {
+          // Read block name from next few pairs
+          curBlockName = null;
+          for (let j = p + 1; j < Math.min(p + 10, pairs.length); j++) {
+            if (pairs[j][0] === '2') { curBlockName = pairs[j][1]; break; }
+          }
+          if (curBlockName) {
+            curBlockEnts = [];
+            this.blocks[curBlockName] = curBlockEnts;
+          }
+          polyBuffer = null;
+          continue;
         }
-        curBlockEnts=curBlockName?[]:(curBlockEnts||[]);
-        if(curBlockName) blockDefs[curBlockName]=curBlockEnts;
+        if (v === 'ENDBLK' || v === 'ENDSEC') { curBlockName = null; polyBuffer = null; continue; }
+        if (v === 'SEQEND') {
+          // Finish POLYLINE
+          if (polyBuffer && polyBuffer.pts.length >= 2) {
+            const pe = { type: 'polyline', pts: polyBuffer.pts, closed: polyBuffer.closed, layer: polyBuffer.layer, _id: ++this._eid };
+            if (curBlockEnts) curBlockEnts.push(pe);
+          }
+          polyBuffer = null;
+          continue;
+        }
+
+        if (!curBlockName) continue;
+
+        // POLYLINE opener
+        if (v === 'POLYLINE') {
+          cur = { type: v, d: {} };
+          // Will be converted to buffer on flush
+          continue;
+        }
+        // VERTEX within POLYLINE
+        if (v === 'VERTEX' && polyBuffer) {
+          cur = { type: v, d: {} };
+          continue;
+        }
+
+        cur = { type: v, d: {} };
         continue;
       }
-      if(val==='ENDBLK'){curBlockName=null;curBlockEnts=null;continue;}
-      if(val==='SEQEND') continue;
-      if(!inEnt&&!(inBlock&&curBlockName&&!curBlockName.startsWith('*Paper'))) continue;
-      cur={type:val,d:{}};
-    } else if(cur){
-      if(!cur.d[gc]) cur.d[gc]=[];
-      cur.d[gc].push(val);
+
+      if (cur) {
+        if (!cur.d[gc]) cur.d[gc] = [];
+        cur.d[gc].push(v);
+
+        // When POLYLINE entity data is complete, convert to buffer
+        // We detect completion when a new GC=0 appears (handled above via flush())
+        // But we set up the buffer here if we've accumulated the entity header
+        if (cur.type === 'POLYLINE' && gc === '70') {
+          const flag = parseInt(v) || 0;
+          const layName = (cur.d['8'] || ['0'])[0];
+          polyBuffer = { pts: [], closed: !!(flag & 1), layer: this._getLayerId(layName) };
+          // Don't push POLYLINE entity itself — handled via VERTEX
+        }
+        if (cur.type === 'VERTEX' && polyBuffer) {
+          const x = parseFloat((cur.d['10'] || ['0'])[0]) || 0;
+          const y = parseFloat((cur.d['20'] || ['0'])[0]) || 0;
+          if (isFinite(x) && isFinite(y)) polyBuffer.pts.push({ x, y });
+        }
+      }
     }
   }
-  flush();
 
-  // Expand INSERT entities into their block contents
-  const finalEnts=[];
-  ents.forEach(e=>{
-    if(e._blockRef&&blockDefs[e._blockRef]){
-      const bEnts=blockDefs[e._blockRef];
-      const ox=e.x||0,oy=e.y||0;
-      const sx=e._sx||1,sy=e._sy||1;
-      const rot=e._rot||0;
-      bEnts.forEach(be=>{
-        try{
-          const ne=safeClone(be);
-          ne._id=++ST._eid;ne.selected=false;
-          // Apply insertion transform
-          if(ox!==0||oy!==0){
-            const te=translateEnt(ne,ox,oy);
-            Object.assign(ne,te);
-          }
-          if(rot!==0){
-            const re=rotateEnt(ne,{x:ox,y:oy},rot*Math.PI/180);
-            Object.assign(ne,re);
-          }
-          finalEnts.push(ne);
-        }catch(err){}
-      });
-    } else {
-      finalEnts.push(e);
-    }
-  });
+  // ══════════════════════════════════════════════════════════════════
+  //  STEP 5 — ENTITIES: reads ENTITIES section + *Model_Space block
+  // ══════════════════════════════════════════════════════════════════
+  _parseEntities(pairs) {
+    const ents = [];
+    let inEnt = false, cur = null;
+    let polyBuffer = null;  // for old-style POLYLINE+VERTEX
 
-  // Also add Model_Space block entities
-  if(blockDefs['*Model_Space']){
-    blockDefs['*Model_Space'].forEach(e=>{
-      if(e&&!finalEnts.find(fe=>fe._id===e._id)){
-        finalEnts.push(e);
+    const flush = () => {
+      if (!cur) return;
+      try {
+        const e = this._buildEntity(cur);
+        if (e) (Array.isArray(e) ? e : [e]).forEach(ent => { ent._id = ++this._eid; ents.push(ent); });
+      } catch (_) {
+        this.debug.skipped++;
+        const t = cur.type || 'unknown';
+        this.debug.skippedTypes[t] = (this.debug.skippedTypes[t] || 0) + 1;
       }
+      cur = null;
+    };
+
+    for (let p = 0; p < pairs.length; p++) {
+      const [gc, v] = pairs[p];
+
+      if (gc === '0' && v === 'SECTION') {
+        if (p + 1 < pairs.length && pairs[p+1][0] === '2') {
+          inEnt = (pairs[p+1][1] === 'ENTITIES');
+          p++;
+        }
+        continue;
+      }
+      if (gc === '0' && v === 'ENDSEC') { flush(); inEnt = false; continue; }
+      if (!inEnt) continue;
+
+      if (gc === '0') {
+        flush();
+
+        if (v === 'SEQEND') {
+          // Close POLYLINE vertex buffer
+          if (polyBuffer && polyBuffer.pts.length >= 2) {
+            ents.push({ type: 'polyline', pts: polyBuffer.pts, closed: polyBuffer.closed, layer: polyBuffer.layer, _id: ++this._eid });
+          }
+          polyBuffer = null;
+          continue;
+        }
+
+        if (v === 'POLYLINE') {
+          cur = { type: v, d: {} };
+          continue;
+        }
+        if (v === 'VERTEX') {
+          cur = { type: v, d: {} };
+          continue;
+        }
+
+        cur = { type: v, d: {} };
+        continue;
+      }
+
+      if (cur) {
+        if (!cur.d[gc]) cur.d[gc] = [];
+        cur.d[gc].push(v);
+
+        // POLYLINE: when flag is read, create vertex buffer
+        if (cur.type === 'POLYLINE' && gc === '70') {
+          const flag = parseInt(v) || 0;
+          const layName = (cur.d['8'] || ['0'])[0];
+          polyBuffer = { pts: [], closed: !!(flag & 1), layer: this._getLayerId(layName) };
+        }
+        // VERTEX: accumulate into buffer
+        if (cur.type === 'VERTEX' && polyBuffer) {
+          const x = parseFloat((cur.d['10'] || ['0'])[0]) || 0;
+          const y = parseFloat((cur.d['20'] || ['0'])[0]) || 0;
+          if (isFinite(x) && isFinite(y)) polyBuffer.pts.push({ x, y });
+        }
+      }
+    }
+    flush();
+
+    // Also pull from *Model_Space block (Civil 3D / some exporters put geometry there)
+    const modelSpace = this.blocks['*Model_Space'] || this.blocks['*MODEL_SPACE'];
+    if (modelSpace) {
+      const existingIds = new Set(ents.map(e => e._id));
+      modelSpace.forEach(e => { if (e && !existingIds.has(e._id)) ents.push(e); });
+    }
+
+    return ents;
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  //  STEP 6 — EXPAND INSERTS: recursively expand block references
+  //           Handles nested blocks, scales, rotations
+  //           max depth = 6 to prevent infinite recursion
+  // ══════════════════════════════════════════════════════════════════
+  _expandInserts(ents, depth = 0) {
+    if (depth > 6) return ents; // safety limit
+
+    const result = [];
+    for (const e of ents) {
+      if (e._blockRef) {
+        const blockEnts = this.blocks[e._blockRef];
+        if (!blockEnts || blockEnts.length === 0) {
+          // Unknown block — skip (don't leave dead rect)
+          this.debug.skipped++;
+          continue;
+        }
+
+        const ox = isFinite(e.x) ? e.x : 0;
+        const oy = isFinite(e.y) ? e.y : 0;
+        const sx = isFinite(e._sx) ? e._sx : 1;
+        const sy = isFinite(e._sy) ? e._sy : 1;
+        const rot = isFinite(e._rot) ? e._rot * Math.PI / 180 : 0;
+        const cos = Math.cos(rot), sin = Math.sin(rot);
+
+        const transformPt = (x, y) => ({
+          x: ox + (x * sx * cos - y * sy * sin),
+          y: oy + (x * sx * sin + y * sy * cos),
+        });
+
+        const transformEnt = (be) => {
+          const ne = this._deepClone(be);
+          ne._id = ++this._eid;
+          ne.selected = false;
+          // Inherit insert layer if entity is on layer '0' (AutoCAD convention)
+          if ((ne._layerName || '0') === '0') ne.layer = e.layer;
+
+          switch (ne.type) {
+            case 'line': {
+              const a = transformPt(ne.x1, ne.y1), b = transformPt(ne.x2, ne.y2);
+              ne.x1=a.x; ne.y1=a.y; ne.x2=b.x; ne.y2=b.y; break;
+            }
+            case 'circle': case 'arc': {
+              const c = transformPt(ne.cx, ne.cy);
+              ne.cx=c.x; ne.cy=c.y;
+              ne.r = ne.r * Math.max(Math.abs(sx), Math.abs(sy));
+              if (ne.type === 'arc') { ne.sa -= rot*180/Math.PI; ne.ea -= rot*180/Math.PI; }
+              break;
+            }
+            case 'ellipse': {
+              const c = transformPt(ne.cx, ne.cy);
+              ne.cx=c.x; ne.cy=c.y; ne.rx *= Math.abs(sx); ne.ry *= Math.abs(sy);
+              ne.rot = (ne.rot || 0) + rot * 180/Math.PI; break;
+            }
+            case 'polyline': case 'hatch-poly': case 'solid-quad': case 'hatch': {
+              if (ne.pts) ne.pts = ne.pts.map(p => transformPt(p.x, p.y)); break;
+            }
+            case 'text': {
+              const p = transformPt(ne.x, ne.y);
+              ne.x=p.x; ne.y=p.y; ne.sz = (ne.sz||1) * Math.abs(sx);
+              ne.rot = (ne.rot||0) + rot*180/Math.PI; break;
+            }
+            case 'hatch-dot': {
+              const p = transformPt(ne.x, ne.y); ne.x=p.x; ne.y=p.y; break;
+            }
+            case 'dim-lin': {
+              const a=transformPt(ne.x1,ne.y1), b=transformPt(ne.x2,ne.y2), d=transformPt(ne.dx,ne.dy);
+              ne.x1=a.x; ne.y1=a.y; ne.x2=b.x; ne.y2=b.y; ne.dx=d.x; ne.dy=d.y; break;
+            }
+            case 'xline-inf': {
+              const bp = transformPt(ne.bx, ne.by);
+              ne.bx=bp.x; ne.by=bp.y;
+              // Rotate direction vector
+              ne.dx = ne.dx*cos - ne.dy*sin;
+              ne.dy = ne.dx*sin + ne.dy*cos; break;
+            }
+            case 'rect': {
+              const p = transformPt(ne.x, ne.y); ne.x=p.x; ne.y=p.y;
+              ne.w = ne.w * sx; ne.h = ne.h * sy; break;
+            }
+          }
+          return ne;
+        };
+
+        // Recursively expand nested inserts
+        const expanded = this._expandInserts(
+          blockEnts.map(be => transformEnt(be)),
+          depth + 1
+        );
+        result.push(...expanded);
+      } else {
+        result.push(e);
+      }
+    }
+    return result;
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  //  STEP 7 — ENTITY BUILDER: raw entity data → render-ready object
+  // ══════════════════════════════════════════════════════════════════
+  _buildEntity(cur) {
+    if (!cur || !cur.type) return null;
+    const d   = cur.d || {};
+    const g   = k => (d[k] && d[k][0]) || '';
+    const gf  = k => { const v = parseFloat(g(k)); return isFinite(v) ? v : 0; };
+    const ga  = k => (d[k] || []).map(Number).filter(isFinite);
+    const gi  = k => parseInt(g(k)) || 0;
+
+    const layerName = g('8') || '0';
+    const layer     = this._getLayerId(layerName);
+
+    // Read entity-level color override (GC 62) and linetype (GC 6)
+    const aciRaw = gi('62');
+    const aciColor = (aciRaw !== 0 && aciRaw !== 256) ? aciRaw : null; // 0=BYBLOCK, 256=BYLAYER
+    const linetype = g('6') || null;
+    const lwRaw    = parseFloat(g('370')) || 0;
+    const lw       = lwRaw > 0 ? lwRaw * 0.01 : null;
+
+    const stamp = e => {
+      if (aciColor) e.aciColor = Math.abs(aciColor);
+      if (linetype && linetype !== 'BYLAYER' && linetype !== 'BYBLOCK') e.linetype = linetype;
+      if (lw) e.lw = lw;
+      e._layerName = layerName; // preserve for insert layer-0 inheritance
+      return e;
+    };
+    const stampAll = arr => { arr.forEach(stamp); return arr; };
+
+    const type = cur.type.toUpperCase();
+
+    switch (type) {
+
+      // ── LINE ─────────────────────────────────────────────────────
+      case 'LINE': {
+        const x1=gf('10'),y1=gf('20'),x2=gf('11'),y2=gf('21');
+        if (x1===0&&y1===0&&x2===0&&y2===0) return null;
+        if (!isFinite(x1)||!isFinite(y1)||!isFinite(x2)||!isFinite(y2)) return null;
+        return stamp({ type:'line', x1,y1,x2,y2, layer });
+      }
+
+      // ── LWPOLYLINE (most common in modern DXF) ───────────────────
+      case 'LWPOLYLINE': {
+        const xs = ga('10'), ys = ga('20');
+        if (xs.length < 2) return null;
+        const flag   = gi('70');
+        const closed = !!(flag & 1);
+        // Bulge values for arc segments (GC 42, one per vertex)
+        const bulges = ga('42');
+        const pts    = xs.map((x, i) => {
+          const p = { x, y: ys[i] || 0 };
+          if (bulges[i] && Math.abs(bulges[i]) > 1e-6) p.bulge = bulges[i];
+          return p;
+        });
+        return stamp({ type:'polyline', pts, closed, layer });
+      }
+
+      // ── POLYLINE (old-style, vertices handled by flush) ──────────
+      // Returned null here — POLYLINE+VERTEX is handled in the main loop via polyBuffer
+      case 'POLYLINE': return null;
+      case 'VERTEX':   return null;
+
+      // ── CIRCLE ───────────────────────────────────────────────────
+      case 'CIRCLE': {
+        const r = gf('40');
+        if (r <= 0) return null;
+        return stamp({ type:'circle', cx:gf('10'), cy:gf('20'), r, layer });
+      }
+
+      // ── ARC ───────────────────────────────────────────────────────
+      case 'ARC':
+        return stamp({ type:'arc', cx:gf('10'), cy:gf('20'), r:gf('40'), sa:gf('50'), ea:gf('51'), layer });
+
+      // ── ELLIPSE ───────────────────────────────────────────────────
+      case 'ELLIPSE': {
+        const mx=gf('11'), my=gf('21');
+        const rx = Math.hypot(mx,my) || 10;
+        const ratio = Math.abs(gf('40')) || 0.5;
+        const angle = Math.atan2(my,mx) * 180/Math.PI;
+        return stamp({ type:'ellipse', cx:gf('10'), cy:gf('20'), rx, ry:rx*ratio, rot:angle, layer });
+      }
+
+      // ── SPLINE (approximate with polyline through control/fit pts) ─
+      case 'SPLINE': {
+        // GC 10/20/30 = control points, GC 11/21/31 = fit points
+        let xs = ga('11'), ys = ga('21'); // prefer fit points (on the curve)
+        if (xs.length < 2) { xs = ga('10'); ys = ga('20'); } // fall back to control points
+        if (xs.length < 2) return null;
+        const pts = xs.map((x,i) => ({ x, y: ys[i]||0 }));
+        const closed = !!(gi('70') & 1);
+        return stamp({ type:'polyline', pts, closed, layer });
+      }
+
+      // ── TEXT / ATTRIB / ATTDEF ────────────────────────────────────
+      case 'TEXT': case 'ATTRIB': case 'ATTDEF': {
+        let txt = (g('1') || g('2') || '').trim();
+        if (!txt) return null;
+        txt = txt.replace(/\\P/gi,' ').replace(/\\[a-zA-Z];/g,'').replace(/%%[cCdDpP]/g,'°');
+        const sz = Math.max(0.5, gf('40') || 2);
+        const rot = gf('50') || 0;
+        return stamp({ type:'text', x:gf('10'), y:gf('20'), txt, sz, rot, layer });
+      }
+
+      // ── MTEXT ─────────────────────────────────────────────────────
+      case 'MTEXT': {
+        let txt = g('1') || g('3') || '';
+        // Strip format codes: \cmd; sequences, then bare {} wrappers
+        txt = txt.replace(/\\[a-zA-Z~][^;\\}]*;/g, '').replace(/[{}]/g, '');
+        txt = txt.replace(/\\P/gi,' ').replace(/\\n/gi,' ').replace(/\\[a-zA-Z]/g,'').trim();
+        if (!txt) return null;
+        const sz = Math.max(0.5, gf('40') || 2);
+        return stamp({ type:'text', x:gf('10'), y:gf('20'), txt, sz, layer });
+      }
+
+      // ── INSERT (block reference) ───────────────────────────────────
+      // Returns a marker entity that _expandInserts() will replace
+      case 'INSERT': {
+        const bname = g('2') || '';
+        if (!bname) return null;
+        const ix = gf('10'), iy = gf('20');
+        if (!isFinite(ix) || !isFinite(iy)) return null;
+        const sx = gf('41') || 1, sy = gf('42') || 1;
+        const rot = gf('50') || 0;
+        return stamp({ type:'rect', x:ix, y:iy, w:0, h:0, layer,
+                       _blockRef:bname, _sx:sx, _sy:sy, _rot:rot });
+      }
+
+      // ── HATCH ─────────────────────────────────────────────────────
+      case 'HATCH': {
+        const xs = ga('10'), ys = ga('20');
+        const solidFill = gi('70');
+        const nSeeds = gi('98') || 0;
+
+        // xs[0]/ys[0] is the elevation/seed point — NOT a boundary vertex
+        // Boundary vertices start at index 1
+        // Trailing nSeeds values at end are also seed points (skip them)
+        const tailSkip = nSeeds > 0 ? nSeeds : 0;
+        const bxs = xs.slice(1, tailSkip > 0 ? xs.length - tailSkip : xs.length);
+        const bys = ys.slice(1, tailSkip > 0 ? ys.length - tailSkip : ys.length);
+
+        if (bxs.length >= 3) {
+          const pts = bxs.map((x, i) => ({ x, y: bys[i] || 0 }));
+          return stamp({ type:'hatch-poly', pts, solid: solidFill === 1, layer });
+        }
+        // Edge-type boundary: use GC 11/21 endpoints
+        const exs = ga('11'), eys = ga('21');
+        if (exs.length >= 3) {
+          const pts = exs.map((x, i) => ({ x, y: eys[i] || 0 }));
+          return stamp({ type:'hatch-poly', pts, solid: solidFill === 1, layer });
+        }
+        // Fallback: dot at seed point
+        if (xs.length > 0 && isFinite(xs[0])) {
+          return stamp({ type:'hatch-dot', x: xs[0], y: ys[0] || 0, layer });
+        }
+        return null;
+      }
+
+      // ── SOLID / TRACE (filled quadrilateral) ─────────────────────
+      case 'SOLID': case 'TRACE': {
+        // AutoCAD vertex order for SOLID: 10,11,13,12 (Z-pattern, not sequential)
+        const pts = [
+          { x:gf('10'), y:gf('20') }, { x:gf('11'), y:gf('21') },
+          { x:gf('13'), y:gf('23') }, { x:gf('12'), y:gf('22') },
+        ];
+        if (pts.every(p => p.x===0 && p.y===0)) return null;
+        return stamp({ type:'solid-quad', pts, layer });
+      }
+
+      // ── POINT ─────────────────────────────────────────────────────
+      case 'POINT':
+        return stamp({ type:'circle', cx:gf('10'), cy:gf('20'), r:Math.max(0.5, gf('39')||0.5), layer });
+
+      // ── DIMENSION ─────────────────────────────────────────────────
+      case 'DIMENSION': {
+        const x1=gf('13'), y1=gf('23'), x2=gf('14'), y2=gf('24');
+        const tx=gf('11'), ty=gf('21');
+        const dimType = gi('70');
+        if ((dimType & 6) !== 0) return null; // skip angular/ordinate for now
+        if (!isFinite(x1) || !isFinite(x2)) return null;
+        if (Math.hypot(x2-x1, y2-y1) < 0.001) return null;
+        return stamp({ type:'dim-lin', x1,y1,x2,y2,
+                       dx: isFinite(tx)&&tx ? tx : (x1+x2)/2,
+                       dy: isFinite(ty)&&ty ? ty : (y1+y2)/2, layer });
+      }
+
+      // ── LEADER / MLEADER ─────────────────────────────────────────
+      case 'LEADER': case 'MLEADER': {
+        const xs = ga('10'), ys = ga('20');
+        if (xs.length < 2) return null;
+        const segs = [];
+        for (let i = 0; i < xs.length - 1; i++)
+          segs.push(stamp({ type:'line', x1:xs[i],y1:ys[i], x2:xs[i+1],y2:ys[i+1], layer }));
+        return segs;
+      }
+
+      // ── XLINE / RAY (infinite construction lines) ─────────────────
+      case 'XLINE': case 'RAY':
+        return stamp({ type:'xline-inf', bx:gf('10'), by:gf('20'), dx:gf('11'), dy:gf('21'), layer });
+
+      // ── WIPEOUT ───────────────────────────────────────────────────
+      case 'WIPEOUT': {
+        const xs = ga('10'), ys = ga('20');
+        if (xs.length < 3) return null;
+        const pts = xs.map((x, i) => ({ x, y: ys[i] || 0 }));
+        return stamp({ type:'wipeout', pts, layer });
+      }
+
+      // ── EVERYTHING ELSE ───────────────────────────────────────────
+      default:
+        this.debug.skipped++;
+        this.debug.skippedTypes[type] = (this.debug.skippedTypes[type]||0)+1;
+        return null;
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  //  STEP 8 — SCAN FOR IMAGEDEFS (external raster references)
+  // ══════════════════════════════════════════════════════════════════
+  _scanImageDefs(pairs) {
+    const paths = [];
+    let inIDef = false;
+    for (let i = 0; i + 1 < pairs.length; i++) {
+      const [gc, v] = pairs[i];
+      if (gc === '0') { inIDef = (v === 'IMAGEDEF'); continue; }
+      if (inIDef && gc === '1') { paths.push(v); inIDef = false; }
+    }
+    return paths;
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  //  STEP 9 — VALIDATE + SANITIZE: remove truly invalid entities
+  //           Do NOT use position-based filtering — it removes valid geometry
+  // ══════════════════════════════════════════════════════════════════
+  _sanitize(ents) {
+    return ents.filter(e => {
+      if (!e || !e.type) return false;
+      if (e.type === 'xline-inf') return true; // always keep, rendered clipped
+      if (e.type === 'line') {
+        if (!isFinite(e.x1)||!isFinite(e.y1)||!isFinite(e.x2)||!isFinite(e.y2)) return false;
+        const len2 = (e.x2-e.x1)**2 + (e.y2-e.y1)**2;
+        return len2 <= 1e12; // max ~1,000,000 units — skip exploded XLINE artifacts
+      }
+      if (e.type === 'circle' || e.type === 'arc') {
+        return isFinite(e.cx) && isFinite(e.cy) && isFinite(e.r) && e.r > 0;
+      }
+      if (e.type === 'polyline') {
+        return e.pts && e.pts.length >= 2 && e.pts.every(p => isFinite(p.x) && isFinite(p.y));
+      }
+      return true;
     });
   }
 
-  // No entity-position filter here — block expansion can create entities at local coords
-  // that look like outliers. zoomExt() handles display-level outliers separately.
-  // Only remove entities that are truly invalid (infinite/non-finite coordinates)
-  const totalEnts=finalEnts.filter(e=>{
-    if(!e||!e.type) return false;
-    if(e.type==='xline-inf') return true; // always keep (rendered clipped)
-    if(e.type==='line'){
-      if(!isFinite(e.x1)||!isFinite(e.y1)||!isFinite(e.x2)||!isFinite(e.y2)) return false;
-      const len2=(e.x2-e.x1)**2+(e.y2-e.y1)**2;
-      return len2<=1e12; // skip lines > 1 million units long
-    }
-    return true;
-  });
-  const layerCount=Object.keys(layerMap).length;
+  // ══════════════════════════════════════════════════════════════════
+  //  MAIN PARSE ORCHESTRATOR
+  // ══════════════════════════════════════════════════════════════════
+  _parse(rawText, filename) {
+    const t0 = performance.now();
 
-  if(!totalEnts.length&&!imgPaths.length){
-    toast('No renderable entities found in this DXF.'+
-      (isCivil?' Civil 3D proxy objects cannot be read — ask author to export as standard DXF.':''),'warn');
+    // 1. Tokenise
+    this.pairs = this._tokenize(rawText);
+
+    // 2. Header (extents, units)
+    this.meta = this._parseHeader(this.pairs);
+
+    // 3. Tables (layers, linetypes)
+    this._parseTables(this.pairs);
+
+    // 4. Blocks section
+    this._parseBlocks(this.pairs);
+
+    // 5. Entities section
+    const rawEnts = this._parseEntities(this.pairs);
+
+    // 6. Expand INSERT → actual geometry (recursive)
+    const expanded = this._expandInserts(rawEnts);
+
+    // 7. Sanitize (remove NaN/infinite but NOT position-outliers)
+    const finalEnts = this._sanitize(expanded);
+
+    // 8. Image defs (for Civil 3D tile references)
+    const imageDefs = this._scanImageDefs(this.pairs);
+
+    // 9. Build layer array for ST.layers format
+    const layerArray = Object.values(this.layers).map(l => ({
+      id: l.id, name: l.name, color: l.color,
+      vis: l.vis, lock: l.lock||false, frz: l.frz||false, dis: l.dis||false
+    }));
+
+    // 10. Extents from header
+    const ext = this.meta;
+    let dxfExtents = null;
+    if (ext['$EXTMIN'] && ext['$EXTMAX']) {
+      const mn = ext['$EXTMIN'], mx = ext['$EXTMAX'];
+      if (Math.abs(mx.x-mn.x) > 10 && Math.abs(mx.y-mn.y) > 10) {
+        dxfExtents = { minX: Math.min(mn.x,mx.x), maxX: Math.max(mn.x,mx.x),
+                       minY: Math.min(mn.y,mx.y), maxY: Math.max(mn.y,mx.y) };
+      }
+    }
+
+    const elapsed = (performance.now() - t0).toFixed(1);
+
+    // 11. Debug summary
+    const blockCount = Object.keys(this.blocks).length;
+    const layerCount = layerArray.length;
+    console.log(
+      `%c[DXF] ${filename}`,
+      'color:#1FA8D9;font-weight:bold',
+      `| ${finalEnts.length} entities | ${layerCount} layers | ${blockCount} blocks`,
+      `| ${elapsed}ms`,
+      Object.keys(this.debug.skippedTypes).length
+        ? `| skipped: ${JSON.stringify(this.debug.skippedTypes)}`
+        : ''
+    );
+
+    return {
+      entities:   finalEnts,
+      layers:     layerArray,
+      blocks:     this.blocks,
+      imageDefs,
+      dxfExtents,
+      meta:       this.meta,
+      debug:      { ...this.debug, elapsed, total: finalEnts.length, layerCount, blockCount },
+      isCivil:    /AeccDb|AeccuDb|AecDb/.test(rawText),
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  //  UTILITIES
+  // ══════════════════════════════════════════════════════════════════
+  _aciToHex(n) {
+    return this.ACI[Math.abs(n) % 256] || '#D0E8F5';
+  }
+
+  _layerColorForName(name) {
+    const n = name.toLowerCase().replace(/[ _]/g, '-');
+    for (const [key, col] of Object.entries(this.LAYER_COLORS)) {
+      if (n.includes(key)) return col;
+    }
+    // Cycle through a palette for unknown layers
+    const palette = ['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA',
+                     '#ff9060','#4488ff','#ff8844','#44ffaa','#E8D5A3',
+                     '#88CCFF','#FF9966','#AADDAA','#FFDDAA','#88FFEE'];
+    const idx = Object.keys(this.layers).length % palette.length;
+    return palette[idx];
+  }
+
+  _getLayerId(name) {
+    const n = (name || '0').trim();
+    if (!this.layers[n]) {
+      // Create layer on-the-fly if not in TABLES
+      this.layers[n] = {
+        id: ++this._eid, name: n, vis: true, lock: false, frz: false, dis: false,
+        color: this._layerColorForName(n) || '#D0E8F5', ltype: 'Continuous'
+      };
+    }
+    return this.layers[n].id;
+  }
+
+  _deepClone(obj) {
+    // Fast structured clone for entity objects
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(v => this._deepClone(v));
+    const out = {};
+    for (const k of Object.keys(obj)) out[k] = this._deepClone(obj[k]);
+    return out;
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  INTEGRATION BRIDGE: replaces parseDXF() in strata.html
+//
+//  Usage: just replace the parseDXF function body with this call:
+//    const result = DXFImporter.parse(txt, filename);
+//    // then apply to ST state
+// ════════════════════════════════════════════════════════════════════
+function parseDXF(txt, filename) {
+  let result;
+  try {
+    result = DXFImporter.parse(txt, filename);
+  } catch(err) {
+    console.error('[DXF] Parse error:', err);
+    toast('DXF parse error: ' + err.message, 'err');
+    return;
+  }
+
+  const { entities, layers, imageDefs, dxfExtents, isCivil, debug } = result;
+
+  if (!entities.length && !imageDefs.length) {
+    toast(
+      'No renderable entities found.' +
+      (isCivil ? ' Civil 3D proxy objects cannot be read — ask author for exploded DXF.' : ''),
+      'warn'
+    );
     return;
   }
 
   pushUndo();
-  ST.entities=totalEnts;
-  ST.imgDefs=imgPaths;
-  ST.imgOverlays=[];
-  // Store verified extents for zoomExt
-  ST.dxfExtents=(dxfExtMin&&dxfExtMax&&
-    Math.abs(dxfExtMax.x-dxfExtMin.x)>10&&
-    Math.abs(dxfExtMax.y-dxfExtMin.y)>10)?
-    {minX:Math.min(dxfExtMin.x,dxfExtMax.x),maxX:Math.max(dxfExtMin.x,dxfExtMax.x),
-     minY:Math.min(dxfExtMin.y,dxfExtMax.y),maxY:Math.max(dxfExtMin.y,dxfExtMax.y)}:null;
+
+  // Apply entities to state
+  ST.entities = entities;
+
+  // Rebuild ST.layers from parser output (preserves existing defaults, adds new)
+  layers.forEach(l => {
+    const existing = ST.layers.find(sl => sl.name === l.name);
+    if (existing) {
+      existing.color = l.color; // update color from DXF
+      existing.vis = l.vis;
+    } else {
+      ST.layers.push(l);
+    }
+  });
+
+  // Assign correct _eid counter so new entities don't collide
+  ST._eid = Math.max(ST._eid, ...entities.map(e => e._id || 0));
+
+  // Store extents and image defs
+  ST.dxfExtents  = dxfExtents;
+  ST.imgDefs     = imageDefs;
+  ST.imgOverlays = [];
+
   renderLayers();
-  setTimeout(()=>zoomExt(),150);
+  setTimeout(() => zoomExt(), 150);
 
-  const msg=filename+': '+totalEnts.length+' entities on '+layerCount+' layers';
-  if(imgPaths.length>0||isCivil){
-    setTimeout(()=>showDxfDiag(filename,totalEnts.length,imgPaths,[],isCivil),300);
+  // Status message
+  const msg = `${filename}: ${entities.length} entities on ${debug.layerCount} layers`;
+  if (imageDefs.length > 0 || isCivil) {
+    setTimeout(() => showDxfDiag(filename, entities.length, imageDefs, [], isCivil), 300);
   } else {
-    toast(msg,'ok'); setMsg(msg);
+    toast(msg, 'ok');
+    setMsg(msg);
+    if (debug.skipped > 0) {
+      console.info(`[DXF] Skipped ${debug.skipped} unsupported entities:`, debug.skippedTypes);
+    }
   }
-  // Auto-detect CRS from coordinates
-  setTimeout(()=>{
-    autoDetectCRS&&autoDetectCRS(totalEnts);
-    autoGotoDrawingLocation&&autoGotoDrawingLocation();
-  },400);
+
+  // Auto-detect CRS and geo-locate
+  setTimeout(() => {
+    autoDetectCRS && autoDetectCRS(entities);
+    autoGotoDrawingLocation && autoGotoDrawingLocation();
+  }, 400);
 }
 
-function buildDXFEnt(cur,getLayId){
-  if(!cur||!cur.type) return null;
-  const d=cur.d;
-  const g=k=>(d[k]&&d[k][0])||'';
-  const gf=k=>parseFloat(g(k))||0;
-  const ga=k=>d[k]?d[k].map(Number):[];
-  const layerName=g('8')||'0';
-  const layer=getLayId(layerName);
-  const color=null;
-
-  switch(cur.type.toUpperCase()){
-    case 'LINE':
-      if(gf('10')===0&&gf('20')===0&&gf('11')===0&&gf('21')===0) return null; // skip zero-length
-      return{type:'line',x1:gf('10'),y1:gf('20'),x2:gf('11'),y2:gf('21'),layer};
-
-    case 'CIRCLE':{
-      const r=gf('40');
-      if(r<=0) return null;
-      return{type:'circle',cx:gf('10'),cy:gf('20'),r,layer};
-    }
-    case 'ARC':
-      return{type:'arc',cx:gf('10'),cy:gf('20'),r:gf('40'),sa:gf('50'),ea:gf('51'),layer};
-
-    case 'ELLIPSE':{
-      const mx=gf('11'),my=gf('21');
-      const rx=Math.hypot(mx,my)||10;
-      const ratio=gf('40')||0.5;
-      return{type:'ellipse',cx:gf('10'),cy:gf('20'),rx,ry:rx*ratio,layer};
-    }
-
-    case 'LWPOLYLINE':{
-      const xs=ga('10'),ys=ga('20');
-      if(xs.length<2) return null;
-      const flag=parseInt(g('70'))||0;
-      const closed=!!(flag&1);
-      const pts=xs.map((x,i)=>({x,y:ys[i]||0}));
-      // Return as a proper polyline entity (preserves layer structure)
-      return{type:'polyline',pts,closed,layer};
-    }
-
-    case 'POLYLINE': return null; // vertices handled by VERTEX accumulation
-
-    case 'VERTEX': return null; // vertices accumulated into polylines in parseDXF
-
-    case 'SPLINE':{
-      const xs=ga('10'),ys=ga('20');
-      if(xs.length<2) return null;
-      const segs=[];
-      for(let i=0;i<xs.length-1;i++)
-        segs.push({type:'line',x1:xs[i],y1:ys[i],x2:xs[i+1],y2:ys[i+1],layer});
-      return segs;
-    }
-
-    case 'TEXT':
-    case 'ATTDEF':
-    case 'ATTRIB':{
-      let txt=(g('1')||g('2')||'').trim();
-      if(!txt) return null;
-      txt=txt.replace(/\\P/gi,' ').replace(/\\[a-zA-Z];/g,'');
-      const sz=Math.max(0.5,gf('40')||2);
-      return{type:'text',x:gf('10'),y:gf('20'),txt,sz,layer};
-    }
-
-    case 'MTEXT':{
-      let txt=(g('1')||g('3')||'');
-      txt=txt.replace(/\\[a-zA-Z~][^;\\}]*;/g,'').replace(/[{}]/g,'');
-      txt=txt.replace(/\\P/gi,' ').replace(/\\n/gi,' ').replace(/\\[a-zA-Z]/g,'').trim();
-      if(!txt) return null;
-      const sz=Math.max(0.5,gf('40')||2);
-      return{type:'text',x:gf('10'),y:gf('20'),txt,sz,layer};
-    }
-
-    case 'INSERT': {
-      const bname = g('2') || '';
-      const ix = gf('10'), iy = gf('20');
-      const iscale = gf('41')||1, irot = gf('50')||0;
-      // Mark as block reference so parseDXF can expand it
-      return {type:'rect',x:ix,y:iy,w:20*(iscale||1),h:20*(iscale||1),layer,
-              _blockRef:bname,_sx:iscale,_rot:irot};
-    }
-
-    case 'SOLID':
-    case 'TRACE':{
-      const pts=[{x:gf('10'),y:gf('20')},{x:gf('11'),y:gf('21')},
-                 {x:gf('13'),y:gf('23')},{x:gf('12'),y:gf('22')}];
-      return {type:'solid-quad',pts,layer};
-    }
-
-    case 'POINT':
-      return{type:'circle',cx:gf('10'),cy:gf('20'),r:Math.max(0.3,gf('39')||0.5),layer};
-
-    case 'HATCH':{
-      // DXF HATCH structure:
-      // d['10'][0] = elevation/seed X (INTERIOR point, NOT a boundary vertex!)
-      // d['10'][1..N] = boundary polygon vertices X
-      // d['20'][0] = elevation/seed Y
-      // d['20'][1..N] = boundary polygon vertices Y
-      // GC 70 = 1 → solid fill, 0 → pattern fill
-      // GC 98 = number of seed points appended at END (skip from tail)
-      const xs=ga('10'), ys=ga('20');
-      const solidFill=parseInt(g('70'))||0; // 1=solid, 0=pattern
-      const nSeeds=parseInt(g('98'))||0;    // seed points appended after boundary
-      
-      // Skip the first point (elevation/center point) and any trailing seed points
-      const tailSkip=nSeeds>0?nSeeds:0;
-      const bxs=xs.slice(1, tailSkip>0?xs.length-tailSkip:xs.length);
-      const bys=ys.slice(1, tailSkip>0?ys.length-tailSkip:ys.length);
-      
-      if(bxs.length>=3){
-        const pts=bxs.map((x,i)=>({x,y:bys[i]||0}));
-        return {type:'hatch-poly',pts,solid:solidFill===1,layer};
-      }
-      
-      // Edge-type boundary: read GC 11/21 (line end points) as boundary edges
-      const exs=ga('11'), eys=ga('21');
-      if(exs.length>=3){
-        const pts=exs.map((x,i)=>({x,y:eys[i]||0}));
-        return {type:'hatch-poly',pts,solid:solidFill===1,layer};
-      }
-      
-      // Fallback: solid circle at seed point to show hatch presence
-      if(xs.length>0&&isFinite(xs[0])&&isFinite(ys[0])){
-        return {type:'hatch-dot',x:xs[0],y:ys[0],layer};
-      }
-      return null;
-    }
-
-    case 'DIMENSION':{
-      const x1=gf('13'),y1=gf('23'),x2=gf('14'),y2=gf('24');
-      const tx=gf('11'),ty=gf('21');
-      const dimType=parseInt(g('70'))||0;
-      if((dimType&6)!==0) return null; // skip angular/ordinate
-      if(!isFinite(x1)||!isFinite(x2)) return null;
-      const dist=Math.hypot(x2-x1,y2-y1);
-      if(dist<0.001) return null;
-      const dmx=isFinite(tx)&&tx?tx:(x1+x2)/2;
-      const dmy=isFinite(ty)&&ty?ty:(y1+y2)/2;
-      return{type:'dim-lin',x1,y1,x2,y2,dx:dmx,dy:dmy,layer};
-    }
-
-    case 'LEADER':{
-      const xs=ga('10'),ys=ga('20');
-      if(xs.length<2) return null;
-      const segs=[];
-      for(let i=0;i<xs.length-1;i++)
-        segs.push({type:'line',x1:xs[i],y1:ys[i],x2:xs[i+1],y2:ys[i+1],layer});
-      return segs;
-    }
-
-    case 'XLINE':
-    case 'RAY':{
-      // Use dedicated type so bbox calculation can ignore these infinite lines
-      const bx=gf('10'),by=gf('20'),dx=gf('11'),dy=gf('21');
-      return{type:'xline-inf',bx,by,dx,dy,layer};
-    }
-
-    default: return null;
-  }
-}
 
 // ── SVG PARSER ────────────────────────────────────────────────────
 function parseSVG(txt,filename){
