@@ -3696,15 +3696,20 @@ class DXFImporter {
         // When POLYLINE entity data is complete, convert to buffer
         // We detect completion when a new GC=0 appears (handled above via flush())
         // But we set up the buffer here if we've accumulated the entity header
-        if (cur.type === 'POLYLINE' && gc === '70') {
-          const flag = parseInt(v) || 0;
-          const layName = (cur.d['8'] || ['0'])[0];
-          polyBuffer = { pts: [], closed: !!(flag & 1), layer: this._getLayerId(layName) };
-          // Don't push POLYLINE entity itself — handled via VERTEX
+        if (cur.type === 'POLYLINE') {
+          if (gc === '70') {
+            const flag = parseInt(v) || 0;
+            const layName = (cur.d['8'] || ['0'])[0];
+            polyBuffer = { pts: [], closed: !!(flag & 1), layer: this._getLayerId(layName) };
+          } else if (gc === '8' && !polyBuffer) {
+            // GC 70 (flag) may not exist — create buffer early on layer assignment
+            polyBuffer = { pts: [], closed: false, layer: this._getLayerId(v) };
+          }
         }
-        if (cur.type === 'VERTEX' && polyBuffer) {
+        // Only push when GC 20 (Y) arrives — prevents triple-push (once per pair read)
+        if (cur.type === 'VERTEX' && polyBuffer && gc === '20') {
           const x = parseFloat((cur.d['10'] || ['0'])[0]) || 0;
-          const y = parseFloat((cur.d['20'] || ['0'])[0]) || 0;
+          const y = parseFloat(v) || 0;
           if (isFinite(x) && isFinite(y)) polyBuffer.pts.push({ x, y });
         }
       }
@@ -3762,6 +3767,8 @@ class DXFImporter {
           continue;
         }
         if (v === 'VERTEX') {
+          // Safety: ensure polyBuffer exists even if POLYLINE had no GC 70/8
+          if (!polyBuffer) polyBuffer = { pts: [], closed: false, layer: this._getLayerId('0') };
           cur = { type: v, d: {} };
           continue;
         }
@@ -3781,9 +3788,10 @@ class DXFImporter {
           polyBuffer = { pts: [], closed: !!(flag & 1), layer: this._getLayerId(layName) };
         }
         // VERTEX: accumulate into buffer
-        if (cur.type === 'VERTEX' && polyBuffer) {
+        // Only push when GC 20 (Y) arrives — prevents triple-push (once per pair read)
+        if (cur.type === 'VERTEX' && polyBuffer && gc === '20') {
           const x = parseFloat((cur.d['10'] || ['0'])[0]) || 0;
-          const y = parseFloat((cur.d['20'] || ['0'])[0]) || 0;
+          const y = parseFloat(v) || 0;
           if (isFinite(x) && isFinite(y)) polyBuffer.pts.push({ x, y });
         }
       }
@@ -3946,13 +3954,20 @@ class DXFImporter {
         const flag   = gi('70');
         const closed = !!(flag & 1);
         // Bulge values for arc segments (GC 42, one per vertex)
-        const bulges = ga('42');
-        const pts    = xs.map((x, i) => {
+        const bulges  = ga('42');   // arc bulge per vertex
+        const startWs = ga('40');   // start width per segment
+        const endWs   = ga('41');   // end width per segment
+        const constW  = gf('43');   // constant width for whole polyline
+        const pts = xs.map((x, i) => {
           const p = { x, y: ys[i] || 0 };
-          if (bulges[i] && Math.abs(bulges[i]) > 1e-6) p.bulge = bulges[i];
+          if (bulges[i]  && Math.abs(bulges[i])  > 1e-9) p.bulge  = bulges[i];
+          if (startWs[i] && Math.abs(startWs[i]) > 1e-9) p.startW = startWs[i];
+          if (endWs[i]   && Math.abs(endWs[i])   > 1e-9) p.endW   = endWs[i];
           return p;
         });
-        return stamp({ type:'polyline', pts, closed, layer });
+        const _ple = stamp({ type:'polyline', pts, closed, layer });
+        if (constW > 0) _ple.lw = constW;
+        return _ple;
       }
 
       // ── POLYLINE (old-style, vertices handled by flush) ──────────
@@ -3986,9 +4001,11 @@ class DXFImporter {
         let xs = ga('11'), ys = ga('21'); // prefer fit points (on the curve)
         if (xs.length < 2) { xs = ga('10'); ys = ga('20'); } // fall back to control points
         if (xs.length < 2) return null;
+        const flag_s   = gi('70');
+        const closed   = !!(flag_s & 1);
+        const periodic = !!(flag_s & 2);  // periodic spline is also closed
         const pts = xs.map((x,i) => ({ x, y: ys[i]||0 }));
-        const closed = !!(gi('70') & 1);
-        return stamp({ type:'polyline', pts, closed, layer });
+        return stamp({ type:'polyline', pts, closed: closed||periodic, layer });
       }
 
       // ── TEXT / ATTRIB / ATTDEF ────────────────────────────────────
@@ -4003,24 +4020,38 @@ class DXFImporter {
 
       // ── MTEXT ─────────────────────────────────────────────────────
       case 'MTEXT': {
-        let txt = g('1') || g('3') || '';
-        // Strip format codes: \cmd; sequences, then bare {} wrappers
+        // GC 1 = text content, GC 3 = additional text when GC 1 overflows 250 chars
+        let txt = (g('1') || '') + (g('3') || '');
+        // Strip MTEXT inline formatting codes
         txt = txt.replace(/\\[a-zA-Z~][^;\\}]*;/g, '').replace(/[{}]/g, '');
         txt = txt.replace(/\\P/gi,' ').replace(/\\n/gi,' ').replace(/\\[a-zA-Z]/g,'').trim();
         if (!txt) return null;
-        const sz = Math.max(0.5, gf('40') || 2);
-        return stamp({ type:'text', x:gf('10'), y:gf('20'), txt, sz, layer });
+        const sz  = Math.max(0.5, gf('40') || 2);
+        const rot = gf('50') || 0;
+        return stamp({ type:'text', x:gf('10'), y:gf('20'), txt, sz, rot, layer });
       }
-
-      // ── INSERT (block reference) ───────────────────────────────────
-      // Returns a marker entity that _expandInserts() will replace
       case 'INSERT': {
         const bname = g('2') || '';
         if (!bname) return null;
         const ix = gf('10'), iy = gf('20');
         if (!isFinite(ix) || !isFinite(iy)) return null;
-        const sx = gf('41') || 1, sy = gf('42') || 1;
+        // GC 41=sx, 42=sy, 43=sz (use sz as uniform fallback if 41/42 absent)
+        const sz_uni = gf('43') || 1;
+        const sx = gf('41') || sz_uni;
+        const sy = gf('42') || sz_uni;
         const rot = gf('50') || 0;
+        // GC 70=col count, 71=row count for rectangular array inserts
+        const cols = Math.max(1, parseInt(g('70')) || 1);
+        const rows = Math.max(1, parseInt(g('71')) || 1);
+        if (cols > 1 || rows > 1) {
+          const colSp = gf('44') || 0, rowSp = gf('45') || 0;
+          const arr = [];
+          for (let r = 0; r < rows; r++)
+            for (let c = 0; c < cols; c++)
+              arr.push(stamp({ type:'rect', x:ix+c*colSp, y:iy+r*rowSp,
+                w:0, h:0, layer, _blockRef:bname, _sx:sx, _sy:sy, _rot:rot }));
+          return arr;
+        }
         return stamp({ type:'rect', x:ix, y:iy, w:0, h:0, layer,
                        _blockRef:bname, _sx:sx, _sy:sy, _rot:rot });
       }
@@ -4074,16 +4105,15 @@ class DXFImporter {
       case 'DIMENSION': {
         const x1=gf('13'), y1=gf('23'), x2=gf('14'), y2=gf('24');
         const tx=gf('11'), ty=gf('21');
-        const dimType = gi('70');
-        if ((dimType & 6) !== 0) return null; // skip angular/ordinate for now
+        const dimType = gi('70') & 15; // lower 4 bits: 0=linear,1=aligned,2=angular...
+        if (dimType >= 2) return null;  // skip angular/diameter/radius/ordinate
         if (!isFinite(x1) || !isFinite(x2)) return null;
         if (Math.hypot(x2-x1, y2-y1) < 0.001) return null;
-        return stamp({ type:'dim-lin', x1,y1,x2,y2,
-                       dx: isFinite(tx)&&tx ? tx : (x1+x2)/2,
-                       dy: isFinite(ty)&&ty ? ty : (y1+y2)/2, layer });
+        const dmx = isFinite(tx)&&tx ? tx : (x1+x2)/2;
+        const dmy = isFinite(ty)&&ty ? ty : (y1+y2)/2;
+        const label = g('1') || ''; // explicit text ('' = auto-measure)
+        return stamp({ type:'dim-lin', x1,y1,x2,y2, dx:dmx, dy:dmy, label, layer });
       }
-
-      // ── LEADER / MLEADER ─────────────────────────────────────────
       case 'LEADER': case 'MLEADER': {
         const xs = ga('10'), ys = ga('20');
         if (xs.length < 2) return null;
