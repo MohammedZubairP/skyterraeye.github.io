@@ -1403,6 +1403,12 @@ var _mapActive = false;
 var _map = null;
 var _mapMode = 'draw';
 var _mapLayer = 'osm';
+// Map tile layer URLs — must be declared before _initMap/setMapLayer use them
+var _mapLayers = {
+  osm:  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  sat:  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  topo: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+};
 let W, H;
 const canvas = document.getElementById('cad');
 const ctx = canvas.getContext('2d');
@@ -6259,6 +6265,737 @@ console.log('  ✓ Bearing+Distance COGO input (@dist<bearing)');
 console.log('  ✓ LENGTHEN, DIVIDE, MEASURE, ALIGN commands');
 console.log('  ✓ ARRAY — rectangular array command');
 console.log('  ✓ MATCHPROP, PEDIT, OOPS commands');
+
+
+
+// ─── COMPREHENSIVE FIX PATCH ──────────────────────────────
+
+// ════════════════════════════════════════════════════════════════════
+//  STRATA CAD — COMPREHENSIVE FIX PATCH
+//  Fixes: map, cursor panel, QGIS tools, commands, point tool,
+//         DDPTYPE popup, command suggestions, autocad-style typing
+// ════════════════════════════════════════════════════════════════════
+
+(function() {
+
+// ══════════════════════════════════════════════════════════════
+//  1. CURSOR SETTINGS PANEL — force it to work
+// ══════════════════════════════════════════════════════════════
+window.openCursorPanel = function() {
+  const p = document.getElementById('cursorPanel');
+  if (!p) return;
+  const isOpen = p.style.display === 'block' || p.classList.contains('open');
+  p.style.display = isOpen ? 'none' : 'block';
+  p.classList.toggle('open', !isOpen);
+  // Position it properly
+  p.style.position = 'fixed';
+  p.style.bottom = '90px';
+  p.style.right = '20px';
+  p.style.zIndex = '9999';
+  p.style.background = '#050F1C';
+  p.style.border = '1px solid rgba(31,168,217,.4)';
+  p.style.borderRadius = '8px';
+  p.style.padding = '12px';
+  p.style.minWidth = '260px';
+  p.style.boxShadow = '0 8px 30px rgba(0,0,0,.9)';
+  p.style.color = 'var(--t, #e0eaf5)';
+};
+
+// Ensure the cursor button in toolbar opens the panel
+setTimeout(() => {
+  const btn = document.getElementById('cursorSettBtn');
+  if (btn) btn.onclick = openCursorPanel;
+
+  // Also add it to the status bar if not present
+  const bar = document.querySelector('.statbar, #statusBar, .status-bar, footer.sb');
+  if (bar && !document.getElementById('cursorSettBtn2')) {
+    const b = document.createElement('button');
+    b.id = 'cursorSettBtn2';
+    b.textContent = '⊕ Cursor';
+    b.title = 'Cursor Settings';
+    b.style.cssText = 'background:none;border:1px solid rgba(31,168,217,.3);color:rgba(31,168,217,.8);font-size:9px;padding:1px 7px;border-radius:3px;cursor:pointer;font-family:IBM Plex Mono,monospace;margin-left:4px';
+    b.onclick = openCursorPanel;
+    bar.appendChild(b);
+  }
+}, 800);
+
+
+// ══════════════════════════════════════════════════════════════
+//  2. QGIS PROCESSING TOOLS — force populate on open
+// ══════════════════════════════════════════════════════════════
+
+// Override openMo to always build processing on open
+const _openMo_orig = window.openMo;
+window.openMo = function(id) {
+  _openMo_orig(id);
+  if (id === 'moProcessing' || id === 'processingPanel') {
+    setTimeout(() => {
+      if (typeof buildProcessingUI === 'function') buildProcessingUI();
+      if (typeof buildProcessingSidePanel === 'function') buildProcessingSidePanel();
+    }, 30);
+  }
+};
+
+// Also directly populate on page load
+setTimeout(() => {
+  if (typeof buildProcessingUI === 'function') buildProcessingUI();
+}, 1000);
+
+
+// ══════════════════════════════════════════════════════════════
+//  3. AUTOCAD-STYLE COMMAND LINE — type anything, it routes
+//     to command line and shows suggestions
+// ══════════════════════════════════════════════════════════════
+
+// ALL commands list for autocomplete
+const ALL_COMMANDS = [
+  // Draw
+  'LINE','L','PLINE','PL','POLYLINE','CIRCLE','C','ARC','A','RECT','REC','RECTANG',
+  'ELLIPSE','EL','SPLINE','SPL','HATCH','H','BH','TEXT','T','DT','MTEXT','MT',
+  'POINT','PO','XLINE','XL','RAY','WIPEOUT','WI','CLOUD','CLD','REVCLOUD',
+  'BOUNDARY','BND','POLYGON','PG','DIMLINEAR','DIM','DL','LEADER','LE',
+  // Modify
+  'MOVE','M','COPY','CO','CP','ROTATE','RO','SCALE','SC','MIRROR','MI',
+  'OFFSET','O','TRIM','TR','EXTEND','EX','FILLET','F','CHAMFER','CHA',
+  'STRETCH','ST','BREAK','BR','JOIN','J','EXPLODE','X','EXP','LENGTHEN','LEN',
+  'ARRAY','AR','ERASE','E','DELETE','DEL',
+  // View/Nav
+  'ZOOM','Z','PAN','PA','SELECT','S','SEL','UNDO','U','REDO',
+  'ZOOMEXT','ZE','EXTENTS',
+  // Measure
+  'DIST','DI','DISTANCE','AREA','ARE','AA','ID',
+  // Civil 3D
+  'UNITS','UN','DWGUNITS','DDPTYPE','DDP','PDMODE',
+  'LAYER','LA','LAYERS','COLOR','COL','COLOUR','LINETYPE','LT','LINEWEIGHT','LW',
+  'PURGE','PU','RENAME','REN','FILTER','FI','GROUP','G',
+  'LAYON','LAYOFF','LAYFRZ','LAYTHW','LAYLCK','LAYULK','LAYCUR',
+  // Dimensions
+  'DIMLIN','DAR','RA','DAN','BA','DCE','DBA',
+  // Terrain
+  'TIN','TINSURFACE','SURFACE','SRF','CONTOUR','BUILDTIN',
+  // Survey/Civil
+  'ALIGNMENT','CORRIDOR','PROFILE','SECTION','PIPE','POINTGROUP','PTGROUP',
+  // Misc
+  'SAVE','SAVEAS','QSAVE','QS','OPEN','IMPORT','EXPORT',
+  'MAP','CALIBRATE','CRS','OSNAP','OS','ORTHO','SNAP','GRID','POLAR',
+  'REGEN','RE','PROPERTIES','PR','CH','MATCHPROP','MA','PEDIT','PE',
+  'ALIGN','AL','DIVIDE','DIV','MEASURE','ME','DDPTYPE',
+  'PROCESSING','PROC','BUFFER','BUF','DISSOLVE','STATS','INFO',
+  'TABLE','AT','ATTR','HELP','?','F1','SHORTCUTS',
+  'TIN','CONTOUR','SURVEY','CSV','GEO','GEOJSON',
+  // Project
+  'NEW','PROJECT','LOAD','SETTINGS','SETTINGS','SETUP',
+];
+
+// Build suggestion dropdown
+function createSuggestBox() {
+  let box = document.getElementById('cmdSuggestBox');
+  if (box) return box;
+  box = document.createElement('div');
+  box.id = 'cmdSuggestBox';
+  box.style.cssText = `
+    position:fixed; z-index:10000; background:#050F1C;
+    border:1px solid rgba(31,168,217,.5); border-radius:4px;
+    box-shadow:0 8px 24px rgba(0,0,0,.9); max-height:200px;
+    overflow-y:auto; min-width:220px; font-family:'IBM Plex Mono',monospace;
+    font-size:10px; display:none;
+  `;
+  document.body.appendChild(box);
+  return box;
+}
+
+function showSuggestions(input, value) {
+  const box = createSuggestBox();
+  if (!value || value.length < 1) { box.style.display = 'none'; return; }
+
+  const v = value.toUpperCase();
+  const matches = ALL_COMMANDS.filter(c => c.startsWith(v) && c !== v)
+    .sort((a,b) => a.length - b.length)
+    .slice(0, 8);
+
+  if (!matches.length) { box.style.display = 'none'; return; }
+
+  const rect = input.getBoundingClientRect();
+  box.style.left = rect.left + 'px';
+  box.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+  box.style.top = 'auto';
+  box.style.display = 'block';
+
+  box.innerHTML = matches.map((cmd, i) =>
+    `<div data-cmd="${cmd}" style="padding:5px 10px;cursor:pointer;color:${i===0?'#4eff91':'#8899aa'};
+      border-bottom:1px solid rgba(255,255,255,.04)" 
+      onmouseover="this.style.background='rgba(31,168,217,.1)';this.style.color='#fff'"
+      onmouseout="this.style.background='';this.style.color='${i===0?'#4eff91':'#8899aa'}'"
+      onclick="document.getElementById('cmdInput').value='${cmd}';
+               document.getElementById('cmdSuggestBox').style.display='none';
+               runCommand('${cmd}');document.getElementById('cad').focus()">
+      <b style="color:#1FA8D9">${cmd.slice(0, v.length)}</b>${cmd.slice(v.length)}
+    </div>`
+  ).join('');
+}
+
+// Patch cmdInput to show suggestions and route keystrokes
+setTimeout(() => {
+  const inp = document.getElementById('cmdInput');
+  if (!inp) return;
+
+  inp.addEventListener('input', function() {
+    showSuggestions(this, this.value);
+  });
+
+  inp.addEventListener('keydown', function(ev) {
+    ev.stopPropagation();
+    const box = document.getElementById('cmdSuggestBox');
+
+    if (ev.key === 'Escape') {
+      this.value = '';
+      if (box) box.style.display = 'none';
+      document.getElementById('cad')?.focus();
+      return;
+    }
+
+    if (ev.key === 'Tab') {
+      ev.preventDefault();
+      // Auto-complete with first suggestion
+      const first = box?.querySelector('[data-cmd]');
+      if (first) {
+        this.value = first.getAttribute('data-cmd');
+        if (box) box.style.display = 'none';
+      }
+      return;
+    }
+
+    if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      // Select next suggestion (handled by CMD history in main patch)
+    }
+
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      if (box) box.style.display = 'none';
+      const raw = this.value.trim();
+      this.value = '';
+      if (raw) {
+        ev.preventDefault();
+        if (typeof runCommand === 'function') runCommand(raw);
+        else console.warn('runCommand not found');
+        document.getElementById('cad')?.focus();
+      } else if (ev.key === ' ') {
+        ev.preventDefault();
+        if (ST.tool === 'polyline' && typeof commitPolyline === 'function') commitPolyline();
+        else if (ST.tool === 'boundary' && typeof commitBoundary === 'function') commitBoundary();
+        else if (ST._lastTool && typeof T === 'function') T(ST._lastTool);
+        document.getElementById('cad')?.focus();
+      }
+    }
+  });
+
+  inp.addEventListener('blur', function() {
+    setTimeout(() => {
+      const box = document.getElementById('cmdSuggestBox');
+      if (box) box.style.display = 'none';
+    }, 200);
+  });
+
+}, 600);
+
+
+// ══════════════════════════════════════════════════════════════
+//  4. TYPING ANY KEY ROUTES TO COMMAND LINE (AutoCAD style)
+//     — every printable character while canvas is focused goes
+//       directly to the command input
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('keydown', function(ev) {
+  // Skip if already in an input
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+  // Skip special keys
+  if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
+  if (ev.key.length !== 1) return; // non-printable (F1, Escape, Arrow, etc)
+
+  const inp = document.getElementById('cmdInput');
+  if (!inp) return;
+
+  // Route to command line
+  inp.focus();
+  // The key will naturally land in the input now
+  // (don't preventDefault — let the character appear)
+}, false);
+
+
+// ══════════════════════════════════════════════════════════════
+//  5. POINT TOOL FIX — ensure clicking actually places a point
+// ══════════════════════════════════════════════════════════════
+// Patch T() for point tool
+const _T_orig = window.T;
+window.T = function(tool) {
+  if (tool === 'point') {
+    ST.tool = 'point';
+    ST.drawing = false; ST.startPt = null; ST.pts = [];
+    ST.opState = null;
+    if (typeof updateToolUI === 'function') updateToolUI('point');
+    const canvas = document.getElementById('cad');
+    if (canvas) canvas.style.cursor = 'crosshair';
+    if (typeof setMsg === 'function') setMsg('POINT — click anywhere to place point  |  ESC=cancel');
+    return;
+  }
+  return _T_orig(tool);
+};
+
+// Override point placement in canvas click
+const canvas = document.getElementById('cad');
+if (canvas) {
+  canvas.addEventListener('click', function(ev) {
+    if (ST.tool !== 'point') return;
+    const r = this.getBoundingClientRect();
+    const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    const wp = typeof snapPoint === 'function' ? snapPoint(mx, my) : { x: (mx - ST.pan.x)/ST.zoom, y: -(my - ST.pan.y)/ST.zoom };
+
+    if (typeof pushUndo === 'function') pushUndo();
+
+    const layId = ST.curLayer !== undefined ? ST.curLayer : 0;
+    const ent = {
+      _id: ++ST._eid,
+      type: 'point',
+      x: wp.x, y: wp.y,
+      layer: layId,
+      selected: false,
+      pdmode: ST.pdmode || 0,
+    };
+    ST.entities.push(ent);
+
+    if (typeof render === 'function') render();
+    if (typeof toast === 'function') toast(`Point placed at X:${wp.x.toFixed(3)}  Y:${wp.y.toFixed(3)}`, 'ok');
+    if (typeof setMsg === 'function') setMsg(`Point: X=${wp.x.toFixed(3)}  Y=${wp.y.toFixed(3)}  |  click for more  |  ESC=stop`);
+  }, true); // capture phase to run before other handlers
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  6. DDPTYPE COMMAND — opens a full popup settings panel
+// ══════════════════════════════════════════════════════════════
+window.openDDPTYPE = function() {
+  // Remove existing modal if present
+  const existing = document.getElementById('moDDPTYPE');
+  if (existing) existing.remove();
+
+  const STYLES = [
+    { mode: 0,  sym: '·',    label: 'Dot (default)' },
+    { mode: 1,  sym: '∅',    label: 'None (invisible)' },
+    { mode: 2,  sym: '+',    label: 'Plus sign' },
+    { mode: 3,  sym: '×',    label: 'X Cross' },
+    { mode: 4,  sym: '—',    label: 'Tick up' },
+    { mode: 32, sym: '○',    label: 'Circle only' },
+    { mode: 33, sym: '⊙',    label: 'Circle + Dot' },
+    { mode: 34, sym: '⊗',    label: 'Circle + X' },
+    { mode: 35, sym: '⊕',    label: 'Circle + Cross' },
+    { mode: 36, sym: '⊖',    label: 'Circle + Dash' },
+    { mode: 64, sym: '□',    label: 'Square only' },
+    { mode: 65, sym: '⊡',    label: 'Square + Dot' },
+    { mode: 66, sym: '⊠',    label: 'Square + X' },
+    { mode: 67, sym: '⊞',    label: 'Square + Cross' },
+  ];
+
+  const curMode = ST.pdmode || 0;
+  const curSize = ST.pdsize || 5;
+
+  const div = document.createElement('div');
+  div.id = 'moDDPTYPE';
+  div.style.cssText = `
+    position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:10000;
+    display:flex; align-items:center; justify-content:center;
+  `;
+
+  div.innerHTML = `
+    <div style="background:#050F1C; border:1px solid rgba(31,168,217,.4); border-radius:10px;
+      padding:0; width:480px; max-height:90vh; overflow:hidden; box-shadow:0 12px 48px rgba(0,0,0,.95)">
+      
+      <div style="display:flex;align-items:center;justify-content:space-between;
+        padding:12px 16px; border-bottom:1px solid rgba(31,168,217,.15); background:rgba(31,168,217,.06)">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:800;
+          color:#1FA8D9;letter-spacing:1px;text-transform:uppercase">⊙ Point Style (DDPTYPE)</div>
+        <span onclick="document.getElementById('moDDPTYPE').remove()"
+          style="cursor:pointer;color:#666;font-size:18px;line-height:1">✕</span>
+      </div>
+
+      <div style="padding:16px">
+        <div style="font-size:9px;font-weight:700;color:#8899aa;text-transform:uppercase;
+          letter-spacing:.8px;font-family:'IBM Plex Mono',monospace;margin-bottom:10px">
+          Select Point Display Style (PDMODE)
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:16px">
+          ${STYLES.map(s => `
+            <div id="ddpt_${s.mode}" onclick="selectPtStyle(${s.mode})"
+              title="${s.label} (PDMODE=${s.mode})"
+              style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                padding:8px 4px;border-radius:6px;cursor:pointer;gap:3px;
+                background:${s.mode===curMode?'rgba(31,168,217,.2)':'rgba(255,255,255,.03)'};
+                border:2px solid ${s.mode===curMode?'#1FA8D9':'rgba(255,255,255,.08)'};
+                transition:all .15s">
+              <span style="font-size:20px;color:#e0eaf5;line-height:1.2">${s.sym}</span>
+              <span style="font-size:7px;color:#556;font-family:'IBM Plex Mono',monospace;text-align:center">${s.mode}</span>
+            </div>`).join('')}
+        </div>
+
+        <div style="font-size:9px;font-weight:700;color:#8899aa;text-transform:uppercase;
+          letter-spacing:.8px;font-family:'IBM Plex Mono',monospace;margin-bottom:8px">
+          Point Size (PDSIZE)
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
+          <input type="range" id="pdsizeSlider" min="1" max="40" value="${curSize}"
+            style="flex:1;accent-color:#1FA8D9"
+            oninput="document.getElementById('pdsizeVal').textContent=this.value">
+          <span id="pdsizeVal" style="font-family:'IBM Plex Mono',monospace;font-size:11px;
+            color:#4eff91;min-width:24px">${curSize}</span>
+          <span style="font-size:9px;color:#556">${ST.units||'mm'}</span>
+        </div>
+
+        <div style="background:rgba(31,168,217,.05);border:1px solid rgba(31,168,217,.1);
+          border-radius:5px;padding:8px 10px;margin-bottom:14px;font-size:9px;color:#778;
+          font-family:'IBM Plex Mono',monospace;line-height:1.7">
+          <span style="color:#1FA8D9">PDMODE</span> controls point shape.
+          <span style="color:#1FA8D9">PDSIZE</span> &gt; 0 = absolute units.
+          PDSIZE = 0 = relative to screen.
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding:10px 16px;
+        border-top:1px solid rgba(31,168,217,.1)">
+        <button onclick="document.getElementById('moDDPTYPE').remove()"
+          style="padding:6px 16px;background:none;border:1px solid #334;border-radius:4px;
+          color:#778;cursor:pointer;font-size:10px;font-family:'IBM Plex Mono',monospace">Cancel</button>
+        <button onclick="applyDDPTYPE()"
+          style="padding:6px 16px;background:rgba(31,168,217,.15);border:1px solid #1FA8D9;
+          border-radius:4px;color:#1FA8D9;cursor:pointer;font-size:10px;font-weight:700;
+          font-family:'IBM Plex Mono',monospace">✓ Apply</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(div);
+
+  // Close on backdrop click
+  div.addEventListener('click', function(e) {
+    if (e.target === div) div.remove();
+  });
+};
+
+window.selectPtStyle = function(mode) {
+  ST.pdmode = mode;
+  document.querySelectorAll('[id^="ddpt_"]').forEach(el => {
+    const m = parseInt(el.id.replace('ddpt_',''));
+    el.style.background = m === mode ? 'rgba(31,168,217,.2)' : 'rgba(255,255,255,.03)';
+    el.style.borderColor = m === mode ? '#1FA8D9' : 'rgba(255,255,255,.08)';
+  });
+};
+
+window.applyDDPTYPE = function() {
+  const sz = parseInt(document.getElementById('pdsizeSlider')?.value || '5');
+  ST.pdsize = sz;
+  document.getElementById('moDDPTYPE')?.remove();
+  if (typeof render === 'function') render();
+  if (typeof toast === 'function') toast(`DDPTYPE — PDMODE=${ST.pdmode}  PDSIZE=${ST.pdsize}`, 'ok');
+};
+
+
+// ══════════════════════════════════════════════════════════════
+//  7. MAP — ensure toggleMap works properly with _mapLayers
+// ══════════════════════════════════════════════════════════════
+window.toggleMap = function() {
+  _mapActive = !_mapActive;
+  const div = document.getElementById('mapDiv');
+  const btn = document.getElementById('btnMap');
+  const ibBtn = document.getElementById('ibBtnMapToggle');
+
+  if (!div) { 
+    // Create mapDiv if missing
+    const mapContainer = document.createElement('div');
+    mapContainer.id = 'mapDiv';
+    mapContainer.style.cssText = 'position:absolute;inset:0;z-index:0;display:none';
+    const vp = document.getElementById('vp') || document.querySelector('.vport') || document.body;
+    vp.insertBefore(mapContainer, vp.firstChild);
+  }
+
+  const mapDiv = document.getElementById('mapDiv');
+  if (!mapDiv) { toast('Cannot create map container', 'err'); return; }
+
+  if (_mapActive) {
+    mapDiv.style.display = 'block';
+    ST.bgColor = 'rgba(0,0,0,0.02)';
+    if (!_map) {
+      try { _initMap(); } catch(e) { console.error('Map init error:', e); }
+    }
+    if (btn) btn.classList.add('on');
+    if (ibBtn) ibBtn.textContent = '🗺 Map ON';
+    const ibMode = document.getElementById('ibBtnMapMode');
+    if (ibMode) ibMode.style.display = '';
+    toast('Map ON — 📍 Calibrate to align drawing', 'ok');
+    setMsg('Map active — click 📍 to calibrate or use Sat/OSM/Topo buttons');
+  } else {
+    mapDiv.style.display = 'none';
+    ST.bgColor = '#060E1A';
+    if (btn) btn.classList.remove('on');
+    if (ibBtn) ibBtn.textContent = '🗺 Map';
+    const ibMode = document.getElementById('ibBtnMapMode');
+    if (ibMode) ibMode.style.display = 'none';
+    toast('Map OFF', 'ok');
+  }
+  if (typeof render === 'function') render();
+};
+
+
+// ══════════════════════════════════════════════════════════════
+//  8. COMMANDS — register ALL new commands + ensure they work
+// ══════════════════════════════════════════════════════════════
+// Augment CAD_COMMANDS safely (no TDZ — runs after declaration)
+if (typeof CAD_COMMANDS !== 'undefined') {
+  const newCmds = {
+    // Point style
+    'DDPTYPE':'ddptype','DDP':'ddptype','PDMODE':'ddptype',
+    // Point
+    'POINT':'point','PO':'point',
+    // All standard
+    'UN':'units','UNITS':'units',
+    'E':'erase','DEL':'erase','DELETE':'erase',
+    'UNDO':'undo','U':'undo','REDO':'redo',
+    'Z':'zoom','ZE':'zoom','ZOOM':'zoom',
+    'PAN':'pan',
+    'LA':'layers','LAYER':'layers','LAYERS':'layers',
+    'OS':'osnap','OSNAP':'osnap',
+    'ORTHO':'ortho',
+    'TIN':'tin','SURFACE':'tin','SRF':'tin',
+    'CONTOUR':'contour',
+    'MAP':'map',
+    'SAVE':'save','QS':'save','QSAVE':'save',
+    'HELP':'help','?':'help',
+    'PROC':'processing','PROCESSING':'processing',
+    'DDPTYPE':'ddptype',
+    'PR':'properties','CH':'properties',
+    'MA':'matchprop','MATCHPROP':'matchprop',
+    'PE':'pedit','PEDIT':'pedit',
+    'AL':'align','ALIGN':'align',
+    'LEN':'lengthen','LENGTHEN':'lengthen',
+    'ME':'measure','MEASURE':'measure',
+    'DIV':'div','DIVIDE':'div',
+    'AR':'array','ARRAY':'array',
+    'PURGE':'purge','PU':'purge',
+    'COLOR':'color','COL':'color','COLOUR':'color',
+    'REGEN':'regen','RE':'regen',
+    'DESELECT':'deselect',
+    'OOPS':'oops',
+    'NEW':'new',
+    'OPEN':'import',
+    'IMPORT':'import',
+    'EXPORT':'export',
+    'SETTINGS':'settings','OP':'settings',
+    'CRS':'crs',
+    'AT':'table','ATTR':'table','TABLE':'table',
+    'BUFFER':'buffer','BUF':'buffer',
+    'DISSOLVE':'dissolve',
+    'STATS':'stats',
+    'SURVEY':'survey',
+    'CSV':'csv',
+  };
+  Object.assign(CAD_COMMANDS, newCmds);
+}
+
+// Augment CAD_ACTIONS safely
+if (typeof CAD_ACTIONS !== 'undefined') {
+  const newActions = {
+    ddptype:    () => openDDPTYPE(),
+    units:      () => (typeof openUnitsModal==='function') ? openUnitsModal() : toast('UNITS — see Settings > Units','ok'),
+    erase:      () => (typeof delSel==='function') ? delSel() : null,
+    undo:       () => (typeof undo==='function') ? undo() : null,
+    redo:       () => (typeof redo==='function') ? redo() : null,
+    zoom:       () => (typeof zoomExt==='function') ? zoomExt() : null,
+    layers:     () => (typeof showTab==='function') ? showTab('layers') : null,
+    osnap:      () => { ST.osnap=!ST.osnap; toast('OSNAP '+(ST.osnap?'ON':'OFF'),'ok'); if(typeof updateOsnapUI==='function')updateOsnapUI(); },
+    ortho:      () => { ST.ortho=!ST.ortho; toast('ORTHO '+(ST.ortho?'ON':'OFF'),'ok'); },
+    tin:        () => (typeof buildTIN==='function') ? buildTIN() : toast('TIN — load survey points first','warn'),
+    contour:    () => (typeof openMo==='function') ? openMo('moContour') : null,
+    map:        () => (typeof toggleMap==='function') ? toggleMap() : null,
+    save:       () => (typeof saveProject==='function') ? saveProject() : toast('SAVE — Ctrl+S','ok'),
+    help:       () => (typeof openMo==='function') ? openMo('moShortcuts') : null,
+    processing: () => (typeof toggleProcPanel==='function') ? toggleProcPanel() : (typeof openMo==='function') ? openMo('moProcessing') : null,
+    properties: () => (typeof showTab==='function') ? showTab('props') : null,
+    matchprop:  () => { const s=ST.entities.filter(e=>e.selected); if(!s.length){toast('Select source first','warn');return;} ST._matchpropSrc=s[0]; ST.tool='matchprop'; toast('MATCHPROP — click targets','ok'); },
+    pedit:      () => (typeof startPedit==='function') ? startPedit() : toast('PEDIT — select polyline first','warn'),
+    align:      () => (typeof startAlign==='function') ? startAlign() : toast('ALIGN — select objects first','warn'),
+    lengthen:   () => (typeof startLengthen==='function') ? startLengthen() : toast('LENGTHEN — select line first','warn'),
+    measure:    () => (typeof startMeasure==='function') ? startMeasure() : T('measure-d'),
+    div:        () => (typeof startDivide==='function') ? startDivide() : toast('DIVIDE — select object first','warn'),
+    array:      () => (typeof openMo==='function') ? openMo('moArray') : null,
+    purge:      () => (typeof purgeEntities==='function') ? purgeEntities() : null,
+    color:      () => (typeof openColorDialog==='function') ? openColorDialog() : null,
+    regen:      () => { if(typeof render==='function')render(); toast('REGEN','ok'); },
+    deselect:   () => { ST.entities.forEach(e=>e.selected=false); if(typeof render==='function')render(); },
+    oops:       () => { if(typeof undo==='function')undo(); toast('OOPS — last erase restored','ok'); },
+    new:        () => { if(confirm('New drawing? Unsaved work will be lost.')) { if(typeof newDrawing==='function')newDrawing(); } },
+    import:     () => (typeof openMo==='function') ? openMo('moImport') : null,
+    export:     () => (typeof openExportModal==='function') ? openExportModal() : (typeof openMo==='function') ? openMo('moExport') : null,
+    settings:   () => (typeof openMo==='function') ? openMo('moSettings') : null,
+    crs:        () => (typeof openCRSPicker==='function') ? openCRSPicker() : (typeof showCRS==='function') ? showCRS() : toast('CRS — use status bar CRS button','ok'),
+    table:      () => (typeof openAttrTable==='function') ? openAttrTable() : toast('ATTTABLE — no entities loaded','warn'),
+    buffer:     () => (typeof doBuffer==='function') ? doBuffer() : toast('BUFFER — select entities first','warn'),
+    dissolve:   () => (typeof dissolveLayer==='function') ? dissolveLayer() : toast('DISSOLVE — select layer first','warn'),
+    stats:      () => (typeof showStats==='function') ? showStats() : null,
+    survey:     () => { if(typeof showTab==='function')showTab('survey'); if(typeof openMo==='function')openMo('moCsvImport'); },
+    csv:        () => (typeof openMo==='function') ? openMo('moCsvImport') : null,
+  };
+  Object.assign(CAD_ACTIONS, newActions);
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  9. COMPREHENSIVE runCommand — handles ALL input patterns
+// ══════════════════════════════════════════════════════════════
+window.runCommand = function(rawCmd) {
+  const raw = (rawCmd || '').trim();
+  if (!raw) {
+    if (ST._lastTool && typeof T === 'function') T(ST._lastTool);
+    return;
+  }
+  const v = raw.toUpperCase();
+
+  // Close polyline/boundary
+  if (v === 'C' && (ST.tool==='polyline'||ST.tool==='boundary'||ST.tool==='line')) {
+    if (ST.tool==='polyline' && typeof commitPolyline==='function') commitPolyline();
+    else if (ST.tool==='boundary' && typeof commitBoundary==='function') commitBoundary();
+    else { ST.drawing=false; ST.startPt=null; if(typeof render==='function')render(); }
+    return;
+  }
+
+  // Coordinate/distance input while drawing
+  if ((ST.drawing && ST.startPt) || (ST.opState && ST.opState.base)) {
+    if (raw.match(/^[@\d\.\-+]/) || raw.includes('<') || (raw.includes(',') && /\d/.test(raw))) {
+      if (typeof applyDynValue==='function') { applyDynValue(raw); return; }
+    }
+  }
+
+  // DDPTYPE special case — always opens popup
+  if (v === 'DDPTYPE' || v === 'DDP' || v === 'PDMODE') {
+    openDDPTYPE();
+    if (typeof setMsg==='function') setMsg('DDPTYPE — point display style dialog opened');
+    return;
+  }
+
+  // Look up in CAD_COMMANDS
+  const target = typeof CAD_COMMANDS !== 'undefined' ? 
+    (CAD_COMMANDS[v] || CAD_COMMANDS[v.toUpperCase()]) : null;
+
+  if (target) {
+    const DRAW_TOOLS = ['line','polyline','circle','arc','rect','ellipse','spline','hatch',
+      'text','point','xline','ray','wipeout','cloud','boundary','polygon','dim-lin','leader',
+      'move','copy','rotate','scale','mirror','offset','trim','extend','fillet','chamfer',
+      'stretch','break','join','explode','lengthen','array','dim-diameter','dim-radius',
+      'dim-angular','dim-baseline','dim-center','measure-d','measure-a','matchprop','idpt',
+      'select','pan'];
+
+    if (DRAW_TOOLS.includes(target)) {
+      if (typeof T === 'function') T(target);
+      if (typeof setMsg === 'function') setMsg('▶ ' + target.toUpperCase() + '  — click to start');
+      return;
+    }
+
+    const action = typeof CAD_ACTIONS !== 'undefined' ? CAD_ACTIONS[target] : null;
+    if (typeof action === 'function') {
+      action();
+      if (typeof setMsg === 'function') setMsg('▶ ' + v);
+      return;
+    }
+  }
+
+  // Direct action lookup
+  if (typeof CAD_ACTIONS !== 'undefined') {
+    const act = CAD_ACTIONS[v.toLowerCase()] || CAD_ACTIONS[v];
+    if (typeof act === 'function') {
+      act();
+      if (typeof setMsg === 'function') setMsg('▶ ' + v);
+      return;
+    }
+  }
+
+  // Map/geo search
+  if (/^(FIND|GO|GOTO|SEARCH)\s+/i.test(v)) {
+    if (typeof mapSearch === 'function') mapSearch(raw.replace(/^\w+\s+/, ''));
+    return;
+  }
+
+  // Numeric = distance input
+  if (!isNaN(parseFloat(raw)) && (ST.drawing || ST.opState)) {
+    if (typeof applyDynValue === 'function') { applyDynValue(raw); return; }
+  }
+
+  if (typeof setMsg === 'function') setMsg(`"${raw}" — unknown command. Type HELP or F1 for list.`);
+  if (typeof toast === 'function') toast(`Unknown: ${raw}`, 'warn');
+};
+
+
+// ══════════════════════════════════════════════════════════════
+//  10. ENSURE POINT IS RENDERED WITH PDMODE STYLE
+// ══════════════════════════════════════════════════════════════
+const _drawEntityOrig = window.drawEntity;
+window.drawEntity = function(e, ghost) {
+  if (e.type === 'point') {
+    const col = e.selected ? '#F5BE18' : (typeof getLayColor==='function' ? getLayColor(e) : '#1FA8D9');
+    const ctx = document.getElementById('cad').getContext('2d');
+    if (typeof _drawPoint === 'function' && ST.pdmode !== 0) {
+      _drawPoint(ctx, e, col, ST.zoom, typeof w2s==='function' ? w2s : (x,y)=>({x:x*ST.zoom+ST.pan.x,y:-y*ST.zoom+ST.pan.y}));
+    } else {
+      // Default cross+dot
+      const p = typeof w2s==='function' ? w2s(e.x, e.y) : {x:e.x*ST.zoom+ST.pan.x,y:-e.y*ST.zoom+ST.pan.y};
+      const sz = Math.max(3, (ST.pdsize||5) * ST.zoom * 0.2);
+      ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(1.5, sz*0.3), 0, Math.PI*2); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(p.x-sz,p.y); ctx.lineTo(p.x+sz,p.y);
+      ctx.moveTo(p.x,p.y-sz); ctx.lineTo(p.x,p.y+sz);
+      ctx.stroke();
+      if (e.selected) {
+        ctx.strokeStyle='#F5BE18'; ctx.lineWidth=1.5; ctx.setLineDash([3,3]);
+        ctx.strokeRect(p.x-sz*1.5,p.y-sz*1.5,sz*3,sz*3);
+        ctx.setLineDash([]);
+      }
+    }
+    return;
+  }
+  if (_drawEntityOrig) _drawEntityOrig(e, ghost);
+};
+
+
+// ══════════════════════════════════════════════════════════════
+//  11. INITIALIZE — run all init procedures
+// ══════════════════════════════════════════════════════════════
+setTimeout(() => {
+  // Build processing toolbox
+  if (typeof buildProcessingUI === 'function') buildProcessingUI();
+
+  // Sync status bar buttons
+  ['stOsnap','stGrid','stSnap','stOrtho'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const prop = id.replace('st','').toLowerCase();
+    if (ST[prop] !== undefined) el.textContent = ST[prop] ? 'ON' : 'OFF';
+  });
+
+  // Show ready message
+  if (typeof setMsg==='function') setMsg('Ready — type any command (DDPTYPE, LINE, CIRCLE, etc)  |  F1=shortcuts');
+
+  console.log('[Strata] Comprehensive fix loaded ✓');
+  console.log('  ✓ _mapLayers declared');
+  console.log('  ✓ Map toggle fixed');
+  console.log('  ✓ Cursor panel fixed');
+  console.log('  ✓ QGIS Processing tools');
+  console.log('  ✓ Command suggestions (autocomplete)');
+  console.log('  ✓ AutoCAD-style typing (any key → cmdline)');
+  console.log('  ✓ Point tool fixed');
+  console.log('  ✓ DDPTYPE popup');
+  console.log('  ✓ All commands registered');
+
+}, 500);
+
+})(); // end comprehensive fix
 
 
 // ── SVG PARSER ────────────────────────────────────────────────────
@@ -11335,18 +12072,15 @@ function _initMap() {
     preferCanvas: true,
   }).setView([defaultLat, defaultLng], defaultZoom);
 
-  // Base layers
+  // Base layers using _mapLayers config
   const layers = {
-    osm:    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-              { maxZoom: 22, attribution: '© OpenStreetMap contributors' }),
-    sat:    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-              { maxZoom: 22, attribution: '© Esri World Imagery' }),
-    topo:   L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-              { maxZoom: 17, attribution: '© OpenTopoMap' }),
+    osm:  L.tileLayer(_mapLayers.osm,  { maxZoom: 22, attribution: '© OpenStreetMap contributors' }),
+    sat:  L.tileLayer(_mapLayers.sat,  { maxZoom: 22, attribution: '© Esri World Imagery' }),
+    topo: L.tileLayer(_mapLayers.topo, { maxZoom: 17, attribution: '© OpenTopoMap' }),
   };
 
   // Add default layer
-  const startLayer = _mapLayers && _mapLayer ? _mapLayer : 'osm';
+  const startLayer = _mapLayer || 'osm';
   (layers[startLayer] || layers.osm).addTo(_map);
 
   // Store layer refs for switching
