@@ -4649,50 +4649,8 @@ document.addEventListener('keydown', ev => {
     OSNAP:   [''],
   };
 
-  // Add missing commands to CAD_COMMANDS
-  if (typeof CAD_COMMANDS !== 'undefined') {
-    Object.assign(CAD_COMMANDS, {
-      'DDPTYPE':'ddptype', 'DDP':'ddptype',
-      'LENGTHEN':'lengthen', 'LEN':'lengthen',
-      'MEASURE':'measure', 'ME':'measure',
-      'DIVIDE':'div', 'DIV':'div',
-      'PEDIT':'pedit', 'PE':'pedit',
-      'ALIGN':'align', 'AL':'align',
-      'LAYER':'layer', 'LA':'layer',
-      'OSNAP':'osnap', 'OS':'osnap',
-      'OOPS':'oops',
-      'REGEN':'regen', 'RE':'regen',
-      'ZOOM':'zoom', 'Z':'zoom',
-      'PAN':'pan',
-      'UNDO':'undo', 'U':'undo',
-      'REDO':'redo',
-      'ERASE':'erase', 'E':'erase',
-      'SELECT':'select',
-      'DESELECT':'deselect',
-      'PROPERTIES':'properties', 'PR':'properties', 'CH':'properties', 'MO':'properties',
-      'MATCHPROP':'matchprop', 'MA':'matchprop',
-      'WBLOCK':'wblock',
-    });
-    if (typeof CAD_ACTIONS !== 'undefined') {
-      Object.assign(CAD_ACTIONS, {
-        ddptype: () => openDDPTYPE(),
-        oops:    () => { undo(); toast('OOPS — last erase restored','ok'); },
-        regen:   () => { render(); toast('Regenerating model…','ok'); },
-        zoom:    () => zoomExt(),
-        erase:   () => delSel(),
-        deselect:() => { ST.entities.forEach(e=>e.selected=false); render(); },
-        properties: () => showTab('props'),
-        matchprop:  () => toast('MATCHPROP — select source, then targets','ok'),
-        lengthen:   () => startLengthen(),
-        measure:    () => startMeasure(),
-        div:        () => startDivide(),
-        pedit:      () => startPedit(),
-        align:      () => startAlign(),
-        layer:      () => showTab('layers'),
-        osnap:      () => { ST.osnap=!ST.osnap; updateOsnapUI(); toast('OSNAP '+( ST.osnap?'ON':'OFF'),'ok'); },
-      });
-    }
-  }
+  // CAD_COMMANDS additions moved after declaration (see below)
+
 
   // Patch cmdKey to support:
   // - Up/Down arrow for command history
@@ -5153,17 +5111,7 @@ document.addEventListener('keydown', ev => {
   };
 
   // ── MATCHPROP ───────────────────────────────────────────────────
-  if (typeof CAD_ACTIONS !== 'undefined') {
-    CAD_ACTIONS.matchprop = function() {
-      const sels = ST.entities.filter(e => e.selected);
-      if (!sels.length) { toast('Select source object first', 'warn'); return; }
-      const src = sels[0];
-      ST._matchpropSrc = src;
-      setMsg('MATCHPROP — click target objects to apply properties  |  ESC=done');
-      ST.tool = 'matchprop';
-      updateToolUI('select');
-    };
-  }
+  // MATCHPROP registered after CAD_ACTIONS declaration
 
   // ── PEDIT (Polyline Edit) ───────────────────────────────────────
   window.startPedit = function() {
@@ -5496,12 +5444,8 @@ document.addEventListener('keydown', ev => {
     }
   };
 
-  // Register DDPTYPE in command system
-  if (typeof CAD_COMMANDS !== 'undefined') {
-    CAD_COMMANDS['DDPTYPE'] = 'ddptype';
-    CAD_COMMANDS['DDP']     = 'ddptype';
-    CAD_COMMANDS['PDMODE']  = 'ddptype';
-  }
+  // DDPTYPE registered below with CAD_COMMANDS
+
 
 })();
 
@@ -6824,6 +6768,37 @@ const CAD_COMMANDS = (function() {
   Object.assign(m, draw, modify, civil3d);
   return m;
 })();
+// ── Augment CAD_COMMANDS with patch additions (after declaration, no TDZ) ──
+Object.assign(CAD_COMMANDS, {
+  // DDPTYPE
+  'DDPTYPE':'ddptype','DDP':'ddptype','PDMODE':'ddptype',
+  // AutoCAD parity
+  'LENGTHEN':'lengthen','LEN':'lengthen',
+  'MEASURE':'measure',
+  'DIVIDE':'div','DIV':'div',
+  'PEDIT':'pedit','PE':'pedit',
+  'ALIGN':'align',
+  'OOPS':'oops',
+  'REGEN':'regen',
+  'ERASE':'erase',
+  'DESELECT':'deselect',
+  'MATCHPROP':'matchprop','MA':'matchprop',
+  'WBLOCK':'wblock',
+  // Extra aliases
+  'UNDO':'undo','U':'undo',
+  'REDO':'redo',
+  'SETVAR':'setvar','SET':'setvar',
+  // Navigation
+  'Z':'zoom',
+  'PA':'pan',
+  // Properties
+  'CH':'properties','PR':'properties',
+  // Layer
+  'LA':'layer',
+  // OSNAP
+  'OS':'osnap',
+});
+
 
 const CAD_ACTIONS = {
   // Missing actions for Civil 3D commands
@@ -6886,6 +6861,15 @@ const CAD_ACTIONS = {
   qselect:     () => toast('QSELECT — use Ctrl+A to select all, or click entities','ok'),
   refedit:     () => openMo('moXref'),
   view:        () => zoomExt(),
+  set:         (varName, val) => { if(varName && ST[varName]!==undefined) { ST[varName]=val; render(); toast('SETVAR: '+varName+'='+val,'ok'); } else toast('Unknown variable: '+(varName||''),'warn'); },
+  setvar:      () => toast('SETVAR — type: SETVAR VARNAME VALUE','ok'),
+  matchprop:   () => {
+    const sels = ST.entities.filter(e=>e.selected);
+    if (!sels.length) { toast('Select source object first','warn'); return; }
+    ST._matchpropSrc = sels[0];
+    setMsg('MATCHPROP — click target objects to apply properties  |  ESC=done');
+    ST.tool = 'matchprop'; updateToolUI('select');
+  },
 
   zoom:()=>zoomExt(), pan:()=>T('pan'), select:()=>T('select'),
   delete:()=>delSel(), undo:()=>undo(), redo:()=>redo(),
@@ -7039,7 +7023,9 @@ function runCommand(rawCmd) {
     const allTools=['line','polyline','circle','arc','rect','ellipse','spline','hatch',
       'text','point','xline','ray','wipeout','cloud','boundary','polygon','dim-lin','leader',
       'move','copy','rotate','scale','mirror','offset','trim','extend',
-      'fillet','chamfer','stretch','break','join','explode','lengthen'];
+      'fillet','chamfer','stretch','break','join','explode','lengthen',
+      'array','dim-diameter','dim-radius','dim-angular','dim-baseline','dim-center',
+      'measure-d','measure-a','matchprop','idpt','select','pan'];
     if(allTools.includes(target)) { T(target); setMsg('▶ '+target.toUpperCase()+' — click to start'); return; }
     if(CAD_ACTIONS[target]) { CAD_ACTIONS[target](); setMsg('▶ '+target); return; }
   }
