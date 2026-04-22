@@ -1166,7 +1166,7 @@ input,select{font-family:inherit}
 <!-- CMDBAR -->
 <div class="cmdbar">
   <span class="cmd-p">◈</span>
-  <input class="cmd-i" id="cmdInput" placeholder="L C R A G=Pline M=Move O=Offset F=Fillet TR=Trim  |  CO RO SC MI  |  TIN CSV GEO SAVE  |  F1=Help  ESC=cancel  SPACE=repeat" onkeydown="cmdKey(event)">
+  <input class="cmd-i" id="cmdInput" placeholder="Type command…  (L=Line C=Circle M=Move RO=Rotate CO=Copy O=Offset TR=Trim | F1=Help)" autocomplete="off" spellcheck="false">
   <span class="cmd-m" id="cmdMsg">Ready — Import a drawing or start drawing</span>
 </div>
 
@@ -12888,168 +12888,8 @@ window.runCommand = function(rawCmd) {
   setMsg('"' + raw + '" — unknown command. Type HELP or press F1 for list.');
 };
 
-// ── THE ONE cmdInput wire ─────────────────────────────────────────
-(function wireInput() {
-  var inp = document.getElementById('cmdInput');
-  if (!inp) return;
 
-  // History state
-  var hist = window.CMD ? window.CMD.history : [];
-  var histIdx = -1;
-
-  // Suggestion box
-  var box = document.getElementById('cmdSuggestBox');
-  if (!box) {
-    box = document.createElement('div');
-    box.id = 'cmdSuggestBox';
-    box.style.cssText = 'position:fixed;z-index:10000;background:#050F1C;'
-      +'border:1px solid rgba(31,168,217,.5);border-radius:6px;'
-      +'box-shadow:0 8px 28px rgba(0,0,0,.95);max-height:220px;overflow-y:auto;'
-      +'min-width:250px;font-family:IBM Plex Mono,monospace;font-size:10px;display:none';
-    document.body.appendChild(box);
-  }
-
-  function updateSuggestions(val) {
-    if (!val || val.length < 1) { box.style.display='none'; return; }
-    var uv = val.toUpperCase();
-    var matches = Object.keys(CAD_COMMANDS)
-      .filter(function(k) { return k.indexOf(uv)===0 && k.length>1; })
-      .sort(function(a,b) { return a.length-b.length; })
-      .slice(0, 9);
-    if (!matches.length) { box.style.display='none'; return; }
-    var rect = inp.getBoundingClientRect();
-    box.style.left = rect.left + 'px';
-    box.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
-    box.style.top = 'auto';
-    box.style.display = 'block';
-    box.innerHTML = matches.map(function(c, i) {
-      var action = CAD_COMMANDS[c] || '';
-      return '<div data-cmd="'+c+'" style="padding:6px 12px;cursor:pointer;color:'
-        +(i===0?'#4eff91':'#8899aa')+';border-bottom:1px solid rgba(255,255,255,.04);'
-        +'display:flex;align-items:center;gap:8px"'
-        +' onmouseover="this.style.background=\'rgba(31,168,217,.1)\';this.style.color=\'#fff\'"'
-        +' onmouseout="this.style.background=\'\';this.style.color=\''+(i===0?'#4eff91':'#8899aa')+'\'"><b style="color:#1FA8D9">'
-        +c.slice(0,uv.length)+'</b>'+c.slice(uv.length)
-        +'<span style="margin-left:auto;font-size:8px;color:#445">'+action+'</span></div>';
-    }).join('');
-
-    // Click to run
-    box.querySelectorAll('[data-cmd]').forEach(function(el) {
-      el.addEventListener('mousedown', function(e) {
-        e.preventDefault();
-        var cmd = el.getAttribute('data-cmd');
-        inp.value = '';
-        box.style.display = 'none';
-        window.runCommand(cmd);
-        document.getElementById('cad') && document.getElementById('cad').focus();
-      });
-    });
-  }
-
-  function hideSuggestions() {
-    setTimeout(function() { box.style.display = 'none'; }, 180);
-  }
-
-  // Replace element to clear conflicting handlers
-  var fresh = inp.cloneNode(false); // false = no children, no attrs we don't want
-  fresh.id = 'cmdInput';
-  fresh.className = inp.className;
-  fresh.placeholder = inp.placeholder || 'Type command…';
-  fresh.setAttribute('autocomplete','off');
-  fresh.setAttribute('spellcheck','false');
-  inp.parentNode.replaceChild(fresh, inp);
-
-  fresh.addEventListener('input', function() {
-    updateSuggestions(this.value);
-  });
-
-  fresh.addEventListener('blur', hideSuggestions);
-
-  fresh.addEventListener('keydown', function(ev) {
-    ev.stopPropagation();
-
-    if (ev.key === 'Escape') {
-      this.value = '';
-      box.style.display = 'none';
-      ST.drawing = false; ST.startPt = null; ST.opState = null;
-      if (window.CMD) { CMD.active=null; CMD.phase=0; }
-      setMsg('ESC — ready');
-      document.getElementById('cad') && document.getElementById('cad').focus();
-      return;
-    }
-
-    if (ev.key === 'Tab') {
-      ev.preventDefault();
-      var first = box.querySelector('[data-cmd]');
-      if (first) {
-        this.value = first.getAttribute('data-cmd');
-        box.style.display = 'none';
-      }
-      return;
-    }
-
-    if (ev.key === 'ArrowUp') {
-      ev.preventDefault();
-      if (hist.length) {
-        histIdx = Math.min(histIdx+1, hist.length-1);
-        this.value = hist[histIdx] || '';
-        updateSuggestions(this.value);
-      }
-      return;
-    }
-
-    if (ev.key === 'ArrowDown') {
-      ev.preventDefault();
-      histIdx = Math.max(histIdx-1, -1);
-      this.value = histIdx >= 0 ? hist[histIdx] : '';
-      updateSuggestions(this.value);
-      return;
-    }
-
-    if (ev.key === 'Enter' || ev.key === ' ') {
-      ev.preventDefault();
-      var raw = this.value.trim();
-      this.value = '';
-      box.style.display = 'none';
-      histIdx = -1;
-
-      if (!raw) {
-        // Empty = repeat last or finish polyline
-        if (ST.tool==='polyline') { commitPolyline(); return; }
-        if (ST.tool==='boundary') { commitBoundary(); return; }
-        if (window.CMD && CMD.active) { if(typeof handleCommandInput==='function') handleCommandInput(''); return; }
-        if (ST._lastTool) T(ST._lastTool);
-        document.getElementById('cad') && document.getElementById('cad').focus();
-        return;
-      }
-
-      // Save history
-      hist.unshift(raw);
-      if (hist.length > 50) hist.pop();
-      if (window.CMD) { CMD.history = hist; CMD.histIdx = -1; }
-
-      // If CMD active
-      if (window.CMD && CMD.active) {
-        if (typeof handleCommandInput==='function') handleCommandInput(raw);
-        document.getElementById('cad') && document.getElementById('cad').focus();
-        return;
-      }
-
-      window.runCommand(raw);
-      document.getElementById('cad') && document.getElementById('cad').focus();
-    }
-  });
-
-  // Update window.cmdKey for any legacy calls
-  window.cmdKey = function(ev) {
-    fresh.dispatchEvent(new KeyboardEvent(ev.type, {
-      key: ev.key, keyCode: ev.keyCode, which: ev.which,
-      ctrlKey: ev.ctrlKey, shiftKey: ev.shiftKey, altKey: ev.altKey,
-      bubbles: false
-    }));
-  };
-
-})(); // end wireInput
+// wireInput removed - replaced by StrataFinalWire below
 
 // ── Any printable key → focus command line (AutoCAD style) ────────
 document.addEventListener('keydown', function(ev) {
@@ -13846,6 +13686,218 @@ setTimeout(function() {
 
 console.log('[Civil 3D] Feature set loaded: Toolspace, Layer Manager, MAP commands, Context menu');
 })(); // end Civil3DFeatures
+
+
+// ████████████████████████████████████████████████████████████████
+//  STRATA FINAL COMMAND WIRE — runs absolute last
+//  No circular dispatch. No infinite loops. Single source of truth.
+// ████████████████████████████████████████████████████████████████
+(function StrataFinalWire() {
+
+  // ── Get the cmdInput element ──────────────────────────────────
+  var inp = document.getElementById('cmdInput');
+  if (!inp) { console.error('[StrataFinalWire] cmdInput not found!'); return; }
+
+  // ── Ensure no onkeydown attribute (belt + suspenders) ─────────
+  inp.removeAttribute('onkeydown');
+  inp.removeAttribute('onkeypress');
+
+  // ── Command history ───────────────────────────────────────────
+  var hist = [];
+  var histIdx = -1;
+  if (window.CMD && CMD.history && CMD.history.length) hist = CMD.history;
+
+  // ── Suggestion box ────────────────────────────────────────────
+  var box = document.getElementById('cmdSuggestBox');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'cmdSuggestBox';
+    box.style.cssText = [
+      'position:fixed','z-index:99999','background:#060E1A',
+      'border:1px solid rgba(31,168,217,.6)','border-radius:5px',
+      'box-shadow:0 8px 32px rgba(0,0,0,.95)','max-height:240px',
+      'overflow-y:auto','min-width:280px',
+      'font-family:IBM Plex Mono,monospace','font-size:10.5px','display:none'
+    ].join(';');
+    document.body.appendChild(box);
+  }
+
+  function showSugg(val) {
+    if (!val || val.length < 1) { box.style.display = 'none'; return; }
+    var uv = val.toUpperCase();
+
+    // Get ALL keys from CAD_COMMANDS
+    var allKeys = (typeof CAD_COMMANDS !== 'undefined') ? Object.keys(CAD_COMMANDS) : [];
+    var matches = allKeys
+      .filter(function(k) { return k.indexOf(uv) === 0 && k.length > 1; })
+      .sort(function(a,b) { return a.length - b.length; })
+      .slice(0, 10);
+
+    if (!matches.length) { box.style.display = 'none'; return; }
+
+    var rect = inp.getBoundingClientRect();
+    box.style.left   = rect.left + 'px';
+    box.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+    box.style.top    = 'auto';
+    box.style.display = 'block';
+
+    box.innerHTML = matches.map(function(c, i) {
+      var action = (typeof CAD_COMMANDS !== 'undefined' && CAD_COMMANDS[c]) ? CAD_COMMANDS[c] : '';
+      var isFirst = i === 0;
+      return '<div data-cmd="' + c + '" style="'
+        + 'padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;'
+        + 'border-bottom:1px solid rgba(31,168,217,.06);'
+        + 'color:' + (isFirst ? '#4eff91' : '#889aaa') + '"'
+        + ' onmouseover="this.style.background=\'rgba(31,168,217,.12)\';this.style.color=\'#fff\'"'
+        + ' onmouseout="this.style.background=\'\';this.style.color=\'' + (isFirst?'#4eff91':'#889aaa') + '\'">'
+        + '<b style="color:#1FA8D9">' + c.slice(0, uv.length) + '</b>'
+        + c.slice(uv.length)
+        + '<span style="margin-left:auto;font-size:8.5px;color:#445;font-family:IBM Plex Mono,monospace">'
+        + action + '</span>'
+        + '</div>';
+    }).join('');
+
+    // Click handlers (mousedown to fire before blur)
+    box.querySelectorAll('[data-cmd]').forEach(function(el) {
+      el.addEventListener('mousedown', function(ev) {
+        ev.preventDefault();
+        var cmd = el.getAttribute('data-cmd');
+        inp.value = '';
+        box.style.display = 'none';
+        execCmd(cmd);
+        inp.blur();
+        var cad = document.getElementById('cad');
+        if (cad) cad.focus();
+      });
+    });
+  }
+
+  function hideSugg() {
+    setTimeout(function() { box.style.display = 'none'; }, 200);
+  }
+
+  // ── Core command executor ──────────────────────────────────────
+  function execCmd(raw) {
+    raw = (raw || '').trim();
+    if (!raw) {
+      // Empty = repeat last or finish drawing
+      if (ST.tool === 'polyline' && typeof commitPolyline === 'function') { commitPolyline(); return; }
+      if (ST.tool === 'boundary' && typeof commitBoundary === 'function') { commitBoundary(); return; }
+      if (window.CMD && CMD.active && typeof handleCommandInput === 'function') { handleCommandInput(''); return; }
+      if (ST._lastTool && typeof T === 'function') T(ST._lastTool);
+      return;
+    }
+
+    // History
+    hist.unshift(raw);
+    if (hist.length > 50) hist.pop();
+    histIdx = -1;
+    if (window.CMD) { CMD.history = hist; CMD.histIdx = -1; }
+
+    // Active command phase
+    if (window.CMD && CMD.active && typeof handleCommandInput === 'function') {
+      handleCommandInput(raw);
+      return;
+    }
+
+    // Delegate to runCommand
+    if (typeof window.runCommand === 'function') {
+      window.runCommand(raw);
+    }
+  }
+
+  // ── Keydown handler — the ONLY one ────────────────────────────
+  function handleKey(ev) {
+    ev.stopPropagation();
+    var box2 = document.getElementById('cmdSuggestBox');
+
+    switch(ev.key) {
+
+      case 'Escape':
+        inp.value = '';
+        if (box2) box2.style.display = 'none';
+        ST.drawing = false; ST.startPt = null; ST.opState = null;
+        if (window.CMD) { CMD.active = null; CMD.phase = 0; }
+        if (typeof setMsg === 'function') setMsg('ESC — ready');
+        var cad = document.getElementById('cad');
+        if (cad) cad.focus();
+        return;
+
+      case 'Tab':
+        ev.preventDefault();
+        var first = box2 && box2.querySelector('[data-cmd]');
+        if (first) {
+          inp.value = first.getAttribute('data-cmd');
+          if (box2) box2.style.display = 'none';
+        }
+        return;
+
+      case 'ArrowUp':
+        ev.preventDefault();
+        if (hist.length) {
+          histIdx = Math.min(histIdx + 1, hist.length - 1);
+          inp.value = hist[histIdx] || '';
+          showSugg(inp.value);
+        }
+        return;
+
+      case 'ArrowDown':
+        ev.preventDefault();
+        histIdx = Math.max(histIdx - 1, -1);
+        inp.value = histIdx >= 0 ? hist[histIdx] : '';
+        showSugg(inp.value);
+        return;
+
+      case 'Enter':
+      case ' ':
+        ev.preventDefault();
+        var raw = inp.value.trim();
+        inp.value = '';
+        if (box2) box2.style.display = 'none';
+        execCmd(raw);
+        var cad2 = document.getElementById('cad');
+        if (cad2) cad2.focus();
+        return;
+    }
+  }
+
+  // ── Wire the input element cleanly ────────────────────────────
+  // Remove ALL old event listeners by replacing the element
+  var fresh = document.createElement('input');
+  fresh.id        = 'cmdInput';
+  fresh.className = inp.className;
+  fresh.placeholder = inp.placeholder || 'Type command…';
+  fresh.setAttribute('autocomplete','off');
+  fresh.setAttribute('spellcheck','false');
+  // NO onkeydown attribute
+  inp.parentNode.replaceChild(fresh, inp);
+
+  fresh.addEventListener('input',   function() { showSugg(this.value); });
+  fresh.addEventListener('blur',    hideSugg);
+  fresh.addEventListener('keydown', handleKey);
+
+  // ── window.cmdKey — legacy calls go to execCmd ────────────────
+  // Does NOT dispatch to fresh (avoids the infinite loop)
+  window.cmdKey = function(ev) {
+    if (!ev) return;
+    handleKey(ev);
+  };
+
+  // ── AutoCAD-style: any printable key → focus cmdInput ─────────
+  document.addEventListener('keydown', function(ev) {
+    var tag = (document.activeElement || {}).tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
+    if (ev.key.length !== 1) return;
+    var i = document.getElementById('cmdInput');
+    if (i && document.activeElement !== i) i.focus();
+  }, false);
+
+  console.log('[StrataFinalWire] Command input wired cleanly. CAD_COMMANDS:', 
+    typeof CAD_COMMANDS !== 'undefined' ? Object.keys(CAD_COMMANDS).length : 'undefined',
+    '| DDPTYPE:', typeof CAD_COMMANDS !== 'undefined' ? (CAD_COMMANDS['DDPTYPE'] || 'missing') : 'N/A');
+
+})(); // end StrataFinalWire
 
 </script>
 
