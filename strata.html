@@ -7278,52 +7278,7 @@ window.cmdKey = function(ev) {
   canvas.focus();
 };
 
-// Wire cmdInput events
-(function wireCmdInput() {
-  const inp = document.getElementById('cmdInput');
-  if (!inp) return;
-
-  // Create suggestion box
-  if (!document.getElementById('cmdSuggestBox')) {
-    const box = document.createElement('div');
-    box.id = 'cmdSuggestBox';
-    box.style.cssText = 'position:fixed;z-index:10000;background:#050F1C;border:1px solid rgba(31,168,217,.5);border-radius:4px;box-shadow:0 8px 24px rgba(0,0,0,.9);max-height:200px;overflow-y:auto;min-width:220px;font-family:IBM Plex Mono,monospace;font-size:10px;display:none';
-    document.body.appendChild(box);
-  }
-
-  const ALL_CMDS = Object.keys(CAD_COMMANDS).filter(k=>k.length>1).sort();
-
-  function showSug(v) {
-    const box = document.getElementById('cmdSuggestBox');
-    if (!v || v.length < 1) { box.style.display='none'; return; }
-    const matches = ALL_CMDS.filter(c=>c.startsWith(v.toUpperCase())).slice(0,8);
-    if (!matches.length) { box.style.display='none'; return; }
-    const rect = inp.getBoundingClientRect();
-    box.style.left = rect.left+'px';
-    box.style.bottom = (window.innerHeight-rect.top+4)+'px';
-    box.style.top = 'auto';
-    box.style.display = 'block';
-    box.innerHTML = matches.map((c,i)=>`<div data-cmd="${c}" 
-      style="padding:5px 10px;cursor:pointer;color:${i===0?'#4eff91':'#8899aa'};border-bottom:1px solid rgba(255,255,255,.04)"
-      onmouseover="this.style.background='rgba(31,168,217,.12)';this.style.color='#fff'"
-      onmouseout="this.style.background='';this.style.color='${i===0?'#4eff91':'#8899aa'}'"
-      onclick="document.getElementById('cmdInput').value='';document.getElementById('cmdSuggestBox').style.display='none';runCommand('${c}');document.getElementById('cad').focus()">
-      <b style="color:#1FA8D9">${c.slice(0,v.length)}</b>${c.slice(v.length)}
-    </div>`).join('');
-  }
-
-  // Remove all existing listeners by replacing the element
-  const fresh = inp.cloneNode(true);
-  inp.parentNode.replaceChild(fresh, inp);
-
-  fresh.addEventListener('input', function() { showSug(this.value); });
-  fresh.addEventListener('keydown', function(ev) {
-    ev.stopPropagation();
-    cmdKey(ev);
-    if (ev.key !== 'Escape') showSug(this.value);
-  });
-  fresh.addEventListener('blur', () => { setTimeout(()=>{ const b=document.getElementById('cmdSuggestBox');if(b)b.style.display='none';},200); });
-})();
+// wireCmdInput removed — StrataFinalWire handles this
 
 // ── AutoCAD-style: any printable key while canvas focused → cmd ───
 document.addEventListener('keydown', function(ev) {
@@ -13693,6 +13648,88 @@ console.log('[Civil 3D] Feature set loaded: Toolspace, Layer Manager, MAP comman
 //  No circular dispatch. No infinite loops. Single source of truth.
 // ████████████████████████████████████████████████████████████████
 (function StrataFinalWire() {
+
+  // ─── BULLETPROOF runCommand — overrides all previous versions ────
+  window.runCommand = function(rawCmd) {
+    var raw = (rawCmd || '').trim();
+    if (!raw) {
+      if (ST._lastTool && typeof T === 'function') T(ST._lastTool);
+      return;
+    }
+    var v = raw.toUpperCase();
+
+    // Close polyline/boundary/line
+    if ((v==='C'||v==='CLOSE') && (ST.tool==='polyline'||ST.tool==='boundary'||ST.tool==='line')) {
+      if (ST.tool==='polyline' && typeof commitPolyline==='function') commitPolyline();
+      else if (ST.tool==='boundary' && typeof commitBoundary==='function') commitBoundary();
+      else { ST.drawing=false; ST.startPt=null; if(typeof render==='function')render(); }
+      return;
+    }
+
+    // Coordinate / distance input while drawing
+    if ((ST.drawing && ST.startPt) || (ST.opState && ST.opState.base)) {
+      if (/^[@\d\.\-+]/.test(raw) || raw.indexOf('<')>=0 || (raw.indexOf(',')>=0 && /\d/.test(raw))) {
+        if (typeof applyDynValue==='function') { applyDynValue(raw); return; }
+      }
+    }
+
+    // DDPTYPE — always opens popup
+    if (v==='DDPTYPE'||v==='DDP'||v==='PDMODE') {
+      if (typeof openDDPTYPE==='function') openDDPTYPE();
+      if (typeof setMsg==='function') setMsg('DDPTYPE — point display style');
+      return;
+    }
+
+    // All draw tools inline (no external closure dependency)
+    var TOOLS = ['line','polyline','circle','arc','rect','ellipse','spline','hatch',
+      'text','point','xline','ray','wipeout','cloud','boundary','polygon',
+      'dim-lin','leader','move','copy','rotate','scale','mirror','offset',
+      'trim','extend','fillet','chamfer','stretch','break','join','explode',
+      'lengthen','array','dim-diameter','dim-radius','dim-angular','dim-baseline',
+      'dim-center','measure-d','measure-a','matchprop','idpt','select','pan'];
+
+    // Look up command
+    var target = (typeof CAD_COMMANDS !== 'undefined') ? (CAD_COMMANDS[v] || CAD_COMMANDS[v.toUpperCase()]) : null;
+
+    if (target) {
+      if (TOOLS.indexOf(target) >= 0) {
+        if (typeof T === 'function') T(target);
+        if (typeof setMsg === 'function') setMsg('▶ ' + target.toUpperCase() + ' — click to start  |  ESC=cancel');
+        return;
+      }
+      var act = (typeof CAD_ACTIONS !== 'undefined') ? (CAD_ACTIONS[target] || CAD_ACTIONS[target.toLowerCase()]) : null;
+      if (typeof act === 'function') {
+        try { act(); } catch(e) { console.error('CAD action error:', e); }
+        if (typeof setMsg === 'function') setMsg('▶ ' + v);
+        return;
+      }
+    }
+
+    // Direct action lookup
+    if (typeof CAD_ACTIONS !== 'undefined') {
+      var directAct = CAD_ACTIONS[v.toLowerCase()] || CAD_ACTIONS[v];
+      if (typeof directAct === 'function') {
+        try { directAct(); } catch(e) { console.error('Direct action error:', e); }
+        if (typeof setMsg === 'function') setMsg('▶ ' + v);
+        return;
+      }
+    }
+
+    // Map/geo search
+    if (/^(FIND|GO|GOTO|SEARCH)\s+/i.test(raw)) {
+      if (typeof mapSearch === 'function') mapSearch(raw.replace(/^\w+\s+/, ''));
+      return;
+    }
+
+    // Number = distance while drawing
+    if (!isNaN(parseFloat(raw)) && (ST.drawing || ST.opState)) {
+      if (typeof applyDynValue === 'function') { applyDynValue(raw); return; }
+    }
+
+    if (typeof setMsg === 'function') setMsg('"' + raw + '" — unknown. Press F1 for help.');
+    if (typeof toast === 'function') toast('Unknown: ' + raw, 'warn');
+  };
+  
 
   // ── Get the cmdInput element ──────────────────────────────────
   var inp = document.getElementById('cmdInput');
