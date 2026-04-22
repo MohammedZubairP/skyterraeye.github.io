@@ -12266,154 +12266,447 @@ render = function() {
 };
 
 
-// ═══════════════════════════════════════════════════════════════════════
-//  FINAL WIRE — runs LAST, replaces cmdInput element with clean handler
-//  Uses var CAD_COMMANDS (hoisted, no TDZ) and var CAD_ACTIONS
-// ═══════════════════════════════════════════════════════════════════════
-(function finalWire() {
-  const inp = document.getElementById('cmdInput');
+
+
+// ════════════════════════════════════════════════════════════════════
+//  STRATA COMMAND SYSTEM v3 — Single clean implementation
+//  Runs after ALL declarations. Uses var (hoisted), no TDZ possible.
+// ════════════════════════════════════════════════════════════════════
+(function StrataCommandSystem() {
+'use strict';
+
+// ── Tool constants ────────────────────────────────────────────────
+var DRAW_TOOLS = ['line','polyline','circle','arc','rect','ellipse','spline',
+  'hatch','text','point','xline','ray','wipeout','cloud','boundary','polygon',
+  'dim-lin','leader','move','copy','rotate','scale','mirror','offset','trim',
+  'extend','fillet','chamfer','stretch','break','join','explode','lengthen',
+  'array','dim-diameter','dim-radius','dim-angular','dim-baseline','dim-center',
+  'measure-d','measure-a','matchprop','idpt','select','pan'];
+
+// ── Ensure all new commands are in CAD_COMMANDS ───────────────────
+var EXTRA_COMMANDS = {
+  'DDPTYPE':'ddptype','DDP':'ddptype','PDMODE':'ddptype',
+  'UN':'units','UNITS':'units',
+  'E':'erase','DEL':'erase','DELETE':'erase',
+  'U':'undo','UNDO':'undo','REDO':'redo',
+  'ZE':'zoom','Z':'zoom',
+  'PA':'pan',
+  'LA':'layers','LAYER':'layers','LAYERS':'layers',
+  'OS':'osnap','OSNAP':'osnap',
+  'ORTHO':'ortho',
+  'RE':'regen','REGEN':'regen',
+  'PROC':'processing','PROCESSING':'processing',
+  'PR':'properties','CH':'properties',
+  'MA':'matchprop',
+  'PE':'pedit',
+  'AL':'align',
+  'PU':'purge',
+  'COL':'color','COLOR':'color','COLOUR':'color',
+  'DESELECT':'deselect',
+  'NEW':'new',
+  'IMPORT':'import',
+  'EXPORT':'export',
+  'SETTINGS':'settings',
+  'MAP':'map',
+  'TIN':'tin',
+  'BUFFER':'buffer',
+  'DISSOLVE':'dissolve',
+  'STATS':'stats',
+  'HELP':'help',
+  '?':'help',
+  'AT':'table','ATTR':'table','TABLE':'table',
+  'SURVEY':'survey','CSV':'csv',
+  'DI':'dist','DISTANCE':'dist','ID':'idpt',
+};
+Object.assign(CAD_COMMANDS, EXTRA_COMMANDS);
+
+// ── Ensure all action handlers are in CAD_ACTIONS ─────────────────
+var EXTRA_ACTIONS = {
+  ddptype:    function() { openDDPTYPE && openDDPTYPE(); },
+  units:      function() { typeof openUnitsModal==='function' ? openUnitsModal() : openMo('moSettings'); },
+  erase:      function() { delSel(); },
+  undo:       function() { undo(); },
+  redo:       function() { redo(); },
+  zoom:       function() { zoomExt(); },
+  pan:        function() { T('pan'); },
+  layers:     function() { showTab('layers'); },
+  osnap:      function() { ST.osnap=!ST.osnap; if(typeof updateOsnapUI==='function')updateOsnapUI(); toast('OSNAP '+(ST.osnap?'ON':'OFF'),'ok'); },
+  ortho:      function() { ST.ortho=!ST.ortho; toast('ORTHO '+(ST.ortho?'ON':'OFF'),'ok'); },
+  regen:      function() { render(); toast('REGEN','ok'); },
+  processing: function() { typeof toggleProcPanel==='function' ? toggleProcPanel() : openMo('moProcessing'); },
+  properties: function() { showTab('props'); },
+  matchprop:  function() { var s=ST.entities.filter(function(e){return e.selected;}); if(!s.length){toast('Select source first','warn');return;} ST._matchpropSrc=s[0]; ST.tool='matchprop'; toast('MATCHPROP — click targets','ok'); },
+  pedit:      function() { typeof startPedit==='function' ? startPedit() : toast('PEDIT — select polyline','warn'); },
+  align:      function() { typeof startAlign==='function' ? startAlign() : toast('ALIGN — select objects','warn'); },
+  purge:      function() { typeof purgeEntities==='function' && purgeEntities(); },
+  color:      function() { typeof openColorDialog==='function' && openColorDialog(); },
+  deselect:   function() { ST.entities.forEach(function(e){e.selected=false;}); render(); },
+  new:        function() { if(confirm('New drawing? Unsaved work lost.')) typeof newDrawing==='function' && newDrawing(); },
+  import:     function() { openMo('moImport'); },
+  export:     function() { typeof openExportModal==='function' ? openExportModal() : openMo('moExport'); },
+  settings:   function() { openMo('moSettings'); },
+  map:        function() { typeof toggleMap==='function' && toggleMap(); },
+  tin:        function() { typeof buildTIN==='function' ? buildTIN() : toast('TIN — load survey CSV first','warn'); },
+  buffer:     function() { typeof doBuffer==='function' ? doBuffer() : toast('Select entities first','warn'); },
+  dissolve:   function() { typeof dissolveLayer==='function' && dissolveLayer(); },
+  stats:      function() { typeof showStats==='function' && showStats(); },
+  help:       function() { openMo('moShortcuts'); },
+  table:      function() { typeof openAttrTable==='function' && openAttrTable(); },
+  survey:     function() { showTab('survey'); openMo('moCsvImport'); },
+  csv:        function() { openMo('moCsvImport'); },
+  dist:       function() { T('measure-d'); },
+  idpt:       function() { ST.tool='idpt'; setMsg('ID — click point to show coordinates'); },
+  select:     function() { T('select'); },
+  save:       function() { typeof saveProject==='function' ? saveProject() : toast('SAVE — Ctrl+S','ok'); },
+  open:       function() { openMo('moImport'); },
+};
+Object.assign(CAD_ACTIONS, EXTRA_ACTIONS);
+
+// ── DDPTYPE popup ─────────────────────────────────────────────────
+window.openDDPTYPE = function() {
+  var existing = document.getElementById('moDDPTYPE');
+  if (existing) { existing.remove(); }
+
+  var STYLES = [
+    {mode:0,  sym:'·',  label:'Dot'},
+    {mode:1,  sym:'∅',  label:'None'},
+    {mode:2,  sym:'+',  label:'Plus'},
+    {mode:3,  sym:'×',  label:'X Cross'},
+    {mode:4,  sym:'—',  label:'Tick'},
+    {mode:32, sym:'○',  label:'Circle'},
+    {mode:33, sym:'⊙',  label:'Cir+Dot'},
+    {mode:34, sym:'⊗',  label:'Cir+X'},
+    {mode:35, sym:'⊕',  label:'Cir+Crs'},
+    {mode:36, sym:'⊖',  label:'Cir+Dsh'},
+    {mode:64, sym:'□',  label:'Square'},
+    {mode:65, sym:'⊡',  label:'Sq+Dot'},
+    {mode:66, sym:'⊠',  label:'Sq+X'},
+    {mode:67, sym:'⊞',  label:'Sq+Crs'},
+  ];
+
+  var cur = ST.pdmode || 0;
+  var sz  = ST.pdsize || 5;
+
+  var grid = STYLES.map(function(s) {
+    var isActive = s.mode === cur;
+    return '<div id="ddpt_'+s.mode+'" onclick="window.selectPtStyle('+s.mode+')" title="'+s.label+' (PDMODE='+s.mode+')"'
+      +' style="display:flex;flex-direction:column;align-items:center;padding:8px 4px;border-radius:6px;cursor:pointer;gap:3px;'
+      +'background:'+(isActive?'rgba(31,168,217,.2)':'rgba(255,255,255,.03)')+';'
+      +'border:2px solid '+(isActive?'#1FA8D9':'rgba(255,255,255,.07)')+';transition:all .12s"'
+      +' onmouseover="this.style.borderColor=\'#1FA8D9\'" '
+      +' onmouseout="this.style.borderColor=\''+(isActive?'#1FA8D9':'rgba(255,255,255,.07)')+'\'"><span style="font-size:22px;color:#e0eaf5;line-height:1.2">'+s.sym+'</span>'
+      +'<span style="font-size:7px;color:#556;font-family:IBM Plex Mono,monospace">'+s.mode+'</span></div>';
+  }).join('');
+
+  var div = document.createElement('div');
+  div.id = 'moDDPTYPE';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:10000;display:flex;align-items:center;justify-content:center';
+  div.innerHTML = '<div style="background:#050F1C;border:1px solid rgba(31,168,217,.45);border-radius:10px;width:520px;overflow:hidden;box-shadow:0 16px 60px rgba(0,0,0,.95)">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(31,168,217,.12);background:rgba(31,168,217,.06)">'
+    +'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;font-weight:800;color:#1FA8D9;letter-spacing:1px">⊙ DDPTYPE — Point Display Style</span>'
+    +'<span onclick="document.getElementById(\'moDDPTYPE\').remove()" style="cursor:pointer;color:#555;font-size:20px;line-height:1">✕</span></div>'
+    +'<div style="padding:16px">'
+    +'<div style="font-size:9px;color:#667;font-family:IBM Plex Mono,monospace;margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px;font-weight:700">Select Point Style (PDMODE)</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:16px">'+grid+'</div>'
+    +'<div style="font-size:9px;color:#667;font-family:IBM Plex Mono,monospace;margin-bottom:8px;text-transform:uppercase;letter-spacing:.6px;font-weight:700">Point Size (PDSIZE)</div>'
+    +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">'
+    +'<input type="range" id="pdsizeSlider" min="1" max="40" value="'+sz+'" style="flex:1;accent-color:#1FA8D9" oninput="document.getElementById(\'pdsizeVal\').textContent=this.value">'
+    +'<span id="pdsizeVal" style="font-family:IBM Plex Mono,monospace;font-size:12px;color:#4eff91;min-width:24px">'+sz+'</span>'
+    +'<span style="font-size:9px;color:#445">'+(ST.units||'mm')+'</span></div></div>'
+    +'<div style="display:flex;justify-content:flex-end;gap:8px;padding:10px 16px;border-top:1px solid rgba(31,168,217,.08)">'
+    +'<button onclick="document.getElementById(\'moDDPTYPE\').remove()" style="padding:6px 16px;background:none;border:1px solid #334;border-radius:4px;color:#778;cursor:pointer;font-size:10px">Cancel</button>'
+    +'<button onclick="window.applyDDPTYPE()" style="padding:6px 16px;background:rgba(31,168,217,.15);border:1px solid #1FA8D9;border-radius:4px;color:#1FA8D9;cursor:pointer;font-size:10px;font-weight:700">✓ Apply</button></div></div>';
+  document.body.appendChild(div);
+  div.addEventListener('click', function(e) { if(e.target===div) div.remove(); });
+};
+
+window.selectPtStyle = function(mode) {
+  ST.pdmode = mode;
+  document.querySelectorAll('[id^="ddpt_"]').forEach(function(el) {
+    var m = parseInt(el.id.replace('ddpt_',''));
+    el.style.background = m===mode ? 'rgba(31,168,217,.2)' : 'rgba(255,255,255,.03)';
+    el.style.borderColor = m===mode ? '#1FA8D9' : 'rgba(255,255,255,.07)';
+  });
+};
+
+window.applyDDPTYPE = function() {
+  var slider = document.getElementById('pdsizeSlider');
+  if (slider) ST.pdsize = parseInt(slider.value);
+  document.getElementById('moDDPTYPE') && document.getElementById('moDDPTYPE').remove();
+  render();
+  toast('DDPTYPE — PDMODE='+ST.pdmode+'  PDSIZE='+ST.pdsize, 'ok');
+};
+
+// ── THE ONE runCommand function ───────────────────────────────────
+window.runCommand = function(rawCmd) {
+  var raw = (rawCmd || '').trim();
+  if (!raw) {
+    if (ST._lastTool) T(ST._lastTool);
+    return;
+  }
+  var v = raw.toUpperCase();
+
+  // Close polyline / boundary / line
+  if ((v==='C' || v==='CLOSE') && (ST.tool==='polyline'||ST.tool==='boundary'||ST.tool==='line')) {
+    if (ST.tool==='polyline') commitPolyline();
+    else if (ST.tool==='boundary') commitBoundary();
+    else { ST.drawing=false; ST.startPt=null; render(); }
+    return;
+  }
+
+  // Coordinate / distance input while drawing
+  if ((ST.drawing && ST.startPt) || (ST.opState && ST.opState.base)) {
+    if (/^[@\d\.\-+]/.test(raw) || raw.indexOf('<')>=0 || (raw.indexOf(',')>=0 && /\d/.test(raw))) {
+      if (typeof applyDynValue==='function') { applyDynValue(raw); return; }
+    }
+  }
+
+  // DDPTYPE — always opens popup
+  if (v==='DDPTYPE' || v==='DDP' || v==='PDMODE') {
+    openDDPTYPE();
+    setMsg('DDPTYPE — point display style dialog');
+    return;
+  }
+
+  // Look up in CAD_COMMANDS
+  var target = CAD_COMMANDS[v];
+  if (target) {
+    if (DRAW_TOOLS.indexOf(target) >= 0) {
+      T(target);
+      setMsg('▶ ' + target.toUpperCase() + ' — click to start  |  ESC=cancel');
+      return;
+    }
+    var act = CAD_ACTIONS[target];
+    if (typeof act === 'function') {
+      act();
+      setMsg('▶ ' + v);
+      return;
+    }
+  }
+
+  // Try lowercase action lookup
+  var directAct = CAD_ACTIONS[v.toLowerCase()] || CAD_ACTIONS[v];
+  if (typeof directAct === 'function') {
+    directAct();
+    setMsg('▶ ' + v);
+    return;
+  }
+
+  // Map/geo search
+  if (/^(FIND|GO|GOTO|SEARCH)\s+/i.test(raw)) {
+    if (typeof mapSearch==='function') mapSearch(raw.replace(/^\w+\s+/,''));
+    return;
+  }
+
+  // Pure number = distance while drawing
+  if (!isNaN(parseFloat(raw)) && (ST.drawing || ST.opState)) {
+    if (typeof applyDynValue==='function') { applyDynValue(raw); return; }
+  }
+
+  setMsg('"' + raw + '" — unknown command. Type HELP or press F1 for list.');
+};
+
+// ── THE ONE cmdInput wire ─────────────────────────────────────────
+(function wireInput() {
+  var inp = document.getElementById('cmdInput');
   if (!inp) return;
 
-  // Build suggestion dropdown once
-  if (!document.getElementById('cmdSuggestBox')) {
-    const box = document.createElement('div');
+  // History state
+  var hist = window.CMD ? window.CMD.history : [];
+  var histIdx = -1;
+
+  // Suggestion box
+  var box = document.getElementById('cmdSuggestBox');
+  if (!box) {
+    box = document.createElement('div');
     box.id = 'cmdSuggestBox';
-    box.style.cssText = 'position:fixed;z-index:10000;background:#050F1C;border:1px solid rgba(31,168,217,.5);border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,.95);max-height:220px;overflow-y:auto;min-width:240px;font-family:IBM Plex Mono,monospace;font-size:10px;display:none';
+    box.style.cssText = 'position:fixed;z-index:10000;background:#050F1C;'
+      +'border:1px solid rgba(31,168,217,.5);border-radius:6px;'
+      +'box-shadow:0 8px 28px rgba(0,0,0,.95);max-height:220px;overflow-y:auto;'
+      +'min-width:250px;font-family:IBM Plex Mono,monospace;font-size:10px;display:none';
     document.body.appendChild(box);
   }
 
-  function getSuggestions(v) {
-    if (!v || v.length < 1) return [];
-    const uv = v.toUpperCase();
-    return Object.keys(CAD_COMMANDS)
-      .filter(k => k.startsWith(uv) && k.length > 1)
-      .sort((a,b) => a.length - b.length)
+  function updateSuggestions(val) {
+    if (!val || val.length < 1) { box.style.display='none'; return; }
+    var uv = val.toUpperCase();
+    var matches = Object.keys(CAD_COMMANDS)
+      .filter(function(k) { return k.indexOf(uv)===0 && k.length>1; })
+      .sort(function(a,b) { return a.length-b.length; })
       .slice(0, 9);
-  }
-
-  function showSugg(v) {
-    const box = document.getElementById('cmdSuggestBox');
-    const matches = getSuggestions(v);
-    if (!matches.length) { box.style.display = 'none'; return; }
-    const rect = inp.getBoundingClientRect();
+    if (!matches.length) { box.style.display='none'; return; }
+    var rect = inp.getBoundingClientRect();
     box.style.left = rect.left + 'px';
     box.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
     box.style.top = 'auto';
     box.style.display = 'block';
-    const vUp = v.toUpperCase();
-    box.innerHTML = matches.map((c, i) =>
-      `<div data-cmd="${c}"
-        style="padding:6px 12px;cursor:pointer;color:${i===0?'#4eff91':'#8899aa'};
-          border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:8px"
-        onmousedown="event.preventDefault();document.getElementById('cmdInput').value='';
-          document.getElementById('cmdSuggestBox').style.display='none';
-          runCommand('${c}');document.getElementById('cad')?.focus()"
-        onmouseover="this.style.background='rgba(31,168,217,.1)';this.style.color='#fff'"
-        onmouseout="this.style.background='';this.style.color='${i===0?'#4eff91':'#8899aa'}'">
-        <b style="color:#1FA8D9">${c.slice(0,vUp.length)}</b>${c.slice(vUp.length)}
-        <span style="margin-left:auto;font-size:8px;color:#445">${CAD_COMMANDS[c]||''}</span>
-      </div>`
-    ).join('');
+    box.innerHTML = matches.map(function(c, i) {
+      var action = CAD_COMMANDS[c] || '';
+      return '<div data-cmd="'+c+'" style="padding:6px 12px;cursor:pointer;color:'
+        +(i===0?'#4eff91':'#8899aa')+';border-bottom:1px solid rgba(255,255,255,.04);'
+        +'display:flex;align-items:center;gap:8px"'
+        +' onmouseover="this.style.background=\'rgba(31,168,217,.1)\';this.style.color=\'#fff\'"'
+        +' onmouseout="this.style.background=\'\';this.style.color=\''+(i===0?'#4eff91':'#8899aa')+'\'"><b style="color:#1FA8D9">'
+        +c.slice(0,uv.length)+'</b>'+c.slice(uv.length)
+        +'<span style="margin-left:auto;font-size:8px;color:#445">'+action+'</span></div>';
+    }).join('');
+
+    // Click to run
+    box.querySelectorAll('[data-cmd]').forEach(function(el) {
+      el.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        var cmd = el.getAttribute('data-cmd');
+        inp.value = '';
+        box.style.display = 'none';
+        window.runCommand(cmd);
+        document.getElementById('cad') && document.getElementById('cad').focus();
+      });
+    });
   }
 
-  function hideSugg() {
-    setTimeout(() => {
-      const box = document.getElementById('cmdSuggestBox');
-      if (box) box.style.display = 'none';
-    }, 150);
+  function hideSuggestions() {
+    setTimeout(function() { box.style.display = 'none'; }, 180);
   }
 
-  // Replace element to clear all old onkeydown handlers
-  const fresh = inp.cloneNode(true);
-  fresh.removeAttribute('onkeydown');
+  // Replace element to clear conflicting handlers
+  var fresh = inp.cloneNode(false); // false = no children, no attrs we don't want
+  fresh.id = 'cmdInput';
+  fresh.className = inp.className;
+  fresh.placeholder = inp.placeholder || 'Type command…';
+  fresh.setAttribute('autocomplete','off');
+  fresh.setAttribute('spellcheck','false');
   inp.parentNode.replaceChild(fresh, inp);
 
   fresh.addEventListener('input', function() {
-    showSugg(this.value);
+    updateSuggestions(this.value);
   });
 
-  fresh.addEventListener('blur', hideSugg);
+  fresh.addEventListener('blur', hideSuggestions);
 
   fresh.addEventListener('keydown', function(ev) {
     ev.stopPropagation();
-    const box = document.getElementById('cmdSuggestBox');
 
     if (ev.key === 'Escape') {
       this.value = '';
-      hideSugg();
+      box.style.display = 'none';
       ST.drawing = false; ST.startPt = null; ST.opState = null;
-      if (window.CMD) { CMD.active = null; CMD.phase = 0; }
+      if (window.CMD) { CMD.active=null; CMD.phase=0; }
       setMsg('ESC — ready');
-      document.getElementById('cad')?.focus();
+      document.getElementById('cad') && document.getElementById('cad').focus();
       return;
     }
 
     if (ev.key === 'Tab') {
       ev.preventDefault();
-      const first = box?.querySelector('[data-cmd]');
+      var first = box.querySelector('[data-cmd]');
       if (first) {
         this.value = first.getAttribute('data-cmd');
-        hideSugg();
+        box.style.display = 'none';
       }
       return;
     }
 
     if (ev.key === 'ArrowUp') {
       ev.preventDefault();
-      if (window.CMD && CMD.history.length) {
-        CMD.histIdx = Math.min(CMD.histIdx + 1, CMD.history.length - 1);
-        this.value = CMD.history[CMD.histIdx] || '';
-        showSugg(this.value);
+      if (hist.length) {
+        histIdx = Math.min(histIdx+1, hist.length-1);
+        this.value = hist[histIdx] || '';
+        updateSuggestions(this.value);
       }
       return;
     }
 
     if (ev.key === 'ArrowDown') {
       ev.preventDefault();
-      if (window.CMD) {
-        CMD.histIdx = Math.max(CMD.histIdx - 1, -1);
-        this.value = CMD.histIdx >= 0 ? CMD.history[CMD.histIdx] : '';
-        showSugg(this.value);
-      }
+      histIdx = Math.max(histIdx-1, -1);
+      this.value = histIdx >= 0 ? hist[histIdx] : '';
+      updateSuggestions(this.value);
       return;
     }
 
     if (ev.key === 'Enter' || ev.key === ' ') {
       ev.preventDefault();
-      const raw = this.value.trim();
+      var raw = this.value.trim();
       this.value = '';
-      hideSugg();
+      box.style.display = 'none';
+      histIdx = -1;
 
       if (!raw) {
-        // Space/Enter with empty = repeat last command
-        if (ST.tool === 'polyline' && typeof commitPolyline === 'function') { commitPolyline(); return; }
-        if (ST.tool === 'boundary' && typeof commitBoundary === 'function') { commitBoundary(); return; }
-        if (window.CMD && CMD.active && typeof handleCommandInput === 'function') { handleCommandInput(''); return; }
+        // Empty = repeat last or finish polyline
+        if (ST.tool==='polyline') { commitPolyline(); return; }
+        if (ST.tool==='boundary') { commitBoundary(); return; }
+        if (window.CMD && CMD.active) { if(typeof handleCommandInput==='function') handleCommandInput(''); return; }
         if (ST._lastTool) T(ST._lastTool);
-        document.getElementById('cad')?.focus();
+        document.getElementById('cad') && document.getElementById('cad').focus();
         return;
       }
 
-      // Add to history
-      if (window.CMD) {
-        CMD.history.unshift(raw);
-        if (CMD.history.length > 50) CMD.history.pop();
-        CMD.histIdx = -1;
+      // Save history
+      hist.unshift(raw);
+      if (hist.length > 50) hist.pop();
+      if (window.CMD) { CMD.history = hist; CMD.histIdx = -1; }
+
+      // If CMD active
+      if (window.CMD && CMD.active) {
+        if (typeof handleCommandInput==='function') handleCommandInput(raw);
+        document.getElementById('cad') && document.getElementById('cad').focus();
+        return;
       }
 
-      runCommand(raw);
-      document.getElementById('cad')?.focus();
+      window.runCommand(raw);
+      document.getElementById('cad') && document.getElementById('cad').focus();
     }
   });
 
-  // Patch window.cmdKey to point to this handler for legacy onkeydown calls
+  // Update window.cmdKey for any legacy calls
   window.cmdKey = function(ev) {
-    // Route to the fresh element's handler
-    fresh.dispatchEvent(new KeyboardEvent(ev.type, ev));
+    fresh.dispatchEvent(new KeyboardEvent(ev.type, {
+      key: ev.key, keyCode: ev.keyCode, which: ev.which,
+      ctrlKey: ev.ctrlKey, shiftKey: ev.shiftKey, altKey: ev.altKey,
+      bubbles: false
+    }));
   };
 
-  console.log('[Strata] finalWire complete — cmdInput wired, CAD_COMMANDS:', Object.keys(CAD_COMMANDS).length);
-})();
+})(); // end wireInput
+
+// ── Any printable key → focus command line (AutoCAD style) ────────
+document.addEventListener('keydown', function(ev) {
+  var tag = document.activeElement && document.activeElement.tagName.toLowerCase();
+  if (tag==='input'||tag==='textarea'||tag==='select') return;
+  if (ev.ctrlKey||ev.altKey||ev.metaKey) return;
+  if (ev.key.length !== 1) return;
+  var inp = document.getElementById('cmdInput');
+  if (inp && document.activeElement !== inp) inp.focus();
+}, false);
+
+// ── Cursor settings panel ─────────────────────────────────────────
+window.openCursorPanel = function() {
+  var p = document.getElementById('cursorPanel');
+  if (!p) return;
+  var isOpen = p.style.display === 'block';
+  p.style.cssText += ';position:fixed;bottom:90px;right:20px;z-index:9999;display:'+(isOpen?'none':'block');
+};
+
+// ── QGIS tools populate ───────────────────────────────────────────
+var _origOpenMoFinal = window.openMo;
+window.openMo = function(id) {
+  _origOpenMoFinal(id);
+  if (id === 'moProcessing') {
+    setTimeout(function() {
+      if (typeof buildProcessingUI==='function') buildProcessingUI();
+    }, 30);
+  }
+};
+
+// ── Init ──────────────────────────────────────────────────────────
+setTimeout(function() {
+  if (typeof buildProcessingUI==='function') buildProcessingUI();
+  setMsg('Ready — type any command  |  L=Line  C=Circle  M=Move  F1=shortcuts');
+  var n = Object.keys(CAD_COMMANDS).length;
+  console.log('[Strata v3] Command system ready. ' + n + ' commands. DDPTYPE=' + (CAD_COMMANDS['DDPTYPE']||'missing'));
+}, 400);
+
+})(); // end StrataCommandSystem
 
 </script>
 
