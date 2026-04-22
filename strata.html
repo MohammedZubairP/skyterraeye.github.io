@@ -13318,7 +13318,7 @@ window.renderLayers = function() {
   updateToolspaceCounts();
 };
 
-function setCurrentLayer(id) {
+window.setCurrentLayer = function(id) {
   ST.curLayer = id;
   var lay = ST.layers.find(function(l){return l.id===id;});
   if (lay) {
@@ -13430,7 +13430,7 @@ window.tsSelectNode = function(node) {
   if (prev) prev.innerHTML = '<span style="font-size:9px;color:var(--m);padding:8px;display:block;line-height:1.6">'+(msgs[node]||'Select item')+'</span>';
 };
 
-function updateToolspaceCounts() {
+window.updateToolspaceCounts = function() {
   var points    = ST.entities.filter(function(e){return e.type==='point';}).length;
   var polys     = ST.entities.filter(function(e){return e.type==='polyline';}).length;
   var hasTIN    = (typeof ST.tin !== 'undefined' && ST.tin && ST.tin.length > 0) ? 1 : 0;
