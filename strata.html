@@ -6534,7 +6534,7 @@ window.render=function(){
 //  BASE COMMAND SYSTEM
 // ════════════════════════════════════════════════════════════════════
 
-const CAD_COMMANDS = (function() {
+var CAD_COMMANDS = (function() {
   const m = {};
   // Draw tools
   const draw = {
@@ -6808,7 +6808,7 @@ Object.assign(CAD_COMMANDS, {
 });
 
 
-const CAD_ACTIONS = {
+var CAD_ACTIONS = {
   // Missing actions for Civil 3D commands
   units:       () => openUnitsModal(),
   area:        () => T('measure-a'),
@@ -11132,8 +11132,8 @@ doExport = function(fmt) {
 
 // 6. Commands: add missing ones + fix case handling
 // Make CAD_COMMANDS lookup fully case-insensitive
-const _originalCAD_COMMANDS_keys = Object.keys(CAD_COMMANDS);
-const _lcCAD_COMMANDS = {};
+var _originalCAD_COMMANDS_keys = Object.keys(CAD_COMMANDS);
+var _lcCAD_COMMANDS = {};
 _originalCAD_COMMANDS_keys.forEach(k => {
   _lcCAD_COMMANDS[k.toLowerCase()] = CAD_COMMANDS[k];
 });
@@ -12264,6 +12264,156 @@ render = function() {
   if(typeof _renderDepth !== 'undefined' && _renderDepth > 0) return;
   _safeRender();
 };
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  FINAL WIRE — runs LAST, replaces cmdInput element with clean handler
+//  Uses var CAD_COMMANDS (hoisted, no TDZ) and var CAD_ACTIONS
+// ═══════════════════════════════════════════════════════════════════════
+(function finalWire() {
+  const inp = document.getElementById('cmdInput');
+  if (!inp) return;
+
+  // Build suggestion dropdown once
+  if (!document.getElementById('cmdSuggestBox')) {
+    const box = document.createElement('div');
+    box.id = 'cmdSuggestBox';
+    box.style.cssText = 'position:fixed;z-index:10000;background:#050F1C;border:1px solid rgba(31,168,217,.5);border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,.95);max-height:220px;overflow-y:auto;min-width:240px;font-family:IBM Plex Mono,monospace;font-size:10px;display:none';
+    document.body.appendChild(box);
+  }
+
+  function getSuggestions(v) {
+    if (!v || v.length < 1) return [];
+    const uv = v.toUpperCase();
+    return Object.keys(CAD_COMMANDS)
+      .filter(k => k.startsWith(uv) && k.length > 1)
+      .sort((a,b) => a.length - b.length)
+      .slice(0, 9);
+  }
+
+  function showSugg(v) {
+    const box = document.getElementById('cmdSuggestBox');
+    const matches = getSuggestions(v);
+    if (!matches.length) { box.style.display = 'none'; return; }
+    const rect = inp.getBoundingClientRect();
+    box.style.left = rect.left + 'px';
+    box.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+    box.style.top = 'auto';
+    box.style.display = 'block';
+    const vUp = v.toUpperCase();
+    box.innerHTML = matches.map((c, i) =>
+      `<div data-cmd="${c}"
+        style="padding:6px 12px;cursor:pointer;color:${i===0?'#4eff91':'#8899aa'};
+          border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:8px"
+        onmousedown="event.preventDefault();document.getElementById('cmdInput').value='';
+          document.getElementById('cmdSuggestBox').style.display='none';
+          runCommand('${c}');document.getElementById('cad')?.focus()"
+        onmouseover="this.style.background='rgba(31,168,217,.1)';this.style.color='#fff'"
+        onmouseout="this.style.background='';this.style.color='${i===0?'#4eff91':'#8899aa'}'">
+        <b style="color:#1FA8D9">${c.slice(0,vUp.length)}</b>${c.slice(vUp.length)}
+        <span style="margin-left:auto;font-size:8px;color:#445">${CAD_COMMANDS[c]||''}</span>
+      </div>`
+    ).join('');
+  }
+
+  function hideSugg() {
+    setTimeout(() => {
+      const box = document.getElementById('cmdSuggestBox');
+      if (box) box.style.display = 'none';
+    }, 150);
+  }
+
+  // Replace element to clear all old onkeydown handlers
+  const fresh = inp.cloneNode(true);
+  fresh.removeAttribute('onkeydown');
+  inp.parentNode.replaceChild(fresh, inp);
+
+  fresh.addEventListener('input', function() {
+    showSugg(this.value);
+  });
+
+  fresh.addEventListener('blur', hideSugg);
+
+  fresh.addEventListener('keydown', function(ev) {
+    ev.stopPropagation();
+    const box = document.getElementById('cmdSuggestBox');
+
+    if (ev.key === 'Escape') {
+      this.value = '';
+      hideSugg();
+      ST.drawing = false; ST.startPt = null; ST.opState = null;
+      if (window.CMD) { CMD.active = null; CMD.phase = 0; }
+      setMsg('ESC — ready');
+      document.getElementById('cad')?.focus();
+      return;
+    }
+
+    if (ev.key === 'Tab') {
+      ev.preventDefault();
+      const first = box?.querySelector('[data-cmd]');
+      if (first) {
+        this.value = first.getAttribute('data-cmd');
+        hideSugg();
+      }
+      return;
+    }
+
+    if (ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      if (window.CMD && CMD.history.length) {
+        CMD.histIdx = Math.min(CMD.histIdx + 1, CMD.history.length - 1);
+        this.value = CMD.history[CMD.histIdx] || '';
+        showSugg(this.value);
+      }
+      return;
+    }
+
+    if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      if (window.CMD) {
+        CMD.histIdx = Math.max(CMD.histIdx - 1, -1);
+        this.value = CMD.histIdx >= 0 ? CMD.history[CMD.histIdx] : '';
+        showSugg(this.value);
+      }
+      return;
+    }
+
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      const raw = this.value.trim();
+      this.value = '';
+      hideSugg();
+
+      if (!raw) {
+        // Space/Enter with empty = repeat last command
+        if (ST.tool === 'polyline' && typeof commitPolyline === 'function') { commitPolyline(); return; }
+        if (ST.tool === 'boundary' && typeof commitBoundary === 'function') { commitBoundary(); return; }
+        if (window.CMD && CMD.active && typeof handleCommandInput === 'function') { handleCommandInput(''); return; }
+        if (ST._lastTool) T(ST._lastTool);
+        document.getElementById('cad')?.focus();
+        return;
+      }
+
+      // Add to history
+      if (window.CMD) {
+        CMD.history.unshift(raw);
+        if (CMD.history.length > 50) CMD.history.pop();
+        CMD.histIdx = -1;
+      }
+
+      runCommand(raw);
+      document.getElementById('cad')?.focus();
+    }
+  });
+
+  // Patch window.cmdKey to point to this handler for legacy onkeydown calls
+  window.cmdKey = function(ev) {
+    // Route to the fresh element's handler
+    fresh.dispatchEvent(new KeyboardEvent(ev.type, ev));
+  };
+
+  console.log('[Strata] finalWire complete — cmdInput wired, CAD_COMMANDS:', Object.keys(CAD_COMMANDS).length);
+})();
 
 </script>
 
