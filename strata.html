@@ -12708,6 +12708,237 @@ setTimeout(function() {
 
 })(); // end StrataCommandSystem
 
+
+
+// ─── DWG CONVERTER v2 ───
+
+(function DwgConverterV2() {
+
+var _dwgFileV2 = null;
+
+window.showDwgGuide = function(file) {
+  _dwgFileV2 = file;
+  _dwgFile = file;
+  var el = document.getElementById('moDwgV2');
+  if (!el) { el = document.createElement('div'); el.id = 'moDwgV2'; el.className = 'mo'; document.body.appendChild(el); }
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var bytes = new Uint8Array(ev.target.result);
+    var ver = '';
+    for (var i=0;i<6;i++) ver += String.fromCharCode(bytes[i]);
+    var VN = {'AC1009':'R12','AC1012':'R13','AC1014':'R14','AC1015':'2000','AC1018':'2004','AC1021':'2007','AC1024':'2010','AC1027':'2013','AC1032':'2018','AC1035':'2023','AC1037':'2025'};
+    var verName = 'AutoCAD ' + (VN[ver] || ver);
+    var sizeMB  = (file.size/1048576).toFixed(1);
+    var isOld   = ver < 'AC1027';
+    el.innerHTML = buildDwgModal(file.name, verName, sizeMB, isOld);
+    openMo('moDwgV2');
+    if (!isOld) { setDwgStatus('<b>Auto-converting</b> R2013+ via CloudConvert…'); setTimeout(dwgConvertCloudConvert, 400); }
+    else { setDwgStatus('Ready — choose a conversion method.'); }
+  };
+  reader.readAsArrayBuffer(file.slice(0,8));
+};
+
+function buildDwgModal(name, verName, sizeMB, isOld) {
+  var chips = '<span style="background:rgba(31,168,217,.1);border:1px solid rgba(31,168,217,.3);border-radius:4px;padding:3px 10px;font-size:10px;font-family:IBM Plex Mono,monospace;color:#1FA8D9">'+name+'</span>'
+    +' <span style="background:rgba(78,255,145,.08);border:1px solid rgba(78,255,145,.25);border-radius:4px;padding:3px 10px;font-size:10px;font-family:IBM Plex Mono,monospace;color:#4eff91">'+verName+'</span>'
+    +' <span style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.3);border-radius:4px;padding:3px 10px;font-size:10px;font-family:IBM Plex Mono,monospace;color:#A78BFA">'+sizeMB+' MB</span>';
+
+  var m1bg = 'rgba(31,168,217,.06)'; var m1b = 'rgba(31,168,217,.25)';
+  var m2bg = 'rgba(78,255,145,.04)'; var m2b = 'rgba(78,255,145,.2)';
+  var m3bg = 'rgba(245,190,24,.04)'; var m3b = 'rgba(245,190,24,.2)';
+  var m4bg = 'rgba(167,139,250,.04)'; var m4b = 'rgba(167,139,250,.2)';
+
+  return '<div class="modal w" style="max-width:640px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">📐</span>Import DWG File</div>'
+    +'<span class="mc" onclick="closeMo(\'moDwgV2\')">✕</span></div>'
+    +'<div class="mb">'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'+chips+'</div>'
+    +'<div id="dwgV2Status" style="min-height:34px;padding:8px 12px;background:rgba(31,168,217,.05);border:1px solid rgba(31,168,217,.15);border-radius:5px;font-size:10px;font-family:IBM Plex Mono,monospace;color:var(--m);margin-bottom:12px;line-height:1.6">Initializing…</div>'
+    +'<div style="font-size:8.5px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.8px;font-family:IBM Plex Mono,monospace;margin-bottom:8px">Conversion Methods</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
+    +'<div onclick="dwgConvertCloudConvert()" style="cursor:pointer;padding:11px;background:'+m1bg+';border:1px solid '+m1b+';border-radius:6px">'
+    +'<div style="font-size:11px;font-weight:700;color:#1FA8D9;margin-bottom:3px">☁ CloudConvert</div>'
+    +'<div style="font-size:9px;color:var(--m);line-height:1.5">Best quality • R2000–R2023<br>All versions + XREFs bound<br><span style="color:#4eff91">'+(isOld?'':'✓ Auto-starts for R2013+')+'</span></div></div>'
+    +'<div onclick="dwgConvertAspose()" style="cursor:pointer;padding:11px;background:'+m2bg+';border:1px solid '+m2b+';border-radius:6px">'
+    +'<div style="font-size:11px;font-weight:700;color:#4eff91;margin-bottom:3px">🔄 Aspose API (Free)</div>'
+    +'<div style="font-size:9px;color:var(--m);line-height:1.5">No account needed<br>R12–R2018 support<br><span style="color:#F5BE18">⚡ Fallback if CC fails</span></div></div>'
+    +'<div onclick="dwgConvertDirect()" style="cursor:pointer;padding:11px;background:'+m3bg+';border:1px solid '+m3b+';border-radius:6px">'
+    +'<div style="font-size:11px;font-weight:700;color:#F5BE18;margin-bottom:3px">🔬 Direct Browser Parse</div>'
+    +'<div style="font-size:9px;color:var(--m);line-height:1.5">Instant • No upload<br>R12–R2010 basic geometry<br><span style="color:#ff9060">⚠ May miss Civil 3D objects</span></div></div>'
+    +'<div onclick="dwgShowODAGuide()" style="cursor:pointer;padding:11px;background:'+m4bg+';border:1px solid '+m4b+';border-radius:6px">'
+    +'<div style="font-size:11px;font-weight:700;color:#A78BFA;margin-bottom:3px">💻 ODA File Converter</div>'
+    +'<div style="font-size:9px;color:var(--m);line-height:1.5">Free desktop app<br>Best for Civil 3D files<br><span style="color:#A78BFA">→ Convert then upload DXF</span></div></div>'
+    +'</div>'
+    +'<details style="margin-bottom:10px"><summary style="font-size:9px;color:var(--m);cursor:pointer;font-family:IBM Plex Mono,monospace">⚠ Why is geometry missing from my DWG?</summary>'
+    +'<div style="font-size:9px;color:var(--m);line-height:1.8;padding:8px 0">'
+    +'<b style="color:var(--t)">1. XREFs</b> — External reference files. In AutoCAD: type XREF → Bind All → Insert, then re-export DXF.<br>'
+    +'<b style="color:var(--t)">2. Civil 3D proxy</b> — Run <code style="background:var(--bg2);padding:1px 5px;border-radius:2px">AECCEXPORTTOAUTOCAD</code> in Civil 3D before exporting.<br>'
+    +'<b style="color:var(--t)">3. Frozen layers</b> — Run <code style="background:var(--bg2);padding:1px 5px;border-radius:2px">LAYTHW</code> first to thaw all layers.<br>'
+    +'<b style="color:var(--t)">4. ODA gives best results</b> — Free desktop converter handles most edge cases.'
+    +'</div></details>'
+    +'<div style="border-top:1px solid var(--sep);padding-top:10px">'
+    +'<div style="font-size:9px;color:var(--m);font-family:IBM Plex Mono,monospace;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">Or upload a pre-converted DXF</div>'
+    +'<div onclick="document.getElementById(\'dwgV2DxfIn\').click()" ondragover="event.preventDefault()" ondrop="event.preventDefault();dwgV2LoadDxf(event.dataTransfer.files[0])" style="border:1px dashed rgba(31,168,217,.35);border-radius:5px;padding:10px;text-align:center;cursor:pointer;color:var(--m);font-size:9.5px">📂 Drop DXF here or click to browse</div>'
+    +'<input type="file" id="dwgV2DxfIn" accept=".dxf" style="display:none" onchange="dwgV2LoadDxf(this.files[0])"></div>'
+    +'</div>'
+    +'<div class="mf"><button class="btn s" onclick="closeMo(\'moDwgV2\')">Cancel</button>'
+    +'<button class="btn st" onclick="dwgConvertCloudConvert()">▶ Auto Convert</button></div></div>';
+}
+
+function setDwgStatus(msg, type) {
+  var el = document.getElementById('dwgV2Status');
+  if (!el) return;
+  el.innerHTML = msg;
+  el.style.color = {ok:'#4eff91',warn:'#F5BE18',err:'#ff4466'}[type] || 'var(--m)';
+}
+
+window.dwgConvertCloudConvert = function() {
+  setDwgStatus('⏳ <b>CloudConvert</b> — uploading…');
+  if (typeof convertWithCloudConvert === 'function') convertWithCloudConvert();
+  else setDwgStatus('CloudConvert not available', 'err');
+};
+
+window.dwgConvertAspose = async function() {
+  if (!_dwgFileV2) { toast('No DWG file loaded','warn'); return; }
+  setDwgStatus('⏳ <b>Aspose</b> — sending to free API…');
+  try {
+    var fd = new FormData();
+    fd.append('drawing', _dwgFileV2, _dwgFileV2.name);
+    var resp = await fetch('https://api.aspose.cloud/v3.0/cad/convert?outputFormat=DXF', {method:'POST',body:fd,headers:{'x-aspose-client':'StrataCAD/2.0'}});
+    if (!resp.ok) throw new Error('HTTP '+resp.status);
+    var txt = await resp.text();
+    if (!txt || txt.length < 200) throw new Error('Empty response');
+    closeMo('moDwgV2');
+    parseDXF(txt, _dwgFileV2.name.replace(/\.dwg$/i,'.dxf'));
+    toast('Aspose: '+_dwgFileV2.name+' imported','ok');
+  } catch(e) {
+    setDwgStatus('⚠ Aspose failed: '+e.message+'<br>Trying direct parse as fallback…','warn');
+    setTimeout(dwgConvertDirect, 1500);
+  }
+};
+
+window.dwgConvertDirect = function() {
+  if (!_dwgFileV2) { toast('No DWG file loaded','warn'); return; }
+  setDwgStatus('⏳ <b>Direct parse</b> — reading binary…');
+  var r = new FileReader();
+  r.onload = function(ev) {
+    try {
+      var res = parseDWGBinaryV2(new Uint8Array(ev.target.result), _dwgFileV2.name);
+      if (!res.entities.length) { setDwgStatus('⚠ Direct parse: 0 entities found. Try CloudConvert or ODA method.','warn'); return; }
+      closeMo('moDwgV2');
+      pushUndo();
+      ST.entities = res.entities;
+      res.layers.forEach(function(l){if(!ST.layers.find(function(s){return s.name===l.name;}))ST.layers.push(l);});
+      ST._eid = Math.max(ST._eid, res.maxId);
+      renderLayers(); setTimeout(zoomExt,150);
+      toast('Direct parse: '+res.entities.length+' entities ('+res.layerCount+' layers)','ok');
+    } catch(e) { setDwgStatus('✗ Error: '+e.message,'err'); }
+  };
+  r.readAsArrayBuffer(_dwgFileV2);
+};
+
+window.dwgShowODAGuide = function() {
+  setDwgStatus('<b style="color:#A78BFA">ODA File Converter</b> — Free, works on Windows/Mac/Linux<br>'
+    +'<a href="https://www.opendesign.com/guestfiles/oda_file_converter" target="_blank" style="color:#1FA8D9">→ Download free from opendesign.com</a><br>'
+    +'Steps: Open app → select DWG → Output = <b>DXF</b> → Version = <b>2018</b> → Convert<br>'
+    +'Then drag the output .dxf into the drop zone above.');
+};
+
+window.dwgV2LoadDxf = function(file) {
+  if (!file || !file.name.toLowerCase().endsWith('.dxf')) { toast('Please select a .dxf file','warn'); return; }
+  setDwgStatus('⏳ Reading: '+file.name+'…');
+  var r = new FileReader();
+  r.onload = function(ev) { closeMo('moDwgV2'); parseDXF(ev.target.result, file.name); };
+  r.readAsText(file,'UTF-8');
+};
+
+function parseDWGBinaryV2(bytes, filename) {
+  var view = new DataView(bytes.buffer), len = bytes.length;
+  var eid = ST._eid, ents = [], layerMap = {};
+  var ver=''; for(var i=0;i<6;i++) ver+=String.fromCharCode(bytes[i]);
+  if (ver >= 'AC1027') return {entities:[],layers:[],layerCount:0,maxId:eid,compressed:true};
+
+  function mkL(name) {
+    if (layerMap[name]) return layerMap[name];
+    var ex = ST.layers.find(function(l){return l.name===name;});
+    if (ex) { layerMap[name]=ex.id; return ex.id; }
+    var P=['#1FA8D9','#F5BE18','#4eff91','#ff4466','#A78BFA','#ff9060','#4488ff'];
+    var id=++eid+50000; layerMap[name]=id; return id;
+  }
+  function rf(o){return(o+8<=len)?view.getFloat64(o,true):NaN;}
+  function sane(v){if(!isFinite(v)||isNaN(v))return false;var a=Math.abs(v);return!(a>0&&a<0.0001)&&a<1e8;}
+
+  var skip=[];
+  var PNG=[0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A];
+  for(var pi=0;pi<Math.min(len-8,500000);pi++){
+    if(PNG.every(function(b,j){return bytes[pi+j]===b;})){
+      var pe=pi+50000;
+      for(var pj=pi+8;pj<Math.min(pi+3000000,len-4);pj++){if(bytes[pj]===0x49&&bytes[pj+1]===0x45&&bytes[pj+2]===0x4E&&bytes[pj+3]===0x44){pe=pj+8;break;}}
+      skip.push([pi,Math.min(pe,len)]);pi=Math.min(pe,len);
+    }
+  }
+  function inS(o){return skip.some(function(r){return o>=r[0]&&o<=r[1];});}
+
+  var SKIPW=new Set(['NULL','TRUE','FALSE','BLOCK','TABLE','LAYER','ENTITIES','HEADER','SECTION','ENDSEC','EOF','BYLAYER','BYBLOCK','CONTINUOUS','STANDARD','MODEL','PAPER','AutoCAD','Autodesk','ACAD']);
+  var buf='';
+  for(var si=256;si<Math.min(65536,len);si++){
+    if(inS(si)){buf='';continue;}
+    var sb=bytes[si];
+    if(sb>=33&&sb<127){buf+=String.fromCharCode(sb);}
+    else{
+      if(buf.length>=2&&buf.length<=32&&!SKIPW.has(buf.trim())&&!/^[0-9a-fA-F]{4,}$/.test(buf)&&!/^\d+$/.test(buf)&&!/[$|]/.test(buf)&&/^[A-Za-z0-9][A-Za-z0-9_\- ]*$/.test(buf.trim())){
+        mkL(buf.trim());
+      }
+      buf='';
+    }
+  }
+
+  var cands=[];
+  for(var co=4096;co<len-48;co+=8){
+    if(inS(co)){co+=32;continue;}
+    var x1=rf(co),y1=rf(co+8),x2=rf(co+16),y2=rf(co+24);
+    if(!sane(x1)||!sane(y1)||!sane(x2)||!sane(y2))continue;
+    var vals=[Math.abs(x1),Math.abs(y1),Math.abs(x2),Math.abs(y2)].filter(function(v){return v>0.001;});
+    if(vals.length<2)continue;
+    var mx=Math.max.apply(null,vals),mn=Math.min.apply(null,vals);
+    if(mn>0&&mx/mn>8000)continue;
+    var d=Math.hypot(x2-x1,y2-y1);
+    if(d<0.001||d>5e6||(x1===x2&&y1===y2))continue;
+    cands.push([x1,y1,x2,y2]);
+  }
+
+  if(cands.length>0){
+    var ax=cands.reduce(function(a,l){a.push(l[0],l[2]);return a;},[]).sort(function(a,b){return a-b;});
+    var ay=cands.reduce(function(a,l){a.push(l[1],l[3]);return a;},[]).sort(function(a,b){return a-b;});
+    var nc=ax.length;
+    var xLo=ax[Math.floor(nc*.05)],xHi=ax[Math.floor(nc*.95)];
+    var yLo=ay[Math.floor(nc*.05)],yHi=ay[Math.floor(nc*.95)];
+    var xP=(xHi-xLo)*.25||1000, yP=(yHi-yLo)*.25||1000;
+    var defL=mkL('0');
+    var seen=new Set();
+    cands.forEach(function(l){
+      if(l[0]<xLo-xP||l[0]>xHi+xP||l[1]<yLo-yP||l[1]>yHi+yP)return;
+      if(l[2]<xLo-xP||l[2]>xHi+xP||l[3]<yLo-yP||l[3]>yHi+yP)return;
+      var k=l[0].toFixed(2)+','+l[1].toFixed(2)+','+l[2].toFixed(2)+','+l[3].toFixed(2);
+      if(seen.has(k))return;
+      seen.add(k);
+      ents.push({_id:++eid,type:'line',x1:l[0],y1:l[1],x2:l[2],y2:l[3],layer:defL,selected:false});
+    });
+  }
+
+  var layers=Object.keys(layerMap).map(function(n){
+    var id=layerMap[n];
+    var ex=ST.layers.find(function(l){return l.id===id;});
+    return ex||{id:id,name:n,color:'#1FA8D9',vis:true,lock:false,frz:false,dis:false};
+  });
+
+  return {entities:ents,layers:layers,layerCount:Object.keys(layerMap).length||1,maxId:eid,compressed:false};
+}
+
+window.parseDWGBinary = parseDWGBinaryV2;
+console.log('[Strata] DWG Converter v2 ready — CloudConvert + Aspose + Direct + ODA guide');
+})();
+
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════
