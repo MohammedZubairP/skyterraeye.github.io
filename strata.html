@@ -13647,9 +13647,10 @@ console.log('[Civil 3D] Feature set loaded: Toolspace, Layer Manager, MAP comman
 //  STRATA FINAL COMMAND WIRE — runs absolute last
 //  No circular dispatch. No infinite loops. Single source of truth.
 // ████████████████████████████████████████████████████████████████
+
 (function StrataFinalWire() {
 
-  // ─── BULLETPROOF runCommand — overrides all previous versions ────
+  // ── BULLETPROOF runCommand ──────────────────────────────────────
   window.runCommand = function(rawCmd) {
     var raw = (rawCmd || '').trim();
     if (!raw) {
@@ -13658,7 +13659,6 @@ console.log('[Civil 3D] Feature set loaded: Toolspace, Layer Manager, MAP comman
     }
     var v = raw.toUpperCase();
 
-    // Close polyline/boundary/line
     if ((v==='C'||v==='CLOSE') && (ST.tool==='polyline'||ST.tool==='boundary'||ST.tool==='line')) {
       if (ST.tool==='polyline' && typeof commitPolyline==='function') commitPolyline();
       else if (ST.tool==='boundary' && typeof commitBoundary==='function') commitBoundary();
@@ -13666,21 +13666,18 @@ console.log('[Civil 3D] Feature set loaded: Toolspace, Layer Manager, MAP comman
       return;
     }
 
-    // Coordinate / distance input while drawing
     if ((ST.drawing && ST.startPt) || (ST.opState && ST.opState.base)) {
       if (/^[@\d\.\-+]/.test(raw) || raw.indexOf('<')>=0 || (raw.indexOf(',')>=0 && /\d/.test(raw))) {
         if (typeof applyDynValue==='function') { applyDynValue(raw); return; }
       }
     }
 
-    // DDPTYPE — always opens popup
     if (v==='DDPTYPE'||v==='DDP'||v==='PDMODE') {
       if (typeof openDDPTYPE==='function') openDDPTYPE();
       if (typeof setMsg==='function') setMsg('DDPTYPE — point display style');
       return;
     }
 
-    // All draw tools inline (no external closure dependency)
     var TOOLS = ['line','polyline','circle','arc','rect','ellipse','spline','hatch',
       'text','point','xline','ray','wipeout','cloud','boundary','polygon',
       'dim-lin','leader','move','copy','rotate','scale','mirror','offset',
@@ -13688,7 +13685,6 @@ console.log('[Civil 3D] Feature set loaded: Toolspace, Layer Manager, MAP comman
       'lengthen','array','dim-diameter','dim-radius','dim-angular','dim-baseline',
       'dim-center','measure-d','measure-a','matchprop','idpt','select','pan'];
 
-    // Look up command
     var target = (typeof CAD_COMMANDS !== 'undefined') ? (CAD_COMMANDS[v] || CAD_COMMANDS[v.toUpperCase()]) : null;
 
     if (target) {
@@ -13699,110 +13695,74 @@ console.log('[Civil 3D] Feature set loaded: Toolspace, Layer Manager, MAP comman
       }
       var act = (typeof CAD_ACTIONS !== 'undefined') ? (CAD_ACTIONS[target] || CAD_ACTIONS[target.toLowerCase()]) : null;
       if (typeof act === 'function') {
-        try { act(); } catch(e) { console.error('CAD action error:', e); }
+        try { act(); } catch(e) { console.error('Action error ['+target+']:', e); }
         if (typeof setMsg === 'function') setMsg('▶ ' + v);
         return;
       }
     }
 
-    // Direct action lookup
     if (typeof CAD_ACTIONS !== 'undefined') {
-      var directAct = CAD_ACTIONS[v.toLowerCase()] || CAD_ACTIONS[v];
-      if (typeof directAct === 'function') {
-        try { directAct(); } catch(e) { console.error('Direct action error:', e); }
+      var da = CAD_ACTIONS[v.toLowerCase()] || CAD_ACTIONS[v];
+      if (typeof da === 'function') {
+        try { da(); } catch(e) { console.error('Direct action error:', e); }
         if (typeof setMsg === 'function') setMsg('▶ ' + v);
         return;
       }
     }
 
-    // Map/geo search
     if (/^(FIND|GO|GOTO|SEARCH)\s+/i.test(raw)) {
       if (typeof mapSearch === 'function') mapSearch(raw.replace(/^\w+\s+/, ''));
       return;
     }
 
-    // Number = distance while drawing
     if (!isNaN(parseFloat(raw)) && (ST.drawing || ST.opState)) {
       if (typeof applyDynValue === 'function') { applyDynValue(raw); return; }
     }
 
-    if (typeof setMsg === 'function') setMsg('"' + raw + '" — unknown. Press F1 for help.');
+    if (typeof setMsg === 'function') setMsg('"' + raw + '" — unknown command. Press F1 for help.');
     if (typeof toast === 'function') toast('Unknown: ' + raw, 'warn');
   };
-  
 
-  // ── Get the cmdInput element ──────────────────────────────────
-  var inp = document.getElementById('cmdInput');
-  if (!inp) { console.error('[StrataFinalWire] cmdInput not found!'); return; }
-
-  // ── Ensure no onkeydown attribute (belt + suspenders) ─────────
-  inp.removeAttribute('onkeydown');
-  inp.removeAttribute('onkeypress');
-
-  // ── Command history ───────────────────────────────────────────
-  var hist = [];
-  var histIdx = -1;
-  if (window.CMD && CMD.history && CMD.history.length) hist = CMD.history;
-
-  // ── Suggestion box ────────────────────────────────────────────
+  // ── Suggestion box ─────────────────────────────────────────────
   var box = document.getElementById('cmdSuggestBox');
   if (!box) {
     box = document.createElement('div');
     box.id = 'cmdSuggestBox';
-    box.style.cssText = [
-      'position:fixed','z-index:99999','background:#060E1A',
-      'border:1px solid rgba(31,168,217,.6)','border-radius:5px',
-      'box-shadow:0 8px 32px rgba(0,0,0,.95)','max-height:240px',
-      'overflow-y:auto','min-width:280px',
-      'font-family:IBM Plex Mono,monospace','font-size:10.5px','display:none'
-    ].join(';');
+    box.style.cssText = 'position:fixed;z-index:99999;background:#060E1A;border:1px solid rgba(31,168,217,.6);border-radius:5px;box-shadow:0 8px 32px rgba(0,0,0,.95);max-height:240px;overflow-y:auto;min-width:280px;font-family:IBM Plex Mono,monospace;font-size:10.5px;display:none';
     document.body.appendChild(box);
   }
 
   function showSugg(val) {
-    if (!val || val.length < 1) { box.style.display = 'none'; return; }
+    if (!val || val.length < 1) { box.style.display='none'; return; }
     var uv = val.toUpperCase();
-
-    // Get ALL keys from CAD_COMMANDS
     var allKeys = (typeof CAD_COMMANDS !== 'undefined') ? Object.keys(CAD_COMMANDS) : [];
-    var matches = allKeys
-      .filter(function(k) { return k.indexOf(uv) === 0 && k.length > 1; })
-      .sort(function(a,b) { return a.length - b.length; })
-      .slice(0, 10);
-
-    if (!matches.length) { box.style.display = 'none'; return; }
-
-    var rect = inp.getBoundingClientRect();
+    var matches = allKeys.filter(function(k){ return k.indexOf(uv)===0 && k.length>1; })
+      .sort(function(a,b){ return a.length-b.length; }).slice(0,10);
+    if (!matches.length) { box.style.display='none'; return; }
+    var el = document.getElementById('cmdInput');
+    if (!el) return;
+    var rect = el.getBoundingClientRect();
     box.style.left   = rect.left + 'px';
     box.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
     box.style.top    = 'auto';
     box.style.display = 'block';
-
     box.innerHTML = matches.map(function(c, i) {
-      var action = (typeof CAD_COMMANDS !== 'undefined' && CAD_COMMANDS[c]) ? CAD_COMMANDS[c] : '';
-      var isFirst = i === 0;
-      return '<div data-cmd="' + c + '" style="'
-        + 'padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;'
-        + 'border-bottom:1px solid rgba(31,168,217,.06);'
-        + 'color:' + (isFirst ? '#4eff91' : '#889aaa') + '"'
-        + ' onmouseover="this.style.background=\'rgba(31,168,217,.12)\';this.style.color=\'#fff\'"'
-        + ' onmouseout="this.style.background=\'\';this.style.color=\'' + (isFirst?'#4eff91':'#889aaa') + '\'">'
-        + '<b style="color:#1FA8D9">' + c.slice(0, uv.length) + '</b>'
-        + c.slice(uv.length)
-        + '<span style="margin-left:auto;font-size:8.5px;color:#445;font-family:IBM Plex Mono,monospace">'
-        + action + '</span>'
-        + '</div>';
+      var action = (typeof CAD_COMMANDS!=='undefined' && CAD_COMMANDS[c]) ? CAD_COMMANDS[c] : '';
+      var col = i===0 ? '#4eff91' : '#889aaa';
+      return '<div data-cmd="'+c+'" style="padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(31,168,217,.06);color:'+col+'"'
+        +' onmouseover="this.style.background=\'rgba(31,168,217,.12)\';this.style.color=\'#fff\'"'
+        +' onmouseout="this.style.background=\'\';this.style.color=\''+col+'\'">'
+        +'<b style="color:#1FA8D9">'+c.slice(0,uv.length)+'</b>'+c.slice(uv.length)
+        +'<span style="margin-left:auto;font-size:8.5px;color:#445">'+action+'</span></div>';
     }).join('');
-
-    // Click handlers (mousedown to fire before blur)
-    box.querySelectorAll('[data-cmd]').forEach(function(el) {
-      el.addEventListener('mousedown', function(ev) {
+    box.querySelectorAll('[data-cmd]').forEach(function(item) {
+      item.addEventListener('mousedown', function(ev) {
         ev.preventDefault();
-        var cmd = el.getAttribute('data-cmd');
-        inp.value = '';
+        var cmd = item.getAttribute('data-cmd');
+        var inp2 = document.getElementById('cmdInput');
+        if (inp2) inp2.value = '';
         box.style.display = 'none';
-        execCmd(cmd);
-        inp.blur();
+        window.runCommand(cmd);
         var cad = document.getElementById('cad');
         if (cad) cad.focus();
       });
@@ -13810,87 +13770,79 @@ console.log('[Civil 3D] Feature set loaded: Toolspace, Layer Manager, MAP comman
   }
 
   function hideSugg() {
-    setTimeout(function() { box.style.display = 'none'; }, 200);
+    setTimeout(function(){ box.style.display='none'; }, 200);
   }
 
-  // ── Core command executor ──────────────────────────────────────
-  function execCmd(raw) {
-    raw = (raw || '').trim();
+  // ── Command history ──────────────────────────────────────────────
+  var hist = (window.CMD && CMD.history) ? CMD.history : [];
+  var histIdx = -1;
+
+  // ── execCmd — reads value from live #cmdInput by ID ─────────────
+  // NOTE: reads from document.getElementById('cmdInput') NOT from captured ref
+  function execCmd(rawVal) {
+    var raw = (rawVal || '').trim();
     if (!raw) {
-      // Empty = repeat last or finish drawing
-      if (ST.tool === 'polyline' && typeof commitPolyline === 'function') { commitPolyline(); return; }
-      if (ST.tool === 'boundary' && typeof commitBoundary === 'function') { commitBoundary(); return; }
-      if (window.CMD && CMD.active && typeof handleCommandInput === 'function') { handleCommandInput(''); return; }
-      if (ST._lastTool && typeof T === 'function') T(ST._lastTool);
+      if (ST.tool==='polyline' && typeof commitPolyline==='function') { commitPolyline(); return; }
+      if (ST.tool==='boundary' && typeof commitBoundary==='function') { commitBoundary(); return; }
+      if (window.CMD && CMD.active && typeof handleCommandInput==='function') { handleCommandInput(''); return; }
+      if (ST._lastTool && typeof T==='function') T(ST._lastTool);
       return;
     }
-
-    // History
     hist.unshift(raw);
     if (hist.length > 50) hist.pop();
     histIdx = -1;
     if (window.CMD) { CMD.history = hist; CMD.histIdx = -1; }
-
-    // Active command phase
-    if (window.CMD && CMD.active && typeof handleCommandInput === 'function') {
-      handleCommandInput(raw);
-      return;
-    }
-
-    // Delegate to runCommand
-    if (typeof window.runCommand === 'function') {
-      window.runCommand(raw);
-    }
+    if (window.CMD && CMD.active && typeof handleCommandInput==='function') { handleCommandInput(raw); return; }
+    window.runCommand(raw);
   }
 
-  // ── Keydown handler — the ONLY one ────────────────────────────
+  // ── handleKey — reads value from event.target (always correct) ──
   function handleKey(ev) {
     ev.stopPropagation();
-    var box2 = document.getElementById('cmdSuggestBox');
+    // CRITICAL: read from ev.target (the element that fired the event)
+    // NOT from any captured reference that might be stale
+    var target = ev.target || document.getElementById('cmdInput');
 
     switch(ev.key) {
-
       case 'Escape':
-        inp.value = '';
-        if (box2) box2.style.display = 'none';
-        ST.drawing = false; ST.startPt = null; ST.opState = null;
-        if (window.CMD) { CMD.active = null; CMD.phase = 0; }
-        if (typeof setMsg === 'function') setMsg('ESC — ready');
+        target.value = '';
+        box.style.display = 'none';
+        ST.drawing=false; ST.startPt=null; ST.opState=null;
+        if (window.CMD) { CMD.active=null; CMD.phase=0; }
+        if (typeof setMsg==='function') setMsg('ESC — ready');
         var cad = document.getElementById('cad');
         if (cad) cad.focus();
         return;
 
       case 'Tab':
         ev.preventDefault();
-        var first = box2 && box2.querySelector('[data-cmd]');
-        if (first) {
-          inp.value = first.getAttribute('data-cmd');
-          if (box2) box2.style.display = 'none';
-        }
+        var first = box.querySelector('[data-cmd]');
+        if (first) { target.value = first.getAttribute('data-cmd'); box.style.display='none'; }
+        showSugg(target.value);
         return;
 
       case 'ArrowUp':
         ev.preventDefault();
         if (hist.length) {
-          histIdx = Math.min(histIdx + 1, hist.length - 1);
-          inp.value = hist[histIdx] || '';
-          showSugg(inp.value);
+          histIdx = Math.min(histIdx+1, hist.length-1);
+          target.value = hist[histIdx] || '';
+          showSugg(target.value);
         }
         return;
 
       case 'ArrowDown':
         ev.preventDefault();
-        histIdx = Math.max(histIdx - 1, -1);
-        inp.value = histIdx >= 0 ? hist[histIdx] : '';
-        showSugg(inp.value);
+        histIdx = Math.max(histIdx-1, -1);
+        target.value = histIdx>=0 ? hist[histIdx] : '';
+        showSugg(target.value);
         return;
 
       case 'Enter':
       case ' ':
         ev.preventDefault();
-        var raw = inp.value.trim();
-        inp.value = '';
-        if (box2) box2.style.display = 'none';
+        var raw = target.value.trim();   // ← reads from event.target, ALWAYS correct
+        target.value = '';
+        box.style.display = 'none';
         execCmd(raw);
         var cad2 = document.getElementById('cad');
         if (cad2) cad2.focus();
@@ -13898,41 +13850,43 @@ console.log('[Civil 3D] Feature set loaded: Toolspace, Layer Manager, MAP comman
     }
   }
 
-  // ── Wire the input element cleanly ────────────────────────────
-  // Remove ALL old event listeners by replacing the element
+  // ── Wire the input element ────────────────────────────────────────
+  // Always create fresh to clear all old listeners
+  var oldInp = document.getElementById('cmdInput');
+  if (!oldInp) { console.error('[StrataFinalWire] cmdInput not found'); return; }
+
   var fresh = document.createElement('input');
-  fresh.id        = 'cmdInput';
-  fresh.className = inp.className;
-  fresh.placeholder = inp.placeholder || 'Type command…';
+  fresh.id          = 'cmdInput';
+  fresh.className   = oldInp.className;
+  fresh.placeholder = 'Type command…  L=Line  C=Circle  RO=Rotate  DDPTYPE  |  F1=Help';
   fresh.setAttribute('autocomplete','off');
   fresh.setAttribute('spellcheck','false');
-  // NO onkeydown attribute
-  inp.parentNode.replaceChild(fresh, inp);
+  // NO onkeydown attribute — pure addEventListener only
+  oldInp.parentNode.replaceChild(fresh, oldInp);
 
-  fresh.addEventListener('input',   function() { showSugg(this.value); });
+  // Wire events to fresh (ev.target inside handlers will correctly point to fresh)
+  fresh.addEventListener('input',   function(ev) { showSugg(ev.target.value); });
   fresh.addEventListener('blur',    hideSugg);
   fresh.addEventListener('keydown', handleKey);
 
-  // ── window.cmdKey — legacy calls go to execCmd ────────────────
-  // Does NOT dispatch to fresh (avoids the infinite loop)
+  // window.cmdKey for legacy onclick calls — does NOT dispatch, calls directly
   window.cmdKey = function(ev) {
     if (!ev) return;
     handleKey(ev);
   };
 
-  // ── AutoCAD-style: any printable key → focus cmdInput ─────────
+  // AutoCAD style: any printable key while canvas focused → cmdInput
   document.addEventListener('keydown', function(ev) {
-    var tag = (document.activeElement || {}).tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-    if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
-    if (ev.key.length !== 1) return;
+    if (ev.ctrlKey||ev.altKey||ev.metaKey) return;
+    var tag = (document.activeElement||{}).tagName||'';
+    if (tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
+    if (ev.key.length!==1) return;
     var i = document.getElementById('cmdInput');
-    if (i && document.activeElement !== i) i.focus();
+    if (i && document.activeElement!==i) i.focus();
   }, false);
 
-  console.log('[StrataFinalWire] Command input wired cleanly. CAD_COMMANDS:', 
-    typeof CAD_COMMANDS !== 'undefined' ? Object.keys(CAD_COMMANDS).length : 'undefined',
-    '| DDPTYPE:', typeof CAD_COMMANDS !== 'undefined' ? (CAD_COMMANDS['DDPTYPE'] || 'missing') : 'N/A');
+  var nCmds = typeof CAD_COMMANDS!=='undefined' ? Object.keys(CAD_COMMANDS).length : '?';
+  console.log('[StrataFinalWire] Wired. Commands: '+nCmds+' | ev.target fix applied');
 
 })(); // end StrataFinalWire
 
