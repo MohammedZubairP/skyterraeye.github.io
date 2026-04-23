@@ -14798,62 +14798,78 @@ console.log('[AllFeaturesPatch v2] OSNAP ✓  Map sync ✓  Export ✓  Props �
 
 
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 // 2. C3D TAB — Full Toolspace panel content
 // ══════════════════════════════════════════════════════════════
 (function buildC3DTab() {
-  // Add sec-toolspace section to right panel
   var rpContent = document.querySelector('.rp-content');
   if (!rpContent || document.getElementById('sec-toolspace')) return;
 
   var sec = document.createElement('div');
   sec.className = 'rp-sec';
   sec.id = 'sec-toolspace';
-  sec.innerHTML = [
-    '<div class="lh"><span class="lh-t" style="color:#4eff91">Civil 3D Toolspace</span></div>',
-    // Prospector
-    '<div style="font-size:8.5px;font-weight:800;color:#4eff91;text-transform:uppercase;letter-spacing:.8px;padding:6px 8px 2px;font-family:IBM Plex Mono,monospace">Prospector</div>',
-    '<div class="ts-node" onclick="openMo(\'moCsvImport\')"><span class="ts-node-icon">⊕</span><span class="ts-node-lbl">Points</span><span class="ts-node-count" id="tsP">'+(_surveyPts||[]).length+'</span></div>',
-    '<div class="ts-node" onclick="showTab(\'survey\')"><span class="ts-node-icon">⊞</span><span class="ts-node-lbl">Point Groups</span></div>',
-    '<div class="ts-node" onclick="typeof buildTIN===\'function\'&&buildTIN()"><span class="ts-node-icon">△</span><span class="ts-node-lbl">Surfaces</span></div>',
-    '<div class="ts-node" onclick="T(\'polyline\')"><span class="ts-node-icon">⟶</span><span class="ts-node-lbl">Alignments</span></div>',
-    '<div class="ts-node" onclick="T(\'polyline\')"><span class="ts-node-icon">⌒</span><span class="ts-node-lbl">Feature Lines</span></div>',
-    '<div class="ts-node" onclick="openMo(\'moCivil\')"><span class="ts-node-icon">🛣</span><span class="ts-node-lbl">Corridors</span></div>',
-    '<div class="ts-node" onclick="openMo(\'moCivil\')"><span class="ts-node-icon">💧</span><span class="ts-node-lbl">Pipe Networks</span></div>',
-    // Settings
-    '<div style="font-size:8.5px;font-weight:800;color:#1FA8D9;text-transform:uppercase;letter-spacing:.8px;padding:8px 8px 2px;font-family:IBM Plex Mono,monospace;border-top:1px solid var(--sep);margin-top:4px">Settings</div>',
-    '<div class="ts-node" onclick="openMo(\'moSettings\')"><span class="ts-node-icon">⚙</span><span class="ts-node-lbl">Drawing Settings</span></div>',
-    '<div class="ts-node" onclick="openDwgSettingsDialog()"><span class="ts-node-icon">📐</span><span class="ts-node-lbl">Edit Drawing Settings</span></div>',
-    '<div class="ts-node" onclick="openUnitsModal&&openUnitsModal()"><span class="ts-node-icon">📏</span><span class="ts-node-lbl">Coordinate System</span></div>',
-    // Survey
-    '<div style="font-size:8.5px;font-weight:800;color:var(--ora);text-transform:uppercase;letter-spacing:.8px;padding:8px 8px 2px;font-family:IBM Plex Mono,monospace;border-top:1px solid var(--sep);margin-top:4px">Survey</div>',
-    '<div class="ts-node" onclick="openMo(\'moCsvImport\')"><span class="ts-node-icon">📥</span><span class="ts-node-lbl">Import Survey Points</span></div>',
-    '<div class="ts-node" onclick="showTab(\'survey\');toggleRP()"><span class="ts-node-icon">📍</span><span class="ts-node-lbl">View Survey Points</span></div>',
-    // Toolbox
-    '<div style="font-size:8.5px;font-weight:800;color:#F5BE18;text-transform:uppercase;letter-spacing:.8px;padding:8px 8px 2px;font-family:IBM Plex Mono,monospace;border-top:1px solid var(--sep);margin-top:4px">Toolbox</div>',
-    '<div class="ts-node" onclick="openExportDialog&&openExportDialog()"><span class="ts-node-icon">📤</span><span class="ts-node-lbl">Export Drawing</span></div>',
-    '<div class="ts-node" onclick="openMo(\'moImport\')"><span class="ts-node-icon">📂</span><span class="ts-node-lbl">Import Files</span></div>',
-    '<div class="ts-node" onclick="openAttrTableDialog()"><span class="ts-node-icon">📋</span><span class="ts-node-lbl">Attribute Table</span></div>',
-    '<div class="ts-node" onclick="openMo(\'moProcessing\')"><span class="ts-node-icon">⚙</span><span class="ts-node-lbl">Processing Tools</span></div>',
-  ].join('');
+
+  function makeNode(icon, label, fn) {
+    var d = document.createElement('div');
+    d.className = 'ts-node';
+    d.innerHTML = '<span class="ts-node-icon">' + icon + '</span><span class="ts-node-lbl">' + label + '</span>';
+    if (fn) d.onclick = fn;
+    return d;
+  }
+  function makeHead(text, color) {
+    var d = document.createElement('div');
+    d.style.cssText = 'font-size:8.5px;font-weight:800;color:' + color + ';text-transform:uppercase;letter-spacing:.8px;padding:8px 8px 2px;font-family:IBM Plex Mono,monospace;border-top:1px solid var(--sep);margin-top:4px';
+    d.textContent = text;
+    return d;
+  }
+
+  sec.innerHTML = '<div class="lh"><span class="lh-t" style="color:#4eff91">Civil 3D Toolspace</span></div>';
+  var ph = document.createElement('div');
+  ph.style.cssText = 'font-size:8.5px;font-weight:800;color:#4eff91;text-transform:uppercase;letter-spacing:.8px;padding:6px 8px 2px;font-family:IBM Plex Mono,monospace';
+  ph.textContent = 'Prospector';
+  sec.appendChild(ph);
+
+  var ptsNode = makeNode('+', 'Points', function(){ openMo('moCsvImport'); });
+  var cs = document.createElement('span');
+  cs.className = 'ts-node-count'; cs.id = 'tsP';
+  cs.textContent = String((ST.surveyPts || []).length);
+  ptsNode.appendChild(cs);
+  sec.appendChild(ptsNode);
+  sec.appendChild(makeNode('[+]', 'Point Groups',  function(){ showTab('survey'); }));
+  sec.appendChild(makeNode('tri', 'Surfaces',       function(){ typeof buildTIN === 'function' && buildTIN(); }));
+  sec.appendChild(makeNode('->', 'Alignments',     function(){ T('polyline'); }));
+  sec.appendChild(makeNode('~',  'Feature Lines',  function(){ T('polyline'); }));
+  sec.appendChild(makeNode('=',  'Corridors',      function(){ openMo('moCivil'); }));
+  sec.appendChild(makeNode('|',  'Pipe Networks',  function(){ openMo('moCivil'); }));
+  sec.appendChild(makeHead('Settings', '#1FA8D9'));
+  sec.appendChild(makeNode('*',  'Drawing Settings',      function(){ openMo('moSettings'); }));
+  sec.appendChild(makeNode('#',  'Edit Drawing Settings', function(){ openDwgSettingsDialog && openDwgSettingsDialog(); }));
+  sec.appendChild(makeNode('%',  'Coordinate System',     function(){ openUnitsModal && openUnitsModal(); }));
+  sec.appendChild(makeHead('Survey', 'var(--ora)'));
+  sec.appendChild(makeNode('v',  'Import Survey Points',  function(){ openMo('moCsvImport'); }));
+  sec.appendChild(makeNode('.',  'View Survey Points',    function(){ showTab('survey'); if(typeof toggleRP==='function')toggleRP(); }));
+  sec.appendChild(makeHead('Toolbox', '#F5BE18'));
+  sec.appendChild(makeNode('^',  'Export Drawing',        function(){ openExportDialog && openExportDialog(); }));
+  sec.appendChild(makeNode('o',  'Import Files',          function(){ openMo('moImport'); }));
+  sec.appendChild(makeNode('=',  'Attribute Table',       function(){ openAttrTableDialog && openAttrTableDialog(); }));
+  sec.appendChild(makeNode('*',  'Processing Tools',      function(){ openMo('moProcessing'); }));
+
   rpContent.appendChild(sec);
 
-  // Fix showTab to handle toolspace
-  var _origShowTab = window.showTab;
+  var _prevTab = window.showTab;
   window.showTab = function(s) {
     if (s === 'toolspace') {
-      // Show sec-toolspace
-      document.querySelectorAll('.rp-sec').forEach(function(e){e.classList.remove('act');});
+      document.querySelectorAll('.rp-sec').forEach(function(e){ e.classList.remove('act'); });
       var el = document.getElementById('sec-toolspace');
       if (el) el.classList.add('act');
-      document.querySelectorAll('.rptab').forEach(function(t){t.classList.remove('act');});
-      var tab = document.getElementById('tab-toolspace');
-      if (tab) tab.classList.add('act');
+      document.querySelectorAll('.rptab').forEach(function(t){ t.classList.remove('act'); });
+      var tb = document.getElementById('tab-toolspace');
+      if (tb) tb.classList.add('act');
       return;
     }
-    _origShowTab && _origShowTab(s);
+    _prevTab && _prevTab(s);
   };
 })();
-
 
 // ══════════════════════════════════════════════════════════════
 // 3. LAYER COLOR — ensure lmOpenColorPick works properly
