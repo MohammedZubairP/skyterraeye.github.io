@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Oxanium:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/exifr@7/dist/full.umd.js"></script>
+<!-- opencv.js: real ORB, findHomography, RANSAC in browser via WebAssembly -->
+<script async src="https://docs.opencv.org/4.x/opencv.js" onload="onCvLoad()" onerror="onCvError()"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -205,9 +207,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--
           <div class="fl">
             <label>Alignment</label>
             <select id="alignMode">
-              <option value="phase" selected>Phase correlation (accurate)</option>
-              <option value="gps">GPS only (fast)</option>
+              <option value="orb" selected>ORB + RANSAC (opencv.js — best)</option>
+              <option value="ncc">NCC multi-patch (no opencv.js)</option>
+              <option value="gps">GPS only (fastest)</option>
             </select>
+            <div class="hint" id="cvHint" style="color:var(--G)">Loading opencv.js...</div>
           </div>
         </div>
       </div>
@@ -280,7 +284,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--
     <div class="dbanner" id="dbanner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span id="dmsg">Done</span></div>
     <div class="dlsec" id="dlsec"><div class="dlrow"><button class="bs dl" onclick="dlPNG()">PNG</button><button class="bs dl" onclick="dlPGW()">.pgw world</button></div></div>
     <div id="log">
-      <div class="ll dm">// Sky TerraEye Eye v6 — sharp corridor stitcher</div>
+      <div class="ll dm">// Sky TerraEye Eye v7 — opencv.js ORB stitcher</div>
       <div class="ll dm">// NCC RANSAC alignment · histogram matching · hard-seam Voronoi</div>
       <div class="ll dm">// Drop images &rarr; Run Orthomosaic</div>
     </div>
@@ -461,44 +465,136 @@ function buildCanvas(recs,gsdOv,hfovOv,fpSc,maxPx){
 }
 
 /* ══════════════════════════════════════════════════════
-   NCC MULTI-PATCH RANSAC ALIGNMENT ENGINE
-   Replaces phase correlation — far more robust on thermal
+   OPENCV.JS LOADER + ORB ALIGNMENT ENGINE
    ====================================================== */
+var CV_READY=false,CV_ERROR=false;
+function onCvLoad(){
+  if(typeof cv!=='undefined'&&cv.onRuntimeInitialized!==undefined){
+    cv.onRuntimeInitialized=function(){
+      CV_READY=true;
+      var h=document.getElementById('cvHint');
+      if(h){h.textContent='opencv.js ready \u2713';h.style.color='var(--Gr)';}
+      L('opencv.js loaded \u2713  ORB + RANSAC active','ok');
+    };
+  }else{CV_READY=true;var h=document.getElementById('cvHint');if(h){h.textContent='opencv.js ready \u2713';h.style.color='var(--Gr)';}}
+}
+function onCvError(){
+  CV_ERROR=true;
+  var h=document.getElementById('cvHint');
+  if(h){h.textContent='opencv.js failed \u2014 using NCC fallback';h.style.color='#F87171';}
+  L('opencv.js unavailable \u2014 NCC fallback active','w');
+}
+if(typeof cv!=='undefined')onCvLoad();
 
-// Normalised cross-correlation between patch A and a window in flat array B
-function ncc(pA,pW,pSz, B,Bw, bx,by){
-  var n=pSz*pSz,sumA=0,sumB=0;
-  for(var r=0;r<pSz;r++){for(var c=0;c<pSz;c++){sumA+=pA[r*pSz+c];sumB+=B[(by+r)*Bw+(bx+c)];}}
-  var mA=sumA/n,mB=sumB/n,num=0,dA=0,dB=0;
-  for(var r=0;r<pSz;r++){for(var c=0;c<pSz;c++){var a=pA[r*pSz+c]-mA,b=B[(by+r)*Bw+(bx+c)]-mB;num+=a*b;dA+=a*a;dB+=b*b;}}
-  return num/(Math.sqrt(dA*dB)+1e-8);
+/* ORB via opencv.js: detect + match in overlap zone only */
+function regionToGrayMat(bmp,sx,sy,sw,sh,dw,dh){
+  var oc=new OffscreenCanvas(dw,dh);oc.getContext('2d').drawImage(bmp,sx,sy,sw,sh,0,0,dw,dh);
+  var id=oc.getContext('2d').getImageData(0,0,dw,dh);
+  var rgba=cv.matFromImageData(id);var gray=new cv.Mat();
+  cv.cvtColor(rgba,gray,cv.COLOR_RGBA2GRAY);rgba.delete();return gray;
+}
+function orbMatch(gA,gB){
+  var orb=new cv.ORB(2000),noMask=new cv.Mat();
+  var kpA=new cv.KeyPointVector(),kpB=new cv.KeyPointVector();
+  var desA=new cv.Mat(),desB=new cv.Mat();
+  orb.detectAndCompute(gA,noMask,kpA,desA);
+  orb.detectAndCompute(gB,noMask,kpB,desB);
+  var good=[];
+  if(desA.rows>=4&&desB.rows>=4){
+    var bf=new cv.BFMatcher(cv.NORM_HAMMING,false);
+    var allM=new cv.DMatchVectorVector();
+    bf.knnMatch(desA,desB,allM,2);
+    for(var i=0;i<allM.size();i++){
+      var pr=allM.get(i);if(pr.size()<2)continue;
+      var m=pr.get(0),n2=pr.get(1);
+      if(m.distance<0.75*n2.distance)
+        good.push({ax:kpA.get(m.queryIdx).pt.x,ay:kpA.get(m.queryIdx).pt.y,
+                   bx:kpB.get(m.trainIdx).pt.x,by:kpB.get(m.trainIdx).pt.y});
+    }
+    [bf,allM].forEach(function(o){try{o.delete();}catch(e){}});
+  }
+  [orb,noMask,kpA,kpB,desA,desB].forEach(function(o){try{o.delete();}catch(e){}});
+  return good;
+}
+function homoFromMatches(good,scX,scY){
+  if(good.length<8)return{ok:false};
+  var p1=[],p2=[];
+  good.forEach(function(m){p1.push(m.ax);p1.push(m.ay);p2.push(m.bx);p2.push(m.by);});
+  var m1=cv.matFromArray(good.length,1,cv.CV_32FC2,p1);
+  var m2=cv.matFromArray(good.length,1,cv.CV_32FC2,p2);
+  var mask=new cv.Mat();
+  var H=cv.findHomography(m1,m2,cv.RANSAC,3.0,mask,2000,0.995);
+  var res={ok:false,dx:0,dy:0,angle_deg:0,inliers:0};
+  if(!H.empty()){
+    var d=H.data64F;
+    var inl=0;for(var i=0;i<mask.rows;i++)if(mask.data[i]>0)inl++;
+    res={ok:inl>=8,dx:d[2]*scX,dy:d[5]*scY,
+         angle_deg:Math.atan2(d[3],d[0])*180/Math.PI,inliers:inl};
+    H.delete();
+  }
+  [m1,m2,mask].forEach(function(o){try{o.delete();}catch(e){}});
+  return res;
 }
 
-// Extract grayscale float array with local contrast enhancement (for thermal)
-function extractGray(bmp,srcX,srcY,srcW,srcH,dstW,dstH){
-  var oc=new OffscreenCanvas(dstW,dstH);
-  oc.getContext('2d').drawImage(bmp,srcX,srcY,srcW,srcH,0,0,dstW,dstH);
-  var d=oc.getContext('2d').getImageData(0,0,dstW,dstH).data;
-  var g=new Float32Array(dstW*dstH);
-  var mn=0;
-  for(var k=0;k<dstW*dstH;k++){g[k]=0.299*d[k*4]+0.587*d[k*4+1]+0.114*d[k*4+2];mn+=g[k];}
-  mn/=g.length;
-  // CLAHE-style: saturate at ±2.5 std for contrast normalisation
-  var vr=0;for(var k=0;k<g.length;k++)vr+=(g[k]-mn)*(g[k]-mn);
+/* NCC fallback (used when opencv.js not loaded) */
+function ncc(pA,pSz,B,Bw,bx,by){
+  var n=pSz*pSz,sa=0,sb=0;
+  for(var r=0;r<pSz;r++)for(var c=0;c<pSz;c++){sa+=pA[r*pSz+c];sb+=B[(by+r)*Bw+(bx+c)];}
+  var ma=sa/n,mb=sb/n,num=0,da=0,db=0;
+  for(var r=0;r<pSz;r++)for(var c=0;c<pSz;c++){var a=pA[r*pSz+c]-ma,b=B[(by+r)*Bw+(bx+c)]-mb;num+=a*b;da+=a*a;db+=b*b;}
+  return num/(Math.sqrt(da*db)+1e-8);
+}
+function extractGray(bmp,sx,sy,sw,sh,dw,dh){
+  var oc=new OffscreenCanvas(dw,dh);oc.getContext('2d').drawImage(bmp,sx,sy,sw,sh,0,0,dw,dh);
+  var d=oc.getContext('2d').getImageData(0,0,dw,dh).data,g=new Float32Array(dw*dh),mn=0;
+  for(var k=0;k<dw*dh;k++){g[k]=0.299*d[k*4]+0.587*d[k*4+1]+0.114*d[k*4+2];mn+=g[k];}
+  mn/=g.length;var vr=0;for(var k=0;k<g.length;k++)vr+=(g[k]-mn)*(g[k]-mn);
   var sd=Math.sqrt(vr/g.length)||1;
   for(var k=0;k<g.length;k++)g[k]=Math.max(0,Math.min(255,(g[k]-mn)/sd*64+128));
   return g;
 }
-
-// Median of array
 function medV(a){var s=a.slice().sort(function(x,y){return x-y;});return s[Math.floor(s.length/2)];}
+function nccPair(ra,rb,ox0,ox1,oy0,oy1){
+  var T=160,P=10,N=16,SR=22,ow=ox1-ox0,oh=oy1-oy0;
+  function cg(rec,pw,ph){
+    var sx=rec.w/pw,sy=rec.h/ph;
+    var ic0=Math.max(0,Math.round((ox0-(rec.cx-pw/2))*sx)),ir0=Math.max(0,Math.round((oy0-(rec.cy-ph/2))*sy));
+    var ic1=Math.min(rec.w,Math.round((ox1-(rec.cx-pw/2))*sx)),ir1=Math.min(rec.h,Math.round((oy1-(rec.cy-ph/2))*sy));
+    if(ic1-ic0<16||ir1-ir0<16)return null;
+    return{g:extractGray(rec.bmp,ic0,ir0,ic1-ic0,ir1-ir0,T,T),scX:ow/T,scY:oh/T};
+  }
+  var cA=cg(ra,ra.pw,ra.ph),cB=cg(rb,rb.pw,rb.ph);if(!cA||!cB)return null;
+  var mg=P+SR+2;if(T<mg*2)return null;
+  var cands=[],seed=ra.cx*17+rb.cy*31;
+  function rng(){seed=(seed*1664525+1013904223)&0xFFFFFFFF;return((seed>>>16)&0xFFFF)/65535;}
+  for(var p=0;p<N;p++){
+    var px=Math.round(mg+rng()*(T-mg*2)),py=Math.round(mg+rng()*(T-mg*2));
+    var pat=new Float32Array(P*P);
+    for(var r=0;r<P;r++)for(var c=0;c<P;c++)pat[r*P+c]=cA.g[(py+r)*T+(px+c)];
+    var best=-1,bdx=0,bdy=0;
+    for(var dy=-SR;dy<=SR;dy++)for(var dx=-SR;dx<=SR;dx++){
+      var bx=px+dx,by=py+dy;if(bx<0||by<0||bx+P>T||by+P>T)continue;
+      var s=ncc(pat,P,cB.g,T,bx,by);if(s>best){best=s;bdx=dx;bdy=dy;}
+    }
+    if(best>0.35)cands.push({dx:bdx*cA.scX,dy:bdy*cA.scY});
+  }
+  if(cands.length<5)return null;
+  var mdx=medV(cands.map(function(c){return c.dx;})),mdy=medV(cands.map(function(c){return c.dy;}));
+  var inl=cands.filter(function(c){return Math.abs(c.dx-mdx)<=2.5&&Math.abs(c.dy-mdy)<=2.5;});
+  if(inl.length<5)return null;
+  return{ok:true,dx:inl.reduce(function(s,c){return s+c.dx;},0)/inl.length,
+         dy:inl.reduce(function(s,c){return s+c.dy;},0)/inl.length,inliers:inl.length,angle_deg:0};
+}
 
-/* ── STEP 4: NCC MULTI-PATCH RANSAC ALIGNMENT ── */
+/* ── STEP 4: ALIGNMENT ── */
 async function alignPairs(recs){
-  if(document.getElementById('alignMode').value==='gps'){L('  GPS-only mode','w');return recs;}
-  L('─── Step 4: NCC multi-patch RANSAC alignment ────','hd');
+  var mode=document.getElementById('alignMode').value;
+  if(mode==='gps'){L('  GPS-only mode','w');return recs;}
+  var useOrb=(mode==='orb')&&CV_READY&&!CV_ERROR;
+  if(mode==='orb'&&!CV_READY){L('  opencv.js not ready yet \u2014 NCC fallback','w');useOrb=false;}
+  L('─── Step 4: '+(useOrb?'ORB+RANSAC (opencv.js)':'NCC multi-patch')+'  ─────','hd');
 
-  // Compute flight axis via PCA for linear corridor constraint
+  // Flight axis PCA for linear corridor constraint
   var gpsR=recs.filter(function(r){return r.utm;});
   var mux=0,muy=0;gpsR.forEach(function(r){mux+=r.utm.x;muy+=r.utm.y;});
   mux/=gpsR.length||1;muy/=gpsR.length||1;
@@ -506,149 +602,62 @@ async function alignPairs(recs){
   gpsR.forEach(function(r){var dx=r.utm.x-mux,dy=r.utm.y-muy;c00+=dx*dx;c01+=dx*dy;c11+=dy*dy;});
   c00/=gpsR.length||1;c01/=gpsR.length||1;c11/=gpsR.length||1;
   var tr=c00+c11,det=c00*c11-c01*c01,lam=(tr+Math.sqrt(Math.max(0,tr*tr-4*det)))/2;
-  var fax=lam-c11,fay=c01,fl=Math.sqrt(fax*fax+fay*fay)||1;
-  fax/=fl;fay/=fl; // flight axis unit vector
-  var cax=-fay,cay=fax; // cross-track axis
+  var fax=lam-c11,fay=c01,fl=Math.sqrt(fax*fax+fay*fay)||1;fax/=fl;fay/=fl;
+  var cax=-fay,cay=fax;
 
-  var PATCH=10,NPATCH=16,SRCH=22;
-  var refined=0,rejected=0;
-
-  // cropOvlp helper — defined outside loop to avoid hoisting issues
-  var _ox0,_ox1,_oy0,_oy1; // set per-pair before calling
-  function cropOvlp(rec,pw2,ph2){
-    var sx=rec.w/pw2,sy=rec.h/ph2;
-    var ic0=Math.max(0,Math.round((_ox0-(rec.cx-pw2/2))*sx));
-    var ir0=Math.max(0,Math.round((_oy0-(rec.cy-ph2/2))*sy));
-    var ic1=Math.min(rec.w,Math.round((_ox1-(rec.cx-pw2/2))*sx));
-    var ir1=Math.min(rec.h,Math.round((_oy1-(rec.cy-ph2/2))*sy));
-    if(ic1-ic0<16||ir1-ir0<16)return null;
-    var TSIZE=Math.max(64,Math.min(160,Math.round(Math.max(_ox1-_ox0,_oy1-_oy0))));
-    return{g:extractGray(rec.bmp,ic0,ir0,ic1-ic0,ir1-ir0,TSIZE,TSIZE),W:TSIZE,H:TSIZE,
-           scX:(_ox1-_ox0)/TSIZE,scY:(_oy1-_oy0)/TSIZE};
-  }
-
+  var refined=0,rejected=0,THUMB=192;
   for(var i=0;i<recs.length-1;i++){
     if(S.cancelled)return recs;
-    if(i%4===0)P(22+12*(i/(recs.length-1)),'Aligning '+(i+1)+'/'+(recs.length-1));
-
+    if(i%3===0)P(22+12*(i/(recs.length-1)),'Aligning '+(i+1)+'/'+(recs.length-1));
     var ra=recs[i],rb=recs[i+1];
-    if(ra.skipAlign||rb.skipAlign){continue;}
-
-    // Estimated overlap in canvas pixels
     var ax0=ra.cx-ra.pw/2,ax1=ra.cx+ra.pw/2,ay0=ra.cy-ra.ph/2,ay1=ra.cy+ra.ph/2;
     var bx0=rb.cx-rb.pw/2,bx1=rb.cx+rb.pw/2,by0=rb.cy-rb.ph/2,by1=rb.cy+rb.ph/2;
     var ox0=Math.max(ax0,bx0),ox1=Math.min(ax1,bx1),oy0=Math.max(ay0,by0),oy1=Math.min(ay1,by1);
     var ow=ox1-ox0,oh=oy1-oy0;
-    if(ow<ra.pw*0.05||oh<ra.ph*0.05){continue;}// no overlap → skip
-
+    if(ow<ra.pw*0.04||oh<ra.ph*0.04)continue;
+    var result=null;
     try{
-      // Thumbnail size — keep it fast
-      var TSIZE=Math.min(160,Math.round(Math.max(ow,oh)*Math.min(ra.w,ra.h)/Math.max(ra.pw,ra.ph)));
-      TSIZE=Math.max(64,Math.min(160,TSIZE));
-
-      // Crop overlap region from each image to a normalised gray thumbnail
-      function cropOvlp(rec,pw2,ph2){
-        var sx=rec.w/pw2,sy=rec.h/ph2;
-        var ic0=Math.max(0,Math.round((ox0-(rec.cx-pw2/2))*sx));
-        var ir0=Math.max(0,Math.round((oy0-(rec.cy-ph2/2))*sy));
-        var ic1=Math.min(rec.w,Math.round((ox1-(rec.cx-pw2/2))*sx));
-        var ir1=Math.min(rec.h,Math.round((oy1-(rec.cy-ph2/2))*sy));
-        if(ic1-ic0<16||ir1-ir0<16)return null;
-        return{g:extractGray(rec.bmp,ic0,ir0,ic1-ic0,ir1-ir0,TSIZE,TSIZE),W:TSIZE,H:TSIZE,
-               scX:ow/TSIZE,scY:oh/TSIZE};
-      }
-
-      var cA=cropOvlp(ra,ra.pw,ra.ph);
-      var cB=cropOvlp(rb,rb.pw,rb.ph);
-      if(!cA||!cB){continue;}
-
-      var TW=cA.W,TH=cA.H;
-
-      // Sample NPATCH random patch centres from the INTERIOR of A's thumbnail
-      // (avoid edges so patch stays fully inside image)
-      var margin=PATCH+SRCH+2;
-      if(TW<margin*2||TH<margin*2){continue;}
-
-      var patches=[];
-      var seed=i*17+31;
-      function rng(){seed=(seed*1664525+1013904223)&0xFFFFFFFF;return((seed>>>16)&0xFFFF)/65535;}
-      for(var p=0;p<NPATCH;p++){
-        var px2=Math.round(margin+rng()*(TW-margin*2));
-        var py2=Math.round(margin+rng()*(TH-margin*2));
-        var patch=new Float32Array(PATCH*PATCH);
-        for(var r=0;r<PATCH;r++)for(var c=0;c<PATCH;c++)patch[r*PATCH+c]=cA.g[(py2+r)*TW+(px2+c)];
-        patches.push({px:px2,py:py2,pat:patch});
-      }
-
-      // For each patch: slide search window in B to find best NCC match
-      var candidates=[];
-      for(var p=0;p<patches.length;p++){
-        var px2=patches[p].px,py2=patches[p].py,pat=patches[p].pat;
-        var bestNCC=-1,bestDx=0,bestDy=0;
-        for(var dy2=-SRCH;dy2<=SRCH;dy2++){
-          for(var dx2=-SRCH;dx2<=SRCH;dx2++){
-            var bx2=px2+dx2,by2=py2+dy2;
-            if(bx2<0||by2<0||bx2+PATCH>TW||by2+PATCH>TH)continue;
-            var score=ncc(pat,PATCH,PATCH,cB.g,TW,bx2,by2);
-            if(score>bestNCC){bestNCC=score;bestDx=dx2;bestDy=dy2;}
+      if(useOrb){
+        function ovlpSrc(rec,pw,ph){
+          var sx=rec.w/pw,sy=rec.h/ph;
+          var ic0=Math.max(0,Math.round((ox0-(rec.cx-pw/2))*sx));
+          var ir0=Math.max(0,Math.round((oy0-(rec.cy-ph/2))*sy));
+          var ic1=Math.min(rec.w,Math.round((ox1-(rec.cx-pw/2))*sx));
+          var ir1=Math.min(rec.h,Math.round((oy1-(rec.cy-ph/2))*sy));
+          if(ic1-ic0<32||ir1-ir0<32)return null;
+          var sc=Math.min(1,THUMB/Math.max(ic1-ic0,ir1-ir0));
+          var tw=Math.max(32,Math.round((ic1-ic0)*sc)),th=Math.max(32,Math.round((ir1-ir0)*sc));
+          return{ic0:ic0,ir0:ir0,iw:ic1-ic0,ih:ir1-ir0,tw:tw,th:th,scX:ow/tw,scY:oh/th};
+        }
+        var sA=ovlpSrc(ra,ra.pw,ra.ph),sB=ovlpSrc(rb,rb.pw,rb.ph);
+        if(sA&&sB){
+          var gA=regionToGrayMat(ra.bmp,sA.ic0,sA.ir0,sA.iw,sA.ih,sA.tw,sA.th);
+          var gB=regionToGrayMat(rb.bmp,sB.ic0,sB.ir0,sB.iw,sB.ih,sB.tw,sB.th);
+          var good=orbMatch(gA,gB);gA.delete();gB.delete();
+          if(good.length>=8){
+            result=homoFromMatches(good,(sA.scX+sB.scX)/2,(sA.scY+sB.scY)/2);
+            if(result.ok)L('  ['+i+'\u2192'+(i+1)+'] ORB \u2713 matches='+good.length+' inliers='+result.inliers+' \u0398='+result.angle_deg.toFixed(1)+'\u00b0','dm');
           }
         }
-        if(bestNCC>0.35)candidates.push({dx:bestDx*cA.scX,dy:bestDy*cA.scY,ncc:bestNCC});
+      }else{
+        result=nccPair(ra,rb,ox0,ox1,oy0,oy1);
+        if(result&&result.ok)L('  ['+i+'\u2192'+(i+1)+'] NCC \u2713 inliers='+result.inliers,'dm');
       }
+    }catch(e){L('  WARN pair '+i+': '+e.message,'dm');result=null;}
 
-      if(candidates.length<5){
-        L('  ['+i+'\u2192'+(i+1)+'] GPS fallback ('+candidates.length+' matches)','dm');
-        continue;
-      }
-
-      // RANSAC: find consensus (dx,dy) within 2.5px of median
-      var dxs=candidates.map(function(c){return c.dx;}),dys=candidates.map(function(c){return c.dy;});
-      var medDx=medV(dxs),medDy=medV(dys);
-      var inliers=candidates.filter(function(c){return Math.abs(c.dx-medDx)<=2.5&&Math.abs(c.dy-medDy)<=2.5;});
-
-      if(inliers.length<6){
-        L('  ['+i+'\u2192'+(i+1)+'] GPS fallback (inliers='+inliers.length+')','dm');
-        rejected++;continue;
-      }
-
-      // Refined mean of inliers
-      var rdx=inliers.reduce(function(s,c){return s+c.dx;},0)/inliers.length;
-      var rdy=inliers.reduce(function(s,c){return s+c.dy;},0)/inliers.length;
-      var avgNCC=inliers.reduce(function(s,c){return s+c.ncc;},0)/inliers.length;
-
-      // Scale thumb-pixel offset → canvas-pixel correction
+    if(result&&result.ok){
       var gps_dx=rb.cx-ra.cx,gps_dy=rb.cy-ra.cy;
-      var corrX=rdx-gps_dx,corrY=rdy-gps_dy;
-
-      // ── LINEAR CORRIDOR CONSTRAINT ──
-      // Decompose correction into along-track and cross-track components
-      var corrAlong=corrX*fax+corrY*fay;
-      var corrCross=corrX*cax+corrY*cay;
-      var maxCross=ra.pw*0.12; // reject if cross-track correction > 12% of width
-      var maxAlong=ra.pw*0.40; // reject if along-track is wildly off
-
-      if(Math.abs(corrCross)>maxCross||Math.abs(corrAlong)>maxAlong){
-        L('  ['+i+'\u2192'+(i+1)+'] Linear reject (cross='+corrCross.toFixed(1)+' along='+corrAlong.toFixed(1)+')','dm');
-        rejected++;continue;
-      }
-
-      // Apply only the cross-track correction (along-track comes from GPS)
-      // This enforces the linear corridor: GPS handles along-axis, NCC handles cross-axis
-      var finalCorrX=corrCross*cax;
-      var finalCorrY=corrCross*cay;
-
-      rb.cx+=finalCorrX;rb.cy+=finalCorrY;
-      refined++;
-      L('  ['+i+'\u2192'+(i+1)+'] \u2713 NCC='+avgNCC.toFixed(2)+' inliers='+inliers.length+
-        ' corr=('+corrX.toFixed(1)+','+corrY.toFixed(1)+')','dm');
-
-    }catch(e){L('  WARN pair '+i+': '+e.message,'dm');}
-    if(i%3===0)await slp(0);
+      var cX=result.dx-gps_dx,cY=result.dy-gps_dy;
+      if(Math.abs(result.angle_deg)>12){rejected++;continue;}
+      var cc=cX*cax+cY*cay,ca=cX*fax+cY*fay;
+      if(Math.abs(cc)>ra.pw*0.12||Math.abs(ca)>ra.pw*0.40){rejected++;continue;}
+      rb.cx+=cc*cax;rb.cy+=cc*cay;refined++;
+    }
+    if(i%2===0)await slp(0);
   }
-  L('  NCC aligned: '+refined+'  GPS fallback: '+(recs.length-1-refined-rejected)+'  Rejected: '+rejected);
+  L('  Aligned='+refined+'  Rejected='+rejected+'  GPS='+(recs.length-1-refined-rejected));
   return recs;
 }
-
 /* ── STEP 5: LINEAR CONSTRAINT + CROSS-TRACK DRIFT GUARD ── */
 function enforceLinear(recs){
   L('─── Step 5: Linear constraint + drift guard ──────','hd');
@@ -960,7 +969,7 @@ async function run(){
   var blendPx=parseInt(document.getElementById('blpx').value)||30;
   var imgTypeSel=document.getElementById('imgType').value;
 
-  L('SKY TERRAEYE — EYE v6 (NCC RANSAC · hard-seam)','hd');L(new Date().toLocaleString(),'dm');
+  L('SKY TERRAEYE — EYE v7 (opencv.js ORB)','hd');L(new Date().toLocaleString(),'dm');
 
   try{
     P(2,'Reading EXIF');
