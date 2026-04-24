@@ -510,8 +510,22 @@ async function alignPairs(recs){
   fax/=fl;fay/=fl; // flight axis unit vector
   var cax=-fay,cay=fax; // cross-track axis
 
-  var PATCH=10,NPATCH=16,SRCH=22; // 10x10 patches, 16 samples, ±22px search
-  var refined=0,rejected=0,badSkip=0;
+  var PATCH=10,NPATCH=16,SRCH=22;
+  var refined=0,rejected=0;
+
+  // cropOvlp helper — defined outside loop to avoid hoisting issues
+  var _ox0,_ox1,_oy0,_oy1; // set per-pair before calling
+  function cropOvlp(rec,pw2,ph2){
+    var sx=rec.w/pw2,sy=rec.h/ph2;
+    var ic0=Math.max(0,Math.round((_ox0-(rec.cx-pw2/2))*sx));
+    var ir0=Math.max(0,Math.round((_oy0-(rec.cy-ph2/2))*sy));
+    var ic1=Math.min(rec.w,Math.round((_ox1-(rec.cx-pw2/2))*sx));
+    var ir1=Math.min(rec.h,Math.round((_oy1-(rec.cy-ph2/2))*sy));
+    if(ic1-ic0<16||ir1-ir0<16)return null;
+    var TSIZE=Math.max(64,Math.min(160,Math.round(Math.max(_ox1-_ox0,_oy1-_oy0))));
+    return{g:extractGray(rec.bmp,ic0,ir0,ic1-ic0,ir1-ir0,TSIZE,TSIZE),W:TSIZE,H:TSIZE,
+           scX:(_ox1-_ox0)/TSIZE,scY:(_oy1-_oy0)/TSIZE};
+  }
 
   for(var i=0;i<recs.length-1;i++){
     if(S.cancelled)return recs;
@@ -764,6 +778,33 @@ async function rgbGain(recs){
   var cals=recs.map(function(_,i){return{r:buildLUT(rH[i],rRef),g:buildLUT(gH[i],gRef),b:buildLUT(bH[i],bRef),isLUT:true};});
   L('  RGB histogram LUTs built for '+recs.length+' images');
   return cals;
+}
+
+/* buildImg — lightweight helper for live preview tiles */
+function buildImg(acc,wt,W,H,stretch){
+  var out=new Uint8ClampedArray(W*H*4);
+  var lumas=[],lo=0,hi=255,range=255;
+  if(stretch){
+    for(var i=0;i<W*H;i++)if(wt[i]>0)lumas.push(acc[i*3]/wt[i]);
+    lumas.sort(function(a,b){return a-b;});
+    if(lumas.length>100){lo=lumas[Math.floor(lumas.length*0.02)];hi=lumas[Math.floor(lumas.length*0.98)];range=Math.max(hi-lo,1);}
+  }
+  var sc=255/range,bias=-lo*255/range;
+  for(var i=0;i<W*H;i++){
+    if(wt[i]>0){
+      if(stretch){
+        out[i*4  ]=Math.max(0,Math.min(255,acc[i*3  ]/wt[i]*sc+bias));
+        out[i*4+1]=Math.max(0,Math.min(255,acc[i*3+1]/wt[i]*sc+bias));
+        out[i*4+2]=Math.max(0,Math.min(255,acc[i*3+2]/wt[i]*sc+bias));
+      }else{
+        out[i*4  ]=Math.min(255,acc[i*3  ]/wt[i]);
+        out[i*4+1]=Math.min(255,acc[i*3+1]/wt[i]);
+        out[i*4+2]=Math.min(255,acc[i*3+2]/wt[i]);
+      }
+      out[i*4+3]=255;
+    }
+  }
+  return new ImageData(out,W,H);
 }
 
 /* ── STEP 7: COMPOSITE — HARD VORONOI OWNERSHIP SEAM ──
