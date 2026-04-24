@@ -13,19 +13,13 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --B:#1FA8D9;--B2:#1482AA;--B3:#0D608A;
-  --Bdim:rgba(31,168,217,.1);--Bl:rgba(31,168,217,.2);
-  --G:#F5BE18;
-  --D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;
-  --T:#D0E8F5;--M:#5A839E;--Dm:#243D52;
-  --W:#fff;--Gr:#22C55E;
-  --r:12px;--e:.26s cubic-bezier(.4,0,.2,1);
-  --mono:'Oxanium',monospace;
+  --Bdim:rgba(31,168,217,.09);--Bl:rgba(31,168,217,.18);
+  --G:#F5BE18;--D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;
+  --T:#D0E8F5;--M:#5A839E;--Dm:#243D52;--W:#fff;--Gr:#22C55E;
+  --e:.24s cubic-bezier(.4,0,.2,1);--mono:'Oxanium',monospace;
 }
 html,body{height:100%;overflow:hidden}
 body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--T)}
-a{color:inherit;text-decoration:none}
-
-/* NAV */
 .uae{height:4px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
 .nav{height:58px;padding:0 22px;display:flex;align-items:center;gap:12px;background:rgba(4,13,22,.97);backdrop-filter:blur(24px);border-bottom:1px solid rgba(31,168,217,.1);flex-shrink:0}
 .logo{display:flex;align-items:center;gap:9px}
@@ -40,38 +34,27 @@ a{color:inherit;text-decoration:none}
 .uav{width:24px;height:24px;border-radius:50%;background:var(--B);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff}
 .sout{font-size:11px;color:var(--M);cursor:pointer;padding:3px 7px;border-radius:5px;transition:all .18s}
 .sout:hover{color:var(--T);background:rgba(255,255,255,.05)}
-
-/* BROWSER BAR */
 .bbar{height:30px;padding:0 22px;display:flex;align-items:center;gap:8px;background:rgba(31,168,217,.04);border-bottom:1px solid rgba(31,168,217,.08);flex-shrink:0;font-size:11px;color:var(--M)}
 .bdot{width:6px;height:6px;border-radius:50%;background:var(--Gr);box-shadow:0 0 5px var(--Gr);flex-shrink:0;animation:gp 2s ease infinite}
 @keyframes gp{0%,100%{opacity:1}50%{opacity:.3}}
 .bbar-r{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--Dm);letter-spacing:.8px}
-
-/* SHELL */
 .shell{display:grid;grid-template-columns:290px 1fr 320px;height:calc(100vh - 92px)}
-
-/* ══ LEFT SIDEBAR ══ */
+/* SIDEBAR */
 .side{background:var(--D2);border-right:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column;overflow:hidden}
-.side-body{flex:1;overflow-y:auto;padding:13px;display:flex;flex-direction:column;gap:11px}
+.side-body{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
 .side-body::-webkit-scrollbar{width:2px}
 .side-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.07)}
-
-/* Cards */
-.card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:13px;overflow:hidden}
-.ch{padding:8px 12px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.05);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--B);display:flex;align-items:center;gap:7px}
+.card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden}
+.ch{padding:7px 12px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.05);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--B);display:flex;align-items:center;gap:7px}
 .cn{width:16px;height:16px;border-radius:3px;background:var(--B);color:#fff;font-size:8px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.cb{padding:12px;display:flex;flex-direction:column;gap:9px}
-
-/* Drop zone */
-.dz{border:2px dashed rgba(31,168,217,.18);border-radius:10px;padding:20px 14px;text-align:center;cursor:pointer;transition:all .2s;background:var(--Bdim)}
+.cb{padding:11px;display:flex;flex-direction:column;gap:8px}
+.dz{border:2px dashed rgba(31,168,217,.18);border-radius:10px;padding:18px 14px;text-align:center;cursor:pointer;transition:all .2s;background:var(--Bdim)}
 .dz:hover,.dz.drag{border-color:var(--B);background:rgba(31,168,217,.08)}
-.dz-ic{width:34px;height:34px;margin:0 auto 9px;background:rgba(31,168,217,.1);border:1px solid var(--Bl);border-radius:8px;display:flex;align-items:center;justify-content:center}
-.dz-ic svg{width:16px;height:16px;color:var(--B)}
+.dz-ic{width:32px;height:32px;margin:0 auto 8px;background:rgba(31,168,217,.1);border:1px solid var(--Bl);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.dz-ic svg{width:15px;height:15px;color:var(--B)}
 .dz-t{font-size:12px;font-weight:600;color:var(--T);margin-bottom:2px}
 .dz-s{font-family:var(--mono);font-size:9px;color:var(--M)}
-.fbadge{display:none;align-items:center;gap:5px;margin-top:8px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:var(--Gr);font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 9px;border-radius:4px}
-
-/* Fields */
+.fbadge{display:none;align-items:center;gap:5px;margin-top:7px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:var(--Gr);font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 9px;border-radius:4px}
 .fl label{display:block;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--M);margin-bottom:4px}
 .fl input,.fl select{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:7px;color:var(--T);font-family:var(--mono);font-size:11px;padding:7px 10px;outline:none;transition:var(--e)}
 .fl input:focus,.fl select:focus{border-color:var(--B);background:var(--Bdim);box-shadow:0 0 0 2px rgba(31,168,217,.08)}
@@ -79,74 +62,61 @@ a{color:inherit;text-decoration:none}
 .fl select option{background:var(--D3)}
 .fl .hint{font-size:9px;color:var(--Dm);margin-top:2px;font-family:var(--mono)}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-
-/* Buttons */
 .btnrun{width:100%;padding:12px;background:linear-gradient(135deg,var(--B3),var(--B));color:#fff;border:none;border-radius:9px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1.5px;cursor:pointer;transition:var(--e);position:relative;overflow:hidden}
 .btnrun::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.14);opacity:0;transition:opacity .2s}
 .btnrun:hover:not(:disabled)::after{opacity:1}
 .btnrun:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 22px rgba(31,168,217,.35)}
 .btnrun:disabled{opacity:.3;cursor:not-allowed;transform:none}
 .brow{display:flex;gap:6px}
-.bs{flex:1;padding:8px;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--M);border-radius:7px;font-family:var(--mono);font-size:9.5px;font-weight:700;cursor:pointer;transition:var(--e)}
+.bs{flex:1;padding:8px;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--M);border-radius:7px;font-family:var(--mono);font-size:9px;font-weight:700;cursor:pointer;transition:var(--e)}
 .bs:hover:not(:disabled){border-color:var(--B);color:var(--B)}
 .bs.D:hover{border-color:#F87171;color:#F87171}
 .bs:disabled{opacity:.28;cursor:not-allowed}
 .bs.dl{background:rgba(34,197,94,.07);border-color:rgba(34,197,94,.22);color:var(--Gr)}
-.bs.dl:hover{background:rgba(34,197,94,.14)!important;border-color:var(--Gr)!important;color:var(--Gr)!important}
-
-/* Infobox */
-.ib{padding:6px 10px;border-radius:7px;font-family:var(--mono);font-size:9.5px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);color:var(--Dm);display:flex;align-items:center;gap:6px;min-height:28px}
+.bs.dl:hover{background:rgba(34,197,94,.14)!important;border-color:var(--Gr)!important}
+.ib{padding:6px 10px;border-radius:7px;font-family:var(--mono);font-size:9px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);color:var(--Dm);display:flex;align-items:center;gap:6px;min-height:28px}
 .ib.ok{color:var(--Gr);border-color:rgba(34,197,94,.2);background:rgba(34,197,94,.04)}
 .ib.er{color:#FCA5A5;border-color:rgba(239,68,68,.2);background:rgba(239,68,68,.04)}
-
-/* ══ PREVIEW ══ */
+.ib.warn{color:var(--G);border-color:rgba(245,190,24,.2);background:rgba(245,190,24,.04)}
+/* PREVIEW */
 .prev{position:relative;background:#030B14;display:flex;flex-direction:column;overflow:hidden}
 .prev-hdr{flex-shrink:0;padding:7px 14px;background:rgba(3,11,20,.9);border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--Dm);text-transform:uppercase}
 .prev-hdr-r{margin-left:auto;display:flex;gap:5px}
 .pvb{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:5px;color:var(--M);font-family:var(--mono);font-size:9px;font-weight:700;padding:4px 8px;cursor:pointer;transition:var(--e)}
 .pvb:hover{border-color:var(--B);color:var(--B)}
 .pvb svg{width:9px;height:9px}
-
 #pc{position:absolute;inset:0;cursor:grab;image-rendering:pixelated}
 #pc:active{cursor:grabbing}
 #lc{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s}
 #lc.on{opacity:1}
-
 .pempty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;opacity:.18;pointer-events:none;transition:opacity .4s}
 .pempty.gone{opacity:0}
 .pempty svg{width:52px;height:52px;color:var(--M)}
-.pempty h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--M);letter-spacing:.5px}
+.pempty h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--M)}
 .pempty p{font-family:var(--mono);font-size:9px;color:var(--M);text-align:center}
-
 .pstats{position:absolute;bottom:10px;left:10px;display:flex;gap:5px;flex-wrap:wrap;z-index:6;pointer-events:none}
 .pst{background:rgba(3,11,20,.88);backdrop-filter:blur(8px);border:1px solid rgba(31,168,217,.12);border-radius:4px;padding:4px 8px;font-family:var(--mono);font-size:8.5px;color:var(--M)}
 .pst b{color:var(--B)}
-
 .ppbar{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.05);z-index:10;pointer-events:none}
 .ppfill{height:100%;background:linear-gradient(90deg,var(--B3),var(--B));width:0%;transition:width .32s;box-shadow:0 0 7px var(--B)}
-
-/* ══ RIGHT LOG ══ */
+/* LOG */
 .rp{border-left:1px solid rgba(255,255,255,.05);background:var(--D2);display:flex;flex-direction:column;overflow:hidden}
 .rp-hdr{flex-shrink:0;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.05);background:var(--D3);display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--Dm);text-transform:uppercase}
-.rp-hdr button{margin-left:auto;font-size:9px;padding:2px 7px;border:1px solid rgba(255,255,255,.07);background:transparent;color:var(--Dm);border-radius:3px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:color .18s}
+.rp-hdr button{margin-left:auto;font-size:9px;padding:2px 7px;border:1px solid rgba(255,255,255,.07);background:transparent;color:var(--Dm);border-radius:3px;cursor:pointer;transition:color .18s}
 .rp-hdr button:hover{color:var(--M)}
-
-.pstrip{flex-shrink:0;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.05);background:var(--D3)}
+.pstrip{flex-shrink:0;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05);background:var(--D3)}
 .prow{display:flex;align-items:baseline;gap:9px;margin-bottom:7px}
 .ppct{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--B);line-height:1}
 .plbl{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--M);flex:1}
 .ptr{height:2px;background:rgba(255,255,255,.07);border-radius:1px;overflow:hidden}
 .ptf{height:100%;background:linear-gradient(90deg,var(--B3),var(--B));border-radius:1px;width:0%;transition:width .32s;box-shadow:0 0 6px var(--B)}
 .pmeta{display:flex;justify-content:space-between;margin-top:4px;font-family:var(--mono);font-size:8.5px;color:var(--Dm)}
-
 .dbanner{display:none;margin:7px 12px;padding:9px 12px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:7px;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--Gr);flex-shrink:0}
 .dbanner.on{display:flex}
 .dbanner svg{width:13px;height:13px;flex-shrink:0}
-
-.dlsec{display:none;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0}
+.dlsec{display:none;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0}
 .dlsec.on{display:block}
 .dlrow{display:flex;gap:6px}
-
 #log{flex:1;overflow-y:auto;padding:9px 14px;font-family:var(--mono);font-size:9.5px;line-height:1.9;color:#243E50;background:var(--D)}
 #log::-webkit-scrollbar{width:2px}
 #log::-webkit-scrollbar-thumb{background:rgba(255,255,255,.07)}
@@ -156,7 +126,6 @@ a{color:inherit;text-decoration:none}
 </style>
 </head>
 <body>
-
 <script>
 (function(){
   var s=null;try{s=JSON.parse(localStorage.getItem('ste_session')||'null')}catch(e){}
@@ -168,7 +137,6 @@ a{color:inherit;text-decoration:none}
   location.hash='';
 })();
 </script>
-
 <div class="uae"></div>
 <nav class="nav">
   <a class="logo" href="index.html"><img src="assets/img/logo.png" alt=""><div class="logt"><b>SKY</b> TERRAEYE</div></a>
@@ -181,13 +149,11 @@ a{color:inherit;text-decoration:none}
 </nav>
 <div class="bbar">
   <div class="bdot"></div>
-  In-browser processing &mdash; all computation runs locally &middot; zero uploads &middot; zero server
-  <span class="bbar-r">Eye v4 &middot; linear corridor</span>
+  In-browser &middot; zero uploads &middot; zero server &middot; RGB &amp; Thermal
+  <span class="bbar-r">Eye v5 &middot; thermal-aware</span>
 </div>
 
 <div class="shell">
-
-  <!-- ══ SIDEBAR ══ -->
   <div class="side">
     <div class="side-body">
 
@@ -197,7 +163,7 @@ a{color:inherit;text-decoration:none}
           <div class="dz" id="dz" onclick="document.getElementById('fi').click()">
             <div class="dz-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
             <div class="dz-t">Drop Drone Images</div>
-            <div class="dz-s">JPG &bull; TIFF &bull; GPS EXIF &bull; DJI &bull; Skydio</div>
+            <div class="dz-s">JPG &bull; TIFF &bull; GPS EXIF &bull; DJI &bull; Thermal</div>
             <div class="fbadge" id="fbadge">0 loaded</div>
           </div>
           <input type="file" id="fi" multiple accept=".jpg,.jpeg,.tif,.tiff,.JPG,.JPEG,.TIF,.TIFF">
@@ -209,8 +175,8 @@ a{color:inherit;text-decoration:none}
         <div class="ch"><div class="cn">2</div>Camera</div>
         <div class="cb">
           <div class="g2">
-            <div class="fl"><label>HFOV (°)</label><input type="number" id="hfov" placeholder="Auto" min="20" max="160" step="0.1"><div class="hint">blank=auto</div></div>
-            <div class="fl"><label>GSD (m/px)</label><input type="number" id="gsd" placeholder="Auto" min="0.005" max="5" step="0.001"></div>
+            <div class="fl"><label>HFOV (°)</label><input type="number" id="hfov" placeholder="Auto" min="20" max="160" step="0.1"><div class="hint">blank=auto-detect</div></div>
+            <div class="fl"><label>GSD (m/px)</label><input type="number" id="gsd" placeholder="Auto" min="0.001" max="5" step="0.001"></div>
           </div>
           <div class="g2">
             <div class="fl"><label>Footprint ×</label><input type="number" id="fpsc" value="1.0" min="0.3" max="3" step="0.05"></div>
@@ -223,24 +189,24 @@ a{color:inherit;text-decoration:none}
         <div class="ch"><div class="cn">3</div>Stitching</div>
         <div class="cb">
           <div class="fl">
-            <label>Blend Width (px)</label>
-            <input type="number" id="blpx" value="80" min="10" max="400" step="10">
-            <div class="hint">Feather edge width — larger = smoother seams</div>
+            <label>Mode</label>
+            <select id="imgType">
+              <option value="auto" selected>Auto-detect (RGB / Thermal)</option>
+              <option value="rgb">Force RGB</option>
+              <option value="thermal">Force Thermal</option>
+            </select>
+            <div class="hint">Thermal mode fixes per-frame auto-normalization</div>
+          </div>
+          <div class="fl">
+            <label>Blend Seam (px)</label>
+            <input type="number" id="blpx" value="30" min="2" max="200" step="5">
+            <div class="hint">Narrow = sharper seams. Wide = smoother transitions.</div>
           </div>
           <div class="fl">
             <label>Alignment</label>
             <select id="alignMode">
-              <option value="phase" selected>Phase correlation (best)</option>
+              <option value="phase" selected>Phase correlation (accurate)</option>
               <option value="gps">GPS only (fast)</option>
-            </select>
-            <div class="hint">Phase uses FFT cross-correlation per pair</div>
-          </div>
-          <div class="fl">
-            <label>Blend Mode</label>
-            <select id="blendMode">
-              <option value="voronoi" selected>Voronoi distance (best)</option>
-              <option value="feather">Edge feather</option>
-              <option value="avg">Weighted average</option>
             </select>
           </div>
         </div>
@@ -265,14 +231,13 @@ a{color:inherit;text-decoration:none}
             <button class="bs dl" onclick="dlPGW()">.pgw</button>
           </div>
           <div class="ib ok" id="dlInfo">Ready</div>
-          <div class="fl hint">PNG + .pgw = georeferenced for QGIS</div>
         </div>
       </div>
 
     </div>
   </div>
 
-  <!-- ══ PREVIEW ══ -->
+  <!-- PREVIEW -->
   <div class="prev">
     <div class="prev-hdr">
       <svg style="width:9px;height:9px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -288,18 +253,19 @@ a{color:inherit;text-decoration:none}
     <div class="pempty" id="pempty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
       <h3>Orthomosaic Preview</h3>
-      <p>Drop images &rarr; Run Orthomosaic<br>Preview updates live while stitching</p>
+      <p>Drop images &rarr; Run Orthomosaic<br>Preview updates live tile by tile</p>
     </div>
     <div class="pstats" id="pstats" style="display:none">
       <div class="pst">Size: <b id="stSz">—</b></div>
       <div class="pst">Images: <b id="stN">—</b></div>
       <div class="pst">Coverage: <b id="stCov">—</b></div>
       <div class="pst">GSD: <b id="stGsd">—</b></div>
+      <div class="pst" id="stType">RGB</div>
     </div>
     <div class="ppbar"><div class="ppfill" id="ppfill"></div></div>
   </div>
 
-  <!-- ══ LOG ══ -->
+  <!-- LOG -->
   <div class="rp">
     <div class="rp-hdr">
       <svg style="width:9px;height:9px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
@@ -312,496 +278,348 @@ a{color:inherit;text-decoration:none}
       <div class="pmeta"><span id="pstep">Waiting</span><span id="ptime"></span></div>
     </div>
     <div class="dbanner" id="dbanner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span id="dmsg">Done</span></div>
-    <div class="dlsec" id="dlsec">
-      <div class="dlrow">
-        <button class="bs dl" onclick="dlPNG()">PNG</button>
-        <button class="bs dl" onclick="dlPGW()">.pgw world</button>
-      </div>
-    </div>
+    <div class="dlsec" id="dlsec"><div class="dlrow"><button class="bs dl" onclick="dlPNG()">PNG</button><button class="bs dl" onclick="dlPGW()">.pgw world</button></div></div>
     <div id="log">
-      <div class="ll dm">// Sky TerraEye Eye v4 — linear corridor stitcher</div>
-      <div class="ll dm">// Drop images &rarr; configure &rarr; Run Orthomosaic</div>
-      <div class="ll dm">// Runs entirely in this browser tab — zero uploads</div>
+      <div class="ll dm">// Sky TerraEye Eye v5 — thermal-aware stitcher</div>
+      <div class="ll dm">// Fixes: per-frame thermal normalization, blur, banding</div>
+      <div class="ll dm">// Drop images &rarr; Run Orthomosaic</div>
     </div>
   </div>
 </div>
 
 <script>
 'use strict';
-
-/* ════════════════════════════════════════════════════
-   AUTH
-════════════════════════════════════════════════════ */
+/* ── AUTH ── */
 (function(){
-  var s=window.__S; if(!s) return;
+  var s=window.__S;if(!s)return;
   var av=document.getElementById('uav'),un=document.getElementById('uname');
-  if(av) av.textContent=(s.name||s.email||'?')[0].toUpperCase();
-  if(un) un.textContent=s.name||s.email;
+  if(av)av.textContent=(s.name||s.email||'?')[0].toUpperCase();
+  if(un)un.textContent=s.name||s.email;
 })();
 function signOut(){localStorage.removeItem('ste_session');window.location.href='eye.html';}
 
-/* ════════════════════════════════════════════════════
-   STATE
-════════════════════════════════════════════════════ */
-var S={files:[],recs:[],cancelled:false,running:false,result:null,wf:null,t0:0};
+/* ── STATE ── */
+var S={files:[],cancelled:false,running:false,result:null,wf:null,t0:0};
 
-/* ════════════════════════════════════════════════════
-   UI
-════════════════════════════════════════════════════ */
-function L(msg,cls){
-  var el=document.getElementById('log');
-  var d=document.createElement('div');
-  d.className='ll'+(cls?' '+cls:'');
-  d.textContent=msg; el.appendChild(d); el.scrollTop=el.scrollHeight;
-}
+/* ── UI HELPERS ── */
+function L(m,c){var el=document.getElementById('log'),d=document.createElement('div');d.className='ll'+(c?' '+c:'');d.textContent=m;el.appendChild(d);el.scrollTop=el.scrollHeight;}
 function P(pct,step){
   var p=Math.max(0,Math.min(100,pct));
   document.getElementById('ppct').textContent=Math.round(p)+'%';
   document.getElementById('ptf').style.width=p+'%';
   document.getElementById('ppfill').style.width=p+'%';
-  if(step){document.getElementById('pstep').textContent=step;document.getElementById('plbl').textContent=step.toUpperCase()}
-  if(S.t0) document.getElementById('ptime').textContent=((Date.now()-S.t0)/1000).toFixed(1)+'s';
+  if(step){document.getElementById('pstep').textContent=step;document.getElementById('plbl').textContent=step.substring(0,20).toUpperCase();}
+  if(S.t0)document.getElementById('ptime').textContent=((Date.now()-S.t0)/1000).toFixed(1)+'s';
 }
-function slp(ms){return new Promise(function(r){setTimeout(r,ms)})}
+function slp(ms){return new Promise(function(r){setTimeout(r,ms);})}
+function setSt(t,c){var e=document.getElementById('imgSt');e.textContent=t;e.className='ib'+(c?' '+c:'');}
 
-/* ════════════════════════════════════════════════════
-   PREVIEW PAN / ZOOM
-════════════════════════════════════════════════════ */
+/* ── PREVIEW PAN/ZOOM ── */
 var pc=document.getElementById('pc'),pctx=pc.getContext('2d');
 var lc=document.getElementById('lc'),lctx=lc.getContext('2d');
 var PV={s:1,ox:0,oy:0,drag:false,lx:0,ly:0,bmp:null};
+function pvR(){var w=pc.parentElement;pc.width=w.clientWidth;pc.height=w.clientHeight;lc.width=w.clientWidth;lc.height=w.clientHeight;if(PV.bmp)pvD();}
+function pvD(){if(!PV.bmp)return;pctx.clearRect(0,0,pc.width,pc.height);pctx.save();pctx.translate(PV.ox,PV.oy);pctx.scale(PV.s,PV.s);pctx.drawImage(PV.bmp,0,0);pctx.restore();}
+function pvFit(){if(!PV.bmp)return;var s=Math.min(pc.width/PV.bmp.width,pc.height/PV.bmp.height)*0.94;PV.s=s;PV.ox=(pc.width-PV.bmp.width*s)/2;PV.oy=(pc.height-PV.bmp.height*s)/2;pvD();}
+function pvZI(){PV.s=Math.min(PV.s*1.3,30);pvD();}
+function pvZO(){PV.s=Math.max(PV.s/1.3,0.02);pvD();}
+pc.addEventListener('wheel',function(e){e.preventDefault();var r=pc.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,f=e.deltaY<0?1.12:1/1.12,ns=Math.max(0.02,Math.min(30,PV.s*f));PV.ox=mx-(mx-PV.ox)*ns/PV.s;PV.oy=my-(my-PV.oy)*ns/PV.s;PV.s=ns;pvD();},{passive:false});
+pc.addEventListener('mousedown',function(e){PV.drag=true;PV.lx=e.clientX;PV.ly=e.clientY;});
+window.addEventListener('mousemove',function(e){if(!PV.drag)return;PV.ox+=e.clientX-PV.lx;PV.oy+=e.clientY-PV.ly;PV.lx=e.clientX;PV.ly=e.clientY;pvD();});
+window.addEventListener('mouseup',function(){PV.drag=false;});
+window.addEventListener('resize',pvR);
+pvR();
 
-function pvResize(){
-  var w=pc.parentElement;
-  pc.width=w.clientWidth; pc.height=w.clientHeight;
-  lc.width=w.clientWidth; lc.height=w.clientHeight;
-  if(PV.bmp) pvDraw();
-}
-function pvDraw(){
-  if(!PV.bmp) return;
-  pctx.clearRect(0,0,pc.width,pc.height);
-  pctx.save(); pctx.translate(PV.ox,PV.oy); pctx.scale(PV.s,PV.s);
-  pctx.drawImage(PV.bmp,0,0); pctx.restore();
-}
-function pvFit(){
-  if(!PV.bmp) return;
-  var iw=PV.bmp.width,ih=PV.bmp.height;
-  var sc=Math.min(pc.width/iw,pc.height/ih)*0.94;
-  PV.s=sc; PV.ox=(pc.width-iw*sc)/2; PV.oy=(pc.height-ih*sc)/2; pvDraw();
-}
-function pvZI(){PV.s=Math.min(PV.s*1.3,30);pvDraw()}
-function pvZO(){PV.s=Math.max(PV.s/1.3,0.02);pvDraw()}
-pc.addEventListener('wheel',function(e){
-  e.preventDefault();
-  var r=pc.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
-  var f=e.deltaY<0?1.12:1/1.12,ns=Math.max(0.02,Math.min(30,PV.s*f));
-  PV.ox=mx-(mx-PV.ox)*ns/PV.s; PV.oy=my-(my-PV.oy)*ns/PV.s; PV.s=ns; pvDraw();
-},{passive:false});
-pc.addEventListener('mousedown',function(e){PV.drag=true;PV.lx=e.clientX;PV.ly=e.clientY});
-window.addEventListener('mousemove',function(e){if(!PV.drag)return;PV.ox+=e.clientX-PV.lx;PV.oy+=e.clientY-PV.ly;PV.lx=e.clientX;PV.ly=e.clientY;pvDraw()});
-window.addEventListener('mouseup',function(){PV.drag=false});
-window.addEventListener('resize',pvResize);
-pvResize();
-
-/* live tile overlay */
 function showLive(imgData,W,H){
   lc.classList.add('on');
-  var oc=new OffscreenCanvas(W,H);
-  oc.getContext('2d').putImageData(imgData,0,0);
+  var oc=new OffscreenCanvas(W,H);oc.getContext('2d').putImageData(imgData,0,0);
   var sc=Math.min(lc.width/W,lc.height/H)*0.94;
   var ox=(lc.width-W*sc)/2,oy=(lc.height-H*sc)/2;
-  lctx.clearRect(0,0,lc.width,lc.height);
-  lctx.save();lctx.translate(ox,oy);lctx.scale(sc,sc);lctx.drawImage(oc,0,0);lctx.restore();
+  lctx.clearRect(0,0,lc.width,lc.height);lctx.save();lctx.translate(ox,oy);lctx.scale(sc,sc);lctx.drawImage(oc,0,0);lctx.restore();
 }
 
-/* ════════════════════════════════════════════════════
-   FILE HANDLING
-════════════════════════════════════════════════════ */
+/* ── FILE HANDLING ── */
 var dz=document.getElementById('dz');
-dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('drag')});
-dz.addEventListener('dragleave',function(){dz.classList.remove('drag')});
-dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('drag');loadFiles(Array.from(e.dataTransfer.files))});
-document.getElementById('fi').addEventListener('change',function(e){loadFiles(Array.from(e.target.files))});
-
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave',function(){dz.classList.remove('drag');});
+dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('drag');loadFiles(Array.from(e.dataTransfer.files));});
+document.getElementById('fi').addEventListener('change',function(e){loadFiles(Array.from(e.target.files));});
 function loadFiles(files){
-  var imgs=files.filter(function(f){return /\.(jpe?g|tiff?)$/i.test(f.name)});
-  if(!imgs.length){L('No valid images found.','er');return}
+  var imgs=files.filter(function(f){return /\.(jpe?g|tiff?)$/i.test(f.name);});
+  if(!imgs.length){L('No valid images.','er');return;}
   S.files=imgs;
-  var fb=document.getElementById('fbadge');
-  fb.textContent=imgs.length+' loaded'; fb.style.display='inline-flex';
-  setImgSt(imgs.length+' images ready','ok');
+  var fb=document.getElementById('fbadge');fb.textContent=imgs.length+' loaded';fb.style.display='inline-flex';
+  setSt(imgs.length+' images ready','ok');
   document.getElementById('btnRun').disabled=false;
-  L(imgs.length+' images queued — click Run Orthomosaic','hd');
+  L(imgs.length+' images queued.','hd');
 }
-function setImgSt(t,c){var e=document.getElementById('imgSt');e.textContent=t;e.className='ib'+(c?' '+c:'')}
 
-/* ════════════════════════════════════════════════════
-   UTM PROJECTION (pure JS WGS84)
-════════════════════════════════════════════════════ */
-function latlon2utm(lat,lon){
+/* ── UTM ── */
+function ll2utm(lat,lon){
   var a=6378137,f=1/298.257223563,b=a*(1-f),e2=1-(b/a)*(b/a);
-  var zone=Math.floor((lon+180)/6)+1;
-  var epsg=lat>=0?32600+zone:32700+zone;
-  var latR=lat*Math.PI/180;
-  var lon0R=((zone-1)*6-180+3)*Math.PI/180;
-  var dlon=lon*Math.PI/180-lon0R;
-  var N=a/Math.sqrt(1-e2*Math.sin(latR)*Math.sin(latR));
-  var T=Math.tan(latR)*Math.tan(latR);
-  var C=e2/(1-e2)*Math.cos(latR)*Math.cos(latR);
-  var A=Math.cos(latR)*dlon;
-  var M=a*((1-e2/4-3*e2*e2/64-5*e2*e2*e2/256)*latR
-    -(3*e2/8+3*e2*e2/32+45*e2*e2*e2/1024)*Math.sin(2*latR)
-    +(15*e2*e2/256+45*e2*e2*e2/1024)*Math.sin(4*latR)
-    -(35*e2*e2*e2/3072)*Math.sin(6*latR));
-  var k0=0.9996;
-  var E=k0*N*(A+(1-T+C)*A*A*A/6+(5-18*T+T*T+72*C-58*e2/(1-e2))*A*A*A*A*A/120)+500000;
-  var Nv=k0*(M+N*Math.tan(latR)*(A*A/2+(5-T+9*C+4*C*C)*A*A*A*A/24+(61-58*T+T*T+600*C-330*e2/(1-e2))*A*A*A*A*A*A/720));
-  if(lat<0) Nv+=10000000;
+  var zone=Math.floor((lon+180)/6)+1,epsg=lat>=0?32600+zone:32700+zone;
+  var laR=lat*Math.PI/180,lo0=((zone-1)*6-180+3)*Math.PI/180,dl=lon*Math.PI/180-lo0;
+  var N=a/Math.sqrt(1-e2*Math.sin(laR)*Math.sin(laR));
+  var T=Math.tan(laR)*Math.tan(laR),C=e2/(1-e2)*Math.cos(laR)*Math.cos(laR),A=Math.cos(laR)*dl;
+  var M=a*((1-e2/4-3*e2*e2/64-5*e2*e2*e2/256)*laR-(3*e2/8+3*e2*e2/32+45*e2*e2*e2/1024)*Math.sin(2*laR)+(15*e2*e2/256+45*e2*e2*e2/1024)*Math.sin(4*laR)-(35*e2*e2*e2/3072)*Math.sin(6*laR));
+  var k=0.9996;
+  var E=k*N*(A+(1-T+C)*A*A*A/6+(5-18*T+T*T+72*C-58*e2/(1-e2))*A*A*A*A*A/120)+500000;
+  var Nv=k*(M+N*Math.tan(laR)*(A*A/2+(5-T+9*C+4*C*C)*A*A*A*A/24+(61-58*T+T*T+600*C-330*e2/(1-e2))*A*A*A*A*A*A/720));
+  if(lat<0)Nv+=10000000;
   return{x:E,y:Nv,epsg:epsg};
 }
 
-/* ════════════════════════════════════════════════════
-   SENSOR DETECTION
-════════════════════════════════════════════════════ */
+/* ── SENSOR ── */
 function detectHFOV(model,w,h){
-  if(/h30t/.test(model)) return 40.6;
-  if(/h20t/.test(model)) return 57.0;
-  if(/m3t|m30t/.test(model)) return 57.0;
-  if(/skydio.*x10/.test(model)) return w>=8000?50:93;
-  if(/skydio/.test(model)) return 80;
-  if(w<=720&&h<=600) return 45;
-  return 84;
+  if(/h30t/.test(model))return 40.6;if(/h20t/.test(model))return 57.0;
+  if(/m3t|m30t/.test(model))return 57.0;if(/xt2|xt s/.test(model))return 45.0;
+  if(/skydio.*x10/.test(model))return w>=8000?50:93;if(/skydio/.test(model))return 80;
+  if(w<=720&&h<=600)return 45;return 84;
+}
+function isThermalModel(model,w,h){
+  return /h20t|h30t|m3t|m30t|xt2|xt s|thermal|infrared|radiometric|whitehot|blackhot/.test(model)||(w<=720&&h<=600);
 }
 
-/* ════════════════════════════════════════════════════
-   STEP 1: LOAD RECORDS (EXIF + BITMAP)
-════════════════════════════════════════════════════ */
+/* ── STEP 1: LOAD RECORDS ── */
 async function loadRecords(files){
-  L('─── Step 1: Reading GPS EXIF ─────────────────────','hd');
+  L('─── Step 1: GPS EXIF ────────────────────────────','hd');
   var recs=[],noGps=0;
   for(var i=0;i<files.length;i++){
-    if(S.cancelled) return recs;
-    P(2+10*(i/files.length),'Reading EXIF '+(i+1)+'/'+files.length);
+    if(S.cancelled)return recs;
+    if(i%5===0)P(2+10*(i/files.length),'Reading '+(i+1)+'/'+files.length);
     try{
       var exif=await exifr.parse(files[i],{gps:true,tiff:true,xmp:true,translateValues:true});
       var bmp=await createImageBitmap(files[i]);
       var model=((exif&&exif.Model||'')+(exif&&exif.Make||'')+(exif&&exif.ImageDescription||'')).toLowerCase();
       var hfov=detectHFOV(model,bmp.width,bmp.height);
-      var isThermal=/h20t|h30t|m3t|m30t|xt2|thermal|infrared|radiometric|whitehot|blackhot/.test(model)||(bmp.width<=720&&bmp.height<=600);
-      var yaw=0;
-      try{yaw=parseFloat(String(exif&&(exif.GimbalYawDegree||exif.GPSImgDirection)||0).replace('+',''))||0}catch(e){}
-      var alt=exif&&typeof exif.GPSAltitude==='number'?exif.GPSAltitude:100;
+      var thermal=isThermalModel(model,bmp.width,bmp.height);
+      var yaw=0;try{yaw=parseFloat(String(exif&&(exif.GimbalYawDegree||exif.GPSImgDirection)||0).replace('+',''))||0;}catch(e){}
+      var alt=exif&&typeof exif.GPSAltitude==='number'?Math.abs(exif.GPSAltitude):100;
+      // Prefer DJI relative altitude from XMP if higher precision
+      var relAlt=exif&&exif.RelativeAltitude;
+      if(relAlt)try{alt=Math.abs(parseFloat(String(relAlt).replace('+','')));if(alt<1)alt=100;}catch(e){}
       var utm=null;
-      if(exif&&exif.latitude!=null){
-        utm=latlon2utm(exif.latitude,exif.longitude);
-      } else {
-        noGps++;
-        L('  No GPS: '+files[i].name,'dm');
-      }
-      recs.push({f:files[i],bmp:bmp,lat:exif&&exif.latitude,lon:exif&&exif.longitude,
-        alt:alt,utm:utm,w:bmp.width,h:bmp.height,hfov:hfov,thermal:isThermal,yaw:yaw});
-    }catch(e){L('  WARN '+files[i].name+': '+e.message,'dm')}
-    if(i%5===0) await slp(0);
+      if(exif&&exif.latitude!=null)utm=ll2utm(exif.latitude,exif.longitude);
+      else noGps++;
+      recs.push({f:files[i],bmp:bmp,lat:exif&&exif.latitude,lon:exif&&exif.longitude,alt:alt,utm:utm,w:bmp.width,h:bmp.height,hfov:hfov,thermal:thermal,yaw:yaw});
+    }catch(e){L('  WARN '+files[i].name+': '+e.message,'dm');}
+    if(i%8===0)await slp(0);
   }
-  var nth=recs.filter(function(r){return r.thermal}).length;
-  L('  '+recs.length+' images  ('+nth+' thermal, '+(recs.length-nth)+' RGB)');
-  if(noGps) L('  '+noGps+' without GPS (filename-sorted)','w');
-  if(!recs.length) throw new Error('No images could be read.');
+  var nth=recs.filter(function(r){return r.thermal;}).length;
+  L('  '+recs.length+' images  |  '+nth+' thermal  |  '+(recs.length-nth)+' RGB');
+  if(noGps)L('  WARNING: '+noGps+' images without GPS','w');
+  if(!recs.length)throw new Error('No images could be read.');
   return recs;
 }
 
-/* ════════════════════════════════════════════════════
-   STEP 2: LINEAR SORT via PCA on GPS positions
-════════════════════════════════════════════════════ */
+/* ── STEP 2: PCA LINEAR SORT ── */
 function sortLinear(recs){
-  L('─── Step 2: Linear GPS sort (PCA) ───────────────','hd');
-  var gps=recs.filter(function(r){return r.utm});
-  if(gps.length<2){
-    L('  Insufficient GPS — sorting by filename','w');
-    return recs.slice().sort(function(a,b){return a.f.name.localeCompare(b.f.name)});
-  }
-  var mx=0,my=0;
-  gps.forEach(function(r){mx+=r.utm.x;my+=r.utm.y});
-  mx/=gps.length; my/=gps.length;
-  var pts=gps.map(function(r){return[r.utm.x-mx,r.utm.y-my]});
-  // 2x2 covariance
-  var c00=0,c01=0,c11=0;
-  pts.forEach(function(p){c00+=p[0]*p[0];c01+=p[0]*p[1];c11+=p[1]*p[1]});
-  c00/=pts.length; c01/=pts.length; c11/=pts.length;
-  var tr=c00+c11,det=c00*c11-c01*c01;
-  var l1=(tr+Math.sqrt(Math.max(0,tr*tr-4*det)))/2;
-  var ax=l1-c11,ay=c01,aLen=Math.sqrt(ax*ax+ay*ay)||1;
-  ax/=aLen; ay/=aLen;
-  gps.forEach(function(r,i){r._proj=pts[i][0]*ax+pts[i][1]*ay});
-  gps.sort(function(a,b){return a._proj-b._proj});
-  var span=gps[gps.length-1]._proj-gps[0]._proj;
-  L('  Flight span: '+span.toFixed(1)+' m  ('+gps.length+' GPS images)');
-  // Append no-GPS images at end
-  var noGps=recs.filter(function(r){return !r.utm}).sort(function(a,b){return a.f.name.localeCompare(b.f.name)});
+  L('─── Step 2: PCA flight-axis sort ───────────────','hd');
+  var gps=recs.filter(function(r){return r.utm;});
+  if(gps.length<2){L('  Insufficient GPS — filename sort','w');return recs.slice().sort(function(a,b){return a.f.name.localeCompare(b.f.name);});}
+  var mx=0,my=0;gps.forEach(function(r){mx+=r.utm.x;my+=r.utm.y;});mx/=gps.length;my/=gps.length;
+  var pts=gps.map(function(r){return[r.utm.x-mx,r.utm.y-my];});
+  var c00=0,c01=0,c11=0;pts.forEach(function(p){c00+=p[0]*p[0];c01+=p[0]*p[1];c11+=p[1]*p[1];});
+  c00/=pts.length;c01/=pts.length;c11/=pts.length;
+  var tr=c00+c11,det=c00*c11-c01*c01,l1=(tr+Math.sqrt(Math.max(0,tr*tr-4*det)))/2;
+  var ax=l1-c11,ay=c01,aLen=Math.sqrt(ax*ax+ay*ay)||1;ax/=aLen;ay/=aLen;
+  gps.forEach(function(r,i){r._p=pts[i][0]*ax+pts[i][1]*ay;});
+  gps.sort(function(a,b){return a._p-b._p;});
+  var span=gps[gps.length-1]._p-gps[0]._p;
+  L('  Sorted '+gps.length+' images | span: '+span.toFixed(1)+' m');
+  var noGps=recs.filter(function(r){return !r.utm;}).sort(function(a,b){return a.f.name.localeCompare(b.f.name);});
   return gps.concat(noGps);
 }
 
-/* ════════════════════════════════════════════════════
-   STEP 3: CANVAS PLACEMENT
-════════════════════════════════════════════════════ */
+/* ── STEP 3: CANVAS LAYOUT ── */
 function buildCanvas(recs,gsdOv,hfovOv,fpSc,maxPx){
-  L('─── Step 3: Canvas placement ─────────────────────','hd');
+  L('─── Step 3: Canvas placement ────────────────────','hd');
   var gsds=[];
   recs.forEach(function(r){
     var hf=hfovOv||r.hfov;
     var g=gsdOv||(2*r.alt*Math.tan(hf/2*Math.PI/180)/r.w*fpSc);
-    r.gsd=g; r.gw=g*r.w; r.gh=g*r.h; gsds.push(g);
+    r.gsd=g;r.gw=g*r.w;r.gh=g*r.h;gsds.push(g);
   });
-  gsds.sort(function(a,b){return a-b});
+  gsds.sort(function(a,b){return a-b;});
   var gsdOut=gsds[Math.floor(gsds.length/2)];
-  var gpsRecs=recs.filter(function(r){return r.utm});
+  var gpsR=recs.filter(function(r){return r.utm;});
   var X0=Infinity,X1=-Infinity,Y0=Infinity,Y1=-Infinity;
-  gpsRecs.forEach(function(r){
-    X0=Math.min(X0,r.utm.x-r.gw/2); X1=Math.max(X1,r.utm.x+r.gw/2);
-    Y0=Math.min(Y0,r.utm.y-r.gh/2); Y1=Math.max(Y1,r.utm.y+r.gh/2);
-  });
+  gpsR.forEach(function(r){X0=Math.min(X0,r.utm.x-r.gw/2);X1=Math.max(X1,r.utm.x+r.gw/2);Y0=Math.min(Y0,r.utm.y-r.gh/2);Y1=Math.max(Y1,r.utm.y+r.gh/2);});
   var CW=Math.ceil((X1-X0)/gsdOut),CH=Math.ceil((Y1-Y0)/gsdOut);
   var sc=Math.min(1,maxPx/Math.max(CW,CH));
   var W=Math.max(1,Math.round(CW*sc)),H=Math.max(1,Math.round(CH*sc));
   gsdOut=gsdOut/sc;
-  var epsg=gpsRecs[0].utm.epsg||32638;
-  // Assign pixel centres
+  var epsg=gpsR[0].utm.epsg||32638;
   recs.forEach(function(r,i){
-    if(r.utm){
-      r.cx=(r.utm.x-X0)/gsdOut;
-      r.cy=(Y1-r.utm.y)/gsdOut;
-    } else {
-      r.cx=W/2; r.cy=H/2+(i-recs.length/2)*10;
-    }
-    r.pw=Math.max(2,Math.round(r.gw/gsdOut));
-    r.ph=Math.max(2,Math.round(r.gh/gsdOut));
+    if(r.utm){r.cx=(r.utm.x-X0)/gsdOut;r.cy=(Y1-r.utm.y)/gsdOut;}
+    else{r.cx=W/2;r.cy=H/2;}
+    r.pw=Math.max(2,Math.round(r.gw/gsdOut));r.ph=Math.max(2,Math.round(r.gh/gsdOut));
   });
-  L('  GSD='+gsdOut.toFixed(4)+'m/px  Canvas='+W+'x'+H+'  EPSG:'+epsg);
+  L('  GSD='+gsdOut.toFixed(4)+'m/px  Canvas='+W+'x'+H+'px  EPSG:'+epsg);
   document.getElementById('stGsd').textContent=(gsdOut*100).toFixed(1)+'cm';
   return{W:W,H:H,gsd:gsdOut,X0:X0,Y1:Y1,epsg:epsg};
 }
 
-/* ════════════════════════════════════════════════════
-   STEP 4: FFT PHASE CORRELATION (pair alignment)
-   Full complex FFT implemented in JS
-════════════════════════════════════════════════════ */
+/* ── FFT ── */
 function fft(re,im){
-  var n=re.length;
-  if(n<=1) return;
+  var n=re.length;if(n<=1)return;
   var re_e=[],re_o=[],im_e=[],im_o=[];
-  for(var i=0;i<n/2;i++){re_e.push(re[2*i]);re_o.push(re[2*i+1]);im_e.push(im[2*i]);im_o.push(im[2*i+1])}
-  fft(re_e,im_e); fft(re_o,im_o);
+  for(var i=0;i<n/2;i++){re_e.push(re[2*i]);re_o.push(re[2*i+1]);im_e.push(im[2*i]);im_o.push(im[2*i+1]);}
+  fft(re_e,im_e);fft(re_o,im_o);
   for(var k=0;k<n/2;k++){
-    var ang=-2*Math.PI*k/n;
-    var wr=Math.cos(ang),wi=Math.sin(ang);
+    var a=-2*Math.PI*k/n,wr=Math.cos(a),wi=Math.sin(a);
     var tr=wr*re_o[k]-wi*im_o[k],ti=wr*im_o[k]+wi*re_o[k];
-    re[k]=re_e[k]+tr; im[k]=im_e[k]+ti;
-    re[k+n/2]=re_e[k]-tr; im[k+n/2]=im_e[k]-ti;
+    re[k]=re_e[k]+tr;im[k]=im_e[k]+ti;re[k+n/2]=re_e[k]-tr;im[k+n/2]=im_e[k]-ti;
   }
 }
+function np2(n){var p=1;while(p<n)p<<=1;return p;}
 
-function nextPow2(n){var p=1;while(p<n)p<<=1;return p}
-
-function phaseCorr(grayA,grayB,W,H){
-  // Returns {dx,dy,peak} — pixel offset of B relative to A
-  var P2W=nextPow2(W),P2H=nextPow2(H);
-  var N=P2W*P2H;
-  var reA=new Float64Array(N),imA=new Float64Array(N);
-  var reB=new Float64Array(N),imB=new Float64Array(N);
-  // Hanning window
-  for(var y=0;y<H;y++){
-    var wy=(1-Math.cos(2*Math.PI*y/H))/2;
-    for(var x=0;x<W;x++){
-      var wx=(1-Math.cos(2*Math.PI*x/W))/2;
-      var idx=y*W+x, pidx=y*P2W+x;
-      reA[pidx]=grayA[idx]*wx*wy;
-      reB[pidx]=grayB[idx]*wx*wy;
-    }
-  }
-  fft(reA,imA); fft(reB,imB);
-  // Cross-power spectrum: R = F1 * conj(F2) / |F1 * conj(F2)|
+function phaseCorr(gA,gB,W,H){
+  var P2W=np2(W),P2H=np2(H),N=P2W*P2H;
+  var reA=new Float64Array(N),imA=new Float64Array(N),reB=new Float64Array(N),imB=new Float64Array(N);
+  for(var y=0;y<H;y++){var wy=(1-Math.cos(2*Math.PI*y/H))/2;for(var x=0;x<W;x++){var wx=(1-Math.cos(2*Math.PI*x/W))/2,pi=y*P2W+x,oi=y*W+x;reA[pi]=gA[oi]*wx*wy;reB[pi]=gB[oi]*wx*wy;}}
+  fft(reA,imA);fft(reB,imB);
   var reR=new Float64Array(N),imR=new Float64Array(N);
-  for(var i=0;i<N;i++){
-    var r=reA[i]*reB[i]+imA[i]*imB[i];
-    var im2=imA[i]*reB[i]-reA[i]*imB[i];
-    var mag=Math.sqrt(r*r+im2*im2)||1e-10;
-    reR[i]=r/mag; imR[i]=im2/mag;
-  }
-  // Inverse FFT (conjugate then FFT then conjugate+scale)
-  for(var i=0;i<N;i++) imR[i]=-imR[i];
-  fft(reR,imR);
-  for(var i=0;i<N;i++){reR[i]/=N;}
-  // Find peak
-  var maxV=-Infinity,maxI=0;
-  for(var i=0;i<N;i++) if(reR[i]>maxV){maxV=reR[i];maxI=i}
+  for(var i=0;i<N;i++){var r=reA[i]*reB[i]+imA[i]*imB[i],im2=imA[i]*reB[i]-reA[i]*imB[i],mag=Math.sqrt(r*r+im2*im2)||1e-10;reR[i]=r/mag;imR[i]=im2/mag;}
+  for(var i=0;i<N;i++)imR[i]=-imR[i];
+  fft(reR,imR);for(var i=0;i<N;i++)reR[i]/=N;
+  var maxV=-Infinity,maxI=0;for(var i=0;i<N;i++)if(reR[i]>maxV){maxV=reR[i];maxI=i;}
   var py=Math.floor(maxI/P2W),px=maxI%P2W;
-  if(py>P2H/2) py-=P2H;
-  if(px>P2W/2) px-=P2W;
-  // Second peak for reliability ratio
-  var sec=-Infinity;
-  for(var y=0;y<P2H;y++) for(var x=0;x<P2W;x++){
-    var dy=Math.abs(y-py),dx=Math.abs(x-px);
-    if(dy>3||dx>3) sec=Math.max(sec,reR[y*P2W+x]);
-  }
-  var ratio=sec>0?maxV/sec:maxV;
-  return{dx:px,dy:py,peak:maxV,ratio:ratio};
+  if(py>P2H/2)py-=P2H;if(px>P2W/2)px-=P2W;
+  var sec=-Infinity;for(var y=0;y<P2H;y++)for(var x=0;x<P2W;x++){if(Math.abs(y-py)>3||Math.abs(x-px)>3)sec=Math.max(sec,reR[y*P2W+x]);}
+  return{dx:px,dy:py,ratio:sec>0?maxV/sec:9};
 }
 
-async function refinePositions(recs,log_){
-  var mode=document.getElementById('alignMode').value;
-  if(mode==='gps'){L('  GPS-only mode — skipping feature alignment','w');return recs}
+/* ── STEP 4: PHASE CORRELATION ALIGNMENT ── */
+async function alignPairs(recs){
+  if(document.getElementById('alignMode').value==='gps'){L('  GPS-only alignment','w');return recs;}
   L('─── Step 4: Phase correlation alignment ─────────','hd');
-  var THUMB=256;
-  var refined=0;
+  var THUMB=192,refined=0;
   for(var i=0;i<recs.length-1;i++){
-    if(S.cancelled) return recs;
-    P(20+14*(i/(recs.length-1)),'Aligning pair '+(i+1)+'/'+(recs.length-1));
+    if(S.cancelled)return recs;
+    if(i%3===0)P(22+12*(i/(recs.length-1)),'Aligning '+(i+1)+'/'+(recs.length-1));
     var ra=recs[i],rb=recs[i+1];
-    // Estimate overlap region in canvas coords
     var ax0=ra.cx-ra.pw/2,ax1=ra.cx+ra.pw/2,ay0=ra.cy-ra.ph/2,ay1=ra.cy+ra.ph/2;
     var bx0=rb.cx-rb.pw/2,bx1=rb.cx+rb.pw/2,by0=rb.cy-rb.ph/2,by1=rb.cy+rb.ph/2;
     var ox0=Math.max(ax0,bx0),ox1=Math.min(ax1,bx1),oy0=Math.max(ay0,by0),oy1=Math.min(ay1,by1);
-    var ow=ox1-ox0,oh=oy1-oy0;
-    if(ow<ra.pw*0.05||oh<ra.ph*0.05){L('  ['+i+'→'+(i+1)+']: no overlap','dm');continue}
-
+    if(ox1-ox0<ra.pw*0.05||oy1-oy0<ra.ph*0.05)continue;
     try{
-      // Crop overlap from each image, resize to THUMB
-      var tc=new OffscreenCanvas(THUMB,THUMB);
-      var tx=tc.getContext('2d');
-
-      function cropBmp(rec,rw,rh){
+      function cropG(rec,rw,rh){
         var sx=rec.w/rw,sy=rec.h/rh;
-        var ic0=Math.max(0,Math.round((ox0-(rec.cx-rw/2))*sx));
-        var ir0=Math.max(0,Math.round((oy0-(rec.cy-rh/2))*sy));
-        var ic1=Math.min(rec.w,Math.round((ox1-(rec.cx-rw/2))*sx));
-        var ir1=Math.min(rec.h,Math.round((oy1-(rec.cy-rh/2))*sy));
-        if(ic1-ic0<8||ir1-ir0<8) return null;
-        var oc=new OffscreenCanvas(THUMB,THUMB);
-        var ctx2=oc.getContext('2d');
+        var ic0=Math.max(0,Math.round((ox0-(rec.cx-rw/2))*sx)),ir0=Math.max(0,Math.round((oy0-(rec.cy-rh/2))*sy));
+        var ic1=Math.min(rec.w,Math.round((ox1-(rec.cx-rw/2))*sx)),ir1=Math.min(rec.h,Math.round((oy1-(rec.cy-rh/2))*sy));
+        if(ic1-ic0<8||ir1-ir0<8)return null;
         var tw=Math.min(THUMB,ic1-ic0),th=Math.min(THUMB,ir1-ir0);
-        ctx2.drawImage(rec.bmp,ic0,ir0,ic1-ic0,ir1-ir0,0,0,tw,th);
-        return{imgData:ctx2.getImageData(0,0,tw,th),scaleX:ow/tw,scaleY:oh/th};
+        var oc=new OffscreenCanvas(tw,th);oc.getContext('2d').drawImage(rec.bmp,ic0,ir0,ic1-ic0,ir1-ir0,0,0,tw,th);
+        var d=oc.getContext('2d').getImageData(0,0,tw,th).data;
+        var g=new Float64Array(tw*th),m=0;
+        for(var k=0;k<tw*th;k++){g[k]=0.299*d[k*4]+0.587*d[k*4+1]+0.114*d[k*4+2];m+=g[k];}
+        m/=tw*th;var std=0;for(var k=0;k<tw*th;k++){g[k]-=m;std+=g[k]*g[k];}
+        std=Math.sqrt(std/tw*th);if(std<1)return null;
+        // CLAHE-style: enhance local contrast for thermal
+        for(var k=0;k<tw*th;k++)g[k]=Math.max(-3,Math.min(3,g[k]/(std||1)));
+        return{g:g,tw:tw,th:th,sx:(ox1-ox0)/tw,sy:(oy1-oy0)/th};
       }
-
-      var cA=cropBmp(ra,ra.pw,ra.ph);
-      var cB=cropBmp(rb,rb.pw,rb.ph);
-      if(!cA||!cB){continue}
-
-      var dA=cA.imgData.data,dB=cB.imgData.data;
-      var tw=cA.imgData.width,th=cA.imgData.height;
-      var gA=new Float64Array(tw*th),gB=new Float64Array(tw*th);
-      var mA=0,mB=0;
-      for(var k=0;k<tw*th;k++){
-        gA[k]=0.299*dA[k*4]+0.587*dA[k*4+1]+0.114*dA[k*4+2];
-        gB[k]=0.299*dB[k*4]+0.587*dB[k*4+1]+0.114*dB[k*4+2];
-        mA+=gA[k]; mB+=gB[k];
-      }
-      mA/=tw*th; mB/=tw*th;
-      for(var k=0;k<tw*th;k++){gA[k]-=mA;gB[k]-=mB}
-
-      var res=phaseCorr(gA,gB,tw,th);
-      // Scale thumb pixels → canvas pixels
-      var dx_c=res.dx*cA.scaleX;
-      var dy_c=res.dy*cA.scaleY;
-      // Sanity check: correction must not exceed 15% of image width
-      var gps_dx=rb.cx-ra.cx, gps_dy=rb.cy-ra.cy;
-      var maxDev=ra.pw*0.15;
-      if(res.ratio>2.0&&Math.abs(dx_c-gps_dx)<maxDev&&Math.abs(dy_c-gps_dy)<maxDev){
-        var corr_x=dx_c-gps_dx, corr_y=dy_c-gps_dy;
-        rb.cx+=corr_x; rb.cy+=corr_y;
-        refined++;
-        L('  ['+i+'\u2192'+(i+1)+']: \u2713 corr dx='+corr_x.toFixed(1)+' dy='+corr_y.toFixed(1)+' ratio='+res.ratio.toFixed(2),'dm');
-      } else {
-        L('  ['+(i)+'\u2192'+(i+1)+']: GPS fallback (ratio='+res.ratio.toFixed(2)+')','dm');
-      }
-    }catch(e){L('  WARN pair '+i+': '+e.message,'dm')}
-    if(i%3===0) await slp(0);
+      var cA=cropG(ra,ra.pw,ra.ph),cB=cropG(rb,rb.pw,rb.ph);
+      if(!cA||!cB)continue;
+      var tw=Math.min(cA.tw,cB.tw),th=Math.min(cA.th,cB.th);
+      var res=phaseCorr(cA.g,cB.g,tw,th);
+      var dx_c=res.dx*cA.sx,dy_c=res.dy*cA.sy;
+      var gps_dx=rb.cx-ra.cx,gps_dy=rb.cy-ra.cy,maxDev=ra.pw*0.18;
+      if(res.ratio>1.8&&Math.abs(dx_c-gps_dx)<maxDev&&Math.abs(dy_c-gps_dy)<maxDev){
+        rb.cx+=dx_c-gps_dx;rb.cy+=dy_c-gps_dy;refined++;
+        L('  ['+i+'\u2192'+(i+1)+'] \u2713 corr=('+( dx_c-gps_dx).toFixed(1)+','+( dy_c-gps_dy).toFixed(1)+'px) ratio='+res.ratio.toFixed(2),'dm');
+      }else{L('  ['+i+'\u2192'+(i+1)+'] GPS (ratio='+res.ratio.toFixed(2)+')','dm');}
+    }catch(e){L('  WARN pair '+i+': '+e.message,'dm');}
+    if(i%4===0)await slp(0);
   }
-  L('  Aligned '+refined+'/'+(recs.length-1)+' pairs via phase correlation');
+  L('  Aligned '+refined+'/'+(recs.length-1)+' pairs');
   return recs;
 }
 
-/* ════════════════════════════════════════════════════
-   STEP 5: MOVING-AVERAGE LINEAR CONSTRAINT
-════════════════════════════════════════════════════ */
+/* ── STEP 5: LINEAR CONSTRAINT ── */
 function enforceLinear(recs){
-  L('─── Step 5: Linear constraint (moving avg) ───────','hd');
-  var n=recs.length; if(n<3) return recs;
-  var W=Math.min(7,Math.max(3,Math.floor(n/8)));
-  var cxs=recs.map(function(r){return r.cx});
-  var cys=recs.map(function(r){return r.cy});
-  for(var i=0;i<n;i++){
-    var lo=Math.max(0,i-Math.floor(W/2)),hi=Math.min(n,i+Math.floor(W/2)+1);
-    var sumX=0,sumY=0,cnt=hi-lo;
-    for(var j=lo;j<hi;j++){sumX+=cxs[j];sumY+=cys[j]}
-    recs[i].cx=sumX/cnt; recs[i].cy=sumY/cnt;
-  }
-  L('  Smoothed positions (window='+W+')');
+  var n=recs.length;if(n<3)return recs;
+  var W2=Math.min(9,Math.max(3,Math.floor(n/10)));
+  var cxs=recs.map(function(r){return r.cx;}),cys=recs.map(function(r){return r.cy;});
+  for(var i=0;i<n;i++){var lo=Math.max(0,i-Math.floor(W2/2)),hi=Math.min(n,i+Math.floor(W2/2)+1),sx=0,sy=0;for(var j=lo;j<hi;j++){sx+=cxs[j];sy+=cys[j];}recs[i].cx=sx/(hi-lo);recs[i].cy=sy/(hi-lo);}
+  L('─── Step 5: Linear constraint (w='+W2+') ────────','hd');
   return recs;
 }
 
-/* ════════════════════════════════════════════════════
-   STEP 6: PER-CHANNEL WALLIS GAIN
-════════════════════════════════════════════════════ */
-async function computeGains(recs){
-  L('─── Step 6: Per-channel gain equalization ────────','hd');
+/* ── STEP 6: THERMAL CALIBRATION ── */
+// The root cause of banding: thermal cameras auto-normalize each frame.
+// Fix: compute per-image p5/p95 in the overlap zone, build global reference,
+// then apply per-image linear stretch to match that reference.
+async function thermalCalibrate(recs,log_){
+  L('─── Step 6: Thermal per-frame calibration ────────','hd');
   var THUMB=96;
-  var rm=[],gm=[],bm=[];
+  var lo5=[],hi95=[];
   for(var i=0;i<recs.length;i++){
     var tc=new OffscreenCanvas(THUMB,THUMB);
-    var tx=tc.getContext('2d');
-    tx.drawImage(recs[i].bmp,0,0,THUMB,THUMB);
-    var d=tx.getImageData(0,0,THUMB,THUMB).data;
-    var rs=0,gs=0,bs=0,cnt=THUMB*THUMB;
-    for(var j=0;j<d.length;j+=4){rs+=d[j];gs+=d[j+1];bs+=d[j+2]}
-    rm.push(rs/cnt); gm.push(gs/cnt); bm.push(bs/cnt);
-    if(i%20===0) await slp(0);
+    tc.getContext('2d').drawImage(recs[i].bmp,0,0,THUMB,THUMB);
+    var d=tc.getContext('2d').getImageData(0,0,THUMB,THUMB).data;
+    var vals=[];
+    for(var j=0;j<d.length;j+=4)vals.push(0.299*d[j]+0.587*d[j+1]+0.114*d[j+2]);
+    vals.sort(function(a,b){return a-b;});
+    lo5.push(vals[Math.floor(vals.length*0.05)]);
+    hi95.push(vals[Math.floor(vals.length*0.95)]);
+    if(i%20===0)await slp(0);
   }
-  function med(a){var s=a.slice().sort(function(x,y){return x-y});return s[Math.floor(s.length/2)]}
-  var rRef=med(rm),gRef=med(gm),bRef=med(bm);
-  var gains=recs.map(function(_,i){
-    return{
-      r:Math.max(0.25,Math.min(4,rRef/Math.max(rm[i],1))),
-      g:Math.max(0.25,Math.min(4,gRef/Math.max(gm[i],1))),
-      b:Math.max(0.25,Math.min(4,bRef/Math.max(bm[i],1)))
-    }
+  function med(a){var s=a.slice().sort(function(x,y){return x-y;});return s[Math.floor(s.length/2)];}
+  var refLo=med(lo5),refHi=med(hi95),refRange=Math.max(refHi-refLo,1);
+  var cals=recs.map(function(_,i){
+    var range=Math.max(hi95[i]-lo5[i],1);
+    var gain=refRange/range;
+    var offset=refLo-lo5[i]*gain;
+    gain=Math.max(0.2,Math.min(5,gain));
+    offset=Math.max(-128,Math.min(128,offset));
+    return{gain:gain,offset:offset};
   });
-  var gvals=gains.map(function(g){return(g.r+g.g+g.b)/3});
-  gvals.sort(function(a,b){return a-b});
-  L('  Gain range: '+Math.min.apply(null,gvals).toFixed(3)+' – '+Math.max.apply(null,gvals).toFixed(3)+'  median='+gvals[Math.floor(gvals.length/2)].toFixed(3));
-  return gains;
+  var gains=cals.map(function(c){return c.gain;});
+  gains.sort(function(a,b){return a-b;});
+  L('  Thermal gain: '+gains[0].toFixed(2)+'–'+gains[gains.length-1].toFixed(2)+'  ref=['+refLo.toFixed(0)+','+refHi.toFixed(0)+']');
+  return cals;
 }
 
-/* ════════════════════════════════════════════════════
-   STEP 7: COMPOSITE — feather + Voronoi blend
-   Live preview every N tiles
-════════════════════════════════════════════════════ */
-async function composite(recs,cv,gains,blendPx,blendMode){
+/* ── STEP 6b: RGB GAIN ── */
+async function rgbGain(recs){
+  L('─── Step 6: Per-channel RGB gain ────────────────','hd');
+  var THUMB=96;var rm=[],gm=[],bm=[];
+  for(var i=0;i<recs.length;i++){
+    var tc=new OffscreenCanvas(THUMB,THUMB);tc.getContext('2d').drawImage(recs[i].bmp,0,0,THUMB,THUMB);
+    var d=tc.getContext('2d').getImageData(0,0,THUMB,THUMB).data;
+    var rs=0,gs=0,bs=0,cnt=THUMB*THUMB;
+    for(var j=0;j<d.length;j+=4){rs+=d[j];gs+=d[j+1];bs+=d[j+2];}
+    rm.push(rs/cnt);gm.push(gs/cnt);bm.push(bs/cnt);
+    if(i%20===0)await slp(0);
+  }
+  function med(a){var s=a.slice().sort(function(x,y){return x-y;});return s[Math.floor(s.length/2)];}
+  var rR=med(rm),gR=med(gm),bR=med(bm);
+  return recs.map(function(_,i){return{r:Math.max(0.25,Math.min(4,rR/Math.max(rm[i],1))),g:Math.max(0.25,Math.min(4,gR/Math.max(gm[i],1))),b:Math.max(0.25,Math.min(4,bR/Math.max(bm[i],1)))}; });
+}
+
+/* ── STEP 7: COMPOSITE ── */
+async function composite(recs,cv,cals,isThermal,blendPx){
   var W=cv.W,H=cv.H;
-  L('─── Step 7: Compositing '+recs.length+' tiles \u2192 '+W+'x'+H+' ────','hd');
+  L('─── Step 7: Composite '+recs.length+' → '+W+'x'+H+' ─────────────','hd');
   document.getElementById('pempty').classList.add('gone');
 
   var acc=new Float32Array(W*H*3);
   var wt=new Float32Array(W*H);
-  var LIVE_EVERY=Math.max(1,Math.floor(recs.length/15));
+  var LIVE_EVERY=Math.max(1,Math.floor(recs.length/12));
 
   for(var idx=0;idx<recs.length;idx++){
-    if(S.cancelled) throw new Error('Cancelled');
-    P(40+48*(idx/recs.length),'Compositing '+(idx+1)+'/'+recs.length);
+    if(S.cancelled)throw new Error('Cancelled');
+    if(idx%3===0)P(40+48*(idx/recs.length),'Compositing '+(idx+1)+'/'+recs.length);
 
-    var r=recs[idx],gn=gains[idx];
-    var pw=r.pw,ph=r.ph;
-    var cx=Math.round(r.cx),cy=Math.round(r.cy);
+    var r=recs[idx],cal=cals[idx];
+    var pw=r.pw,ph=r.ph,cx=Math.round(r.cx),cy=Math.round(r.cy);
 
-    // Render tile to offscreen canvas (with yaw rotation)
-    var tc=new OffscreenCanvas(pw,ph);
-    var tx=tc.getContext('2d');
-    if(Math.abs(r.yaw||0)>0.5){
-      tx.translate(pw/2,ph/2); tx.rotate(-(r.yaw)*Math.PI/180);
-      tx.drawImage(r.bmp,-pw/2,-ph/2,pw,ph);
-    } else {
-      tx.drawImage(r.bmp,0,0,pw,ph);
-    }
+    // Render tile with yaw rotation
+    var tc=new OffscreenCanvas(pw,ph),tx=tc.getContext('2d');
+    if(Math.abs(r.yaw||0)>0.5){tx.translate(pw/2,ph/2);tx.rotate(-r.yaw*Math.PI/180);tx.drawImage(r.bmp,-pw/2,-ph/2,pw,ph);}
+    else tx.drawImage(r.bmp,0,0,pw,ph);
     var td=tx.getImageData(0,0,pw,ph).data;
 
     var x0=Math.max(0,cx-(pw>>1)),y0=Math.max(0,cy-(ph>>1));
@@ -809,85 +627,78 @@ async function composite(recs,cv,gains,blendPx,blendMode){
 
     for(var py=y0;py<y1;py++){
       for(var px=x0;px<x1;px++){
-        var sx=px-x0,sy=py-y0;
-        var si=(sy*pw+sx)<<2;
-        // Skip near-black (rotation fill / dead pixels)
-        if(td[si]<3&&td[si+1]<3&&td[si+2]<3) continue;
+        var sx=px-x0,sy=py-y0,si=(sy*pw+sx)<<2;
+        if(td[si]<3&&td[si+1]<3&&td[si+2]<3)continue; // skip dead pixels
 
-        var w=1.0;
-        if(blendMode==='voronoi'){
-          var dcx=Math.abs(px-cx),dcy=Math.abs(py-cy);
-          var ex2=pw/2-dcx,ey2=ph/2-dcy;
-          w=Math.min(1,Math.min(ex2,ey2)/Math.max(Math.min(pw,ph)*0.3,1));
-        } else if(blendMode==='feather'){
-          var ex3=Math.min(sx,pw-1-sx),ey3=Math.min(sy,ph-1-sy);
-          w=Math.min(1,Math.min(ex3,ey3)/Math.max(blendPx,1));
+        // Weight: steep power falloff from centre → sharp seams, minimal blur
+        var dcx=Math.abs(px-cx)/( pw/2),dcy=Math.abs(py-cy)/(ph/2);
+        var edgeDist=Math.min(1-dcx,1-dcy);// 0 at edge, 1 at centre
+        var w;
+        if(blendPx<=5){
+          w=edgeDist>0.02?1.0:edgeDist/0.02; // near-hard seam
+        }else{
+          // sigmoid-steepened distance weight
+          var rampPx=blendPx/(Math.max(pw,ph)/2);
+          w=Math.min(1,edgeDist/Math.max(rampPx,0.01));
+          w=w*w*(3-2*w); // smoothstep — sharper than linear
         }
-        if(w<=0) continue;
+        if(w<=0)continue;
 
         var di=py*W+px;
-        acc[di*3  ]+=Math.min(255,td[si  ]*gn.r)*w;
-        acc[di*3+1]+=Math.min(255,td[si+1]*gn.g)*w;
-        acc[di*3+2]+=Math.min(255,td[si+2]*gn.b)*w;
+        if(isThermal){
+          // Single-channel thermal: use mean of RGB channels
+          var luma=(0.299*td[si]+0.587*td[si+1]+0.114*td[si+2]);
+          // Apply per-frame calibration (removes auto-normalization banding)
+          var cal_luma=Math.max(0,Math.min(255,luma*cal.gain+cal.offset));
+          acc[di*3  ]+=cal_luma*w;acc[di*3+1]+=cal_luma*w;acc[di*3+2]+=cal_luma*w;
+        }else{
+          acc[di*3  ]+=Math.min(255,td[si  ]*cal.r)*w;
+          acc[di*3+1]+=Math.min(255,td[si+1]*cal.g)*w;
+          acc[di*3+2]+=Math.min(255,td[si+2]*cal.b)*w;
+        }
         wt[di]+=w;
       }
     }
 
-    // Live preview update
     if((idx+1)%LIVE_EVERY===0||idx===recs.length-1){
-      var partial=buildImgData(acc,wt,W,H,false);
-      showLive(partial,W,H);
+      showLive(buildImg(acc,wt,W,H,false),W,H);
       await slp(0);
     }
   }
 
-  L('  Applying p2-p98 stretch...');
-  P(90,'Stretching');
-  var final=buildImgData(acc,wt,W,H,true);
-
-  var covPx=0;
-  for(var i=0;i<W*H;i++) if(wt[i]>0) covPx++;
-  var covPct=(100*covPx/(W*H)).toFixed(1);
-  L('  Coverage: '+covPx.toLocaleString()+' px ('+covPct+'%)');
-  document.getElementById('stCov').textContent=covPct+'%';
+  P(91,'Stretching p1-p99');
+  var final=buildImg(acc,wt,W,H,true);
+  var cov=0;for(var i=0;i<W*H;i++)if(wt[i]>0)cov++;
+  L('  Coverage: '+(100*cov/(W*H)).toFixed(1)+'%');
+  document.getElementById('stCov').textContent=(100*cov/(W*H)).toFixed(1)+'%';
   document.getElementById('stSz').textContent=W+'x'+H;
   document.getElementById('stN').textContent=recs.length;
   return final;
 }
 
-function buildImgData(acc,wt,W,H,stretch){
+function buildImg(acc,wt,W,H,stretch){
   var out=new Uint8ClampedArray(W*H*4);
-  // Collect covered luma for stretch
   var lumas=[],lo=0,hi=255,range=255;
   if(stretch){
-    for(var i=0;i<W*H;i++){
-      if(wt[i]>0) lumas.push((acc[i*3]*0.299+acc[i*3+1]*0.587+acc[i*3+2]*0.114)/wt[i]);
-    }
-    lumas.sort(function(a,b){return a-b});
-    if(lumas.length>10){
-      lo=lumas[Math.floor(lumas.length*0.02)];
-      hi=lumas[Math.floor(lumas.length*0.98)];
-      range=Math.max(hi-lo,1);
-    }
+    for(var i=0;i<W*H;i++)if(wt[i]>0)lumas.push(acc[i*3]/wt[i]);
+    lumas.sort(function(a,b){return a-b;});
+    if(lumas.length>100){lo=lumas[Math.floor(lumas.length*0.01)];hi=lumas[Math.floor(lumas.length*0.99)];range=Math.max(hi-lo,1);}
   }
+  var sc=255/range,bias=-lo*255/range;
   for(var i=0;i<W*H;i++){
     if(wt[i]>0){
-      var sc=stretch?255/range:1,bias=stretch?-lo*255/range:0;
-      out[i*4  ]=Math.max(0,Math.min(255,acc[i*3  ]/wt[i]*sc+bias));
-      out[i*4+1]=Math.max(0,Math.min(255,acc[i*3+1]/wt[i]*sc+bias));
-      out[i*4+2]=Math.max(0,Math.min(255,acc[i*3+2]/wt[i]*sc+bias));
+      if(stretch){out[i*4]=Math.max(0,Math.min(255,acc[i*3]/wt[i]*sc+bias));out[i*4+1]=Math.max(0,Math.min(255,acc[i*3+1]/wt[i]*sc+bias));out[i*4+2]=Math.max(0,Math.min(255,acc[i*3+2]/wt[i]*sc+bias));}
+      else{out[i*4]=Math.min(255,acc[i*3]/wt[i]);out[i*4+1]=Math.min(255,acc[i*3+1]/wt[i]);out[i*4+2]=Math.min(255,acc[i*3+2]/wt[i]);}
       out[i*4+3]=255;
     }
   }
   return new ImageData(out,W,H);
 }
 
-/* ════════════════════════════════════════════════════
-   MAIN RUN
-════════════════════════════════════════════════════ */
+/* ── MAIN ── */
 async function run(){
-  if(S.running) return;
-  if(!S.files.length){L('No images loaded.','er');return}
+  if(S.running)return;
+  if(!S.files.length){L('No images.','er');return;}
   S.cancelled=false;S.running=true;S.t0=Date.now();
   document.getElementById('btnRun').disabled=true;
   document.getElementById('btnCx').disabled=false;
@@ -898,112 +709,100 @@ async function run(){
   document.getElementById('pempty').classList.remove('gone');
   document.getElementById('log').innerHTML='';
 
-  var gsdOv =parseFloat(document.getElementById('gsd').value)||null;
+  var gsdOv=parseFloat(document.getElementById('gsd').value)||null;
   var hfovOv=parseFloat(document.getElementById('hfov').value)||null;
-  var fpSc  =parseFloat(document.getElementById('fpsc').value)||1.0;
-  var maxPx =parseInt(document.getElementById('mxpx').value)||5000;
-  var blendPx=parseInt(document.getElementById('blpx').value)||80;
-  var blendMode=document.getElementById('blendMode').value;
+  var fpSc=parseFloat(document.getElementById('fpsc').value)||1.0;
+  var maxPx=parseInt(document.getElementById('mxpx').value)||5000;
+  var blendPx=parseInt(document.getElementById('blpx').value)||30;
+  var imgTypeSel=document.getElementById('imgType').value;
 
-  L('SKY TERRAEYE — EYE LINEAR ORTHO (browser v4)','hd');
-  L(new Date().toLocaleString(),'dm');
+  L('SKY TERRAEYE — EYE v5 (thermal-aware)','hd');L(new Date().toLocaleString(),'dm');
 
   try{
     P(2,'Reading EXIF');
     var recs=await loadRecords(S.files);
-    if(S.cancelled) throw new Error('Cancelled');
+    if(S.cancelled)throw new Error('Cancelled');
+
+    // Determine thermal/RGB
+    var nth=recs.filter(function(r){return r.thermal;}).length;
+    var isThermal=(imgTypeSel==='thermal')||(imgTypeSel==='auto'&&nth>recs.length*0.5);
+    L('  Mode: '+(isThermal?'THERMAL (per-frame calibration)':'RGB'),'hd');
+    document.getElementById('stType').textContent=isThermal?'THERMAL':'RGB';
 
     recs=sortLinear(recs);
-    if(S.cancelled) throw new Error('Cancelled');
+    if(S.cancelled)throw new Error('Cancelled');
 
     var cv=buildCanvas(recs,gsdOv,hfovOv,fpSc,maxPx);
-    if(S.cancelled) throw new Error('Cancelled');
+    if(S.cancelled)throw new Error('Cancelled');
 
-    recs=await refinePositions(recs);
-    if(S.cancelled) throw new Error('Cancelled');
+    recs=await alignPairs(recs);
+    if(S.cancelled)throw new Error('Cancelled');
 
     recs=enforceLinear(recs);
 
-    var gains=await computeGains(recs);
-    if(S.cancelled) throw new Error('Cancelled');
+    // Calibrate: thermal uses histogram matching, RGB uses per-channel mean
+    var cals;
+    if(isThermal){
+      var thermalCals=await thermalCalibrate(recs);
+      cals=thermalCals;
+    }else{
+      var rgbCals=await rgbGain(recs);
+      cals=rgbCals;
+    }
+    if(S.cancelled)throw new Error('Cancelled');
 
-    var imgData=await composite(recs,cv,gains,blendPx,blendMode);
-    if(S.cancelled) throw new Error('Cancelled');
+    var imgData=await composite(recs,cv,cals,isThermal,blendPx);
+    if(S.cancelled)throw new Error('Cancelled');
 
-    P(97,'Rendering');
-    await slp(0);
-    // Bake final result into bitmap for pan/zoom
+    P(97,'Rendering');await slp(0);
     var oc=new OffscreenCanvas(imgData.width,imgData.height);
     oc.getContext('2d').putImageData(imgData,0,0);
     PV.bmp=await createImageBitmap(oc);
-    lc.classList.remove('on');
-    pvResize(); pvFit();
+    lc.classList.remove('on');pvR();pvFit();
 
     S.result=imgData;
     S.wf={X0:cv.X0,Y1:cv.Y1,gsd:cv.gsd,W:cv.W,H:cv.H,epsg:cv.epsg};
 
     P(100,'Done');
     var elapsed=((Date.now()-S.t0)/1000).toFixed(1);
-    L('─── Done in '+elapsed+'s ────────────────────────────────','ok');
-
+    L('─── Done in '+elapsed+'s ──────────────────────────────','ok');
     document.getElementById('dbanner').classList.add('on');
     document.getElementById('dmsg').textContent='Complete  '+imgData.width+'\xd7'+imgData.height+'px  \u2022  '+elapsed+'s';
     document.getElementById('dlCard').style.display='';
     document.getElementById('dlsec').classList.add('on');
     document.getElementById('pstats').style.display='flex';
-    document.getElementById('dlInfo').textContent=imgData.width+'\xd7'+imgData.height+'px  |  '+S.files.length+' images  |  '+elapsed+'s';
-
+    document.getElementById('dlInfo').textContent=imgData.width+'\xd7'+imgData.height+'px  |  '+S.files.length+' imgs  |  '+elapsed+'s';
   }catch(e){
-    if(e.message==='Cancelled'){L('Cancelled.','dm');P(0,'Cancelled')}
-    else{L('ERROR: '+e.message,'er');L(e.stack||'','dm');P(0,'Error')}
+    if(e.message==='Cancelled'){L('Cancelled.','dm');P(0,'Cancelled');}
+    else{L('ERROR: '+e.message,'er');L(e.stack||'','dm');P(0,'Error');}
   }finally{
-    S.running=false;
-    document.getElementById('btnRun').disabled=false;
-    document.getElementById('btnCx').disabled=true;
+    S.running=false;document.getElementById('btnRun').disabled=false;document.getElementById('btnCx').disabled=true;
   }
 }
-
-function cancel(){S.cancelled=true;document.getElementById('btnCx').disabled=true}
-
+function cancel(){S.cancelled=true;document.getElementById('btnCx').disabled=true;}
 function reset(){
-  S.files=[];S.recs=[];S.cancelled=false;S.running=false;S.result=null;S.wf=null;
-  PV.bmp=null; pctx.clearRect(0,0,pc.width,pc.height); lctx.clearRect(0,0,lc.width,lc.height);
+  S.files=[];S.cancelled=false;S.running=false;S.result=null;S.wf=null;
+  PV.bmp=null;pctx.clearRect(0,0,pc.width,pc.height);lctx.clearRect(0,0,lc.width,lc.height);
   lc.classList.remove('on');
-  document.getElementById('fbadge').style.display='none';
-  document.getElementById('fi').value='';
-  document.getElementById('pstats').style.display='none';
-  document.getElementById('pempty').classList.remove('gone');
-  document.getElementById('dlCard').style.display='none';
-  document.getElementById('dlsec').classList.remove('on');
-  document.getElementById('dbanner').classList.remove('on');
-  document.getElementById('btnRun').disabled=true;
-  document.getElementById('btnCx').disabled=true;
-  P(0,'Idle'); setImgSt('Waiting for images...','');
-  document.getElementById('log').innerHTML='<div class="ll dm">// Reset. Drop images and click Run.</div>';
+  document.getElementById('fbadge').style.display='none';document.getElementById('fi').value='';
+  document.getElementById('pstats').style.display='none';document.getElementById('pempty').classList.remove('gone');
+  document.getElementById('dlCard').style.display='none';document.getElementById('dlsec').classList.remove('on');
+  document.getElementById('dbanner').classList.remove('on');document.getElementById('btnRun').disabled=true;document.getElementById('btnCx').disabled=true;
+  P(0,'Idle');setSt('Waiting for images...','');
+  document.getElementById('log').innerHTML='<div class="ll dm">// Reset.</div>';
 }
-
-/* ════════════════════════════════════════════════════
-   DOWNLOAD
-════════════════════════════════════════════════════ */
 function dlPNG(){
-  if(!S.result){L('No result yet.','er');return}
-  var oc=new OffscreenCanvas(S.result.width,S.result.height);
-  oc.getContext('2d').putImageData(S.result,0,0);
-  oc.convertToBlob({type:'image/png'}).then(function(blob){
-    var url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download='orthomosaic_eye.png';a.click();
-    setTimeout(function(){URL.revokeObjectURL(url)},1000);
-    L('PNG downloaded.','ok');
-  });
+  if(!S.result){L('No result.','er');return;}
+  var oc=new OffscreenCanvas(S.result.width,S.result.height);oc.getContext('2d').putImageData(S.result,0,0);
+  oc.convertToBlob({type:'image/png'}).then(function(blob){var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='orthomosaic_eye.png';a.click();setTimeout(function(){URL.revokeObjectURL(url);},1000);L('PNG downloaded.','ok');});
 }
 function dlPGW(){
-  if(!S.wf){L('No world file data.','er');return}
+  if(!S.wf){L('No world file.','er');return;}
   var wf=S.wf,g=wf.gsd;
   var pgw=[g.toFixed(10),'0.0000000000','0.0000000000',(-g).toFixed(10),(wf.X0+g*0.5).toFixed(4),(wf.Y1-g*0.5).toFixed(4)].join('\n');
-  var blob=new Blob([pgw],{type:'text/plain'}),url=URL.createObjectURL(blob);
-  var a=document.createElement('a');a.href=url;a.download='orthomosaic_eye.pgw';a.click();
-  setTimeout(function(){URL.revokeObjectURL(url)},1000);
-  L('World file (.pgw) saved. Open PNG+pgw together in QGIS.','ok');
+  var blob=new Blob([pgw],{type:'text/plain'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='orthomosaic_eye.pgw';a.click();setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  L('World file saved. Open PNG+pgw in QGIS.','ok');
 }
 </script>
 </body>
