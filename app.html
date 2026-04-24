@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Eye — Orthomosaic Processor | Sky TerraEye</title>
+<link rel="icon" href="assets/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Oxanium:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/exifr@7/dist/full.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --B:#1FA8D9;--B2:#1482AA;--B3:#0D608A;
+  --Bdim:rgba(31,168,217,.12);--Bl:rgba(31,168,217,.22);
+  --G:#F5BE18;--Gl:rgba(245,190,24,.14);
+  --D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;--D5:#0D1F32;
+  --T:#D0E8F5;--M:#5A839E;--Dm:#243D52;
+  --W:#fff;--Gr:#22C55E;
+  --r:12px;--r2:18px;
+  --e:.28s cubic-bezier(.4,0,.2,1);
+  --mono:'Oxanium',monospace;
+}
+html,body{height:100%}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--T);overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+.uae{height:5px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
+.nav{background:rgba(4,13,22,.97);backdrop-filter:blur(24px);border-bottom:1px solid rgba(31,168,217,.1);padding:0 24px;height:62px;display:flex;align-items:center;gap:14px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo img{height:28px;filter:drop-shadow(0 0 6px rgba(31,168,217,.4))}
+.logt{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--W)}
+.logt b{color:var(--B)}
+.nav-sep{width:1px;height:28px;background:rgba(255,255,255,.08)}
+.nav-tag{display:flex;align-items:center;gap:7px;background:rgba(245,190,24,.1);border:1px solid rgba(245,190,24,.25);color:var(--G);font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:5px 12px;border-radius:999px}
+.nav-tag svg{width:12px;height:12px}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.user-pill{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:999px;padding:5px 14px 5px 5px;font-size:13px;color:var(--M)}
+.user-av{width:28px;height:28px;border-radius:50%;background:var(--B);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
+.signout{font-size:12px;color:var(--M);cursor:pointer;transition:color .2s;padding:4px 8px;border-radius:6px}
+.signout:hover{color:var(--T);background:rgba(255,255,255,.05)}
+/* Browser mode bar */
+.browser-bar{
+  background:rgba(31,168,217,.05);
+  border-bottom:1px solid rgba(31,168,217,.1);
+  padding:7px 24px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--M)
+}
+.bdot{width:7px;height:7px;border-radius:50%;background:var(--Gr);box-shadow:0 0 6px var(--Gr);flex-shrink:0;animation:pd 2s ease-in-out infinite}
+@keyframes pd{0%,100%{opacity:1}50%{opacity:.4}}
+.binfo{margin-left:auto;font-size:11px;color:var(--Dm);font-family:var(--mono);letter-spacing:.5px}
+/* Layout */
+.app{display:grid;grid-template-columns:340px 1fr;height:calc(100vh - 100px)}
+/* Left panel */
+.lpanel{border-right:1px solid rgba(255,255,255,.05);overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px;background:var(--D2)}
+.lpanel::-webkit-scrollbar{width:3px}
+.lpanel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.06);border-radius:2px}
+/* Section card */
+.scard{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:var(--r2);overflow:hidden}
+.shead{padding:9px 14px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.05);font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--B);display:flex;align-items:center;gap:8px;font-family:var(--mono)}
+.snum{width:18px;height:18px;border-radius:5px;background:var(--B);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sbody{padding:14px;display:flex;flex-direction:column;gap:10px}
+/* Drop zone */
+.drop-zone{
+  border:2px dashed rgba(31,168,217,.22);border-radius:14px;padding:28px 20px;
+  text-align:center;cursor:pointer;transition:all .25s;
+  background:rgba(31,168,217,.03);
+}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--B);background:rgba(31,168,217,.07)}
+.drop-icon{width:36px;height:36px;margin:0 auto 12px;background:var(--Bdim);border:1px solid var(--Bl);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.drop-icon svg{width:18px;height:18px;color:var(--B)}
+.drop-title{font-size:13px;font-weight:700;color:var(--T);margin-bottom:4px}
+.drop-sub{font-size:11px;color:var(--M)}
+.file-count{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:#86EFAC;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;display:none;font-family:var(--mono)}
+/* Fields */
+.field label{display:block;font-size:10px;font-weight:700;color:var(--M);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;font-family:var(--mono)}
+.field input,.field select{width:100%;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.07);border-radius:8px;color:var(--T);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;padding:8px 11px;outline:none;transition:var(--e)}
+.field input:focus,.field select:focus{border-color:var(--B);background:rgba(31,168,217,.04);box-shadow:0 0 0 2px rgba(31,168,217,.08)}
+.field input::placeholder{color:var(--Dm)}
+.field select option{background:var(--D3)}
+.hint{font-size:10px;color:var(--Dm);margin-top:3px;font-family:var(--mono)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* Buttons */
+.btn-go{
+  width:100%;padding:13px;
+  background:linear-gradient(135deg,var(--B3),var(--B));
+  color:#fff;border:none;border-radius:10px;
+  font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:1px;
+  cursor:pointer;transition:var(--e);position:relative;overflow:hidden;
+}
+.btn-go::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.12);opacity:0;transition:opacity .2s}
+.btn-go:hover:not(:disabled)::after{opacity:1}
+.btn-go:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(31,168,217,.35)}
+.btn-go:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn-sm{flex:1;min-width:80px;padding:9px;border:1.5px solid rgba(255,255,255,.08);background:transparent;color:var(--M);border-radius:8px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;transition:var(--e)}
+.btn-sm:hover:not(:disabled){border-color:var(--B);color:var(--B)}
+.btn-sm.danger:hover{border-color:#F87171;color:#F87171}
+.btn-sm:disabled{opacity:.3;cursor:not-allowed}
+.btn-dl{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:#86EFAC}
+.btn-dl:hover{background:rgba(34,197,94,.18) !important;border-color:#86EFAC !important;color:#86EFAC !important}
+/* Info box */
+.infobox{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:8px 11px;font-family:var(--mono);font-size:11px;color:var(--Dm);min-height:32px;display:flex;align-items:center;gap:8px}
+.infobox.ok{color:#86EFAC;border-color:rgba(34,197,94,.2);background:rgba(34,197,94,.05)}
+.infobox.err{color:#FCA5A5;border-color:rgba(239,68,68,.2);background:rgba(239,68,68,.05)}
+/* Right panel */
+.rpanel{display:flex;flex-direction:column;overflow:hidden;background:var(--D)}
+/* Progress */
+.prog-area{padding:14px 22px;border-bottom:1px solid rgba(255,255,255,.05);background:var(--D3);flex-shrink:0}
+.prog-row{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.prog-label{font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--M);flex:1;font-family:var(--mono)}
+.prog-pct{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--B);line-height:1}
+.prog-track{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--B3),var(--B));border-radius:2px;width:0%;transition:width .3s ease;box-shadow:0 0 8px rgba(31,168,217,.5)}
+.prog-sub{font-size:11px;color:var(--Dm);margin-top:6px;display:flex;justify-content:space-between;font-family:var(--mono)}
+/* Result banner */
+.done-banner{display:none;margin:10px 20px;padding:12px 16px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:10px;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#86EFAC}
+.done-banner.show{display:flex}
+/* Body split: log + preview */
+.rinner{flex:1;display:grid;grid-template-columns:1fr 1fr;overflow:hidden}
+/* Log */
+.log-wrap{display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.04);overflow:hidden}
+.log-head{padding:7px 20px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:8px;background:var(--D3);font-size:10px;font-weight:800;letter-spacing:2px;color:var(--Dm);text-transform:uppercase;flex-shrink:0;font-family:var(--mono)}
+.log-head button{margin-left:auto;font-size:10px;padding:3px 9px;border:1px solid rgba(255,255,255,.07);background:transparent;color:var(--Dm);border-radius:5px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:color .2s}
+.log-head button:hover{color:var(--M)}
+#log{flex:1;overflow-y:auto;padding:12px 20px;font-family:var(--mono);font-size:10.5px;line-height:1.8;color:#3A6A50;background:var(--D)}
+#log::-webkit-scrollbar{width:3px}
+#log::-webkit-scrollbar-thumb{background:rgba(255,255,255,.06)}
+.ll{white-space:pre-wrap;word-break:break-all}
+.ll.ok{color:#86EFAC}.ll.err{color:#FCA5A5}.ll.hd{color:var(--B);font-weight:700}.ll.dim{color:#2A4A38}
+/* Preview */
+.preview-wrap{display:flex;flex-direction:column;overflow:hidden;background:#030B14}
+.prev-head{padding:7px 20px;border-bottom:1px solid rgba(255,255,255,.04);background:var(--D3);font-size:10px;font-weight:800;letter-spacing:2px;color:var(--Dm);text-transform:uppercase;flex-shrink:0;font-family:var(--mono);display:flex;align-items:center;gap:8px}
+#preview-canvas{flex:1;display:block;object-fit:contain;width:100%;height:100%;opacity:.15;transition:opacity .4s}
+#preview-canvas.ready{opacity:1}
+.prev-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;opacity:.25}
+.prev-empty svg{width:48px;height:48px;color:var(--M)}
+.prev-empty p{font-size:12px;color:var(--M)}
+/* Animations */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.pulsing{animation:pulse 1.2s infinite}
+@media(max-width:960px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .rinner{grid-template-columns:1fr}
+  .preview-wrap{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- Auth guard: redirect to eye.html if not logged in -->
+<script>
+(function(){
+  var session=null;
+  try{session=JSON.parse(localStorage.getItem('ste_session')||'null');}catch(e){}
+  var hash=location.hash.slice(1);
+  if(hash){try{var h=JSON.parse(decodeURIComponent(hash));if(h.email)session=h;}catch(e){}}
+  if(!session||!session.email){window.location.href='eye.html';return;}
+  window.__session=session;
+  // Store fresh session
+  try{localStorage.setItem('ste_session',JSON.stringify({email:session.email,name:session.name,ts:Date.now()}));}catch(e){}
+  location.hash='';
+})();
+</script>
+
+<div class="uae"></div>
+<nav class="nav">
+  <a class="logo" href="index.html">
+    <img src="assets/img/logo.png" alt="Sky TerraEye">
+    <div class="logt"><b>SKY</b> TERRAEYE</div>
+  </a>
+  <div class="nav-sep"></div>
+  <div class="nav-tag">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    Eye Platform
+  </div>
+  <div class="nav-right">
+    <div class="user-pill">
+      <div class="user-av" id="userAv">?</div>
+      <span id="userName">...</span>
+    </div>
+    <span class="signout" onclick="signOut()">Sign out</span>
+  </div>
+</nav>
+
+<!-- Browser mode indicator (replaces agent bar) -->
+<div class="browser-bar">
+  <div class="bdot"></div>
+  <span>Browser Processing Mode &mdash; all computation runs locally in this tab. No uploads. No server.</span>
+  <span class="binfo">Eye v3 &middot; in-browser</span>
+</div>
+
+<div class="app">
+
+  <!-- ══ LEFT: Controls ══ -->
+  <div class="lpanel">
+
+    <!-- Step 1: Images -->
+    <div class="scard">
+      <div class="shead"><div class="snum">1</div>Drop Images</div>
+      <div class="sbody">
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+          <div class="drop-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div class="drop-title">Drop drone images here</div>
+          <div class="drop-sub">JPG / TIFF with GPS EXIF &bull; DJI, Skydio, Parrot</div>
+          <div class="file-count" id="fileCount">0 images loaded</div>
+        </div>
+        <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.tif,.tiff,.JPG,.JPEG,.TIF,.TIFF" style="display:none">
+        <div class="infobox" id="gpsStatus">Waiting for images...</div>
+      </div>
+    </div>
+
+    <!-- Step 2: Settings -->
+    <div class="scard">
+      <div class="shead"><div class="snum">2</div>Settings</div>
+      <div class="sbody">
+        <div class="g2">
+          <div class="field">
+            <label>HFOV (deg)</label>
+            <input type="number" id="hfov" placeholder="Auto" min="20" max="150" step="0.1">
+            <div class="hint">Leave blank = auto-detect</div>
+          </div>
+          <div class="field">
+            <label>GSD Override (m/px)</label>
+            <input type="number" id="gsd" placeholder="Auto" min="0.005" max="2" step="0.001">
+          </div>
+        </div>
+        <div class="g2">
+          <div class="field">
+            <label>Footprint Scale</label>
+            <input type="number" id="fpScale" value="1.0" min="0.5" max="2" step="0.05">
+          </div>
+          <div class="field">
+            <label>Max Canvas (px)</label>
+            <select id="maxPx">
+              <option value="2000">2000</option>
+              <option value="3000" selected>3000</option>
+              <option value="4000">4000</option>
+              <option value="5000">5000</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Blend Width (px)</label>
+          <input type="number" id="blendPx" value="40" min="8" max="200" step="4">
+          <div class="hint">Edge feather for seam blending</div>
+        </div>
+        <div class="infobox" id="canvasInfo">Canvas size will be shown here</div>
+      </div>
+    </div>
+
+    <!-- Step 3: Run -->
+    <div class="scard">
+      <div class="shead"><div class="snum">3</div>Process</div>
+      <div class="sbody">
+        <button class="btn-go" id="btnRun" disabled onclick="startProcessing()">RUN ORTHOMOSAIC</button>
+        <div class="btn-row">
+          <button class="btn-sm danger" id="btnCancel" disabled onclick="cancelProcessing()">Cancel</button>
+          <button class="btn-sm" onclick="resetAll()">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Download -->
+    <div class="scard" id="dlCard" style="display:none">
+      <div class="shead"><div class="snum">4</div>Download</div>
+      <div class="sbody">
+        <div class="btn-row">
+          <button class="btn-sm btn-dl" onclick="downloadPNG()">
+            <svg style="width:10px;height:10px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+            PNG
+          </button>
+          <button class="btn-sm btn-dl" onclick="downloadPGW()">
+            <svg style="width:10px;height:10px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+            World File (.pgw)
+          </button>
+        </div>
+        <div class="infobox ok" id="dlInfo">Ready to download</div>
+        <div class="hint" style="margin-top:4px">PNG + .pgw = georeferenced pair for QGIS. No GeoTIFF without GDAL (agent-only).</div>
+      </div>
+    </div>
+
+  </div><!-- /lpanel -->
+
+  <!-- ══ RIGHT: Progress + Log + Preview ══ -->
+  <div class="rpanel">
+    <div class="prog-area">
+      <div class="prog-row">
+        <div class="prog-label">PROCESSING</div>
+        <div class="prog-pct" id="progPct">0%</div>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+      <div class="prog-sub">
+        <span id="progStep">Idle</span>
+        <span id="progTime"></span>
+      </div>
+    </div>
+
+    <div class="done-banner" id="doneBanner">
+      <svg style="width:18px;height:18px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      <span id="doneMsg">Orthomosaic complete</span>
+    </div>
+
+    <div class="rinner">
+      <!-- Log -->
+      <div class="log-wrap">
+        <div class="log-head">
+          <svg style="width:10px;height:10px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          Processing Log
+          <button onclick="document.getElementById('log').innerHTML=''">Clear</button>
+        </div>
+        <div id="log">
+          <div class="ll dim">// Drop images and click Run Orthomosaic</div>
+          <div class="ll dim">// All processing runs in this browser tab</div>
+          <div class="ll dim">// Data is not saved &mdash; refresh to start fresh</div>
+        </div>
+      </div>
+      <!-- Preview -->
+      <div class="preview-wrap">
+        <div class="prev-head">
+          <svg style="width:10px;height:10px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+          Orthomosaic Preview
+        </div>
+        <canvas id="preview-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════════════════════════════════
+(function(){
+  var s = window.__session;
+  if(!s) return;
+  var av = document.getElementById('userAv');
+  var un = document.getElementById('userName');
+  if(av) av.textContent = (s.name||s.email||'?')[0].toUpperCase();
+  if(un) un.textContent = s.name || s.email;
+})();
+function signOut(){
+  localStorage.removeItem('ste_session');
+  window.location.href='eye.html';
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════════════════
+var state = {
+  files: [],
+  records: [],       // [{file, bitmap, lat, lon, alt, w, h, hfov, thermal}]
+  cancelled: false,
+  running: false,
+  resultCanvas: null,
+  worldFile: null,   // {x0, y0, gsd, W, H}
+};
+var t0 = 0;
+
+// ══════════════════════════════════════════════════════════════════════
+//  UI HELPERS
+// ══════════════════════════════════════════════════════════════════════
+function log(msg, cls){
+  var el = document.getElementById('log');
+  var d  = document.createElement('div');
+  d.className = 'll' + (cls?' '+cls:'');
+  d.textContent = msg;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+function setProgress(pct, step){
+  var p = Math.max(0, Math.min(100, pct));
+  document.getElementById('progPct').textContent  = Math.round(p)+'%';
+  document.getElementById('progFill').style.width = p+'%';
+  if(step) document.getElementById('progStep').textContent = step;
+  var elapsed = t0 ? ((Date.now()-t0)/1000).toFixed(1)+'s' : '';
+  document.getElementById('progTime').textContent = elapsed;
+}
+function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}) }
+
+// ══════════════════════════════════════════════════════════════════════
+//  FILE HANDLING
+// ══════════════════════════════════════════════════════════════════════
+var dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', function(e){e.preventDefault();dropZone.classList.add('drag')});
+dropZone.addEventListener('dragleave', function(){dropZone.classList.remove('drag')});
+dropZone.addEventListener('drop', function(e){
+  e.preventDefault();dropZone.classList.remove('drag');
+  handleFiles(Array.from(e.dataTransfer.files));
+});
+document.getElementById('fileInput').addEventListener('change', function(e){
+  handleFiles(Array.from(e.target.files));
+});
+
+function handleFiles(files){
+  var imgs = files.filter(function(f){return /\.(jpe?g|tiff?)$/i.test(f.name)});
+  if(!imgs.length){log('No valid image files found.','err');return;}
+  state.files = imgs;
+  var fc = document.getElementById('fileCount');
+  fc.textContent = imgs.length + ' images loaded';
+  fc.style.display = 'inline-flex';
+  document.getElementById('gpsStatus').textContent = 'Reading GPS from images...';
+  document.getElementById('gpsStatus').className = 'infobox';
+  document.getElementById('btnRun').disabled = false;
+  log(''+imgs.length+' images queued. Click Run to process.', 'hd');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  GPS / EXIF
+// ══════════════════════════════════════════════════════════════════════
+async function loadRecords(files){
+  log('─── Reading GPS EXIF ───────────────────────────────────', 'hd');
+  var records = [];
+  var noGps = 0;
+
+  for(var i=0; i<files.length; i++){
+    if(state.cancelled) return records;
+    var f = files[i];
+    setProgress(2 + 10*(i/files.length), 'Reading EXIF '+i+'/'+files.length);
+    try{
+      var exif = await exifr.parse(f, {
+        gps:true, tiff:true, xmp:true,
+        translateValues:true, translateKeys:true
+      });
+      if(!exif || exif.latitude==null){
+        log('  No GPS: '+f.name, 'dim'); noGps++; continue;
+      }
+      var bitmap = await createImageBitmap(f);
+      var alt = exif.GPSAltitude || exif.altitude || 100;
+      if(typeof alt !== 'number') alt = 100;
+      // Detect HFOV from model string
+      var model = ((exif.Model||'')+(exif.Make||'')+(exif.ImageDescription||'')).toLowerCase();
+      var hfov = detectHFOV(model, bitmap.width, bitmap.height);
+      var isThermal = /h20t|h30t|m3t|m30t|xt2|xt s|thermal|infrared|radiometric|whitehot|blackhot/.test(model)
+                   || (bitmap.width<=720 && bitmap.height<=600);
+      records.push({
+        file:f, bitmap:bitmap,
+        lat:exif.latitude, lon:exif.longitude, alt:alt,
+        w:bitmap.width, h:bitmap.height,
+        hfov:hfov, thermal:isThermal,
+        yaw: exif.GPSImgDirection || exif.GimbalYawDegree || 0
+      });
+    } catch(e){
+      log('  WARN '+f.name+': '+e.message, 'dim');
+    }
+    if(i%10===0) await sleep(0);
+  }
+  var nth = records.filter(function(r){return r.thermal}).length;
+  log('  '+records.length+' GPS images  ('+nth+' thermal, '+(records.length-nth)+' RGB)');
+  if(noGps) log('  '+noGps+' images skipped (no GPS)', 'dim');
+  if(!records.length) throw new Error('No GPS images found. Ensure images have GPS EXIF tags.');
+  return records;
+}
+
+function detectHFOV(model, w, h){
+  if(/h30t/.test(model)) return 40.6;
+  if(/h20t/.test(model)) return 57.0;
+  if(/m3t|m30t/.test(model)) return 57.0;
+  if(/skydio.*x10/.test(model)) return w>=8000 ? 50.0 : 93.0;
+  if(/skydio.*x2/.test(model)) return 80.0;
+  if(/skydio/.test(model)) return 80.0;
+  if(w<=720 && h<=600) return 45.0; // generic thermal
+  return 84.0; // generic RGB
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  CANVAS PLACEMENT (equirectangular GPS → pixels)
+// ══════════════════════════════════════════════════════════════════════
+function buildCanvas(records, gsdOv, hfovOv, fpScale, maxPx){
+  log('─── Building canvas ────────────────────────────────────', 'hd');
+  var avgLat = records.reduce(function(s,r){return s+r.lat},0)/records.length;
+  var cosLat = Math.cos(avgLat * Math.PI/180);
+  var mPerDegLat = 111320.0;
+  var mPerDegLon = 111320.0 * cosLat;
+
+  var gsds = [];
+  for(var i=0; i<records.length; i++){
+    var r = records[i];
+    r.ux = r.lon * mPerDegLon;
+    r.uy = r.lat * mPerDegLat;
+    var hfov = hfovOv || r.hfov;
+    var gsd  = gsdOv  || (2.0 * r.alt * Math.tan(hfov/2*Math.PI/180) / r.w) * fpScale;
+    r.gsd = gsd;
+    r.gw = gsd * r.w;
+    r.gh = gsd * r.h;
+    gsds.push(gsd);
+  }
+
+  var X0 = Infinity, X1=-Infinity, Y0=Infinity, Y1=-Infinity;
+  for(var i=0;i<records.length;i++){
+    var r=records[i];
+    X0=Math.min(X0,r.ux-r.gw/2); X1=Math.max(X1,r.ux+r.gw/2);
+    Y0=Math.min(Y0,r.uy-r.gh/2); Y1=Math.max(Y1,r.uy+r.gh/2);
+  }
+
+  // Median GSD
+  gsds.sort(function(a,b){return a-b});
+  var gsd_out = gsds[Math.floor(gsds.length/2)];
+
+  var CW = Math.ceil((X1-X0)/gsd_out);
+  var CH = Math.ceil((Y1-Y0)/gsd_out);
+  var scale = Math.min(1.0, maxPx/Math.max(CW,CH));
+  var W = Math.max(1, Math.round(CW*scale));
+  var H = Math.max(1, Math.round(CH*scale));
+  gsd_out = gsd_out / scale;
+
+  for(var i=0;i<records.length;i++){
+    var r=records[i];
+    r.cx = ((r.ux - X0) / gsd_out);
+    r.cy = ((Y1  - r.uy) / gsd_out);
+    r.pw = Math.max(2, Math.round(r.gw / gsd_out));
+    r.ph = Math.max(2, Math.round(r.gh / gsd_out));
+  }
+
+  log('  GSD='+gsd_out.toFixed(4)+'m/px  Canvas='+W+'x'+H+'px');
+  document.getElementById('canvasInfo').textContent =
+    'Canvas: '+W+'×'+H+'px  GSD: '+(gsd_out*100).toFixed(1)+'cm/px';
+
+  return {
+    CW:W, CH:H, gsd:gsd_out,
+    X0:X0, Y1:Y1
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  GAIN NORMALIZATION (simple per-image mean → global median)
+// ══════════════════════════════════════════════════════════════════════
+async function computeGains(records){
+  log('─── Gain normalization ─────────────────────────────────', 'hd');
+  var means = [];
+  var THUMB = 128;
+  for(var i=0;i<records.length;i++){
+    var r = records[i];
+    var tc = new OffscreenCanvas(THUMB, THUMB);
+    var tx = tc.getContext('2d');
+    tx.drawImage(r.bitmap, 0,0, THUMB, THUMB);
+    var d = tx.getImageData(0,0,THUMB,THUMB).data;
+    var sum=0, cnt=0;
+    for(var j=0;j<d.length;j+=4){
+      sum += (d[j]*0.299 + d[j+1]*0.587 + d[j+2]*0.114);
+      cnt++;
+    }
+    means.push(cnt>0 ? sum/cnt : 128);
+    if(i%20===0) await sleep(0);
+  }
+  var sorted = means.slice().sort(function(a,b){return a-b});
+  var globalMean = sorted[Math.floor(sorted.length/2)];
+  var gains = means.map(function(m){
+    return globalMean / Math.max(m, 1.0);
+  });
+  // Clamp gains
+  gains = gains.map(function(g){return Math.max(0.33, Math.min(3.0, g))});
+  var mn=Math.min.apply(null,gains), mx=Math.max.apply(null,gains);
+  log('  Gain range: '+mn.toFixed(3)+' – '+mx.toFixed(3)+
+      '  median='+gains[Math.floor(gains.length/2)].toFixed(3));
+  return gains;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  COMPOSITE — edge-feathered distance-weighted blend
+// ══════════════════════════════════════════════════════════════════════
+async function composite(records, cv, gains, blendPx){
+  var W=cv.CW, H=cv.CH;
+  log('─── Compositing '+records.length+' images → '+W+'×'+H+'px ────────────', 'hd');
+
+  var acc = new Float32Array(W*H*3);
+  var wt  = new Float32Array(W*H);
+
+  for(var idx=0; idx<records.length; idx++){
+    if(state.cancelled) throw new Error('Cancelled');
+    setProgress(38 + 50*(idx/records.length), 'Compositing '+(idx+1)+'/'+records.length);
+
+    var r   = records[idx];
+    var g   = gains[idx];
+    var pw  = r.pw, ph = r.ph;
+    var cx  = Math.round(r.cx), cy = Math.round(r.cy);
+
+    // Render tile at canvas resolution
+    var tc  = new OffscreenCanvas(pw, ph);
+    var tx  = tc.getContext('2d');
+    tx.drawImage(r.bitmap, 0, 0, pw, ph);
+    var td  = tx.getImageData(0, 0, pw, ph).data;
+
+    var x0 = Math.max(0, cx - (pw>>1));
+    var y0 = Math.max(0, cy - (ph>>1));
+    var x1 = Math.min(W, x0+pw);
+    var y1 = Math.min(H, y0+ph);
+
+    for(var py=y0; py<y1; py++){
+      for(var px=x0; px<x1; px++){
+        var sx = px-x0, sy = py-y0;
+        // Edge distance weight (feathered seam)
+        var ex = Math.min(sx, pw-1-sx);
+        var ey = Math.min(sy, ph-1-sy);
+        var w  = Math.min(1.0, Math.min(ex, ey) / blendPx);
+        if(w <= 0) continue;
+        var si = (sy*pw + sx)<<2;
+        var di = py*W + px;
+        var rr = Math.min(255, td[si]   * g);
+        var rg = Math.min(255, td[si+1] * g);
+        var rb = Math.min(255, td[si+2] * g);
+        acc[di*3]   += rr * w;
+        acc[di*3+1] += rg * w;
+        acc[di*3+2] += rb * w;
+        wt[di]      += w;
+      }
+    }
+    if(idx%3===0) await sleep(0);
+  }
+
+  log('  Normalizing...');
+  setProgress(90, 'Normalizing');
+
+  // Collect covered pixels for percentile stretch
+  var covered = [];
+  for(var i=0;i<W*H;i++) if(wt[i]>0) covered.push(acc[i*3]*0.299+acc[i*3+1]*0.587+acc[i*3+2]*0.114);
+  covered.sort(function(a,b){return a-b});
+  var lo = covered[Math.floor(covered.length*0.02)] || 0;
+  var hi = covered[Math.floor(covered.length*0.98)] || 255;
+  var range = Math.max(hi-lo, 1);
+
+  var out = new Uint8ClampedArray(W*H*4);
+  var covPx = 0;
+  for(var i=0;i<W*H;i++){
+    var w2 = wt[i];
+    if(w2>0){
+      out[i*4]   = Math.round(Math.max(0,Math.min(255, (acc[i*3  ]/w2-lo)/range*255)));
+      out[i*4+1] = Math.round(Math.max(0,Math.min(255, (acc[i*3+1]/w2-lo)/range*255)));
+      out[i*4+2] = Math.round(Math.max(0,Math.min(255, (acc[i*3+2]/w2-lo)/range*255)));
+      out[i*4+3] = 255;
+      covPx++;
+    }
+  }
+  var covPct = (100*covPx/(W*H)).toFixed(1);
+  log('  Coverage: '+covPx.toLocaleString()+'px ('+covPct+'%)');
+  return new ImageData(out, W, H);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  MAIN
+// ══════════════════════════════════════════════════════════════════════
+async function startProcessing(){
+  if(state.running) return;
+  if(!state.files.length){ log('No images loaded.','err'); return; }
+  state.cancelled = false;
+  state.running   = true;
+  t0 = Date.now();
+
+  document.getElementById('btnRun').disabled   = true;
+  document.getElementById('btnCancel').disabled = false;
+  document.getElementById('dlCard').style.display = 'none';
+  document.getElementById('doneBanner').classList.remove('show');
+  var pcanvas = document.getElementById('preview-canvas');
+  pcanvas.classList.remove('ready');
+
+  var gsdOv   = parseFloat(document.getElementById('gsd').value)   || null;
+  var hfovOv  = parseFloat(document.getElementById('hfov').value)  || null;
+  var fpScale = parseFloat(document.getElementById('fpScale').value)||1.0;
+  var maxPx   = parseInt(document.getElementById('maxPx').value)   ||3000;
+  var blendPx = parseInt(document.getElementById('blendPx').value) ||40;
+
+  document.getElementById('log').innerHTML = '';
+  log('SKY TERRAEYE — EYE (Browser Mode)', 'hd');
+  log(new Date().toLocaleString(), 'dim');
+
+  try{
+    setProgress(2, 'Reading EXIF');
+    var records = await loadRecords(state.files);
+    if(state.cancelled) throw new Error('Cancelled');
+    state.records = records;
+
+    document.getElementById('gpsStatus').textContent =
+      records.length+' GPS images ready';
+    document.getElementById('gpsStatus').className = 'infobox ok';
+
+    setProgress(12, 'Building canvas');
+    var cv = buildCanvas(records, gsdOv, hfovOv, fpScale, maxPx);
+    if(state.cancelled) throw new Error('Cancelled');
+
+    setProgress(22, 'Gain normalization');
+    var gains = await computeGains(records);
+    if(state.cancelled) throw new Error('Cancelled');
+
+    setProgress(38, 'Compositing');
+    var imageData = await composite(records, cv, gains, blendPx);
+    if(state.cancelled) throw new Error('Cancelled');
+
+    setProgress(95, 'Rendering preview');
+    await sleep(0);
+
+    // Draw to preview canvas
+    pcanvas.width  = imageData.width;
+    pcanvas.height = imageData.height;
+    var pctx = pcanvas.getContext('2d');
+    pctx.putImageData(imageData, 0, 0);
+    pcanvas.classList.add('ready');
+
+    // Save for download
+    state.resultCanvas = pcanvas;
+    state.worldFile = { X0:cv.X0, Y1:cv.Y1, gsd:cv.gsd, W:cv.CW, H:cv.CH };
+
+    setProgress(100, 'Done');
+    var elapsed = ((Date.now()-t0)/1000).toFixed(1);
+    log('─── Done in '+elapsed+'s ────────────────────────────────────', 'ok');
+    log('  Dimensions: '+imageData.width+'×'+imageData.height+'px', 'ok');
+
+    document.getElementById('doneBanner').classList.add('show');
+    document.getElementById('doneMsg').textContent =
+      'Orthomosaic complete — '+imageData.width+'×'+imageData.height+'px  ('+elapsed+'s)';
+    document.getElementById('dlCard').style.display = '';
+    document.getElementById('dlInfo').textContent =
+      imageData.width+'×'+imageData.height+'px  |  '+state.files.length+' images  |  '+elapsed+'s';
+
+  } catch(e){
+    if(e.message==='Cancelled'){
+      log('Cancelled.','dim');
+      setProgress(0,'Cancelled');
+    } else {
+      log('ERROR: '+e.message, 'err');
+      log(e.stack||'', 'dim');
+      setProgress(0,'Error');
+    }
+  } finally {
+    state.running = false;
+    document.getElementById('btnRun').disabled   = false;
+    document.getElementById('btnCancel').disabled = true;
+  }
+}
+
+function cancelProcessing(){
+  state.cancelled = true;
+  document.getElementById('btnCancel').disabled = true;
+}
+
+function resetAll(){
+  state.files=[]; state.records=[]; state.resultCanvas=null; state.worldFile=null;
+  state.cancelled=false; state.running=false;
+  document.getElementById('fileCount').style.display='none';
+  document.getElementById('gpsStatus').textContent='Waiting for images...';
+  document.getElementById('gpsStatus').className='infobox';
+  document.getElementById('canvasInfo').textContent='Canvas size will be shown here';
+  document.getElementById('btnRun').disabled=true;
+  document.getElementById('btnCancel').disabled=true;
+  document.getElementById('dlCard').style.display='none';
+  document.getElementById('doneBanner').classList.remove('show');
+  setProgress(0,'Idle');
+  var pcanvas=document.getElementById('preview-canvas');
+  pcanvas.width=0;pcanvas.height=0;pcanvas.classList.remove('ready');
+  document.getElementById('log').innerHTML='<div class="ll dim">// Reset. Drop images and click Run.</div>';
+  document.getElementById('fileInput').value='';
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  DOWNLOAD
+// ══════════════════════════════════════════════════════════════════════
+function downloadPNG(){
+  if(!state.resultCanvas){ log('No result yet.','err'); return; }
+  state.resultCanvas.toBlob(function(blob){
+    var url = URL.createObjectURL(blob);
+    var a   = document.createElement('a');
+    a.href  = url;
+    a.download = 'orthomosaic_eye.png';
+    a.click();
+    setTimeout(function(){URL.revokeObjectURL(url)},1000);
+    log('PNG downloaded.','ok');
+  },'image/png');
+}
+
+function downloadPGW(){
+  if(!state.worldFile){ log('No world file data.','err'); return; }
+  var wf = state.worldFile;
+  // PGW format: 6 lines
+  // line 1: pixel width in map units
+  // line 2: rotation (row)
+  // line 3: rotation (col)
+  // line 4: pixel height (negative)
+  // line 5: x of upper-left pixel centre (longitude equivalent in meters)
+  // line 6: y of upper-left pixel centre (latitude equivalent in meters)
+  var pgw = [
+    wf.gsd.toFixed(8),
+    '0.00000000',
+    '0.00000000',
+    (-wf.gsd).toFixed(8),
+    (wf.X0 + wf.gsd*0.5).toFixed(8),
+    (wf.Y1 - wf.gsd*0.5).toFixed(8)
+  ].join('\n');
+  var blob = new Blob([pgw], {type:'text/plain'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href   = url;
+  a.download = 'orthomosaic_eye.pgw';
+  a.click();
+  setTimeout(function(){URL.revokeObjectURL(url)},1000);
+  log('World file (.pgw) downloaded. Pair with the PNG in QGIS.','ok');
+}
+</script>
+</body>
+</html>
