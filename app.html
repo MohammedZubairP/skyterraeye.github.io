@@ -201,8 +201,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--
           </div>
           <div class="fl">
             <label>Blend Seam (px)</label>
-            <input type="number" id="blpx" value="8" min="0" max="60" step="2">
-            <div class="hint">0=hard cut · 8=minimal feather · 30=smooth · keep low for sharp output</div>
+            <input type="number" id="blpx" value="0" min="0" max="30" step="1">
+            <div class="hint">0 = hard cut (sharpest — recommended) · 2-5 = tiny seam feather</div>
           </div>
           <div class="fl">
             <label>Alignment</label>
@@ -284,7 +284,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--
     <div class="dbanner" id="dbanner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span id="dmsg">Done</span></div>
     <div class="dlsec" id="dlsec"><div class="dlrow"><button class="bs dl" onclick="dlPNG()">PNG</button><button class="bs dl" onclick="dlPGW()">.pgw world</button></div></div>
     <div id="log">
-      <div class="ll dm">// Sky TerraEye Eye v7 — opencv.js ORB stitcher</div>
+      <div class="ll dm">// Sky TerraEye Eye v8 — GPU composite + ORB alignment</div>
       <div class="ll dm">// NCC RANSAC alignment · histogram matching · hard-seam Voronoi</div>
       <div class="ll dm">// Drop images &rarr; Run Orthomosaic</div>
     </div>
@@ -789,166 +789,123 @@ async function rgbGain(recs){
   return cals;
 }
 
-/* buildImg — lightweight helper for live preview tiles */
-function buildImg(acc,wt,W,H,stretch){
-  var out=new Uint8ClampedArray(W*H*4);
-  var lumas=[],lo=0,hi=255,range=255;
-  if(stretch){
-    for(var i=0;i<W*H;i++)if(wt[i]>0)lumas.push(acc[i*3]/wt[i]);
-    lumas.sort(function(a,b){return a-b;});
-    if(lumas.length>100){lo=lumas[Math.floor(lumas.length*0.02)];hi=lumas[Math.floor(lumas.length*0.98)];range=Math.max(hi-lo,1);}
-  }
-  var sc=255/range,bias=-lo*255/range;
-  for(var i=0;i<W*H;i++){
-    if(wt[i]>0){
-      if(stretch){
-        out[i*4  ]=Math.max(0,Math.min(255,acc[i*3  ]/wt[i]*sc+bias));
-        out[i*4+1]=Math.max(0,Math.min(255,acc[i*3+1]/wt[i]*sc+bias));
-        out[i*4+2]=Math.max(0,Math.min(255,acc[i*3+2]/wt[i]*sc+bias));
-      }else{
-        out[i*4  ]=Math.min(255,acc[i*3  ]/wt[i]);
-        out[i*4+1]=Math.min(255,acc[i*3+1]/wt[i]);
-        out[i*4+2]=Math.min(255,acc[i*3+2]/wt[i]);
-      }
-      out[i*4+3]=255;
-    }
-  }
-  return new ImageData(out,W,H);
-}
-
-/* ── STEP 7: COMPOSITE — HARD VORONOI OWNERSHIP SEAM ──
-   Each pixel is assigned to the tile whose CENTRE is nearest.
-   No blending across overlap — sharp seam at midpoint boundary.
-   Tiny feather zone (blendPx) softens only the seam edge, not the whole overlap.
-   This is the primary fix for blur: images are never averaged across misalignment.
-   ─────────────────────────────────────────────────────── */
-async function composite(recs,cv,cals,isThermal,blendPx){
-  var W=cv.W,H=cv.H;
-  L('─── Step 7: Hard-seam composite '+recs.length+' \u2192 '+W+'x'+H+' ──','hd');
+/* ══════════════════════════════════════════════════════
+   STEP 7: GPU COMPOSITE
+   Uses OffscreenCanvas drawImage — no float accumulator,
+   no blurring from averaging. Browser GPU handles compositing.
+   Each tile is: histogram-equalized → edge-alpha set → drawImage.
+   With blendPx=0 this is a pure hard cut — no blur at all.
+   ====================================================== */
+async function composite(recs,cv2,cals,isThermal,blendPx){
+  var W=cv2.W,H=cv2.H;
+  L('─── Step 7: GPU drawImage composite '+recs.length+' \u2192 '+W+'x'+H+'px ─','hd');
   document.getElementById('pempty').classList.add('gone');
 
-  // ownerDist[px] = distance to owning tile's centre (starts at Infinity)
-  // buf[px*3+c]   = calibrated pixel value from owning tile
-  var ownerDist=new Float32Array(W*H).fill(1e9);
-  var buf=new Float32Array(W*H*3);          // best-owner value (full res)
-  var seam=new Float32Array(W*H*3);         // second-best for blend zone
-  var seamDist=new Float32Array(W*H).fill(1e9); // second-best dist
+  // Main output canvas (GPU compositing via source-over)
+  var outOC=new OffscreenCanvas(W,H);
+  var ctx=outOC.getContext('2d');
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
 
-  var LIVE_EVERY=Math.max(1,Math.floor(recs.length/10));
-  // For live preview we keep a lightweight acc
-  var liveAcc=new Float32Array(W*H*3),liveWt=new Float32Array(W*H);
+  var bp=Math.max(0,Math.min(blendPx,40));
+  var LIVE_EVERY=Math.max(1,Math.floor(recs.length/8));
 
   for(var idx=0;idx<recs.length;idx++){
     if(S.cancelled)throw new Error('Cancelled');
-    if(idx%4===0)P(40+48*(idx/recs.length),'Stitching '+(idx+1)+'/'+recs.length);
+    if(idx%4===0)P(40+48*(idx/recs.length),'Drawing '+(idx+1)+'/'+recs.length);
 
     var r=recs[idx],cal=cals[idx];
-    var pw=r.pw,ph=r.ph,cx=Math.round(r.cx),cy=Math.round(r.cy);
+    var pw=r.pw,ph=r.ph;
+    var x0=Math.round(r.cx-pw/2),y0=Math.round(r.cy-ph/2);
 
-    // Render tile at CANVAS resolution (full quality, no downsample)
+    // Render tile (with yaw rotation) to a temp canvas
     var tc=new OffscreenCanvas(pw,ph),tx=tc.getContext('2d');
     tx.imageSmoothingEnabled=true;tx.imageSmoothingQuality='high';
-    if(Math.abs(r.yaw||0)>0.5){tx.translate(pw/2,ph/2);tx.rotate(-r.yaw*Math.PI/180);tx.drawImage(r.bmp,-pw/2,-ph/2,pw,ph);}
-    else tx.drawImage(r.bmp,0,0,pw,ph);
-    var td=tx.getImageData(0,0,pw,ph).data;
-
-    var x0=Math.max(0,cx-(pw>>1)),y0=Math.max(0,cy-(ph>>1));
-    var x1=Math.min(W,x0+pw),y1=Math.min(H,y0+ph);
-
-    for(var py2=y0;py2<y1;py2++){
-      for(var px2=x0;px2<x1;px2++){
-        var sx2=px2-x0,sy2=py2-y0,si=(sy2*pw+sx2)<<2;
-        if(td[si]<3&&td[si+1]<3&&td[si+2]<3)continue; // dead pixels
-
-        // Calibrate pixel
-        var rv,gv,bv;
-        if(isThermal){
-          var luma=Math.round(Math.max(0,Math.min(255,0.299*td[si]+0.587*td[si+1]+0.114*td[si+2])));
-          var v=cal.isThermalLUT?cal.lut[luma]:Math.max(0,Math.min(255,luma*cal.gain+cal.offset));
-          rv=v;gv=v;bv=v;
-        }else if(cal.isLUT){
-          rv=cal.r[td[si]];gv=cal.g[td[si+1]];bv=cal.b[td[si+2]];
-        }else{
-          rv=Math.min(255,td[si]*cal.r);gv=Math.min(255,td[si+1]*cal.g);bv=Math.min(255,td[si+2]*cal.b);
-        }
-
-        // Distance from this pixel to THIS tile's centre
-        var ddx=px2-cx,ddy=py2-cy;
-        var d=Math.sqrt(ddx*ddx+ddy*ddy);
-        var di=py2*W+px2;
-
-        if(d<ownerDist[di]){
-          // This tile is closer → it becomes the new owner
-          // Push old owner to seam buffer
-          if(ownerDist[di]<1e8){
-            seamDist[di]=ownerDist[di];
-            seam[di*3]=buf[di*3];seam[di*3+1]=buf[di*3+1];seam[di*3+2]=buf[di*3+2];
-          }
-          ownerDist[di]=d;
-          buf[di*3]=rv;buf[di*3+1]=gv;buf[di*3+2]=bv;
-        } else if(d<seamDist[di]){
-          // Second closest → goes to seam buffer
-          seamDist[di]=d;
-          seam[di*3]=rv;seam[di*3+1]=gv;seam[di*3+2]=bv;
-        }
-        // Live preview: lightweight weighted acc
-        liveAcc[di*3]+=rv;liveAcc[di*3+1]+=gv;liveAcc[di*3+2]+=bv;liveWt[di]+=1;
-      }
+    if(Math.abs(r.yaw||0)>0.5){
+      tx.save();tx.translate(pw/2,ph/2);tx.rotate(-r.yaw*Math.PI/180);
+      tx.drawImage(r.bmp,-pw/2,-ph/2,pw,ph);tx.restore();
+    }else{
+      tx.drawImage(r.bmp,0,0,pw,ph);
     }
 
+    // Apply histogram LUT + edge alpha in one ImageData pass
+    var id=tx.getImageData(0,0,pw,ph),d=id.data;
+    for(var sy=0;sy<ph;sy++){
+      for(var sx=0;sx<pw;sx++){
+        var si=(sy*pw+sx)<<2;
+        // Skip dead/rotation-fill pixels
+        if(d[si]<3&&d[si+1]<3&&d[si+2]<3){d[si+3]=0;continue;}
+
+        // Apply histogram equalization LUT
+        if(isThermal){
+          var luma=Math.round(0.299*d[si]+0.587*d[si+1]+0.114*d[si+2]);
+          luma=Math.max(0,Math.min(255,luma));
+          var v=cal.isThermalLUT?cal.lut[luma]:Math.max(0,Math.min(255,luma*cal.gain+cal.offset));
+          d[si]=d[si+1]=d[si+2]=v;
+        }else if(cal.isLUT){
+          d[si]=cal.r[d[si]];d[si+1]=cal.g[d[si+1]];d[si+2]=cal.b[d[si+2]];
+        }else{
+          d[si]=Math.min(255,d[si]*cal.r);
+          d[si+1]=Math.min(255,d[si+1]*cal.g);
+          d[si+2]=Math.min(255,d[si+2]*cal.b);
+        }
+
+        // Edge alpha: 0 at tile edge, 255 at bp pixels inside
+        // This gives a bp-wide feather — with bp=0 it's pure hard cut
+        if(bp>0){
+          var ed=Math.min(sx,pw-1-sx,sy,ph-1-sy);
+          d[si+3]=ed>=bp?255:Math.round(ed*255/bp);
+        }else{
+          d[si+3]=255;
+        }
+      }
+    }
+    tx.putImageData(id,0,0);
+
+    // GPU source-over composite — later images paint over earlier ones
+    ctx.drawImage(tc,x0,y0);
+
     if((idx+1)%LIVE_EVERY===0||idx===recs.length-1){
-      showLive(buildImg(liveAcc,liveWt,W,H,false),W,H);
+      showLive(ctx.getImageData(0,0,W,H),W,H);
       await slp(0);
     }
   }
 
-  L('  Applying seam blend ('+blendPx+'px)...');
-  P(90,'Seam blend + stretch');
+  // Final ImageData
+  P(92,'Stretching');
+  var final=ctx.getImageData(0,0,W,H),fd=final.data;
 
-  // Final pass: apply hard ownership with tiny feather at seam
-  var out=new Uint8ClampedArray(W*H*4);
-  var covered=0;
+  // p1-p99 stretch
+  var lumas=[],cov=0;
   for(var i=0;i<W*H;i++){
-    if(ownerDist[i]>=1e8)continue; // empty pixel
-    covered++;
-    var rv=buf[i*3],gv=buf[i*3+1],bv=buf[i*3+2];
-    // Blend in seam zone only (when second tile is within blendPx)
-    if(seamDist[i]<1e8&&blendPx>0){
-      var gap=seamDist[i]-ownerDist[i]; // distance difference at seam
-      if(gap<blendPx){
-        var alpha=gap/blendPx; // 0 at seam midpoint, 1 at blendPx away
-        alpha=alpha*alpha*(3-2*alpha); // smoothstep
-        rv=rv*alpha+seam[i*3]*(1-alpha);
-        gv=gv*alpha+seam[i*3+1]*(1-alpha);
-        bv=bv*alpha+seam[i*3+2]*(1-alpha);
+    if(fd[i*4+3]>128){
+      lumas.push(0.299*fd[i*4]+0.587*fd[i*4+1]+0.114*fd[i*4+2]);
+      cov++;
+    }
+  }
+  lumas.sort(function(a,b){return a-b;});
+  if(lumas.length>100){
+    var lo=lumas[Math.floor(lumas.length*0.01)];
+    var hi=lumas[Math.floor(lumas.length*0.99)];
+    var rng=Math.max(hi-lo,1);
+    var sc=255/rng,bias=-lo*255/rng;
+    for(var i=0;i<W*H;i++){
+      if(fd[i*4+3]>0){
+        fd[i*4  ]=Math.max(0,Math.min(255,fd[i*4  ]*sc+bias));
+        fd[i*4+1]=Math.max(0,Math.min(255,fd[i*4+1]*sc+bias));
+        fd[i*4+2]=Math.max(0,Math.min(255,fd[i*4+2]*sc+bias));
       }
     }
-    out[i*4]=rv;out[i*4+1]=gv;out[i*4+2]=bv;out[i*4+3]=255;
   }
 
-  // p1-p99 stretch on final output
-  L('  Percentile stretch p1-p99...');
-  var lumas=[];for(var i=0;i<W*H;i++)if(out[i*4+3]>0)lumas.push(0.299*out[i*4]+0.587*out[i*4+1]+0.114*out[i*4+2]);
-  lumas.sort(function(a,b){return a-b;});
-  var lo=lumas[Math.floor(lumas.length*0.01)]||0,hi=lumas[Math.floor(lumas.length*0.99)]||255,rng=Math.max(hi-lo,1);
-  var sc=255/rng,bias=-lo*255/rng;
-  for(var i=0;i<W*H;i++){
-    if(out[i*4+3]>0){
-      out[i*4  ]=Math.max(0,Math.min(255,out[i*4  ]*sc+bias));
-      out[i*4+1]=Math.max(0,Math.min(255,out[i*4+1]*sc+bias));
-      out[i*4+2]=Math.max(0,Math.min(255,out[i*4+2]*sc+bias));
-    }
-  }
-
-  var cov=(100*covered/(W*H)).toFixed(1);
-  L('  Coverage: '+cov+'%');
-  document.getElementById('stCov').textContent=cov+'%';
+  var covPct=(100*cov/(W*H)).toFixed(1);
+  L('  Coverage: '+covPct+'%  Blend: '+(bp===0?'hard cut':bp+'px feather'));
+  document.getElementById('stCov').textContent=covPct+'%';
   document.getElementById('stSz').textContent=W+'x'+H;
   document.getElementById('stN').textContent=recs.length;
-  return new ImageData(out,W,H);
+  return final;
 }
 
-/* ── MAIN ── */
+
 async function run(){
   if(S.running)return;
   if(!S.files.length){L('No images.','er');return;}
@@ -969,7 +926,7 @@ async function run(){
   var blendPx=parseInt(document.getElementById('blpx').value)||30;
   var imgTypeSel=document.getElementById('imgType').value;
 
-  L('SKY TERRAEYE — EYE v7 (opencv.js ORB)','hd');L(new Date().toLocaleString(),'dm');
+  L('SKY TERRAEYE — EYE v8 (GPU drawImage + ORB)','hd');L(new Date().toLocaleString(),'dm');
 
   try{
     P(2,'Reading EXIF');
