@@ -14,151 +14,224 @@
 :root{
   --B:#1FA8D9;--B2:#1482AA;--B3:#0D608A;
   --Bdim:rgba(31,168,217,.12);--Bl:rgba(31,168,217,.22);
-  --G:#F5BE18;--Gl:rgba(245,190,24,.14);
-  --D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;--D5:#0D1F32;
+  --G:#F5BE18;
+  --D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;
   --T:#D0E8F5;--M:#5A839E;--Dm:#243D52;
   --W:#fff;--Gr:#22C55E;
-  --r:12px;--r2:18px;
-  --e:.28s cubic-bezier(.4,0,.2,1);
+  --r:12px;--r2:18px;--e:.28s cubic-bezier(.4,0,.2,1);
   --mono:'Oxanium',monospace;
 }
-html,body{height:100%}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--T);overflow-x:hidden}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--T)}
 a{color:inherit;text-decoration:none}
 img{display:block;max-width:100%}
-.uae{height:5px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
-.nav{background:rgba(4,13,22,.97);backdrop-filter:blur(24px);border-bottom:1px solid rgba(31,168,217,.1);padding:0 24px;height:62px;display:flex;align-items:center;gap:14px}
-.logo{display:flex;align-items:center;gap:10px}
-.logo img{height:28px;filter:drop-shadow(0 0 6px rgba(31,168,217,.4))}
+
+.uae{height:4px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
+.nav{background:rgba(4,13,22,.97);backdrop-filter:blur(24px);border-bottom:1px solid rgba(31,168,217,.1);padding:0 22px;height:58px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:9px}
+.logo img{height:26px;filter:drop-shadow(0 0 6px rgba(31,168,217,.4))}
 .logt{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--W)}
 .logt b{color:var(--B)}
-.nav-sep{width:1px;height:28px;background:rgba(255,255,255,.08)}
-.nav-tag{display:flex;align-items:center;gap:7px;background:rgba(245,190,24,.1);border:1px solid rgba(245,190,24,.25);color:var(--G);font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:5px 12px;border-radius:999px}
-.nav-tag svg{width:12px;height:12px}
-.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px}
-.user-pill{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:999px;padding:5px 14px 5px 5px;font-size:13px;color:var(--M)}
-.user-av{width:28px;height:28px;border-radius:50%;background:var(--B);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
-.signout{font-size:12px;color:var(--M);cursor:pointer;transition:color .2s;padding:4px 8px;border-radius:6px}
+.nav-sep{width:1px;height:26px;background:rgba(255,255,255,.08)}
+.nav-tag{display:flex;align-items:center;gap:6px;background:rgba(245,190,24,.1);border:1px solid rgba(245,190,24,.25);color:var(--G);font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 11px;border-radius:999px}
+.nav-tag svg{width:11px;height:11px}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.user-pill{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:999px;padding:4px 12px 4px 4px;font-size:12px;color:var(--M)}
+.user-av{width:26px;height:26px;border-radius:50%;background:var(--B);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
+.signout{font-size:11px;color:var(--M);cursor:pointer;transition:color .2s;padding:3px 7px;border-radius:5px}
 .signout:hover{color:var(--T);background:rgba(255,255,255,.05)}
+
 /* Browser mode bar */
-.browser-bar{
-  background:rgba(31,168,217,.05);
-  border-bottom:1px solid rgba(31,168,217,.1);
-  padding:7px 24px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--M)
+.bbar{background:rgba(31,168,217,.04);border-bottom:1px solid rgba(31,168,217,.08);padding:5px 22px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--M);flex-shrink:0}
+.bdot{width:6px;height:6px;border-radius:50%;background:var(--Gr);box-shadow:0 0 5px var(--Gr);flex-shrink:0;animation:gp 2s ease-in-out infinite}
+@keyframes gp{0%,100%{opacity:1}50%{opacity:.35}}
+.bbar-right{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--Dm);letter-spacing:.8px}
+
+/* Master layout */
+.shell{display:flex;height:calc(100vh - 66px)}
+
+/* ══ LEFT SIDEBAR ══ */
+.sidebar{
+  width:300px;flex-shrink:0;
+  background:var(--D2);
+  border-right:1px solid rgba(255,255,255,.05);
+  display:flex;flex-direction:column;
+  overflow:hidden;
 }
-.bdot{width:7px;height:7px;border-radius:50%;background:var(--Gr);box-shadow:0 0 6px var(--Gr);flex-shrink:0;animation:pd 2s ease-in-out infinite}
-@keyframes pd{0%,100%{opacity:1}50%{opacity:.4}}
-.binfo{margin-left:auto;font-size:11px;color:var(--Dm);font-family:var(--mono);letter-spacing:.5px}
-/* Layout */
-.app{display:grid;grid-template-columns:340px 1fr;height:calc(100vh - 100px)}
-/* Left panel */
-.lpanel{border-right:1px solid rgba(255,255,255,.05);overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px;background:var(--D2)}
-.lpanel::-webkit-scrollbar{width:3px}
-.lpanel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.06);border-radius:2px}
-/* Section card */
-.scard{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:var(--r2);overflow:hidden}
-.shead{padding:9px 14px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.05);font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--B);display:flex;align-items:center;gap:8px;font-family:var(--mono)}
-.snum{width:18px;height:18px;border-radius:5px;background:var(--B);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.sbody{padding:14px;display:flex;flex-direction:column;gap:10px}
+.sidebar-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.sidebar-body::-webkit-scrollbar{width:3px}
+.sidebar-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.06);border-radius:2px}
+
+/* Cards */
+.sc{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:14px;overflow:hidden}
+.sch{padding:8px 13px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.05);font-size:9.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--B);display:flex;align-items:center;gap:7px;font-family:var(--mono)}
+.scn{width:16px;height:16px;border-radius:4px;background:var(--B);color:#fff;font-size:8px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.scb{padding:12px;display:flex;flex-direction:column;gap:9px}
+
 /* Drop zone */
-.drop-zone{
-  border:2px dashed rgba(31,168,217,.22);border-radius:14px;padding:28px 20px;
-  text-align:center;cursor:pointer;transition:all .25s;
-  background:rgba(31,168,217,.03);
-}
-.drop-zone:hover,.drop-zone.drag{border-color:var(--B);background:rgba(31,168,217,.07)}
-.drop-icon{width:36px;height:36px;margin:0 auto 12px;background:var(--Bdim);border:1px solid var(--Bl);border-radius:10px;display:flex;align-items:center;justify-content:center}
-.drop-icon svg{width:18px;height:18px;color:var(--B)}
-.drop-title{font-size:13px;font-weight:700;color:var(--T);margin-bottom:4px}
-.drop-sub{font-size:11px;color:var(--M)}
-.file-count{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:#86EFAC;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;display:none;font-family:var(--mono)}
+.dz{border:2px dashed rgba(31,168,217,.2);border-radius:12px;padding:22px 16px;text-align:center;cursor:pointer;transition:all .22s;background:rgba(31,168,217,.02)}
+.dz:hover,.dz.drag{border-color:var(--B);background:rgba(31,168,217,.06)}
+.dz-icon{width:32px;height:32px;margin:0 auto 10px;background:var(--Bdim);border:1px solid var(--Bl);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.dz-icon svg{width:16px;height:16px;color:var(--B)}
+.dz-t{font-size:12px;font-weight:700;color:var(--T);margin-bottom:3px}
+.dz-s{font-size:10px;color:var(--M)}
+.fc{display:none;align-items:center;gap:5px;margin-top:8px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:#86EFAC;font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px;font-family:var(--mono)}
+
 /* Fields */
-.field label{display:block;font-size:10px;font-weight:700;color:var(--M);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;font-family:var(--mono)}
-.field input,.field select{width:100%;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.07);border-radius:8px;color:var(--T);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;padding:8px 11px;outline:none;transition:var(--e)}
-.field input:focus,.field select:focus{border-color:var(--B);background:rgba(31,168,217,.04);box-shadow:0 0 0 2px rgba(31,168,217,.08)}
-.field input::placeholder{color:var(--Dm)}
-.field select option{background:var(--D3)}
-.hint{font-size:10px;color:var(--Dm);margin-top:3px;font-family:var(--mono)}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fl label{display:block;font-size:9.5px;font-weight:700;color:var(--M);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;font-family:var(--mono)}
+.fl input,.fl select{width:100%;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.07);border-radius:7px;color:var(--T);font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;padding:7px 10px;outline:none;transition:var(--e)}
+.fl input:focus,.fl select:focus{border-color:var(--B);background:rgba(31,168,217,.04);box-shadow:0 0 0 2px rgba(31,168,217,.08)}
+.fl input::placeholder{color:var(--Dm)}
+.fl select option{background:var(--D3)}
+.fl .hint{font-size:9px;color:var(--Dm);margin-top:2px;font-family:var(--mono)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
 /* Buttons */
-.btn-go{
-  width:100%;padding:13px;
+.btn-run{
+  width:100%;padding:12px;
   background:linear-gradient(135deg,var(--B3),var(--B));
-  color:#fff;border:none;border-radius:10px;
-  font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:1px;
+  color:#fff;border:none;border-radius:9px;
+  font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;
   cursor:pointer;transition:var(--e);position:relative;overflow:hidden;
 }
-.btn-go::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.12);opacity:0;transition:opacity .2s}
-.btn-go:hover:not(:disabled)::after{opacity:1}
-.btn-go:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(31,168,217,.35)}
-.btn-go:disabled{opacity:.35;cursor:not-allowed;transform:none}
-.btn-row{display:flex;gap:8px;flex-wrap:wrap}
-.btn-sm{flex:1;min-width:80px;padding:9px;border:1.5px solid rgba(255,255,255,.08);background:transparent;color:var(--M);border-radius:8px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;transition:var(--e)}
-.btn-sm:hover:not(:disabled){border-color:var(--B);color:var(--B)}
-.btn-sm.danger:hover{border-color:#F87171;color:#F87171}
-.btn-sm:disabled{opacity:.3;cursor:not-allowed}
-.btn-dl{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:#86EFAC}
-.btn-dl:hover{background:rgba(34,197,94,.18) !important;border-color:#86EFAC !important;color:#86EFAC !important}
-/* Info box */
-.infobox{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:8px 11px;font-family:var(--mono);font-size:11px;color:var(--Dm);min-height:32px;display:flex;align-items:center;gap:8px}
-.infobox.ok{color:#86EFAC;border-color:rgba(34,197,94,.2);background:rgba(34,197,94,.05)}
-.infobox.err{color:#FCA5A5;border-color:rgba(239,68,68,.2);background:rgba(239,68,68,.05)}
-/* Right panel */
-.rpanel{display:flex;flex-direction:column;overflow:hidden;background:var(--D)}
-/* Progress */
-.prog-area{padding:14px 22px;border-bottom:1px solid rgba(255,255,255,.05);background:var(--D3);flex-shrink:0}
-.prog-row{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
-.prog-label{font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--M);flex:1;font-family:var(--mono)}
-.prog-pct{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--B);line-height:1}
-.prog-track{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
-.prog-fill{height:100%;background:linear-gradient(90deg,var(--B3),var(--B));border-radius:2px;width:0%;transition:width .3s ease;box-shadow:0 0 8px rgba(31,168,217,.5)}
-.prog-sub{font-size:11px;color:var(--Dm);margin-top:6px;display:flex;justify-content:space-between;font-family:var(--mono)}
-/* Result banner */
-.done-banner{display:none;margin:10px 20px;padding:12px 16px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:10px;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#86EFAC}
-.done-banner.show{display:flex}
-/* Body split: log + preview */
-.rinner{flex:1;display:grid;grid-template-columns:1fr 1fr;overflow:hidden}
-/* Log */
-.log-wrap{display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.04);overflow:hidden}
-.log-head{padding:7px 20px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:8px;background:var(--D3);font-size:10px;font-weight:800;letter-spacing:2px;color:var(--Dm);text-transform:uppercase;flex-shrink:0;font-family:var(--mono)}
-.log-head button{margin-left:auto;font-size:10px;padding:3px 9px;border:1px solid rgba(255,255,255,.07);background:transparent;color:var(--Dm);border-radius:5px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:color .2s}
+.btn-run::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.12);opacity:0;transition:opacity .2s}
+.btn-run:hover:not(:disabled)::after{opacity:1}
+.btn-run:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 22px rgba(31,168,217,.35)}
+.btn-run:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.brow{display:flex;gap:7px}
+.bs{flex:1;padding:8px;border:1.5px solid rgba(255,255,255,.08);background:transparent;color:var(--M);border-radius:7px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;transition:var(--e)}
+.bs:hover:not(:disabled){border-color:var(--B);color:var(--B)}
+.bs.danger:hover{border-color:#F87171;color:#F87171}
+.bs:disabled{opacity:.3;cursor:not-allowed}
+.bs.dl{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.25);color:#86EFAC}
+.bs.dl:hover{background:rgba(34,197,94,.16) !important;border-color:#86EFAC !important;color:#86EFAC !important}
+
+/* Infobox */
+.ib{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:7px 10px;font-family:var(--mono);font-size:10px;color:var(--Dm);min-height:30px;display:flex;align-items:center;gap:7px}
+.ib.ok{color:#86EFAC;border-color:rgba(34,197,94,.2);background:rgba(34,197,94,.04)}
+.ib.err{color:#FCA5A5;border-color:rgba(239,68,68,.2);background:rgba(239,68,68,.04)}
+
+/* ══ MAIN AREA ══ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--D)}
+
+/* Progress strip */
+.pstrip{
+  flex-shrink:0;
+  background:var(--D3);
+  border-bottom:1px solid rgba(255,255,255,.05);
+  padding:10px 20px;
+  display:flex;align-items:center;gap:16px;
+}
+.pct{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--B);line-height:1;min-width:52px}
+.pbar-wrap{flex:1}
+.pbar-label{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--M);margin-bottom:5px;font-family:var(--mono);display:flex;justify-content:space-between}
+.pbar-track{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+.pbar-fill{height:100%;background:linear-gradient(90deg,var(--B3),var(--B));border-radius:2px;width:0%;transition:width .35s ease;box-shadow:0 0 8px rgba(31,168,217,.5)}
+
+/* Body split */
+.body-split{flex:1;display:grid;grid-template-columns:1fr 380px;overflow:hidden}
+
+/* ══ PREVIEW PANEL ══ */
+.preview-panel{
+  position:relative;
+  background:#030C15;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.prev-toolbar{
+  position:absolute;top:12px;right:12px;z-index:20;
+  display:flex;gap:6px;
+}
+.ptbtn{
+  background:rgba(5,13,22,.85);backdrop-filter:blur(8px);
+  border:1px solid rgba(31,168,217,.18);border-radius:7px;
+  color:var(--M);font-family:var(--mono);font-size:10px;font-weight:700;
+  padding:6px 10px;cursor:pointer;transition:var(--e);
+  display:flex;align-items:center;gap:5px;
+}
+.ptbtn:hover{border-color:var(--B);color:var(--B)}
+.ptbtn svg{width:11px;height:11px}
+
+.prev-stats{
+  position:absolute;bottom:12px;left:12px;z-index:20;
+  display:flex;gap:6px;flex-wrap:wrap;
+}
+.pstat{
+  background:rgba(5,13,22,.85);backdrop-filter:blur(8px);
+  border:1px solid rgba(31,168,217,.12);border-radius:6px;
+  padding:5px 9px;font-family:var(--mono);font-size:9px;color:var(--M);
+}
+.pstat b{color:var(--B)}
+
+/* The actual preview canvas */
+#pcanvas{
+  position:absolute;inset:0;
+  cursor:grab;
+  image-rendering:pixelated;
+}
+#pcanvas:active{cursor:grabbing}
+
+.prev-empty{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  opacity:.22;pointer-events:none;
+  transition:opacity .4s;
+}
+.prev-empty.hidden{opacity:0}
+.prev-empty svg{width:52px;height:52px;color:var(--M)}
+.prev-empty h3{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--M)}
+.prev-empty p{font-size:11px;color:var(--M);text-align:center;max-width:200px}
+
+/* Live tile overlay on preview */
+#liveCanvas{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s}
+#liveCanvas.show{opacity:1}
+
+/* ══ LOG PANEL ══ */
+.log-panel{
+  border-left:1px solid rgba(255,255,255,.05);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  background:var(--D2);
+}
+.log-head{
+  padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.04);
+  background:var(--D3);
+  font-size:9.5px;font-weight:800;letter-spacing:2px;color:var(--Dm);
+  text-transform:uppercase;flex-shrink:0;font-family:var(--mono);
+  display:flex;align-items:center;gap:7px;
+}
+.log-head button{margin-left:auto;font-size:9px;padding:3px 8px;border:1px solid rgba(255,255,255,.07);background:transparent;color:var(--Dm);border-radius:4px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:color .2s}
 .log-head button:hover{color:var(--M)}
-#log{flex:1;overflow-y:auto;padding:12px 20px;font-family:var(--mono);font-size:10.5px;line-height:1.8;color:#3A6A50;background:var(--D)}
-#log::-webkit-scrollbar{width:3px}
+#log{
+  flex:1;overflow-y:auto;padding:10px 16px;
+  font-family:var(--mono);font-size:10px;line-height:1.85;
+  color:#2A5038;background:var(--D);
+}
+#log::-webkit-scrollbar{width:2px}
 #log::-webkit-scrollbar-thumb{background:rgba(255,255,255,.06)}
 .ll{white-space:pre-wrap;word-break:break-all}
-.ll.ok{color:#86EFAC}.ll.err{color:#FCA5A5}.ll.hd{color:var(--B);font-weight:700}.ll.dim{color:#2A4A38}
-/* Preview */
-.preview-wrap{display:flex;flex-direction:column;overflow:hidden;background:#030B14}
-.prev-head{padding:7px 20px;border-bottom:1px solid rgba(255,255,255,.04);background:var(--D3);font-size:10px;font-weight:800;letter-spacing:2px;color:var(--Dm);text-transform:uppercase;flex-shrink:0;font-family:var(--mono);display:flex;align-items:center;gap:8px}
-#preview-canvas{flex:1;display:block;object-fit:contain;width:100%;height:100%;opacity:.15;transition:opacity .4s}
-#preview-canvas.ready{opacity:1}
-.prev-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;opacity:.25}
-.prev-empty svg{width:48px;height:48px;color:var(--M)}
-.prev-empty p{font-size:12px;color:var(--M)}
-/* Animations */
+.ll.ok{color:#86EFAC}.ll.er{color:#FCA5A5}.ll.hd{color:var(--B);font-weight:800}.ll.dm{color:#1C3828}
+
+/* done banner */
+.done-banner{display:none;margin:8px 16px;padding:10px 14px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:8px;align-items:center;gap:9px;font-size:12px;font-weight:700;color:#86EFAC;flex-shrink:0}
+.done-banner.show{display:flex}
+.done-banner svg{width:15px;height:15px;flex-shrink:0}
+
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .pulsing{animation:pulse 1.2s infinite}
-@media(max-width:960px){
-  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
-  .rinner{grid-template-columns:1fr}
-  .preview-wrap{display:none}
-}
 </style>
 </head>
 <body>
 
-<!-- Auth guard: redirect to eye.html if not logged in -->
 <script>
 (function(){
-  var session=null;
-  try{session=JSON.parse(localStorage.getItem('ste_session')||'null');}catch(e){}
-  var hash=location.hash.slice(1);
-  if(hash){try{var h=JSON.parse(decodeURIComponent(hash));if(h.email)session=h;}catch(e){}}
-  if(!session||!session.email){window.location.href='eye.html';return;}
-  window.__session=session;
-  // Store fresh session
-  try{localStorage.setItem('ste_session',JSON.stringify({email:session.email,name:session.name,ts:Date.now()}));}catch(e){}
+  var s=null;
+  try{s=JSON.parse(localStorage.getItem('ste_session')||'null')}catch(e){}
+  var h=location.hash.slice(1);
+  if(h){try{var hd=JSON.parse(decodeURIComponent(h));if(hd.email)s=hd;}catch(e){}}
+  if(!s||!s.email){window.location.href='eye.html';return;}
+  window.__session=s;
+  try{localStorage.setItem('ste_session',JSON.stringify({email:s.email,name:s.name,ts:Date.now()}));}catch(e){}
   location.hash='';
 })();
 </script>
@@ -182,620 +255,724 @@ img{display:block;max-width:100%}
     <span class="signout" onclick="signOut()">Sign out</span>
   </div>
 </nav>
-
-<!-- Browser mode indicator (replaces agent bar) -->
-<div class="browser-bar">
+<div class="bbar">
   <div class="bdot"></div>
-  <span>Browser Processing Mode &mdash; all computation runs locally in this tab. No uploads. No server.</span>
-  <span class="binfo">Eye v3 &middot; in-browser</span>
+  Browser Processing — all computation runs locally in this tab &middot; zero uploads &middot; zero server
+  <span class="bbar-right">Eye v3 &middot; in-browser</span>
 </div>
 
-<div class="app">
+<div class="shell">
 
-  <!-- ══ LEFT: Controls ══ -->
-  <div class="lpanel">
+  <!-- ══ SIDEBAR ══ -->
+  <div class="sidebar">
+    <div class="sidebar-body">
 
-    <!-- Step 1: Images -->
-    <div class="scard">
-      <div class="shead"><div class="snum">1</div>Drop Images</div>
-      <div class="sbody">
-        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-          <div class="drop-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <!-- 1. Images -->
+      <div class="sc">
+        <div class="sch"><div class="scn">1</div>Drop Images</div>
+        <div class="scb">
+          <div class="dz" id="dropZone" onclick="document.getElementById('fi').click()">
+            <div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+            <div class="dz-t">Drop drone images here</div>
+            <div class="dz-s">JPG / TIFF with GPS EXIF &bull; DJI &bull; Skydio &bull; Parrot</div>
+            <div class="fc" id="fc">0 images</div>
           </div>
-          <div class="drop-title">Drop drone images here</div>
-          <div class="drop-sub">JPG / TIFF with GPS EXIF &bull; DJI, Skydio, Parrot</div>
-          <div class="file-count" id="fileCount">0 images loaded</div>
+          <input type="file" id="fi" multiple accept=".jpg,.jpeg,.tif,.tiff,.JPG,.JPEG,.TIF,.TIFF" style="display:none">
+          <div class="ib" id="gpsStatus">Waiting for images...</div>
         </div>
-        <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.tif,.tiff,.JPG,.JPEG,.TIF,.TIFF" style="display:none">
-        <div class="infobox" id="gpsStatus">Waiting for images...</div>
       </div>
-    </div>
 
-    <!-- Step 2: Settings -->
-    <div class="scard">
-      <div class="shead"><div class="snum">2</div>Settings</div>
-      <div class="sbody">
-        <div class="g2">
-          <div class="field">
-            <label>HFOV (deg)</label>
-            <input type="number" id="hfov" placeholder="Auto" min="20" max="150" step="0.1">
-            <div class="hint">Leave blank = auto-detect</div>
+      <!-- 2. Settings -->
+      <div class="sc">
+        <div class="sch"><div class="scn">2</div>Settings</div>
+        <div class="scb">
+          <div class="g2">
+            <div class="fl">
+              <label>HFOV (deg)</label>
+              <input type="number" id="hfov" placeholder="Auto" min="20" max="150" step="0.1">
+              <div class="hint">blank = auto-detect</div>
+            </div>
+            <div class="fl">
+              <label>GSD (m/px)</label>
+              <input type="number" id="gsd" placeholder="Auto" min="0.005" max="2" step="0.001">
+            </div>
           </div>
-          <div class="field">
-            <label>GSD Override (m/px)</label>
-            <input type="number" id="gsd" placeholder="Auto" min="0.005" max="2" step="0.001">
+          <div class="g2">
+            <div class="fl">
+              <label>Footprint Scale</label>
+              <input type="number" id="fpScale" value="1.0" min="0.5" max="2.5" step="0.05">
+            </div>
+            <div class="fl">
+              <label>Max Canvas (px)</label>
+              <select id="maxPx">
+                <option value="2000">2000</option>
+                <option value="3000" selected>3000</option>
+                <option value="4000">4000</option>
+                <option value="6000">6000</option>
+              </select>
+            </div>
           </div>
-        </div>
-        <div class="g2">
-          <div class="field">
-            <label>Footprint Scale</label>
-            <input type="number" id="fpScale" value="1.0" min="0.5" max="2" step="0.05">
-          </div>
-          <div class="field">
-            <label>Max Canvas (px)</label>
-            <select id="maxPx">
-              <option value="2000">2000</option>
-              <option value="3000" selected>3000</option>
-              <option value="4000">4000</option>
-              <option value="5000">5000</option>
+          <div class="fl">
+            <label>Blend Mode</label>
+            <select id="blendMode">
+              <option value="voronoi" selected>Voronoi distance blend (best)</option>
+              <option value="feather">Edge feather</option>
+              <option value="average">Simple average</option>
             </select>
           </div>
+          <div class="ib" id="canvasInfo">Canvas info will appear here</div>
         </div>
-        <div class="field">
-          <label>Blend Width (px)</label>
-          <input type="number" id="blendPx" value="40" min="8" max="200" step="4">
-          <div class="hint">Edge feather for seam blending</div>
-        </div>
-        <div class="infobox" id="canvasInfo">Canvas size will be shown here</div>
       </div>
+
+      <!-- 3. Process -->
+      <div class="sc">
+        <div class="sch"><div class="scn">3</div>Process</div>
+        <div class="scb">
+          <button class="btn-run" id="btnRun" disabled onclick="startProcessing()">RUN ORTHOMOSAIC</button>
+          <div class="brow">
+            <button class="bs danger" id="btnCancel" disabled onclick="cancelProcessing()">Cancel</button>
+            <button class="bs" onclick="resetAll()">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Download -->
+      <div class="sc" id="dlCard" style="display:none">
+        <div class="sch"><div class="scn">4</div>Download</div>
+        <div class="scb">
+          <div class="brow">
+            <button class="bs dl" onclick="downloadPNG()">
+              <svg style="width:10px;height:10px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+              PNG
+            </button>
+            <button class="bs dl" onclick="downloadPGW()">
+              <svg style="width:10px;height:10px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+              World (.pgw)
+            </button>
+          </div>
+          <div class="ib ok" id="dlInfo">Ready</div>
+          <div class="fl hint" style="margin-top:2px">PNG + .pgw = georeferenced pair for QGIS</div>
+        </div>
+      </div>
+
     </div>
+  </div>
 
-    <!-- Step 3: Run -->
-    <div class="scard">
-      <div class="shead"><div class="snum">3</div>Process</div>
-      <div class="sbody">
-        <button class="btn-go" id="btnRun" disabled onclick="startProcessing()">RUN ORTHOMOSAIC</button>
-        <div class="btn-row">
-          <button class="btn-sm danger" id="btnCancel" disabled onclick="cancelProcessing()">Cancel</button>
-          <button class="btn-sm" onclick="resetAll()">Reset</button>
+  <!-- ══ MAIN ══ -->
+  <div class="main">
+
+    <!-- Progress strip -->
+    <div class="pstrip">
+      <div class="pct" id="pctEl">0%</div>
+      <div class="pbar-wrap">
+        <div class="pbar-label">
+          <span id="stepEl">Idle — drop images and click Run</span>
+          <span id="timeEl"></span>
         </div>
-      </div>
-    </div>
-
-    <!-- Step 4: Download -->
-    <div class="scard" id="dlCard" style="display:none">
-      <div class="shead"><div class="snum">4</div>Download</div>
-      <div class="sbody">
-        <div class="btn-row">
-          <button class="btn-sm btn-dl" onclick="downloadPNG()">
-            <svg style="width:10px;height:10px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
-            PNG
-          </button>
-          <button class="btn-sm btn-dl" onclick="downloadPGW()">
-            <svg style="width:10px;height:10px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
-            World File (.pgw)
-          </button>
-        </div>
-        <div class="infobox ok" id="dlInfo">Ready to download</div>
-        <div class="hint" style="margin-top:4px">PNG + .pgw = georeferenced pair for QGIS. No GeoTIFF without GDAL (agent-only).</div>
-      </div>
-    </div>
-
-  </div><!-- /lpanel -->
-
-  <!-- ══ RIGHT: Progress + Log + Preview ══ -->
-  <div class="rpanel">
-    <div class="prog-area">
-      <div class="prog-row">
-        <div class="prog-label">PROCESSING</div>
-        <div class="prog-pct" id="progPct">0%</div>
-      </div>
-      <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
-      <div class="prog-sub">
-        <span id="progStep">Idle</span>
-        <span id="progTime"></span>
+        <div class="pbar-track"><div class="pbar-fill" id="pbarFill"></div></div>
       </div>
     </div>
 
     <div class="done-banner" id="doneBanner">
-      <svg style="width:18px;height:18px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-      <span id="doneMsg">Orthomosaic complete</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      <span id="doneMsg">Complete</span>
     </div>
 
-    <div class="rinner">
+    <!-- Body split: preview + log -->
+    <div class="body-split">
+
+      <!-- Preview -->
+      <div class="preview-panel">
+        <canvas id="pcanvas"></canvas>
+        <canvas id="liveCanvas"></canvas>
+
+        <div class="prev-empty" id="prevEmpty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <h3>Orthomosaic Preview</h3>
+          <p>Run the processor to see your stitched map here</p>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="prev-toolbar">
+          <button class="ptbtn" onclick="zoomIn()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            Zoom In
+          </button>
+          <button class="ptbtn" onclick="zoomOut()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            Zoom Out
+          </button>
+          <button class="ptbtn" onclick="fitPreview()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            Fit
+          </button>
+        </div>
+
+        <!-- Stats overlay -->
+        <div class="prev-stats" id="prevStats" style="display:none">
+          <div class="pstat">Size: <b id="stSize">—</b></div>
+          <div class="pstat">Images: <b id="stImgs">—</b></div>
+          <div class="pstat">Coverage: <b id="stCov">—</b></div>
+          <div class="pstat">GSD: <b id="stGsd">—</b></div>
+        </div>
+      </div>
+
       <!-- Log -->
-      <div class="log-wrap">
+      <div class="log-panel">
         <div class="log-head">
           <svg style="width:10px;height:10px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-          Processing Log
+          Log
           <button onclick="document.getElementById('log').innerHTML=''">Clear</button>
         </div>
         <div id="log">
-          <div class="ll dim">// Drop images and click Run Orthomosaic</div>
-          <div class="ll dim">// All processing runs in this browser tab</div>
-          <div class="ll dim">// Data is not saved &mdash; refresh to start fresh</div>
+          <div class="ll dm">// Drop images &rarr; Run Orthomosaic</div>
+          <div class="ll dm">// Runs entirely in this browser tab</div>
+          <div class="ll dm">// Nothing is saved on refresh</div>
         </div>
       </div>
-      <!-- Preview -->
-      <div class="preview-wrap">
-        <div class="prev-head">
-          <svg style="width:10px;height:10px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-          Orthomosaic Preview
-        </div>
-        <canvas id="preview-canvas"></canvas>
-      </div>
+
     </div>
   </div>
-
-</div><!-- /app -->
+</div>
 
 <script>
-// ══════════════════════════════════════════════════════════════════════
-//  AUTH
-// ══════════════════════════════════════════════════════════════════════
+'use strict';
+
+// ── AUTH ─────────────────────────────────────────────────────────────
 (function(){
-  var s = window.__session;
-  if(!s) return;
-  var av = document.getElementById('userAv');
-  var un = document.getElementById('userName');
-  if(av) av.textContent = (s.name||s.email||'?')[0].toUpperCase();
-  if(un) un.textContent = s.name || s.email;
+  var s=window.__session; if(!s) return;
+  var av=document.getElementById('userAv'), un=document.getElementById('userName');
+  if(av) av.textContent=(s.name||s.email||'?')[0].toUpperCase();
+  if(un) un.textContent=s.name||s.email;
 })();
-function signOut(){
-  localStorage.removeItem('ste_session');
-  window.location.href='eye.html';
+function signOut(){localStorage.removeItem('ste_session');window.location.href='eye.html';}
+
+// ── STATE ─────────────────────────────────────────────────────────────
+var S={files:[],records:[],cancelled:false,running:false,resultImageData:null,worldFile:null,t0:0};
+
+// ── PREVIEW PAN/ZOOM ─────────────────────────────────────────────────
+var PV={scale:1,ox:0,oy:0,dragging:false,lx:0,ly:0,src:null};
+var pcanvas=document.getElementById('pcanvas');
+var pctx=pcanvas.getContext('2d');
+
+function resizePreviewCanvas(){
+  var wrap=pcanvas.parentElement;
+  pcanvas.width=wrap.clientWidth;
+  pcanvas.height=wrap.clientHeight;
+  var lc=document.getElementById('liveCanvas');
+  lc.width=wrap.clientWidth; lc.height=wrap.clientHeight;
+  if(PV.src) drawPreview();
+}
+window.addEventListener('resize',resizePreviewCanvas);
+
+function drawPreview(){
+  if(!PV.src) return;
+  pctx.clearRect(0,0,pcanvas.width,pcanvas.height);
+  pctx.save();
+  pctx.translate(PV.ox,PV.oy);
+  pctx.scale(PV.scale,PV.scale);
+  pctx.drawImage(PV.src,0,0);
+  pctx.restore();
+}
+function fitPreview(){
+  if(!PV.src) return;
+  var fw=pcanvas.width, fh=pcanvas.height;
+  var scale=Math.min(fw/PV.src.width, fh/PV.src.height)*0.95;
+  PV.scale=scale;
+  PV.ox=(fw - PV.src.width*scale)/2;
+  PV.oy=(fh - PV.src.height*scale)/2;
+  drawPreview();
+}
+function zoomIn(){PV.scale=Math.min(PV.scale*1.3,20);drawPreview();}
+function zoomOut(){PV.scale=Math.max(PV.scale/1.3,0.05);drawPreview();}
+
+pcanvas.addEventListener('wheel',function(e){
+  e.preventDefault();
+  var rect=pcanvas.getBoundingClientRect();
+  var mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  var factor=e.deltaY<0?1.12:1/1.12;
+  var newScale=Math.max(0.05,Math.min(20,PV.scale*factor));
+  PV.ox=mx-(mx-PV.ox)*newScale/PV.scale;
+  PV.oy=my-(my-PV.oy)*newScale/PV.scale;
+  PV.scale=newScale;
+  drawPreview();
+},{passive:false});
+pcanvas.addEventListener('mousedown',function(e){PV.dragging=true;PV.lx=e.clientX;PV.ly=e.clientY;});
+window.addEventListener('mousemove',function(e){
+  if(!PV.dragging) return;
+  PV.ox+=e.clientX-PV.lx; PV.oy+=e.clientY-PV.ly;
+  PV.lx=e.clientX; PV.ly=e.clientY;
+  drawPreview();
+});
+window.addEventListener('mouseup',function(){PV.dragging=false;});
+
+// Live tile canvas for showing progress during compositing
+var liveCanvas=document.getElementById('liveCanvas');
+var lctx=liveCanvas.getContext('2d');
+var liveOffscreen=null;
+
+function showLiveTile(imageData, canvasW, canvasH){
+  // Draw partial result scaled to preview area
+  if(!liveOffscreen || liveOffscreen.width!==canvasW || liveOffscreen.height!==canvasH){
+    liveOffscreen=new OffscreenCanvas(canvasW,canvasH);
+  }
+  var octx=liveOffscreen.getContext('2d');
+  octx.putImageData(imageData,0,0);
+  liveCanvas.classList.add('show');
+  lctx.clearRect(0,0,liveCanvas.width,liveCanvas.height);
+  // Scale to fit with same transform as main preview
+  var scale=Math.min(liveCanvas.width/canvasW, liveCanvas.height/canvasH)*0.95;
+  var ox=(liveCanvas.width  - canvasW*scale)/2;
+  var oy=(liveCanvas.height - canvasH*scale)/2;
+  lctx.save();
+  lctx.translate(ox,oy);
+  lctx.scale(scale,scale);
+  lctx.drawImage(liveOffscreen,0,0);
+  lctx.restore();
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════════════════════════════════════
-var state = {
-  files: [],
-  records: [],       // [{file, bitmap, lat, lon, alt, w, h, hfov, thermal}]
-  cancelled: false,
-  running: false,
-  resultCanvas: null,
-  worldFile: null,   // {x0, y0, gsd, W, H}
-};
-var t0 = 0;
-
-// ══════════════════════════════════════════════════════════════════════
-//  UI HELPERS
-// ══════════════════════════════════════════════════════════════════════
-function log(msg, cls){
-  var el = document.getElementById('log');
-  var d  = document.createElement('div');
-  d.className = 'll' + (cls?' '+cls:'');
-  d.textContent = msg;
+// ── UI HELPERS ────────────────────────────────────────────────────────
+function log(msg,cls){
+  var el=document.getElementById('log');
+  var d=document.createElement('div');
+  d.className='ll'+(cls?' '+cls:'');
+  d.textContent=msg;
   el.appendChild(d);
-  el.scrollTop = el.scrollHeight;
+  el.scrollTop=el.scrollHeight;
 }
-function setProgress(pct, step){
-  var p = Math.max(0, Math.min(100, pct));
-  document.getElementById('progPct').textContent  = Math.round(p)+'%';
-  document.getElementById('progFill').style.width = p+'%';
-  if(step) document.getElementById('progStep').textContent = step;
-  var elapsed = t0 ? ((Date.now()-t0)/1000).toFixed(1)+'s' : '';
-  document.getElementById('progTime').textContent = elapsed;
+function setProgress(pct,step){
+  var p=Math.max(0,Math.min(100,pct));
+  document.getElementById('pctEl').textContent=Math.round(p)+'%';
+  document.getElementById('pbarFill').style.width=p+'%';
+  if(step) document.getElementById('stepEl').textContent=step;
+  if(S.t0){
+    var e=((Date.now()-S.t0)/1000).toFixed(1);
+    document.getElementById('timeEl').textContent=e+'s';
+  }
 }
-function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}) }
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);})}
 
-// ══════════════════════════════════════════════════════════════════════
-//  FILE HANDLING
-// ══════════════════════════════════════════════════════════════════════
-var dropZone = document.getElementById('dropZone');
-dropZone.addEventListener('dragover', function(e){e.preventDefault();dropZone.classList.add('drag')});
-dropZone.addEventListener('dragleave', function(){dropZone.classList.remove('drag')});
-dropZone.addEventListener('drop', function(e){
-  e.preventDefault();dropZone.classList.remove('drag');
-  handleFiles(Array.from(e.dataTransfer.files));
-});
-document.getElementById('fileInput').addEventListener('change', function(e){
-  handleFiles(Array.from(e.target.files));
-});
+// ── FILE HANDLING ─────────────────────────────────────────────────────
+var dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave',function(){dz.classList.remove('drag');});
+dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('drag');handleFiles(Array.from(e.dataTransfer.files));});
+document.getElementById('fi').addEventListener('change',function(e){handleFiles(Array.from(e.target.files));});
 
 function handleFiles(files){
-  var imgs = files.filter(function(f){return /\.(jpe?g|tiff?)$/i.test(f.name)});
-  if(!imgs.length){log('No valid image files found.','err');return;}
-  state.files = imgs;
-  var fc = document.getElementById('fileCount');
-  fc.textContent = imgs.length + ' images loaded';
-  fc.style.display = 'inline-flex';
-  document.getElementById('gpsStatus').textContent = 'Reading GPS from images...';
-  document.getElementById('gpsStatus').className = 'infobox';
-  document.getElementById('btnRun').disabled = false;
-  log(''+imgs.length+' images queued. Click Run to process.', 'hd');
+  var imgs=files.filter(function(f){return /\.(jpe?g|tiff?)$/i.test(f.name);});
+  if(!imgs.length){log('No valid images found.','er');return;}
+  S.files=imgs;
+  var fc=document.getElementById('fc');
+  fc.textContent=imgs.length+' images';
+  fc.style.display='inline-flex';
+  document.getElementById('gpsStatus').textContent='Ready — '+imgs.length+' images queued';
+  document.getElementById('gpsStatus').className='ib ok';
+  document.getElementById('btnRun').disabled=false;
+  log(imgs.length+' images loaded. Click RUN ORTHOMOSAIC.','hd');
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  GPS / EXIF
-// ══════════════════════════════════════════════════════════════════════
+// ── EXIF / GPS ────────────────────────────────────────────────────────
 async function loadRecords(files){
-  log('─── Reading GPS EXIF ───────────────────────────────────', 'hd');
-  var records = [];
-  var noGps = 0;
-
-  for(var i=0; i<files.length; i++){
-    if(state.cancelled) return records;
-    var f = files[i];
-    setProgress(2 + 10*(i/files.length), 'Reading EXIF '+i+'/'+files.length);
+  log('─── Reading GPS EXIF ───────────────────────────────', 'hd');
+  var records=[], noGps=0;
+  for(var i=0;i<files.length;i++){
+    if(S.cancelled) return records;
+    var f=files[i];
+    setProgress(2+10*(i/files.length),'Reading EXIF '+(i+1)+'/'+files.length);
     try{
-      var exif = await exifr.parse(f, {
-        gps:true, tiff:true, xmp:true,
-        translateValues:true, translateKeys:true
-      });
-      if(!exif || exif.latitude==null){
-        log('  No GPS: '+f.name, 'dim'); noGps++; continue;
-      }
-      var bitmap = await createImageBitmap(f);
-      var alt = exif.GPSAltitude || exif.altitude || 100;
-      if(typeof alt !== 'number') alt = 100;
-      // Detect HFOV from model string
-      var model = ((exif.Model||'')+(exif.Make||'')+(exif.ImageDescription||'')).toLowerCase();
-      var hfov = detectHFOV(model, bitmap.width, bitmap.height);
-      var isThermal = /h20t|h30t|m3t|m30t|xt2|xt s|thermal|infrared|radiometric|whitehot|blackhot/.test(model)
-                   || (bitmap.width<=720 && bitmap.height<=600);
-      records.push({
-        file:f, bitmap:bitmap,
-        lat:exif.latitude, lon:exif.longitude, alt:alt,
-        w:bitmap.width, h:bitmap.height,
-        hfov:hfov, thermal:isThermal,
-        yaw: exif.GPSImgDirection || exif.GimbalYawDegree || 0
-      });
-    } catch(e){
-      log('  WARN '+f.name+': '+e.message, 'dim');
-    }
-    if(i%10===0) await sleep(0);
+      var exif=await exifr.parse(f,{gps:true,tiff:true,xmp:true,translateValues:true});
+      if(!exif||exif.latitude==null){noGps++;log('  No GPS: '+f.name,'dm');continue;}
+      var bmp=await createImageBitmap(f);
+      var alt=typeof exif.GPSAltitude==='number'?exif.GPSAltitude:100;
+      var model=((exif.Model||'')+(exif.Make||'')+(exif.ImageDescription||'')).toLowerCase();
+      var hfov=detectHFOV(model,bmp.width,bmp.height);
+      var isThermal=/h20t|h30t|m3t|m30t|xt2|xt s|thermal|infrared|radiometric|whitehot|blackhot/.test(model)||(bmp.width<=720&&bmp.height<=600);
+      var yaw=0;
+      try{yaw=parseFloat(String(exif.GimbalYawDegree||exif.GPSImgDirection||0).replace('+',''))||0;}catch(e){}
+      records.push({f:f,bmp:bmp,lat:exif.latitude,lon:exif.longitude,alt:alt,w:bmp.width,h:bmp.height,hfov:hfov,thermal:isThermal,yaw:yaw});
+    }catch(e){log('  WARN '+f.name+': '+e.message,'dm');}
+    if(i%8===0) await sleep(0);
   }
-  var nth = records.filter(function(r){return r.thermal}).length;
+  var nth=records.filter(function(r){return r.thermal;}).length;
   log('  '+records.length+' GPS images  ('+nth+' thermal, '+(records.length-nth)+' RGB)');
-  if(noGps) log('  '+noGps+' images skipped (no GPS)', 'dim');
-  if(!records.length) throw new Error('No GPS images found. Ensure images have GPS EXIF tags.');
+  if(noGps) log('  '+noGps+' skipped (no GPS)','dm');
+  if(!records.length) throw new Error('No GPS images found. Ensure images have GPS EXIF.');
   return records;
 }
-
-function detectHFOV(model, w, h){
-  if(/h30t/.test(model)) return 40.6;
-  if(/h20t/.test(model)) return 57.0;
-  if(/m3t|m30t/.test(model)) return 57.0;
-  if(/skydio.*x10/.test(model)) return w>=8000 ? 50.0 : 93.0;
-  if(/skydio.*x2/.test(model)) return 80.0;
-  if(/skydio/.test(model)) return 80.0;
-  if(w<=720 && h<=600) return 45.0; // generic thermal
-  return 84.0; // generic RGB
+function detectHFOV(m,w,h){
+  if(/h30t/.test(m)) return 40.6;
+  if(/h20t/.test(m)) return 57.0;
+  if(/m3t|m30t/.test(m)) return 57.0;
+  if(/skydio.*x10/.test(m)) return w>=8000?50.0:93.0;
+  if(/skydio.*x2/.test(m)) return 80.0;
+  if(/skydio/.test(m)) return 80.0;
+  if(w<=720&&h<=600) return 45.0;
+  return 84.0;
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  CANVAS PLACEMENT (equirectangular GPS → pixels)
-// ══════════════════════════════════════════════════════════════════════
-function buildCanvas(records, gsdOv, hfovOv, fpScale, maxPx){
-  log('─── Building canvas ────────────────────────────────────', 'hd');
-  var avgLat = records.reduce(function(s,r){return s+r.lat},0)/records.length;
-  var cosLat = Math.cos(avgLat * Math.PI/180);
-  var mPerDegLat = 111320.0;
-  var mPerDegLon = 111320.0 * cosLat;
-
-  var gsds = [];
-  for(var i=0; i<records.length; i++){
-    var r = records[i];
-    r.ux = r.lon * mPerDegLon;
-    r.uy = r.lat * mPerDegLat;
-    var hfov = hfovOv || r.hfov;
-    var gsd  = gsdOv  || (2.0 * r.alt * Math.tan(hfov/2*Math.PI/180) / r.w) * fpScale;
-    r.gsd = gsd;
-    r.gw = gsd * r.w;
-    r.gh = gsd * r.h;
-    gsds.push(gsd);
+// ── CANVAS LAYOUT ─────────────────────────────────────────────────────
+function buildCanvas(records,gsdOv,hfovOv,fpScale,maxPx){
+  log('─── Building canvas ─────────────────────────────────','hd');
+  var avgLat=records.reduce(function(s,r){return s+r.lat;},0)/records.length;
+  var cosLat=Math.cos(avgLat*Math.PI/180);
+  var mLon=111320.0*cosLat, mLat=111320.0;
+  var gsds=[];
+  for(var i=0;i<records.length;i++){
+    var r=records[i];
+    r.ux=r.lon*mLon; r.uy=r.lat*mLat;
+    var hf=hfovOv||r.hfov;
+    var g=(gsdOv)||(2.0*r.alt*Math.tan(hf/2*Math.PI/180)/r.w)*fpScale;
+    r.gsd=g; r.gw=g*r.w; r.gh=g*r.h; gsds.push(g);
   }
-
-  var X0 = Infinity, X1=-Infinity, Y0=Infinity, Y1=-Infinity;
+  gsds.sort(function(a,b){return a-b;});
+  var gsd_out=gsds[Math.floor(gsds.length/2)];
+  var X0=Infinity,X1=-Infinity,Y0=Infinity,Y1=-Infinity;
   for(var i=0;i<records.length;i++){
     var r=records[i];
     X0=Math.min(X0,r.ux-r.gw/2); X1=Math.max(X1,r.ux+r.gw/2);
     Y0=Math.min(Y0,r.uy-r.gh/2); Y1=Math.max(Y1,r.uy+r.gh/2);
   }
-
-  // Median GSD
-  gsds.sort(function(a,b){return a-b});
-  var gsd_out = gsds[Math.floor(gsds.length/2)];
-
-  var CW = Math.ceil((X1-X0)/gsd_out);
-  var CH = Math.ceil((Y1-Y0)/gsd_out);
-  var scale = Math.min(1.0, maxPx/Math.max(CW,CH));
-  var W = Math.max(1, Math.round(CW*scale));
-  var H = Math.max(1, Math.round(CH*scale));
-  gsd_out = gsd_out / scale;
-
+  var CW=Math.ceil((X1-X0)/gsd_out), CH=Math.ceil((Y1-Y0)/gsd_out);
+  var scale=Math.min(1.0,maxPx/Math.max(CW,CH));
+  var W=Math.max(1,Math.round(CW*scale)), H=Math.max(1,Math.round(CH*scale));
+  gsd_out=gsd_out/scale;
   for(var i=0;i<records.length;i++){
     var r=records[i];
-    r.cx = ((r.ux - X0) / gsd_out);
-    r.cy = ((Y1  - r.uy) / gsd_out);
-    r.pw = Math.max(2, Math.round(r.gw / gsd_out));
-    r.ph = Math.max(2, Math.round(r.gh / gsd_out));
+    r.cx=(r.ux-X0)/gsd_out;
+    r.cy=(Y1-r.uy)/gsd_out;
+    r.pw=Math.max(2,Math.round(r.gw/gsd_out));
+    r.ph=Math.max(2,Math.round(r.gh/gsd_out));
   }
-
-  log('  GSD='+gsd_out.toFixed(4)+'m/px  Canvas='+W+'x'+H+'px');
-  document.getElementById('canvasInfo').textContent =
-    'Canvas: '+W+'×'+H+'px  GSD: '+(gsd_out*100).toFixed(1)+'cm/px';
-
-  return {
-    CW:W, CH:H, gsd:gsd_out,
-    X0:X0, Y1:Y1
-  };
+  log('  GSD='+gsd_out.toFixed(4)+'m/px  Canvas='+W+'x'+H+'px  Images='+records.length);
+  document.getElementById('canvasInfo').textContent='Canvas: '+W+'x'+H+'px  GSD: '+(gsd_out*100).toFixed(1)+'cm/px';
+  document.getElementById('stSize').textContent=W+'x'+H;
+  document.getElementById('stImgs').textContent=records.length;
+  document.getElementById('stGsd').textContent=(gsd_out*100).toFixed(1)+'cm';
+  return {W:W,H:H,gsd:gsd_out,X0:X0,Y1:Y1};
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  GAIN NORMALIZATION (simple per-image mean → global median)
-// ══════════════════════════════════════════════════════════════════════
+// ── GAIN EQUALIZATION (per-channel Wallis) ────────────────────────────
 async function computeGains(records){
-  log('─── Gain normalization ─────────────────────────────────', 'hd');
-  var means = [];
-  var THUMB = 128;
+  log('─── Per-channel gain normalization ──────────────────','hd');
+  var THUMB=96;
+  var rMeans=[],gMeans=[],bMeans=[];
   for(var i=0;i<records.length;i++){
-    var r = records[i];
-    var tc = new OffscreenCanvas(THUMB, THUMB);
-    var tx = tc.getContext('2d');
-    tx.drawImage(r.bitmap, 0,0, THUMB, THUMB);
-    var d = tx.getImageData(0,0,THUMB,THUMB).data;
-    var sum=0, cnt=0;
-    for(var j=0;j<d.length;j+=4){
-      sum += (d[j]*0.299 + d[j+1]*0.587 + d[j+2]*0.114);
-      cnt++;
-    }
-    means.push(cnt>0 ? sum/cnt : 128);
+    var r=records[i];
+    var tc=new OffscreenCanvas(THUMB,THUMB);
+    var tx=tc.getContext('2d');
+    tx.drawImage(r.bmp,0,0,THUMB,THUMB);
+    var d=tx.getImageData(0,0,THUMB,THUMB).data;
+    var rs=0,gs=0,bs=0,cnt=0;
+    for(var j=0;j<d.length;j+=4){rs+=d[j];gs+=d[j+1];bs+=d[j+2];cnt++;}
+    rMeans.push(cnt>0?rs/cnt:128);
+    gMeans.push(cnt>0?gs/cnt:128);
+    bMeans.push(cnt>0?bs/cnt:128);
     if(i%20===0) await sleep(0);
   }
-  var sorted = means.slice().sort(function(a,b){return a-b});
-  var globalMean = sorted[Math.floor(sorted.length/2)];
-  var gains = means.map(function(m){
-    return globalMean / Math.max(m, 1.0);
+  function median(arr){var s=arr.slice().sort(function(a,b){return a-b;});return s[Math.floor(s.length/2)];}
+  var rRef=median(rMeans), gRef=median(gMeans), bRef=median(bMeans);
+  var gains=records.map(function(_,i){
+    return {
+      r:Math.max(0.25,Math.min(4.0,rRef/Math.max(rMeans[i],1))),
+      g:Math.max(0.25,Math.min(4.0,gRef/Math.max(gMeans[i],1))),
+      b:Math.max(0.25,Math.min(4.0,bRef/Math.max(bMeans[i],1)))
+    };
   });
-  // Clamp gains
-  gains = gains.map(function(g){return Math.max(0.33, Math.min(3.0, g))});
-  var mn=Math.min.apply(null,gains), mx=Math.max.apply(null,gains);
-  log('  Gain range: '+mn.toFixed(3)+' – '+mx.toFixed(3)+
-      '  median='+gains[Math.floor(gains.length/2)].toFixed(3));
+  var gv=gains.map(function(g){return (g.r+g.g+g.b)/3;});
+  log('  R/G/B gain range: '+(Math.min.apply(null,gains.map(function(g){return g.r;}))).toFixed(2)+
+      '–'+(Math.max.apply(null,gains.map(function(g){return g.r;}))).toFixed(2));
   return gains;
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  COMPOSITE — edge-feathered distance-weighted blend
-// ══════════════════════════════════════════════════════════════════════
-async function composite(records, cv, gains, blendPx){
-  var W=cv.CW, H=cv.CH;
-  log('─── Compositing '+records.length+' images → '+W+'×'+H+'px ────────────', 'hd');
+// ── STRIP SORT ────────────────────────────────────────────────────────
+function sortIntoStrips(records){
+  if(records.length<2) return [records];
+  var uxs=records.map(function(r){return r.ux;});
+  var uys=records.map(function(r){return r.uy;});
+  var mx=uxs.reduce(function(a,b){return a+b;})/records.length;
+  var my=uys.reduce(function(a,b){return a+b;})/records.length;
 
-  var acc = new Float32Array(W*H*3);
-  var wt  = new Float32Array(W*H);
+  // PCA to find flight direction
+  var pts=records.map(function(r){return [r.ux-mx,r.uy-my];});
+  var c00=0,c01=0,c11=0;
+  pts.forEach(function(p){c00+=p[0]*p[0];c01+=p[0]*p[1];c11+=p[1]*p[1];});
+  c00/=records.length;c01/=records.length;c11/=records.length;
+  var trace=c00+c11, det=c00*c11-c01*c01;
+  var l1=(trace+Math.sqrt(Math.max(0,trace*trace-4*det)))/2;
+  var along=[l1-c11,c01]; var aLen=Math.sqrt(along[0]*along[0]+along[1]*along[1])||1;
+  along=[along[0]/aLen,along[1]/aLen];
+  var cross=[-along[1],along[0]];
 
-  for(var idx=0; idx<records.length; idx++){
-    if(state.cancelled) throw new Error('Cancelled');
-    setProgress(38 + 50*(idx/records.length), 'Compositing '+(idx+1)+'/'+records.length);
+  var medFp=records.map(function(r){return r.gh;}).sort(function(a,b){return a-b;})[Math.floor(records.length/2)];
+  var stripGap=medFp*0.4;
 
-    var r   = records[idx];
-    var g   = gains[idx];
-    var pw  = r.pw, ph = r.ph;
-    var cx  = Math.round(r.cx), cy = Math.round(r.cy);
+  var withCross=records.map(function(r,i){
+    return {rec:r, cp:pts[i][0]*cross[0]+pts[i][1]*cross[1], ap:pts[i][0]*along[0]+pts[i][1]*along[1]};
+  });
+  withCross.sort(function(a,b){return a.cp-b.cp;});
 
-    // Render tile at canvas resolution
-    var tc  = new OffscreenCanvas(pw, ph);
-    var tx  = tc.getContext('2d');
-    tx.drawImage(r.bitmap, 0, 0, pw, ph);
-    var td  = tx.getImageData(0, 0, pw, ph).data;
+  var strips=[], cur=[withCross[0]];
+  for(var i=1;i<withCross.length;i++){
+    if(withCross[i].cp-withCross[i-1].cp>stripGap){
+      cur.sort(function(a,b){return a.ap-b.ap;});
+      strips.push(cur.map(function(x){return x.rec;}));
+      cur=[];
+    }
+    cur.push(withCross[i]);
+  }
+  cur.sort(function(a,b){return a.ap-b.ap;});
+  strips.push(cur.map(function(x){return x.rec;}));
+  log('  '+strips.length+' flight strips  ('+records.length+' total images)');
+  return strips;
+}
 
-    var x0 = Math.max(0, cx - (pw>>1));
-    var y0 = Math.max(0, cy - (ph>>1));
-    var x1 = Math.min(W, x0+pw);
-    var y1 = Math.min(H, y0+ph);
+// ── COMPOSITE — Voronoi distance blend with live preview ──────────────
+async function composite(records, cv, gains, blendMode){
+  var W=cv.W, H=cv.H;
+  log('─── Compositing → '+W+'x'+H+'px  ['+blendMode+' blend] ──','hd');
+  document.getElementById('prevEmpty').classList.add('hidden');
 
-    for(var py=y0; py<y1; py++){
-      for(var px=x0; px<x1; px++){
-        var sx = px-x0, sy = py-y0;
-        // Edge distance weight (feathered seam)
-        var ex = Math.min(sx, pw-1-sx);
-        var ey = Math.min(sy, ph-1-sy);
-        var w  = Math.min(1.0, Math.min(ex, ey) / blendPx);
-        if(w <= 0) continue;
-        var si = (sy*pw + sx)<<2;
-        var di = py*W + px;
-        var rr = Math.min(255, td[si]   * g);
-        var rg = Math.min(255, td[si+1] * g);
-        var rb = Math.min(255, td[si+2] * g);
-        acc[di*3]   += rr * w;
-        acc[di*3+1] += rg * w;
-        acc[di*3+2] += rb * w;
-        wt[di]      += w;
+  var LIVE_EVERY = Math.max(1, Math.floor(records.length/20)); // update live preview every N tiles
+
+  var acc=new Float32Array(W*H*3);
+  var wt =new Float32Array(W*H);
+
+  // Sort strips for better visual order
+  var strips=sortIntoStrips(records);
+  var flat=[];
+  strips.forEach(function(s){s.forEach(function(r){flat.push(r);});});
+
+  for(var idx=0;idx<flat.length;idx++){
+    if(S.cancelled) throw new Error('Cancelled');
+    setProgress(40+48*(idx/flat.length),'Stitching '+(idx+1)+'/'+flat.length);
+
+    var r=flat[idx];
+    var gn=gains[records.indexOf(r)];
+    var pw=r.pw, ph=r.ph;
+    var cx=Math.round(r.cx), cy=Math.round(r.cy);
+
+    // Render tile at output resolution (with yaw rotation)
+    var tc=new OffscreenCanvas(pw,ph);
+    var tx=tc.getContext('2d');
+    if(Math.abs(r.yaw)>0.5){
+      tx.translate(pw/2,ph/2);
+      tx.rotate(-r.yaw*Math.PI/180);
+      tx.drawImage(r.bmp,-pw/2,-ph/2,pw,ph);
+    } else {
+      tx.drawImage(r.bmp,0,0,pw,ph);
+    }
+    var td=tx.getImageData(0,0,pw,ph).data;
+
+    var x0=Math.max(0,cx-(pw>>1)), y0=Math.max(0,cy-(ph>>1));
+    var x1=Math.min(W,x0+pw),      y1=Math.min(H,y0+ph);
+
+    for(var py=y0;py<y1;py++){
+      for(var px=x0;px<x1;px++){
+        var sx=px-x0, sy=py-y0;
+        var di=py*W+px;
+
+        // Weight based on blend mode
+        var w=1.0;
+        if(blendMode==='voronoi'){
+          // Distance to tile centre vs distance to canvas edge
+          var dcx=Math.abs(px-cx), dcy=Math.abs(py-cy);
+          var halfW=pw/2, halfH=ph/2;
+          var ex=halfW-dcx, ey=halfH-dcy;
+          w=Math.max(0, Math.min(ex,ey) / Math.max(Math.min(halfW,halfH)*0.35, 1));
+          w=Math.min(1.0, w);
+        } else if(blendMode==='feather'){
+          var ex2=Math.min(sx,pw-1-sx), ey2=Math.min(sy,ph-1-sy);
+          w=Math.min(1.0, Math.min(ex2,ey2)/Math.max(Math.min(pw,ph)*0.15,1));
+        }
+        // 'average' → w stays 1.0
+
+        if(w<=0) continue;
+        var si=(sy*pw+sx)<<2;
+        // skip near-black pixels (sensor dead, rotation fill)
+        if(td[si]<3&&td[si+1]<3&&td[si+2]<3) continue;
+
+        acc[di*3  ]+=Math.min(255,td[si  ]*gn.r)*w;
+        acc[di*3+1]+=Math.min(255,td[si+1]*gn.g)*w;
+        acc[di*3+2]+=Math.min(255,td[si+2]*gn.b)*w;
+        wt[di]+=w;
       }
     }
-    if(idx%3===0) await sleep(0);
-  }
 
-  log('  Normalizing...');
-  setProgress(90, 'Normalizing');
-
-  // Collect covered pixels for percentile stretch
-  var covered = [];
-  for(var i=0;i<W*H;i++) if(wt[i]>0) covered.push(acc[i*3]*0.299+acc[i*3+1]*0.587+acc[i*3+2]*0.114);
-  covered.sort(function(a,b){return a-b});
-  var lo = covered[Math.floor(covered.length*0.02)] || 0;
-  var hi = covered[Math.floor(covered.length*0.98)] || 255;
-  var range = Math.max(hi-lo, 1);
-
-  var out = new Uint8ClampedArray(W*H*4);
-  var covPx = 0;
-  for(var i=0;i<W*H;i++){
-    var w2 = wt[i];
-    if(w2>0){
-      out[i*4]   = Math.round(Math.max(0,Math.min(255, (acc[i*3  ]/w2-lo)/range*255)));
-      out[i*4+1] = Math.round(Math.max(0,Math.min(255, (acc[i*3+1]/w2-lo)/range*255)));
-      out[i*4+2] = Math.round(Math.max(0,Math.min(255, (acc[i*3+2]/w2-lo)/range*255)));
-      out[i*4+3] = 255;
-      covPx++;
+    // Live preview update every N tiles
+    if((idx+1)%LIVE_EVERY===0 || idx===flat.length-1){
+      var partial=buildImageData(acc,wt,W,H,false);
+      showLiveTile(partial,W,H);
+      await sleep(0);
     }
   }
-  var covPct = (100*covPx/(W*H)).toFixed(1);
+
+  log('  Percentile stretch p2-p98...');
+  setProgress(91,'Stretching');
+  var final=buildImageData(acc,wt,W,H,true);
+
+  var covPx=0;
+  for(var i=0;i<W*H;i++) if(wt[i]>0) covPx++;
+  var covPct=(100*covPx/(W*H)).toFixed(1);
   log('  Coverage: '+covPx.toLocaleString()+'px ('+covPct+'%)');
-  return new ImageData(out, W, H);
+  document.getElementById('stCov').textContent=covPct+'%';
+  return final;
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  MAIN
-// ══════════════════════════════════════════════════════════════════════
+function buildImageData(acc,wt,W,H,stretch){
+  var out=new Uint8ClampedArray(W*H*4);
+  var covered=[];
+  for(var i=0;i<W*H;i++){
+    if(wt[i]>0){
+      var lum=(acc[i*3]*0.299+acc[i*3+1]*0.587+acc[i*3+2]*0.114)/wt[i];
+      covered.push(lum);
+    }
+  }
+  var lo=0,hi=255,range=255;
+  if(stretch && covered.length>10){
+    covered.sort(function(a,b){return a-b;});
+    lo=covered[Math.floor(covered.length*0.02)]||0;
+    hi=covered[Math.floor(covered.length*0.98)]||255;
+    range=Math.max(hi-lo,1);
+  }
+  for(var i=0;i<W*H;i++){
+    if(wt[i]>0){
+      var sc=stretch?(255/range):1;
+      var bias=stretch?(-lo*255/range):0;
+      out[i*4  ]=Math.max(0,Math.min(255,acc[i*3  ]/wt[i]*sc+bias));
+      out[i*4+1]=Math.max(0,Math.min(255,acc[i*3+1]/wt[i]*sc+bias));
+      out[i*4+2]=Math.max(0,Math.min(255,acc[i*3+2]/wt[i]*sc+bias));
+      out[i*4+3]=255;
+    }
+  }
+  return new ImageData(out,W,H);
+}
+
+// ── MAIN PIPELINE ─────────────────────────────────────────────────────
 async function startProcessing(){
-  if(state.running) return;
-  if(!state.files.length){ log('No images loaded.','err'); return; }
-  state.cancelled = false;
-  state.running   = true;
-  t0 = Date.now();
+  if(S.running) return;
+  if(!S.files.length){log('No images loaded.','er');return;}
+  S.cancelled=false; S.running=true; S.t0=Date.now();
 
-  document.getElementById('btnRun').disabled   = true;
-  document.getElementById('btnCancel').disabled = false;
-  document.getElementById('dlCard').style.display = 'none';
+  document.getElementById('btnRun').disabled=true;
+  document.getElementById('btnCancel').disabled=false;
+  document.getElementById('dlCard').style.display='none';
   document.getElementById('doneBanner').classList.remove('show');
-  var pcanvas = document.getElementById('preview-canvas');
-  pcanvas.classList.remove('ready');
+  document.getElementById('liveCanvas').classList.remove('show');
+  document.getElementById('prevEmpty').classList.remove('hidden');
 
-  var gsdOv   = parseFloat(document.getElementById('gsd').value)   || null;
-  var hfovOv  = parseFloat(document.getElementById('hfov').value)  || null;
-  var fpScale = parseFloat(document.getElementById('fpScale').value)||1.0;
-  var maxPx   = parseInt(document.getElementById('maxPx').value)   ||3000;
-  var blendPx = parseInt(document.getElementById('blendPx').value) ||40;
+  var gsdOv   =parseFloat(document.getElementById('gsd').value)||null;
+  var hfovOv  =parseFloat(document.getElementById('hfov').value)||null;
+  var fpScale =parseFloat(document.getElementById('fpScale').value)||1.0;
+  var maxPx   =parseInt(document.getElementById('maxPx').value)||3000;
+  var blendMode=document.getElementById('blendMode').value;
 
-  document.getElementById('log').innerHTML = '';
-  log('SKY TERRAEYE — EYE (Browser Mode)', 'hd');
-  log(new Date().toLocaleString(), 'dim');
+  document.getElementById('log').innerHTML='';
+  log('SKY TERRAEYE — EYE PROCESSOR  (browser)','hd');
+  log(new Date().toLocaleString(),'dm');
 
   try{
-    setProgress(2, 'Reading EXIF');
-    var records = await loadRecords(state.files);
-    if(state.cancelled) throw new Error('Cancelled');
-    state.records = records;
+    setProgress(2,'Reading EXIF');
+    var records=await loadRecords(S.files);
+    if(S.cancelled) throw new Error('Cancelled');
+    S.records=records;
+    document.getElementById('gpsStatus').textContent=records.length+' GPS images ready';
+    document.getElementById('gpsStatus').className='ib ok';
 
-    document.getElementById('gpsStatus').textContent =
-      records.length+' GPS images ready';
-    document.getElementById('gpsStatus').className = 'infobox ok';
+    setProgress(14,'Building canvas');
+    var cv=buildCanvas(records,gsdOv,hfovOv,fpScale,maxPx);
+    if(S.cancelled) throw new Error('Cancelled');
 
-    setProgress(12, 'Building canvas');
-    var cv = buildCanvas(records, gsdOv, hfovOv, fpScale, maxPx);
-    if(state.cancelled) throw new Error('Cancelled');
+    setProgress(26,'Gain normalization');
+    var gains=await computeGains(records);
+    if(S.cancelled) throw new Error('Cancelled');
 
-    setProgress(22, 'Gain normalization');
-    var gains = await computeGains(records);
-    if(state.cancelled) throw new Error('Cancelled');
+    setProgress(40,'Compositing');
+    var imgData=await composite(records,cv,gains,blendMode);
+    if(S.cancelled) throw new Error('Cancelled');
 
-    setProgress(38, 'Compositing');
-    var imageData = await composite(records, cv, gains, blendPx);
-    if(state.cancelled) throw new Error('Cancelled');
-
-    setProgress(95, 'Rendering preview');
+    setProgress(96,'Rendering');
     await sleep(0);
 
-    // Draw to preview canvas
-    pcanvas.width  = imageData.width;
-    pcanvas.height = imageData.height;
-    var pctx = pcanvas.getContext('2d');
-    pctx.putImageData(imageData, 0, 0);
-    pcanvas.classList.add('ready');
+    // Paint final result into an offscreen bitmap for pan/zoom
+    var oc=new OffscreenCanvas(imgData.width,imgData.height);
+    oc.getContext('2d').putImageData(imgData,0,0);
+    var bmp=await createImageBitmap(oc);
+    PV.src=bmp;
+    document.getElementById('liveCanvas').classList.remove('show');
+    resizePreviewCanvas();
+    fitPreview();
 
-    // Save for download
-    state.resultCanvas = pcanvas;
-    state.worldFile = { X0:cv.X0, Y1:cv.Y1, gsd:cv.gsd, W:cv.CW, H:cv.CH };
+    S.resultImageData=imgData;
+    S.worldFile={X0:cv.X0,Y1:cv.Y1,gsd:cv.gsd,W:cv.W,H:cv.H};
 
-    setProgress(100, 'Done');
-    var elapsed = ((Date.now()-t0)/1000).toFixed(1);
-    log('─── Done in '+elapsed+'s ────────────────────────────────────', 'ok');
-    log('  Dimensions: '+imageData.width+'×'+imageData.height+'px', 'ok');
-
+    setProgress(100,'Done');
+    var elapsed=((Date.now()-S.t0)/1000).toFixed(1);
+    log('─── Done in '+elapsed+'s ───────────────────────────────','ok');
     document.getElementById('doneBanner').classList.add('show');
-    document.getElementById('doneMsg').textContent =
-      'Orthomosaic complete — '+imageData.width+'×'+imageData.height+'px  ('+elapsed+'s)';
-    document.getElementById('dlCard').style.display = '';
-    document.getElementById('dlInfo').textContent =
-      imageData.width+'×'+imageData.height+'px  |  '+state.files.length+' images  |  '+elapsed+'s';
+    document.getElementById('doneMsg').textContent='Orthomosaic complete — '+imgData.width+'×'+imgData.height+'px  ('+elapsed+'s)';
+    document.getElementById('dlCard').style.display='';
+    document.getElementById('dlInfo').textContent=imgData.width+'×'+imgData.height+'px  |  '+S.files.length+' images  |  '+elapsed+'s';
+    document.getElementById('prevStats').style.display='flex';
 
-  } catch(e){
-    if(e.message==='Cancelled'){
-      log('Cancelled.','dim');
-      setProgress(0,'Cancelled');
-    } else {
-      log('ERROR: '+e.message, 'err');
-      log(e.stack||'', 'dim');
-      setProgress(0,'Error');
-    }
-  } finally {
-    state.running = false;
-    document.getElementById('btnRun').disabled   = false;
-    document.getElementById('btnCancel').disabled = true;
+  }catch(e){
+    if(e.message==='Cancelled'){log('Cancelled.','dm');setProgress(0,'Cancelled');}
+    else{log('ERROR: '+e.message,'er');log(e.stack||'','dm');setProgress(0,'Error');}
+  }finally{
+    S.running=false;
+    document.getElementById('btnRun').disabled=false;
+    document.getElementById('btnCancel').disabled=true;
   }
 }
 
-function cancelProcessing(){
-  state.cancelled = true;
-  document.getElementById('btnCancel').disabled = true;
-}
+function cancelProcessing(){S.cancelled=true;document.getElementById('btnCancel').disabled=true;}
 
 function resetAll(){
-  state.files=[]; state.records=[]; state.resultCanvas=null; state.worldFile=null;
-  state.cancelled=false; state.running=false;
-  document.getElementById('fileCount').style.display='none';
+  S.files=[];S.records=[];S.cancelled=false;S.running=false;S.resultImageData=null;S.worldFile=null;
+  PV.src=null;pctx.clearRect(0,0,pcanvas.width,pcanvas.height);
+  lctx.clearRect(0,0,liveCanvas.width,liveCanvas.height);
+  document.getElementById('liveCanvas').classList.remove('show');
+  document.getElementById('fc').style.display='none';
   document.getElementById('gpsStatus').textContent='Waiting for images...';
-  document.getElementById('gpsStatus').className='infobox';
-  document.getElementById('canvasInfo').textContent='Canvas size will be shown here';
+  document.getElementById('gpsStatus').className='ib';
+  document.getElementById('canvasInfo').textContent='Canvas info will appear here';
   document.getElementById('btnRun').disabled=true;
   document.getElementById('btnCancel').disabled=true;
   document.getElementById('dlCard').style.display='none';
   document.getElementById('doneBanner').classList.remove('show');
-  setProgress(0,'Idle');
-  var pcanvas=document.getElementById('preview-canvas');
-  pcanvas.width=0;pcanvas.height=0;pcanvas.classList.remove('ready');
-  document.getElementById('log').innerHTML='<div class="ll dim">// Reset. Drop images and click Run.</div>';
-  document.getElementById('fileInput').value='';
+  document.getElementById('prevStats').style.display='none';
+  document.getElementById('prevEmpty').classList.remove('hidden');
+  setProgress(0,'Idle — drop images and click Run');
+  document.getElementById('log').innerHTML='<div class="ll dm">// Reset. Ready for new images.</div>';
+  document.getElementById('fi').value='';
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  DOWNLOAD
-// ══════════════════════════════════════════════════════════════════════
+// ── DOWNLOAD ──────────────────────────────────────────────────────────
 function downloadPNG(){
-  if(!state.resultCanvas){ log('No result yet.','err'); return; }
-  state.resultCanvas.toBlob(function(blob){
-    var url = URL.createObjectURL(blob);
-    var a   = document.createElement('a');
-    a.href  = url;
-    a.download = 'orthomosaic_eye.png';
-    a.click();
-    setTimeout(function(){URL.revokeObjectURL(url)},1000);
+  if(!S.resultImageData){log('No result yet.','er');return;}
+  var oc=new OffscreenCanvas(S.resultImageData.width,S.resultImageData.height);
+  oc.getContext('2d').putImageData(S.resultImageData,0,0);
+  oc.convertToBlob({type:'image/png'}).then(function(blob){
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url; a.download='orthomosaic_eye.png'; a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
     log('PNG downloaded.','ok');
-  },'image/png');
+  });
+}
+function downloadPGW(){
+  if(!S.worldFile){log('No world file data.','er');return;}
+  var wf=S.worldFile;
+  var pgw=[wf.gsd.toFixed(8),'0.00000000','0.00000000',(-wf.gsd).toFixed(8),(wf.X0+wf.gsd*0.5).toFixed(8),(wf.Y1-wf.gsd*0.5).toFixed(8)].join('\n');
+  var blob=new Blob([pgw],{type:'text/plain'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a'); a.href=url; a.download='orthomosaic_eye.pgw'; a.click();
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  log('World file (.pgw) downloaded. Open PNG + .pgw together in QGIS.','ok');
 }
 
-function downloadPGW(){
-  if(!state.worldFile){ log('No world file data.','err'); return; }
-  var wf = state.worldFile;
-  // PGW format: 6 lines
-  // line 1: pixel width in map units
-  // line 2: rotation (row)
-  // line 3: rotation (col)
-  // line 4: pixel height (negative)
-  // line 5: x of upper-left pixel centre (longitude equivalent in meters)
-  // line 6: y of upper-left pixel centre (latitude equivalent in meters)
-  var pgw = [
-    wf.gsd.toFixed(8),
-    '0.00000000',
-    '0.00000000',
-    (-wf.gsd).toFixed(8),
-    (wf.X0 + wf.gsd*0.5).toFixed(8),
-    (wf.Y1 - wf.gsd*0.5).toFixed(8)
-  ].join('\n');
-  var blob = new Blob([pgw], {type:'text/plain'});
-  var url  = URL.createObjectURL(blob);
-  var a    = document.createElement('a');
-  a.href   = url;
-  a.download = 'orthomosaic_eye.pgw';
-  a.click();
-  setTimeout(function(){URL.revokeObjectURL(url)},1000);
-  log('World file (.pgw) downloaded. Pair with the PNG in QGIS.','ok');
-}
+// Init preview canvas size
+resizePreviewCanvas();
 </script>
 </body>
 </html>
