@@ -4,111 +4,359 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Eye — Sky TerraEye Orthomosaic Platform</title>
-<link rel="icon" href="assets/img/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Oxanium:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --B:#1FA8D9;--B2:#1482AA;--B3:#0D608A;
-  --Bdim:rgba(31,168,217,.12);--Bl:rgba(31,168,217,.22);
-  --G:#F5BE18;--Gl:rgba(245,190,24,.14);
-  --D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;
-  --T:#D0E8F5;--M:#5A839E;--Dm:#243D52;
-  --W:#fff;--Gr:#22C55E;
-  --r:14px;--r2:22px;
-  --e:.32s cubic-bezier(.4,0,.2,1);
+  --B:#00D4FF;--B2:#00A8CC;--B3:#007A99;
+  --Bdim:rgba(0,212,255,.10);--Bl:rgba(0,212,255,.20);
+  --G:#FFB800;--Gl:rgba(255,184,0,.12);
+  --Hot:#FF4D6D;--Warm:#FF8C42;--Cool:#4ECDC4;
+  --D:#050D14;--D2:#07131E;--D3:#0B1D2C;--D4:#101F30;
+  --T:#C8E8F5;--M:#4A7A96;--Dm:#1A3A50;
+  --W:#fff;--Gr:#00FF88;
+  --r:12px;--r2:20px;
+  --e:.28s cubic-bezier(.4,0,.2,1);
+  --font-display:'Oxanium',monospace;
+  --font-body:'Space Grotesk',sans-serif;
 }
-html,body{height:100%}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--T);overflow-x:hidden}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font-body);background:var(--D);color:var(--T)}
 a{color:inherit;text-decoration:none}
 img{display:block;max-width:100%}
 
-/* UAE bar */
-.uae{height:5px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
+/* ─── UAE Bar ─── */
+.uae{height:4px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%);position:relative;z-index:100}
 
-/* Nav */
-.nav{background:rgba(4,13,22,.96);backdrop-filter:blur(24px);border-bottom:1px solid rgba(31,168,217,.1);padding:0 32px;height:70px;display:flex;align-items:center;justify-content:space-between}
-.logo{display:flex;align-items:center;gap:12px}
-.logo img{height:30px}
-.logt{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--W)}
+/* ─── Nav ─── */
+.nav{
+  background:rgba(3,9,16,.9);
+  backdrop-filter:blur(32px);
+  border-bottom:1px solid rgba(0,212,255,.08);
+  padding:0 28px;height:60px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:relative;z-index:90;
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{
+  width:30px;height:30px;
+  background:linear-gradient(135deg,var(--B),var(--B3));
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 16px rgba(0,212,255,.35);
+}
+.logo-mark svg{width:16px;height:16px;color:#fff}
+.logt{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--W);letter-spacing:2px}
 .logt b{color:var(--B)}
-.nav-back{font-size:13px;color:var(--M);display:flex;align-items:center;gap:6px;transition:color .2s}
-.nav-back:hover{color:var(--T)}
-.nav-back svg{width:14px;height:14px}
+.nav-pill{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(0,212,255,.06);
+  border:1px solid rgba(0,212,255,.15);
+  border-radius:999px;
+  padding:5px 14px 5px 8px;
+  font-size:12px;color:var(--M);
+  transition:color .2s,background .2s;
+}
+.nav-pill:hover{color:var(--T);background:rgba(0,212,255,.1)}
+.nav-pill svg{width:12px;height:12px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--Gr);animation:pulse-dot 2s ease-in-out infinite;margin-right:2px}
+@keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,255,136,.4)}50%{opacity:.7;box-shadow:0 0 0 4px rgba(0,255,136,0)}}
 
-/* Page layout */
-.page{min-height:calc(100vh - 75px);display:grid;grid-template-columns:1fr 1fr}
+/* ─── Layout ─── */
+.page{
+  height:calc(100vh - 64px);
+  display:grid;
+  grid-template-columns:1fr 440px;
+}
 
-/* Left — branding */
-.left{background:linear-gradient(145deg,#040E1C 0%,#071628 50%,#0A1F35 100%);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:72px 64px}
-.left::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(31,168,217,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(31,168,217,.04) 1px,transparent 1px);background-size:44px 44px}
-.glow1{position:absolute;top:-80px;left:-80px;width:400px;height:400px;background:radial-gradient(circle,rgba(31,168,217,.12) 0%,transparent 70%);pointer-events:none}
-.glow2{position:absolute;bottom:-60px;right:-60px;width:300px;height:300px;background:radial-gradient(circle,rgba(245,190,24,.08) 0%,transparent 70%);pointer-events:none}
+/* ─── Left: Canvas Visualization ─── */
+.viz{
+  position:relative;
+  background:var(--D);
+  overflow:hidden;
+}
+#ortho-canvas{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+}
+.viz-overlay{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  justify-content:space-between;
+  padding:36px 40px;
+  pointer-events:none;
+  z-index:10;
+}
+.viz-top{display:flex;align-items:flex-start;justify-content:space-between}
+.viz-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(5,13,20,.75);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(0,212,255,.2);
+  border-radius:8px;
+  padding:7px 14px;
+  font-family:var(--font-display);
+  font-size:10px;font-weight:600;letter-spacing:2px;
+  color:var(--B);
+  text-transform:uppercase;
+}
+.viz-badge svg{width:11px;height:11px}
+.viz-coords{
+  font-family:var(--font-display);
+  font-size:10px;
+  color:rgba(0,212,255,.5);
+  letter-spacing:1px;
+  text-align:right;
+  line-height:1.8;
+  background:rgba(5,13,20,.6);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(0,212,255,.1);
+  border-radius:8px;
+  padding:8px 12px;
+}
+.viz-bottom{display:flex;align-items:flex-end;justify-content:space-between;gap:20px}
+.viz-headline{
+  background:rgba(5,13,20,.8);
+  backdrop-filter:blur(16px);
+  border:1px solid rgba(0,212,255,.12);
+  border-radius:14px;
+  padding:22px 26px;
+  max-width:420px;
+}
+.vh-tag{
+  display:inline-flex;align-items:center;gap:7px;
+  background:rgba(255,184,0,.1);
+  border:1px solid rgba(255,184,0,.25);
+  color:var(--G);
+  font-size:10px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;
+  padding:4px 10px;border-radius:999px;
+  margin-bottom:14px;
+}
+.vh-tag svg{width:10px;height:10px}
+.viz-headline h1{
+  font-family:var(--font-display);
+  font-size:clamp(22px,2.2vw,32px);
+  font-weight:800;
+  color:var(--W);
+  line-height:1.15;
+  letter-spacing:-.3px;
+  margin-bottom:10px;
+}
+.viz-headline h1 em{
+  color:var(--B);
+  font-style:normal;
+}
+.viz-headline p{
+  font-size:13px;
+  color:var(--M);
+  line-height:1.7;
+}
+.viz-stats{
+  display:flex;flex-direction:column;gap:8px;
+  min-width:140px;
+}
+.vstat{
+  background:rgba(5,13,20,.8);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(0,212,255,.1);
+  border-radius:10px;
+  padding:10px 14px;
+  display:flex;align-items:center;gap:10px;
+}
+.vstat-val{
+  font-family:var(--font-display);
+  font-size:15px;font-weight:700;
+  color:var(--B);
+  line-height:1;
+}
+.vstat-lbl{font-size:10px;color:var(--M);letter-spacing:.5px;margin-top:2px}
+.vstat-ic{width:28px;height:28px;border-radius:7px;background:var(--Bdim);border:1px solid var(--Bl);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.vstat-ic svg{width:13px;height:13px;color:var(--B)}
+.vstat-ic.hot{background:rgba(255,77,109,.1);border-color:rgba(255,77,109,.2)}
+.vstat-ic.hot svg{color:var(--Hot)}
+.vstat-ic.warm{background:rgba(255,140,66,.1);border-color:rgba(255,140,66,.2)}
+.vstat-ic.warm svg{color:var(--Warm)}
 
-.left-inner{position:relative;z-index:2}
-.eyetag{display:inline-flex;align-items:center;gap:9px;background:rgba(245,190,24,.1);border:1px solid rgba(245,190,24,.3);color:var(--G);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:7px 16px;border-radius:999px;margin-bottom:32px}
-.eyetag svg{width:14px;height:14px}
-.left h1{font-family:'Syne',sans-serif;font-size:clamp(28px,2.8vw,40px);font-weight:800;line-height:1.12;color:var(--W);margin-bottom:18px;letter-spacing:-.5px}
-.left h1 span{color:var(--B)}
-.left p{font-size:15px;color:var(--M);line-height:1.75;max-width:44ch;margin-bottom:40px}
+/* scan line */
+.scanline{
+  position:absolute;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,212,255,.4),transparent);
+  animation:scan 4s linear infinite;
+  z-index:5;pointer-events:none;
+}
+@keyframes scan{0%{top:-2px}100%{top:100%}}
 
-.feat{display:flex;flex-direction:column;gap:14px}
-.fi{display:flex;align-items:flex-start;gap:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:16px}
-.fi-ic{width:38px;height:38px;border-radius:10px;background:var(--Bdim);border:1px solid var(--Bl);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.fi-ic svg{width:17px;height:17px;color:var(--B)}
-.fi-ic.gold{background:rgba(245,190,24,.1);border-color:rgba(245,190,24,.25)}
-.fi-ic.gold svg{color:var(--G)}
-.fi-ic.grn{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.2)}
-.fi-ic.grn svg{color:#4ADE80}
-.fi-t{font-size:13.5px;font-weight:700;color:var(--T);margin-bottom:2px}
-.fi-d{font-size:12px;color:var(--M)}
+/* corner brackets */
+.corner{position:absolute;width:20px;height:20px;z-index:6;pointer-events:none}
+.corner.tl{top:12px;left:12px;border-top:2px solid rgba(0,212,255,.4);border-left:2px solid rgba(0,212,255,.4)}
+.corner.tr{top:12px;right:12px;border-top:2px solid rgba(0,212,255,.4);border-right:2px solid rgba(0,212,255,.4)}
+.corner.bl{bottom:12px;left:12px;border-bottom:2px solid rgba(0,212,255,.4);border-left:2px solid rgba(0,212,255,.4)}
+.corner.br{bottom:12px;right:12px;border-bottom:2px solid rgba(0,212,255,.4);border-right:2px solid rgba(0,212,255,.4)}
 
-/* Right — form */
-.right{display:flex;align-items:center;justify-content:center;padding:56px 64px;background:var(--D2)}
-.card{width:100%;max-width:440px}
+/* ─── Right: Auth Panel ─── */
+.auth{
+  display:flex;flex-direction:column;
+  background:var(--D2);
+  border-left:1px solid rgba(0,212,255,.08);
+  overflow-y:auto;
+}
+.auth-inner{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:32px 36px;
+}
+.card{width:100%}
 
-.tabs{display:flex;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:4px;margin-bottom:32px}
-.tab{flex:1;padding:10px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--M);transition:var(--e);font-family:'Plus Jakarta Sans',sans-serif}
-.tab.active{background:var(--B);color:#fff;box-shadow:0 4px 16px rgba(31,168,217,.35)}
+.tabs{
+  display:flex;
+  background:rgba(0,0,0,.25);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:10px;
+  padding:3px;
+  margin-bottom:28px;
+}
+.tab{
+  flex:1;padding:9px;border-radius:8px;
+  font-size:13px;font-weight:600;
+  cursor:pointer;border:none;background:transparent;
+  color:var(--M);transition:var(--e);
+  font-family:var(--font-display);letter-spacing:.5px;
+}
+.tab.active{
+  background:linear-gradient(135deg,var(--B3),var(--B2));
+  color:#fff;
+  box-shadow:0 3px 12px rgba(0,212,255,.3);
+}
 
-.form-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--W);margin-bottom:6px}
-.form-sub{font-size:14px;color:var(--M);margin-bottom:28px}
+.form-title{
+  font-family:var(--font-display);
+  font-size:21px;font-weight:800;
+  color:var(--W);margin-bottom:4px;
+  letter-spacing:-.2px;
+}
+.form-sub{font-size:13px;color:var(--M);margin-bottom:24px}
 
-.field{margin-bottom:18px}
-.field label{display:block;font-size:12px;font-weight:700;color:var(--M);letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px}
-.field input{width:100%;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:10px;color:var(--T);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;padding:12px 14px;outline:none;transition:var(--e)}
-.field input:focus{border-color:var(--B);background:rgba(31,168,217,.05);box-shadow:0 0 0 3px rgba(31,168,217,.1)}
-.field input::placeholder{color:var(--Dm)}
+.field{margin-bottom:16px}
+.field label{
+  display:block;
+  font-size:10.5px;font-weight:700;
+  color:var(--M);letter-spacing:1px;
+  text-transform:uppercase;
+  margin-bottom:6px;
+  font-family:var(--font-display);
+}
+.field input{
+  width:100%;
+  background:rgba(0,0,0,.3);
+  border:1.5px solid rgba(255,255,255,.07);
+  border-radius:9px;
+  color:var(--T);
+  font-family:var(--font-body);
+  font-size:13.5px;
+  padding:11px 13px;
+  outline:none;
+  transition:var(--e);
+}
+.field input:focus{
+  border-color:var(--B);
+  background:rgba(0,212,255,.04);
+  box-shadow:0 0 0 3px rgba(0,212,255,.08);
+}
+.field input::placeholder{color:rgba(74,122,150,.5)}
 
-.submit{width:100%;padding:14px;background:var(--B);color:#fff;border:none;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:var(--e);margin-top:6px}
-.submit:hover{background:var(--B2);transform:translateY(-1px);box-shadow:0 8px 24px rgba(31,168,217,.4)}
-.submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.submit{
+  width:100%;padding:13px;
+  background:linear-gradient(135deg,var(--B2) 0%,var(--B) 100%);
+  color:#000;border:none;border-radius:9px;
+  font-family:var(--font-display);
+  font-size:14px;font-weight:700;letter-spacing:1px;
+  cursor:pointer;transition:var(--e);
+  margin-top:4px;
+  position:relative;overflow:hidden;
+}
+.submit::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,var(--B) 0%,rgba(255,255,255,.3) 100%);
+  opacity:0;transition:opacity .2s;
+}
+.submit:hover::before{opacity:1}
+.submit:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,212,255,.4)}
+.submit:disabled{opacity:.4;cursor:not-allowed;transform:none}
 
-.err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);color:#FCA5A5;font-size:13px;padding:11px 14px;border-radius:9px;margin-bottom:16px;display:none}
+.err{
+  background:rgba(255,77,109,.06);
+  border:1px solid rgba(255,77,109,.2);
+  color:#FFB3C1;font-size:12.5px;
+  padding:10px 13px;border-radius:8px;
+  margin-bottom:14px;display:none;
+}
 .err.show{display:block}
-.ok-msg{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);color:#86EFAC;font-size:13px;padding:11px 14px;border-radius:9px;margin-bottom:16px;display:none}
+.ok-msg{
+  background:rgba(0,255,136,.06);
+  border:1px solid rgba(0,255,136,.2);
+  color:#80FFBC;font-size:12.5px;
+  padding:10px 13px;border-radius:8px;
+  margin-bottom:14px;display:none;
+}
 .ok-msg.show{display:block}
 
-.divider{display:flex;align-items:center;gap:12px;margin:22px 0;color:var(--Dm);font-size:12px}
-.divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.06)}
+.divider{
+  display:flex;align-items:center;gap:10px;
+  margin:18px 0;color:var(--Dm);font-size:11px;
+  font-family:var(--font-display);letter-spacing:1px;
+}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.05)}
 
-.agent-box{background:rgba(245,190,24,.06);border:1px solid rgba(245,190,24,.2);border-radius:12px;padding:16px;margin-top:24px}
-.agent-box h4{font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--G);margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.agent-box h4 svg{width:13px;height:13px}
-.agent-box p{font-size:12.5px;color:var(--M);line-height:1.6;margin-bottom:12px}
-.dl-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(245,190,24,.12);border:1px solid rgba(245,190,24,.3);color:var(--G);font-size:12px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;transition:var(--e)}
-.dl-btn:hover{background:rgba(245,190,24,.2)}
-.dl-btn svg{width:13px;height:13px}
-
-/* Hidden panels */
 .panel{display:none}.panel.active{display:block}
 
-@media(max-width:900px){
-  .page{grid-template-columns:1fr}
-  .left{display:none}
-  .right{padding:40px 24px}
+/* Agent box */
+.agent-box{
+  background:rgba(255,184,0,.04);
+  border:1px solid rgba(255,184,0,.15);
+  border-radius:12px;
+  padding:16px;margin-top:20px;
+}
+.agent-box h4{
+  font-size:10px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;color:var(--G);
+  margin-bottom:8px;
+  display:flex;align-items:center;gap:7px;
+  font-family:var(--font-display);
+}
+.agent-box h4 svg{width:12px;height:12px}
+.agent-box p{font-size:12px;color:var(--M);line-height:1.65;margin-bottom:12px}
+.dl-btns{display:flex;gap:7px;flex-wrap:wrap}
+.dl-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,184,0,.08);
+  border:1px solid rgba(255,184,0,.25);
+  color:var(--G);
+  font-size:11px;font-weight:700;
+  padding:7px 12px;border-radius:7px;
+  cursor:pointer;transition:var(--e);
+  font-family:var(--font-display);letter-spacing:.5px;
+}
+.dl-btn:hover{background:rgba(255,184,0,.15)}
+.dl-btn svg{width:11px;height:11px}
+
+/* auth footer */
+.auth-footer{
+  padding:16px 36px;
+  border-top:1px solid rgba(255,255,255,.04);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.af-feats{display:flex;gap:16px}
+.af-feat{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--Dm)}
+.af-feat svg{width:11px;height:11px;color:var(--B);opacity:.7}
+
+@media(max-width:860px){
+  html,body{overflow:auto}
+  .page{grid-template-columns:1fr;height:auto}
+  .viz{height:280px}
+  .auth{border-left:none;border-top:1px solid rgba(0,212,255,.08)}
+  .auth-inner{padding:28px 20px}
 }
 </style>
 </head>
@@ -116,242 +364,663 @@ img{display:block;max-width:100%}
 
 <div class="uae"></div>
 <nav class="nav">
-  <a class="logo" href="index.html">
-    <img src="assets/img/logo.png" alt="Sky TerraEye">
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    </div>
     <div class="logt"><b>SKY</b> TERRAEYE</div>
-  </a>
-  <a class="nav-back" href="index.html">
+  </div>
+  <a class="nav-pill" href="index.html">
+    <div class="live-dot"></div>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-    Back to site
+    Back to platform
   </a>
 </nav>
 
 <div class="page">
 
-  <!-- Left: branding -->
-  <div class="left">
-    <div class="glow1"></div>
-    <div class="glow2"></div>
-    <div class="left-inner">
-      <div class="eyetag">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        Sky TerraEye
+  <!-- ── Left: Live Orthomosaic Visualization ── -->
+  <div class="viz">
+    <canvas id="ortho-canvas"></canvas>
+    <div class="scanline"></div>
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+    <div class="viz-overlay">
+      <div class="viz-top">
+        <div class="viz-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg>
+          LIVE ORTHO STITCH
+        </div>
+        <div class="viz-coords" id="live-coords">
+          LAT&nbsp;&nbsp;24.4539° N<br>
+          LON&nbsp;&nbsp;54.3773° E<br>
+          ALT&nbsp;&nbsp;120m AGL<br>
+          GSD&nbsp;&nbsp;2.8 cm/px
+        </div>
       </div>
-      <h1>Drone Thermal<br><span>Orthomosaic</span><br>Platform</h1>
-      <p>Generate seamless, georeferenced orthomosaic maps from your drone thermal imagery — processed entirely on your own workstation. No cloud. No data leaves your machine.</p>
-      <div class="feat">
-        <div class="fi">
-          <div class="fi-ic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h18"/></svg>
-          </div>
-          <div>
-            <div class="fi-t">GPS-accurate stitching</div>
-            <div class="fi-d">Affine radiometric correction + Gaussian-smoothed Voronoi blending</div>
-          </div>
-        </div>
-        <div class="fi">
-          <div class="fi-ic gold">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-          </div>
-          <div>
-            <div class="fi-t">Processes on your machine</div>
-            <div class="fi-d">Your 32 GB workstation does all the work. Zero upload. Zero cost.</div>
-          </div>
-        </div>
-        <div class="fi">
-          <div class="fi-ic grn">
+      <div class="viz-bottom">
+        <div class="viz-headline">
+          <div class="vh-tag">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Drone Thermal Platform
           </div>
-          <div>
-            <div class="fi-t">GeoTIFF output</div>
-            <div class="fi-d">EPSG-projected, DEFLATE compressed, with overviews. Ready for QGIS.</div>
+          <h1>Ortho<em>mosaic</em><br>Precision Mapping</h1>
+          <p>GPS-accurate thermal stitching via affine radiometric correction &amp; Voronoi blending. GeoTIFF output, QGIS-ready. Zero cloud.</p>
+        </div>
+        <div class="viz-stats">
+          <div class="vstat">
+            <div class="vstat-ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h18"/></svg>
+            </div>
+            <div>
+              <div class="vstat-val" id="stat-tiles">0</div>
+              <div class="vstat-lbl">TILES STITCHED</div>
+            </div>
+          </div>
+          <div class="vstat">
+            <div class="vstat-ic hot">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+            </div>
+            <div>
+              <div class="vstat-val" id="stat-temp" style="color:var(--Hot)">—</div>
+              <div class="vstat-lbl">PEAK THERMAL °C</div>
+            </div>
+          </div>
+          <div class="vstat">
+            <div class="vstat-ic warm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div>
+              <div class="vstat-val" id="stat-coverage" style="color:var(--Warm)">0%</div>
+              <div class="vstat-lbl">AREA COVERAGE</div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Right: form -->
-  <div class="right">
-    <div class="card">
+  <!-- ── Right: Auth ── -->
+  <div class="auth">
+    <div class="auth-inner">
+      <div class="card">
 
-      <!-- Tabs -->
-      <div class="tabs">
-        <button class="tab active" onclick="switchTab('signin')">Sign In</button>
-        <button class="tab" onclick="switchTab('signup')">Sign Up</button>
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('signin')">Sign In</button>
+          <button class="tab" onclick="switchTab('signup')">Sign Up</button>
+        </div>
+
+        <!-- Sign In -->
+        <div class="panel active" id="panel-signin">
+          <div class="form-title">Welcome Back</div>
+          <div class="form-sub">Sign in to access the Eye platform</div>
+          <div class="err" id="si-err"></div>
+          <div class="ok-msg" id="si-ok"></div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="si-email" placeholder="you@skyterraeye.com" autocomplete="email">
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="si-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()">
+          </div>
+          <button class="submit" onclick="doSignIn()">SIGN IN → EYE</button>
+          <div class="divider">or</div>
+          <div style="text-align:center;font-size:13px;color:var(--M)">
+            No account? <a onclick="switchTab('signup')" style="color:var(--B);font-weight:700;cursor:pointer">Sign up →</a>
+          </div>
+        </div>
+
+        <!-- Sign Up -->
+        <div class="panel" id="panel-signup">
+          <div class="form-title">Create Account</div>
+          <div class="form-sub">Join the Sky TerraEye team workspace</div>
+          <div class="err" id="su-err"></div>
+          <div class="ok-msg" id="su-ok"></div>
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" id="su-name" placeholder="Ahmad Al Rashid">
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="su-email" placeholder="you@skyterraeye.com" autocomplete="email">
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="su-pass" placeholder="Min 8 characters" autocomplete="new-password">
+          </div>
+          <div class="field">
+            <label>Team Invite Code</label>
+            <input type="text" id="su-code" placeholder="Ask your admin for the code">
+          </div>
+          <button class="submit" onclick="doSignUp()">CREATE ACCOUNT</button>
+          <div class="divider">or</div>
+          <div style="text-align:center;font-size:13px;color:var(--M)">
+            Already a member? <a onclick="switchTab('signin')" style="color:var(--B);font-weight:700;cursor:pointer">Sign in →</a>
+          </div>
+        </div>
+
+        <!-- Agent Download -->
+        <div class="agent-box">
+          <h4>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            Run the local agent
+          </h4>
+          <p>Processing runs entirely on your workstation. Download once, then use Eye from any browser.</p>
+          <div class="dl-btns">
+            <a class="dl-btn" href="agent/launch.bat" download>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+              Windows
+            </a>
+            <a class="dl-btn" href="agent/launch.sh" download>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+              Mac / Linux
+            </a>
+          </div>
+        </div>
+
       </div>
-
-      <!-- Sign In -->
-      <div class="panel active" id="panel-signin">
-        <div class="form-title">Welcome back</div>
-        <div class="form-sub">Sign in to access the Eye platform</div>
-        <div class="err" id="si-err"></div>
-        <div class="ok-msg" id="si-ok"></div>
-        <div class="field">
-          <label>Email</label>
-          <input type="email" id="si-email" placeholder="you@skyterraeye.com" autocomplete="email">
+    </div>
+    <div class="auth-footer">
+      <div class="af-feats">
+        <div class="af-feat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          On-device only
         </div>
-        <div class="field">
-          <label>Password</label>
-          <input type="password" id="si-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()">
+        <div class="af-feat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h18"/></svg>
+          GeoTIFF output
         </div>
-        <button class="submit" onclick="doSignIn()">Sign In → Eye</button>
-
-        <div class="divider">or</div>
-
-        <div style="text-align:center;font-size:13px;color:var(--M)">
-          No account? <a onclick="switchTab('signup')" style="color:var(--B);font-weight:700;cursor:pointer">Sign up →</a>
+        <div class="af-feat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          EPSG projected
         </div>
       </div>
-
-      <!-- Sign Up -->
-      <div class="panel" id="panel-signup">
-        <div class="form-title">Create account</div>
-        <div class="form-sub">Join the Sky TerraEye team workspace</div>
-        <div class="err" id="su-err"></div>
-        <div class="ok-msg" id="su-ok"></div>
-        <div class="field">
-          <label>Full Name</label>
-          <input type="text" id="su-name" placeholder="Ahmad Al Rashid">
-        </div>
-        <div class="field">
-          <label>Email</label>
-          <input type="email" id="su-email" placeholder="you@skyterraeye.com" autocomplete="email">
-        </div>
-        <div class="field">
-          <label>Password</label>
-          <input type="password" id="su-pass" placeholder="Min 8 characters" autocomplete="new-password">
-        </div>
-        <div class="field">
-          <label>Team Invite Code</label>
-          <input type="text" id="su-code" placeholder="Ask your admin for the code">
-        </div>
-        <button class="submit" onclick="doSignUp()">Create Account</button>
-
-        <div class="divider">or</div>
-
-        <div style="text-align:center;font-size:13px;color:var(--M)">
-          Already a member? <a onclick="switchTab('signin')" style="color:var(--B);font-weight:700;cursor:pointer">Sign in →</a>
-        </div>
-      </div>
-
-      <!-- Agent download box (always visible) -->
-      <div class="agent-box">
-        <h4>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-          Run the local agent
-        </h4>
-        <p>Processing runs entirely on your workstation. Download and run the agent once — then use Eye from any browser tab.</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <a class="dl-btn" href="agent/launch.bat" download>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Windows (launch.bat)
-          </a>
-          <a class="dl-btn" href="agent/launch.sh" download>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Mac / Linux
-          </a>
-        </div>
-      </div>
-
+      <div style="font-size:10px;color:var(--Dm);font-family:'Oxanium',monospace;letter-spacing:1px">v2.4.1</div>
     </div>
   </div>
 
 </div>
 
 <script>
-// ── Config ─────────────────────────────────────────────────────────────────
-// Change this invite code to control who can sign up
+// ════════════════════════════════════════════════════════════
+//  ORTHOMOSAIC CANVAS VISUALIZATION
+// ════════════════════════════════════════════════════════════
+(function(){
+  const canvas = document.getElementById('ortho-canvas');
+  const ctx = canvas.getContext('2d');
+
+  let W, H, COLS, ROWS, TILE_W, TILE_H;
+  const GRID_COLS = 14;
+  const GRID_ROWS = 10;
+  const OVERLAP = 0.25; // 25% overlap between tiles
+
+  // Tile state
+  let tiles = [];
+  let stitchQueue = [];
+  let stitchIndex = 0;
+  let stitchTimer = 0;
+  let STITCH_INTERVAL = 18; // frames between tile reveals
+  let dronePos = {x:0,y:0};
+  let droneAngle = 0;
+  let flightPath = [];
+  let totalTiles = 0;
+  let stitchedCount = 0;
+
+  // Thermal colormap (IRONBOW)
+  function thermalColor(t) {
+    // t = 0..1
+    const r = Math.min(255, Math.max(0, Math.round(
+      t < 0.33 ? t*3*60 :
+      t < 0.66 ? 60 + (t-0.33)*3*195 :
+      255
+    )));
+    const g = Math.min(255, Math.max(0, Math.round(
+      t < 0.25 ? 0 :
+      t < 0.5  ? (t-0.25)*4*120 :
+      t < 0.75 ? 120 + (t-0.5)*4*135 :
+      255
+    )));
+    const b = Math.min(255, Math.max(0, Math.round(
+      t < 0.15 ? t*(1/0.15)*180 :
+      t < 0.4  ? 180 - (t-0.15)*(1/0.25)*180 :
+      t < 0.65 ? 0 :
+      t < 0.85 ? (t-0.65)*(1/0.2)*200 :
+      200
+    )));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function resize() {
+    W = canvas.clientWidth;
+    H = canvas.clientHeight;
+    canvas.width = W * devicePixelRatio;
+    canvas.height = H * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    buildTiles();
+  }
+
+  function buildTiles() {
+    const pad = 60;
+    const gridW = W - pad*2;
+    const gridH = H - pad*2;
+    TILE_W = gridW / (GRID_COLS * (1 - OVERLAP) + OVERLAP);
+    TILE_H = gridH / (GRID_ROWS * (1 - OVERLAP) + OVERLAP);
+    const stepX = TILE_W * (1 - OVERLAP);
+    const stepY = TILE_H * (1 - OVERLAP);
+
+    tiles = [];
+    flightPath = [];
+
+    // Serpentine flight path (lawnmower pattern)
+    for (let row = 0; row < GRID_ROWS; row++) {
+      const isEven = row % 2 === 0;
+      for (let col = 0; col < GRID_COLS; col++) {
+        const c = isEven ? col : GRID_COLS - 1 - col;
+        const x = pad + c * stepX;
+        const y = pad + row * stepY;
+        // Each tile has a thermal noise field
+        const heat = makeThermalField();
+        tiles.push({
+          row, col: c,
+          x, y,
+          w: TILE_W, h: TILE_H,
+          heat,
+          revealed: false,
+          alpha: 0,
+          seam: false,
+        });
+        flightPath.push({
+          x: x + TILE_W/2,
+          y: y + TILE_H/2,
+          row, col: c,
+        });
+      }
+    }
+
+    totalTiles = tiles.length;
+    stitchQueue = tiles.map((_,i)=>i);
+    stitchIndex = 0;
+    stitchedCount = 0;
+    dronePos = {...flightPath[0]};
+
+    updateStats();
+  }
+
+  // Generate a small thermal noise array for each tile
+  function makeThermalField(){
+    const res = 8;
+    const arr = [];
+    for(let y=0;y<res;y++){
+      arr[y] = [];
+      for(let x=0;x<res;x++){
+        arr[y][x] = Math.random();
+      }
+    }
+    // smooth pass
+    for(let i=0;i<2;i++){
+      for(let y=1;y<res-1;y++){
+        for(let x=1;x<res-1;x++){
+          arr[y][x] = (arr[y][x]+arr[y-1][x]+arr[y+1][x]+arr[y][x-1]+arr[y][x+1])/5;
+        }
+      }
+    }
+    return arr;
+  }
+
+  // Thermal hot spots (anomalies)
+  const hotSpots = [];
+  function genHotSpots(){
+    hotSpots.length = 0;
+    for(let i=0;i<6;i++){
+      hotSpots.push({
+        x: 0.15 + Math.random()*0.7,
+        y: 0.15 + Math.random()*0.7,
+        r: 0.04 + Math.random()*0.06,
+        temp: 0.7 + Math.random()*0.3,
+      });
+    }
+  }
+  genHotSpots();
+
+  function drawTile(tile, ctx){
+    if(!tile.revealed && tile.alpha <= 0) return;
+    const {x, y, w, h, heat, alpha} = tile;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, alpha);
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.clip();
+
+    const res = heat.length;
+    const cw = w/res, ch = h/res;
+    for(let ry=0;ry<res;ry++){
+      for(let rx=0;rx<res;rx++){
+        let t = heat[ry][rx];
+        // add hot spot influence
+        const wx = x + (rx+.5)*cw;
+        const wy = y + (ry+.5)*ch;
+        for(const hs of hotSpots){
+          const dx = wx/W - hs.x;
+          const dy = wy/H - hs.y;
+          const d = Math.sqrt(dx*dx+dy*dy);
+          if(d < hs.r){
+            t = Math.max(t, hs.temp * (1 - d/hs.r));
+          }
+        }
+        ctx.fillStyle = thermalColor(Math.min(1,t));
+        ctx.fillRect(x+rx*cw, y+ry*ch, cw+1, ch+1);
+      }
+    }
+
+    // subtle overlay for depth
+    const grad = ctx.createLinearGradient(x,y,x+w,y+h);
+    grad.addColorStop(0,'rgba(0,0,0,0.15)');
+    grad.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x,y,w,h);
+
+    ctx.restore();
+  }
+
+  function drawSeams(ctx){
+    // Draw overlap grid lines
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,212,255,0.18)';
+    ctx.lineWidth = 0.5;
+    for(const tile of tiles){
+      if(tile.alpha < 0.5) continue;
+      ctx.globalAlpha = Math.min(1, (tile.alpha-0.5)*2) * 0.5;
+      ctx.strokeRect(tile.x+0.5, tile.y+0.5, tile.w-1, tile.h-1);
+    }
+    ctx.restore();
+  }
+
+  function drawBlendZones(ctx){
+    // Show seam blending indicators on revealed tiles
+    for(const tile of tiles){
+      if(tile.alpha < 0.9) continue;
+      const {x,y,w,h} = tile;
+      const blendW = w * OVERLAP;
+      const blendH = h * OVERLAP;
+      // right seam
+      if(tile.col < GRID_COLS-1){
+        const gx = ctx.createLinearGradient(x+w-blendW,0,x+w,0);
+        gx.addColorStop(0,'rgba(0,212,255,0)');
+        gx.addColorStop(1,'rgba(0,212,255,0.07)');
+        ctx.fillStyle = gx;
+        ctx.globalAlpha = tile.alpha * 0.6;
+        ctx.fillRect(x+w-blendW, y, blendW, h);
+      }
+      // bottom seam
+      if(tile.row < GRID_ROWS-1){
+        const gy = ctx.createLinearGradient(0,y+h-blendH,0,y+h);
+        gy.addColorStop(0,'rgba(0,212,255,0)');
+        gy.addColorStop(1,'rgba(0,212,255,0.07)');
+        ctx.fillStyle = gy;
+        ctx.globalAlpha = tile.alpha * 0.6;
+        ctx.fillRect(x, y+h-blendH, w, blendH);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawFlightPath(ctx){
+    if(flightPath.length < 2) return;
+    ctx.save();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(0,212,255,0.35)';
+    ctx.setLineDash([4,6]);
+    ctx.lineDashOffset = -Date.now()/80 % 10;
+    ctx.beginPath();
+    for(let i=0;i<stitchIndex && i<flightPath.length;i++){
+      const p = flightPath[i];
+      if(i===0) ctx.moveTo(p.x,p.y);
+      else ctx.lineTo(p.x,p.y);
+    }
+    if(stitchIndex < flightPath.length){
+      ctx.lineTo(dronePos.x, dronePos.y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawDrone(ctx, x, y){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(droneAngle);
+    // Glow
+    const glow = ctx.createRadialGradient(0,0,0,0,0,22);
+    glow.addColorStop(0,'rgba(0,212,255,0.35)');
+    glow.addColorStop(1,'rgba(0,212,255,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();ctx.arc(0,0,22,0,Math.PI*2);ctx.fill();
+
+    // Body
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(0,-7);ctx.lineTo(5,4);ctx.lineTo(0,2);ctx.lineTo(-5,4);
+    ctx.closePath();ctx.fill();
+
+    // Arms
+    const arms = [[-10,-10],[10,-10],[10,8],[-10,8]];
+    for(const [ax,ay] of arms){
+      ctx.strokeStyle='rgba(0,212,255,0.8)';
+      ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(ax,ay);ctx.stroke();
+      // Rotor
+      ctx.strokeStyle='rgba(0,212,255,0.5)';
+      ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(ax,ay,4,0,Math.PI*2);ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawGeoGrid(ctx){
+    ctx.save();
+    ctx.strokeStyle='rgba(0,212,255,0.04)';
+    ctx.lineWidth=1;
+    const step = 40;
+    for(let x=0;x<W;x+=step){
+      ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();
+    }
+    for(let y=0;y<H;y+=step){
+      ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawGPSPins(ctx){
+    // Random pins on revealed hotspots
+    for(const hs of hotSpots){
+      const px = hs.x * W;
+      const py = hs.y * H;
+      // only show if tile is revealed
+      const ti = tiles.find(t => px>=t.x&&px<=t.x+t.w&&py>=t.y&&py<=t.y+t.h);
+      if(!ti || ti.alpha < 0.8) continue;
+      const pulse = (Math.sin(Date.now()/500 + hs.temp*10)+1)/2;
+      ctx.save();
+      // ring pulse
+      ctx.strokeStyle=`rgba(255,77,109,${0.2+pulse*0.3})`;
+      ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(px,py,6+pulse*8,0,Math.PI*2);ctx.stroke();
+      // dot
+      ctx.fillStyle='#FF4D6D';
+      ctx.beginPath();ctx.arc(px,py,3,0,Math.PI*2);ctx.fill();
+      // temp label
+      ctx.fillStyle='rgba(255,77,109,0.9)';
+      ctx.font=`bold 9px Oxanium,monospace`;
+      ctx.fillText(`${Math.round(35+hs.temp*25)}°C`,px+7,py-4);
+      ctx.restore();
+    }
+  }
+
+  function drawTempScale(ctx){
+    const sw=10, sh=80, sx=W-26, sy=H/2-sh/2;
+    const grad=ctx.createLinearGradient(0,sy,0,sy+sh);
+    for(let i=0;i<=10;i++){
+      const t=1-i/10;
+      grad.addColorStop(i/10, thermalColor(t));
+    }
+    ctx.save();
+    ctx.fillStyle=grad;
+    ctx.fillRect(sx,sy,sw,sh);
+    ctx.strokeStyle='rgba(0,212,255,0.2)';
+    ctx.lineWidth=.5;
+    ctx.strokeRect(sx,sy,sw,sh);
+    ctx.fillStyle='rgba(0,212,255,0.5)';
+    ctx.font='8px Oxanium,monospace';
+    ctx.fillText('HOT',sx+12,sy+4);
+    ctx.fillText('CLR',sx+12,sy+sh);
+    ctx.restore();
+  }
+
+  let frame = 0;
+  function animate(){
+    requestAnimationFrame(animate);
+    frame++;
+
+    ctx.clearRect(0,0,W,H);
+
+    // Background
+    ctx.fillStyle='#050D14';
+    ctx.fillRect(0,0,W,H);
+
+    drawGeoGrid(ctx);
+
+    // Stitch next tile
+    if(stitchIndex < tiles.length && frame % STITCH_INTERVAL === 0){
+      const idx = stitchQueue[stitchIndex];
+      tiles[idx].revealed = true;
+      stitchIndex++;
+      stitchedCount = stitchIndex;
+      if(stitchIndex >= tiles.length){
+        // reset after a pause
+        setTimeout(()=>{
+          genHotSpots();
+          buildTiles();
+          frame=0;
+        }, 3000);
+      }
+    }
+
+    // Animate tile fade-in
+    for(const tile of tiles){
+      if(tile.revealed && tile.alpha < 1){
+        tile.alpha = Math.min(1, tile.alpha + 0.04);
+      }
+    }
+
+    // Draw all tiles
+    for(const tile of tiles) drawTile(tile, ctx);
+
+    drawBlendZones(ctx);
+    drawSeams(ctx);
+    drawFlightPath(ctx);
+    drawGPSPins(ctx);
+    drawTempScale(ctx);
+
+    // Move drone toward next waypoint
+    if(stitchIndex > 0 && stitchIndex < flightPath.length){
+      const target = flightPath[stitchIndex];
+      const dx = target.x - dronePos.x;
+      const dy = target.y - dronePos.y;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+      if(dist > 1){
+        dronePos.x += dx * 0.06;
+        dronePos.y += dy * 0.06;
+        droneAngle = Math.atan2(dy,dx) + Math.PI/2;
+      }
+    }
+
+    drawDrone(ctx, dronePos.x, dronePos.y);
+
+    // Stats
+    if(frame % 6 === 0) updateStats();
+  }
+
+  function updateStats(){
+    const stitchedEl = document.getElementById('stat-tiles');
+    const coverEl = document.getElementById('stat-coverage');
+    const tempEl = document.getElementById('stat-temp');
+    if(stitchedEl) stitchedEl.textContent = stitchedCount;
+    if(coverEl) coverEl.textContent = totalTiles > 0 ? Math.round(stitchedCount/totalTiles*100)+'%' : '0%';
+    // peak thermal
+    if(tempEl && hotSpots.length > 0){
+      const peak = Math.round(35 + Math.max(...hotSpots.map(h=>h.temp))*25);
+      tempEl.textContent = peak + '°C';
+    }
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  animate();
+})();
+
+// ════════════════════════════════════════════════════════════
+//  AUTH LOGIC
+// ════════════════════════════════════════════════════════════
 const INVITE_CODE = 'SKYEYE2024';
 
-// ── Tab switch ──────────────────────────────────────────────────────────────
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t,i) => {
-    t.classList.toggle('active', (tab==='signin'&&i===0)||(tab==='signup'&&i===1));
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active',(tab==='signin'&&i===0)||(tab==='signup'&&i===1));
   });
-  document.getElementById('panel-signin').classList.toggle('active', tab==='signin');
-  document.getElementById('panel-signup').classList.toggle('active', tab==='signup');
+  document.getElementById('panel-signin').classList.toggle('active',tab==='signin');
+  document.getElementById('panel-signup').classList.toggle('active',tab==='signup');
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-function showErr(id, msg) {
-  const el = document.getElementById(id);
-  el.textContent = msg; el.classList.add('show');
-}
-function hideMsg(id) { document.getElementById(id).classList.remove('show'); }
-function showOk(id, msg) {
-  const el = document.getElementById(id);
-  el.textContent = msg; el.classList.add('show');
-}
+function showErr(id,msg){const el=document.getElementById(id);el.textContent=msg;el.classList.add('show')}
+function hideMsg(id){document.getElementById(id).classList.remove('show')}
+function showOk(id,msg){const el=document.getElementById(id);el.textContent=msg;el.classList.add('show')}
+function getUsers(){try{return JSON.parse(localStorage.getItem('ste_users')||'{}')}catch{return{}}}
+function saveUsers(u){localStorage.setItem('ste_users',JSON.stringify(u))}
+function setSession(email,name){localStorage.setItem('ste_session',JSON.stringify({email,name,ts:Date.now()}))}
 
-function getUsers() {
-  try { return JSON.parse(localStorage.getItem('ste_users') || '{}'); }
-  catch { return {}; }
-}
-function saveUsers(u) { localStorage.setItem('ste_users', JSON.stringify(u)); }
-
-function setSession(email, name) {
-  localStorage.setItem('ste_session', JSON.stringify({
-    email, name, ts: Date.now()
-  }));
-}
-
-// ── Sign Up ─────────────────────────────────────────────────────────────────
-function doSignUp() {
-  hideMsg('su-err'); hideMsg('su-ok');
-  const name  = document.getElementById('su-name').value.trim();
-  const email = document.getElementById('su-email').value.trim().toLowerCase();
-  const pass  = document.getElementById('su-pass').value;
-  const code  = document.getElementById('su-code').value.trim().toUpperCase();
-
-  if (!name)              return showErr('su-err', 'Please enter your full name.');
-  if (!email.includes('@')) return showErr('su-err', 'Please enter a valid email.');
-  if (pass.length < 8)   return showErr('su-err', 'Password must be at least 8 characters.');
-  if (code !== INVITE_CODE) return showErr('su-err', 'Invalid invite code. Ask your admin.');
-
-  const users = getUsers();
-  if (users[email])      return showErr('su-err', 'An account with this email already exists.');
-
-  // Simple hash (not cryptographic — fine for this use case)
-  const hash = btoa(email + ':' + pass);
-  users[email] = { name, hash };
-  saveUsers(users);
-  setSession(email, name);
-
-  showOk('su-ok', '✓ Account created! Redirecting to Eye...');
-  const udata = encodeURIComponent(JSON.stringify({email, name}));
-    setTimeout(() => { window.location.href = 'app.html#' + udata; }, 1200);
+function doSignUp(){
+  hideMsg('su-err');hideMsg('su-ok');
+  const name=document.getElementById('su-name').value.trim();
+  const email=document.getElementById('su-email').value.trim().toLowerCase();
+  const pass=document.getElementById('su-pass').value;
+  const code=document.getElementById('su-code').value.trim().toUpperCase();
+  if(!name)              return showErr('su-err','Please enter your full name.');
+  if(!email.includes('@')) return showErr('su-err','Please enter a valid email.');
+  if(pass.length<8)     return showErr('su-err','Password must be at least 8 characters.');
+  if(code!==INVITE_CODE) return showErr('su-err','Invalid invite code. Ask your admin.');
+  const users=getUsers();
+  if(users[email])       return showErr('su-err','An account with this email already exists.');
+  const hash=btoa(email+':'+pass);
+  users[email]={name,hash};
+  saveUsers(users);setSession(email,name);
+  showOk('su-ok','✓ Account created! Redirecting to Eye…');
+  const udata=encodeURIComponent(JSON.stringify({email,name}));
+  setTimeout(()=>{window.location.href='app.html#'+udata},1200);
 }
 
-// ── Sign In ─────────────────────────────────────────────────────────────────
-function doSignIn() {
-  hideMsg('si-err'); hideMsg('si-ok');
-  const email = document.getElementById('si-email').value.trim().toLowerCase();
-  const pass  = document.getElementById('si-pass').value;
-
-  if (!email || !pass) return showErr('si-err', 'Please enter your email and password.');
-
-  const users = getUsers();
-  const user  = users[email];
-  if (!user)  return showErr('si-err', 'No account found. Sign up first.');
-
-  const hash = btoa(email + ':' + pass);
-  if (hash !== user.hash) return showErr('si-err', 'Incorrect password.');
-
-  setSession(email, user.name);
-  showOk('si-ok', `✓ Welcome back, ${user.name}! Redirecting...`);
-  const udata2 = encodeURIComponent(JSON.stringify({email, name: user.name}));
-  setTimeout(() => { window.location.href = 'app.html#' + udata2; }, 1000);
+function doSignIn(){
+  hideMsg('si-err');hideMsg('si-ok');
+  const email=document.getElementById('si-email').value.trim().toLowerCase();
+  const pass=document.getElementById('si-pass').value;
+  if(!email||!pass) return showErr('si-err','Please enter your email and password.');
+  const users=getUsers();
+  const user=users[email];
+  if(!user) return showErr('si-err','No account found. Sign up first.');
+  const hash=btoa(email+':'+pass);
+  if(hash!==user.hash) return showErr('si-err','Incorrect password.');
+  setSession(email,user.name);
+  showOk('si-ok',`✓ Welcome back, ${user.name}! Redirecting…`);
+  const udata=encodeURIComponent(JSON.stringify({email,name:user.name}));
+  setTimeout(()=>{window.location.href='app.html#'+udata},1000);
 }
 
-// ── Auto-redirect if already logged in ──────────────────────────────────────
-(function() {
-  try {
-    const s = JSON.parse(localStorage.getItem('ste_session') || 'null');
-    if (s && s.ts && (Date.now() - s.ts) < 7*24*60*60*1000) {
-      window.location.href = 'app.html';
-    }
-  } catch {}
+// Auto-redirect if session valid
+(function(){
+  try{
+    const s=JSON.parse(localStorage.getItem('ste_session')||'null');
+    if(s&&s.ts&&(Date.now()-s.ts)<7*24*60*60*1000){window.location.href='app.html'}
+  }catch{}
 })();
 </script>
 </body>
