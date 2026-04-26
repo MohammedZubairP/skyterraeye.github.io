@@ -15671,6 +15671,872 @@ if (typeof CAD_ACTIONS !== 'undefined') {
 console.log('[MegaPatch] All features loaded');
 })(); // end MegaPatch
 
+
+// ████████████████████████████████████████████████████████████████████
+//  STRATA PRO ENGINE — Civil 3D-grade performance + feature upgrade
+//  Architecture: Quadtree + RAF loop + LOD + Smart snap + Pro UI
+// ████████████████████████████████████████████████████████████████████
+(function StrataProEngine() {
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════════
+// 1. QUADTREE SPATIAL INDEX — O(log n) entity queries
+// ═══════════════════════════════════════════════════════════════════
+function QTreeNode(x, y, w, h, depth) {
+  this.x=x; this.y=y; this.w=w; this.h=h; this.depth=depth||0;
+  this.items=[]; this.nodes=null;
+  this.MAX_ITEMS=12; this.MAX_DEPTH=8;
+}
+QTreeNode.prototype.getBounds = function(e) {
+  if (e.x1!==undefined) return {minX:Math.min(e.x1,e.x2),maxX:Math.max(e.x1,e.x2),minY:Math.min(e.y1,e.y2),maxY:Math.max(e.y1,e.y2)};
+  if (e.cx!==undefined) return {minX:e.cx-e.r,maxX:e.cx+e.r,minY:e.cy-e.r,maxY:e.cy+e.r};
+  if (e.type==='rect') return {minX:e.x,maxX:e.x+e.w,minY:e.y,maxY:e.y+e.h};
+  if (e.pts&&e.pts.length) { var xs=e.pts.map(function(p){return p.x;}),ys=e.pts.map(function(p){return p.y;}); return {minX:Math.min.apply(null,xs),maxX:Math.max.apply(null,xs),minY:Math.min.apply(null,ys),maxY:Math.max.apply(null,ys)}; }
+  var px=e.x||0,py=e.y||0; return {minX:px-1,maxX:px+1,minY:py-1,maxY:py+1};
+};
+QTreeNode.prototype.overlaps = function(b) {
+  return b.minX<=this.x+this.w && b.maxX>=this.x && b.minY<=this.y+this.h && b.maxY>=this.y;
+};
+QTreeNode.prototype.split = function() {
+  var hw=this.w/2,hh=this.h/2,d=this.depth+1;
+  this.nodes=[
+    new QTreeNode(this.x,      this.y,      hw, hh, d),
+    new QTreeNode(this.x+hw,   this.y,      hw, hh, d),
+    new QTreeNode(this.x,      this.y+hh,   hw, hh, d),
+    new QTreeNode(this.x+hw,   this.y+hh,   hw, hh, d),
+  ];
+};
+QTreeNode.prototype.insert = function(e) {
+  var b=this.getBounds(e);
+  if (!this.overlaps(b)) return false;
+  if (this.nodes) {
+    var inserted=false;
+    for (var i=0;i<4;i++) if (this.nodes[i].insert(e)) inserted=true;
+    return inserted;
+  }
+  this.items.push(e);
+  if (this.items.length>this.MAX_ITEMS && this.depth<this.MAX_DEPTH) {
+    this.split();
+    var old=this.items; this.items=[];
+    for (var j=0;j<old.length;j++) {
+      var ins=false;
+      for (var k=0;k<4;k++) if(this.nodes[k].insert(old[j])) ins=true;
+      if(!ins) this.items.push(old[j]);
+    }
+  }
+  return true;
+};
+QTreeNode.prototype.query = function(b, result) {
+  if (!this.overlaps(b)) return result;
+  for (var i=0;i<this.items.length;i++) {
+    var eb=this.getBounds(this.items[i]);
+    if(eb.minX<=b.maxX&&eb.maxX>=b.minX&&eb.minY<=b.maxY&&eb.maxY>=b.minY) result.push(this.items[i]);
+  }
+  if (this.nodes) for(var j=0;j<4;j++) this.nodes[j].query(b,result);
+  return result;
+};
+QTreeNode.prototype.clear = function() { this.items=[]; this.nodes=null; };
+
+// Spatial index manager
+var _spatialIndex = null;
+var _indexDirty   = true;
+var _indexTimer   = 0;
+
+function rebuildIndex() {
+  var ents=ST.entities; if(!ents||!ents.length) return;
+  // Compute world bounds with margin
+  var minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  for(var i=0;i<ents.length;i++){
+    var e=ents[i],b;
+    if(e.x1!==undefined){minX=Math.min(minX,e.x1,e.x2);maxX=Math.max(maxX,e.x1,e.x2);minY=Math.min(minY,e.y1,e.y2);maxY=Math.max(maxY,e.y1,e.y2);}
+    else if(e.cx!==undefined){minX=Math.min(minX,e.cx-e.r);maxX=Math.max(maxX,e.cx+e.r);minY=Math.min(minY,e.cy-e.r);maxY=Math.max(maxY,e.cy+e.r);}
+    else if(e.x!==undefined){minX=Math.min(minX,e.x);maxX=Math.max(maxX,e.x);minY=Math.min(minY,e.y);maxY=Math.max(maxY,e.y);}
+  }
+  if(!isFinite(minX)){minX=-100000;maxX=100000;minY=-100000;maxY=100000;}
+  var pad=(maxX-minX+maxY-minY)*0.1||10000;
+  _spatialIndex=new QTreeNode(minX-pad,minY-pad,(maxX-minX+pad*2),(maxY-minY+pad*2),0);
+  for(var ii=0;ii<ents.length;ii++) _spatialIndex.insert(ents[ii]);
+  _indexDirty=false;
+}
+
+window.queryVisibleEntities = function(worldMinX, worldMinY, worldMaxX, worldMaxY) {
+  if (_indexDirty || !_spatialIndex) rebuildIndex();
+  if (!_spatialIndex) return ST.entities;
+  return _spatialIndex.query({minX:worldMinX,minY:worldMinY,maxX:worldMaxX,maxY:worldMaxY},[]);
+};
+
+window.invalidateSpatialIndex = function() { _indexDirty=true; };
+
+// ═══════════════════════════════════════════════════════════════════
+// 2. HIGH-PERFORMANCE RENDER LOOP — RAF + viewport culling + LOD
+// ═══════════════════════════════════════════════════════════════════
+var _rafId         = null;
+var _renderPending = false;
+var _lastFrameTime = 0;
+var _frameCount    = 0;
+var _fps           = 60;
+var _renderMS      = 0;
+var _entitiesDrawn = 0;
+var _entitiesCulled= 0;
+
+// FPS overlay
+var _fpsEl = null;
+function ensureFPSEl() {
+  if (_fpsEl) return;
+  _fpsEl = document.createElement('div');
+  _fpsEl.id = 'fpsOverlay';
+  _fpsEl.style.cssText='position:absolute;top:6px;left:6px;pointer-events:none;z-index:800;font-family:IBM Plex Mono,monospace;font-size:9px;line-height:1.6;color:rgba(78,255,145,.7);background:rgba(0,0,0,.5);padding:3px 8px;border-radius:3px;display:'+(ST.showFPS?'block':'none');
+  var vp=document.getElementById('vp')||document.querySelector('.vport');
+  if(vp) vp.appendChild(_fpsEl);
+}
+
+function updateFPSDisplay(ms) {
+  if (!ST.showFPS) return;
+  ensureFPSEl();
+  _frameCount++;
+  var now=performance.now();
+  if(now-_lastFrameTime>=1000){
+    _fps=_frameCount; _frameCount=0; _lastFrameTime=now;
+  }
+  if(_fpsEl) _fpsEl.innerHTML=
+    '<b style="color:'+((_fps>=55)?'#4eff91':(_fps>=30)?'#F5BE18':'#ff4466')+'">' + _fps+' FPS</b> | '
+    +ms.toFixed(1)+'ms | '
+    +_entitiesDrawn+' drawn | '
+    +_entitiesCulled+' culled | '
+    +ST.entities.length+' total';
+}
+
+// Viewport world bounds (cached)
+function getViewBounds() {
+  var canvas=document.getElementById('cad');
+  if(!canvas) return {minX:-1e9,minY:-1e9,maxX:1e9,maxY:1e9};
+  var W=canvas.width,H=canvas.height;
+  var tl=s2w(0,0),br=s2w(W,H);
+  var pad=50/ST.zoom;
+  return {minX:Math.min(tl.x,br.x)-pad,maxX:Math.max(tl.x,br.x)+pad,minY:Math.min(tl.y,br.y)-pad,maxY:Math.max(tl.y,br.y)+pad};
+}
+
+// LOD: decide rendering detail based on zoom + entity size
+function getLOD(e, zoom) {
+  if(e.type==='point') return 'full';
+  if(e.type==='text') return zoom>0.5?'full':'skip';
+  // Very small entities — skip at low zoom
+  var size=0;
+  if(e.x1!==undefined) size=Math.hypot(e.x2-e.x1,e.y2-e.y1)*zoom;
+  else if(e.cx!==undefined) size=e.r*zoom*2;
+  else if(e.w!==undefined) size=Math.max(e.w,e.h)*zoom;
+  if(size<0.5) return 'skip';
+  if(size<2)   return 'dot';
+  return 'full';
+}
+
+// Replace the render function with the optimized version
+var _baseRender = window.render; // keep reference for MRO
+
+window.render = function renderOptimized() {
+  if (_renderPending) return; // coalesce calls
+  _renderPending = true;
+  if (_rafId) cancelAnimationFrame(_rafId);
+  _rafId = requestAnimationFrame(_doRender);
+};
+
+function _doRender() {
+  _rafId = null; _renderPending = false;
+  var t0 = performance.now();
+
+  var canvas=document.getElementById('cad');
+  if(!canvas) return;
+  var ctx2=canvas.getContext('2d');
+  var W=canvas.width, H=canvas.height;
+
+  // Full clear
+  ctx2.clearRect(0,0,W,H);
+  ctx2.fillStyle=ST.bgColor||'#060E1A'; ctx2.fillRect(0,0,W,H);
+
+  // Grid + crosshair
+  if(ST.grid && typeof drawGrid==='function') drawGrid();
+  if(typeof drawCrosshair==='function') drawCrosshair();
+
+  // Image overlays (tile backgrounds)
+  if((ST.imgOverlays||[]).length) {
+    ctx2.save(); ctx2.globalAlpha=ST.imgOpacity||0.85;
+    ST.imgOverlays.forEach(function(o){
+      var a=w2s(o.minX,o.minY),b=w2s(o.maxX,o.maxY);
+      var sx=Math.min(a.x,b.x),sy=Math.min(a.y,b.y),sw=Math.abs(b.x-a.x),sh=Math.abs(b.y-a.y);
+      if(sw>=1&&sh>=1&&o.img) ctx2.drawImage(o.img,sx,sy,sw,sh);
+    });
+    ctx2.restore();
+  }
+
+  // ── VIEWPORT CULLING ──────────────────────────────────────────
+  var vb = getViewBounds();
+  var visible = queryVisibleEntities(vb.minX, vb.minY, vb.maxX, vb.maxY);
+  _entitiesDrawn  = 0;
+  _entitiesCulled = ST.entities.length - visible.length;
+
+  // ── LAYER VISIBILITY FILTER ───────────────────────────────────
+  var layVisCache = {};
+  function isLayVis(lid) {
+    if(lid in layVisCache) return layVisCache[lid];
+    var l=ST.layers.find(function(la){return la.id===lid;});
+    return layVisCache[lid] = !!(l && l.vis!==false && !l.frz && !l._hidden);
+  }
+
+  // ── CHUNK RENDERING — pass 1: fills, pass 2: strokes, pass 3: text/points ──
+  ctx2.save();
+
+  // Pass 1: fills (hatches, solid, closed polys)
+  ctx2.globalAlpha=1;
+  for(var i=0;i<visible.length;i++) {
+    var e=visible[i];
+    if(!isLayVis(e.layer)) continue;
+    if(e.type==='hatch'||e.type==='hatch-poly'||e.type==='solid-quad'||
+       (e.type==='polyline'&&e.closed&&e.fill)) {
+      var lod=getLOD(e,ST.zoom);
+      if(lod==='skip') { _entitiesCulled++; continue; }
+      if(typeof drawEntity==='function') { drawEntity(e,false); _entitiesDrawn++; }
+    }
+  }
+
+  // Pass 2: all non-text, non-hatch entities
+  for(var ii=0;ii<visible.length;ii++) {
+    var e2=visible[ii];
+    if(!isLayVis(e2.layer)) continue;
+    if(e2.type==='hatch'||e2.type==='hatch-poly'||e2.type==='solid-quad'||e2.type==='text') continue;
+    var lod2=getLOD(e2,ST.zoom);
+    if(lod2==='skip') { _entitiesCulled++; continue; }
+    if(lod2==='dot') {
+      // LOD: render as dot instead of full entity
+      var sp=e2.cx!==undefined?w2s(e2.cx,e2.cy):(e2.x1!==undefined?w2s((e2.x1+e2.x2)/2,(e2.y1+e2.y2)/2):w2s(e2.x||0,e2.y||0));
+      var lay2=ST.layers.find(function(l){return l.id===e2.layer;});
+      ctx2.fillStyle=e2.color||(lay2?lay2.color:'#1FA8D9');
+      ctx2.fillRect(sp.x-1,sp.y-1,2,2);
+    } else {
+      if(typeof drawEntity==='function') { drawEntity(e2,false); _entitiesDrawn++; }
+    }
+  }
+
+  // Pass 3: text (always on top, skip at very low zoom)
+  if(ST.zoom>0.3) {
+    for(var iii=0;iii<visible.length;iii++) {
+      var e3=visible[iii];
+      if(!isLayVis(e3.layer)) continue;
+      if(e3.type!=='text'&&e3.type!=='dim-lin') continue;
+      if(typeof drawEntity==='function') { drawEntity(e3,false); _entitiesDrawn++; }
+    }
+  }
+
+  ctx2.restore();
+
+  // Ghost entity (in-progress drawing)
+  if(ST.ghostEnt && typeof drawEntity==='function') drawEntity(ST.ghostEnt,true);
+
+  _renderMS = performance.now()-t0;
+  updateFPSDisplay(_renderMS);
+}
+
+// Immediate render (for critical operations)
+window.renderImmediate = function() {
+  _renderPending=false;
+  if(_rafId){ cancelAnimationFrame(_rafId); _rafId=null; }
+  _doRender();
+};
+
+// Invalidate spatial index on entity changes
+var _origPushUndo = window.pushUndo;
+window.pushUndo = function() {
+  invalidateSpatialIndex();
+  _origPushUndo && _origPushUndo();
+};
+
+
+// ═══════════════════════════════════════════════════════════════════
+// 3. SMART COMMAND SYSTEM — VS Code style with prediction
+// ═══════════════════════════════════════════════════════════════════
+var _cmdHistory  = [];
+var _cmdFreq     = {}; // command → usage count
+
+// Enhanced suggestion with prediction + frequency ranking
+window.getSmartSuggestions = function(val) {
+  if(!val||!val.length) return [];
+  var uv=val.toUpperCase();
+  var allKeys = typeof CAD_COMMANDS!=='undefined' ? Object.keys(CAD_COMMANDS) : [];
+
+  // Score each match
+  var scored=[];
+  allKeys.forEach(function(k) {
+    if(k.length<=1) return;
+    var score=0;
+    if(k===uv) score=1000;                    // exact
+    else if(k.startsWith(uv)) score=500-k.length; // prefix match
+    else if(k.includes(uv)) score=100;         // substring
+    else return;
+    score += (_cmdFreq[k]||0)*10;              // boost by usage
+    if(_cmdHistory[0]===k) score+=50;          // recent boost
+    scored.push({k:k,s:score});
+  });
+  scored.sort(function(a,b){return b.s-a.s;});
+  return scored.slice(0,10).map(function(x){return x.k;});
+};
+
+// Track command usage
+var _origRunCommand = window.runCommand;
+window.runCommand = function(raw) {
+  if(raw&&raw.trim()){
+    var v=raw.trim().toUpperCase();
+    _cmdFreq[v]=(_cmdFreq[v]||0)+1;
+    _cmdHistory.unshift(v);
+    if(_cmdHistory.length>20) _cmdHistory.pop();
+  }
+  return _origRunCommand(raw);
+};
+
+// Enhanced suggestion box with parameter hints
+window.buildSuggestionBox = function(matches, typed) {
+  var box=document.getElementById('cmdSuggestBox');
+  if(!box) return;
+  if(!matches.length){box.style.display='none';return;}
+
+  var uv=typed.toUpperCase();
+  var inp=document.getElementById('cmdInput');
+  var rect=inp?inp.getBoundingClientRect():null;
+  if(rect){
+    box.style.left=rect.left+'px';
+    box.style.bottom=(window.innerHeight-rect.top+4)+'px';
+    box.style.top='auto';
+  }
+  box.style.display='block';
+
+  // Parameter hints for common commands
+  var hints={
+    'LINE':'Pick first point','CIRCLE':'Center point / radius','OFFSET':'Select entity → distance',
+    'TRIM':'Select cutting edges → trim','FILLET':'Select first line','ARRAY':'Select objects → rows,cols',
+    'ROTATE':'Select objects → base point → angle','SCALE':'Select objects → base point → factor',
+  };
+
+  box.innerHTML=matches.map(function(c,i){
+    var action=typeof CAD_COMMANDS!=='undefined'?CAD_COMMANDS[c]:'';
+    var hint=hints[c]||'';
+    var freq=_cmdFreq[c]||0;
+    var isRecent=_cmdHistory.includes(c);
+    return '<div data-cmd="'+c+'" style="padding:5px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(31,168,217,.05);color:'+(i===0?'#4eff91':'#889aaa')+';"'
+      +' onmouseover="this.style.background=\'rgba(31,168,217,.12)\';this.style.color=\'#fff\'"'
+      +' onmouseout="this.style.background=\'\'">'
+      +'<b style="color:#1FA8D9;min-width:60px">'+c.slice(0,uv.length)+'</b>'
+      +'<span style="opacity:.7">'+c.slice(uv.length)+'</span>'
+      +(hint?'<span style="margin-left:8px;font-size:8px;color:#556;font-style:italic">'+hint+'</span>':'')
+      +'<span style="margin-left:auto;font-size:8px;color:#334">'+action+'</span>'
+      +(isRecent?'<span style="background:rgba(245,190,24,.15);color:#F5BE18;font-size:7px;padding:0 4px;border-radius:2px;margin-left:3px">recent</span>':'')
+      +'</div>';
+  }).join('');
+
+  // Click handlers
+  box.querySelectorAll('[data-cmd]').forEach(function(el){
+    el.addEventListener('mousedown',function(ev){
+      ev.preventDefault();
+      var cmd=el.getAttribute('data-cmd');
+      var inp2=document.getElementById('cmdInput');
+      if(inp2) inp2.value='';
+      box.style.display='none';
+      window.runCommand(cmd);
+      var cad=document.getElementById('cad'); if(cad) cad.focus();
+    });
+  });
+};
+
+// Patch the input handler to use smart suggestions
+setTimeout(function(){
+  var inp=document.getElementById('cmdInput');
+  if(!inp) return;
+  var origInput=inp.oninput;
+  inp.addEventListener('input',function(){
+    var matches=window.getSmartSuggestions(this.value);
+    window.buildSuggestionBox(matches,this.value);
+  },false);
+},300);
+
+
+// ═══════════════════════════════════════════════════════════════════
+// 4. PROFESSIONAL SNAP ENGINE — priority-based, with preview
+// ═══════════════════════════════════════════════════════════════════
+
+// Snap config (user can toggle per type)
+var SNAP_CFG = {
+  endpoint:     {on:true,  priority:10, color:'#F5BE18', label:'Endpoint',     marker:'square'},
+  midpoint:     {on:true,  priority:8,  color:'#4eff91', label:'Midpoint',     marker:'triangle'},
+  center:       {on:true,  priority:9,  color:'#1FA8D9', label:'Center',       marker:'circle'},
+  intersection: {on:true,  priority:11, color:'#ff4466', label:'Intersection', marker:'cross'},
+  perpendicular:{on:true,  priority:7,  color:'#A78BFA', label:'Perpendicular',marker:'perp'},
+  tangent:      {on:false, priority:6,  color:'#ff9060', label:'Tangent',      marker:'tangent'},
+  nearest:      {on:true,  priority:3,  color:'#778',    label:'Nearest',      marker:'diamond'},
+  quadrant:     {on:true,  priority:5,  color:'#44ffee', label:'Quadrant',     marker:'diamond'},
+};
+window.SNAP_CFG = SNAP_CFG;
+
+// Snap tolerance (screen pixels)
+var SNAP_TOL = 16;
+window.SNAP_TOL = SNAP_TOL;
+
+function drawSnapMarker(ctx2, ss, type) {
+  var cfg = SNAP_CFG[type]; if(!cfg) return;
+  var col = cfg.color;
+  ctx2.save();
+  ctx2.strokeStyle=col; ctx2.fillStyle=col; ctx2.lineWidth=1.5;
+  var s=8;
+  switch(cfg.marker) {
+    case 'square':
+      ctx2.strokeRect(ss.x-s/2,ss.y-s/2,s,s);
+      break;
+    case 'circle':
+      ctx2.beginPath(); ctx2.arc(ss.x,ss.y,s/2,0,Math.PI*2); ctx2.stroke();
+      break;
+    case 'triangle':
+      ctx2.beginPath(); ctx2.moveTo(ss.x,ss.y-s/2); ctx2.lineTo(ss.x+s/2,ss.y+s/2); ctx2.lineTo(ss.x-s/2,ss.y+s/2); ctx2.closePath(); ctx2.stroke();
+      break;
+    case 'cross':
+      ctx2.beginPath();
+      ctx2.moveTo(ss.x-s/2,ss.y); ctx2.lineTo(ss.x+s/2,ss.y);
+      ctx2.moveTo(ss.x,ss.y-s/2); ctx2.lineTo(ss.x,ss.y+s/2); ctx2.stroke();
+      break;
+    case 'diamond':
+      ctx2.beginPath(); ctx2.moveTo(ss.x,ss.y-s/2); ctx2.lineTo(ss.x+s/2,ss.y); ctx2.lineTo(ss.x,ss.y+s/2); ctx2.lineTo(ss.x-s/2,ss.y); ctx2.closePath(); ctx2.stroke();
+      break;
+    case 'perp':
+      ctx2.beginPath(); ctx2.moveTo(ss.x-s/2,ss.y+s/2); ctx2.lineTo(ss.x+s/2,ss.y+s/2); ctx2.lineTo(ss.x+s/2,ss.y-s/2); ctx2.stroke();
+      break;
+  }
+  // Crosshair guides
+  ctx2.globalAlpha=0.3; ctx2.lineWidth=0.5; ctx2.setLineDash([4,4]);
+  var canvas=document.getElementById('cad');
+  if(canvas){ctx2.beginPath();ctx2.moveTo(ss.x,0);ctx2.lineTo(ss.x,canvas.height);ctx2.moveTo(0,ss.y);ctx2.lineTo(canvas.width,ss.y);ctx2.stroke();}
+  ctx2.setLineDash([]);
+  ctx2.restore();
+}
+
+function showSnapLabel(ss, type) {
+  var cfg=SNAP_CFG[type]; if(!cfg) return;
+  var lbl=document.getElementById('snapLabel');
+  if(!lbl){
+    lbl=document.createElement('div');
+    lbl.id='snapLabel';
+    lbl.style.cssText='position:absolute;pointer-events:none;z-index:700;font-size:9px;font-family:IBM Plex Mono,monospace;font-weight:700;padding:2px 7px;border-radius:3px;white-space:nowrap;background:rgba(6,14,26,.92);border:1px solid currentColor';
+    var vp=document.getElementById('vp')||document.querySelector('.vport')||document.body;
+    vp.appendChild(lbl);
+  }
+  lbl.style.display='block';
+  lbl.style.color=cfg.color;
+  lbl.style.borderColor=cfg.color;
+  lbl.style.left=(ss.x+14)+'px';
+  lbl.style.top=(ss.y-10)+'px';
+  lbl.textContent=cfg.label;
+}
+
+// Full snap computation using spatial index for nearby entities
+window.snapPoint = function(sx, sy) {
+  var wp=s2w(sx,sy);
+  if(!ST.osnap){ if(document.getElementById('snapLabel')) document.getElementById('snapLabel').style.display='none'; return wp; }
+
+  var tol=SNAP_TOL/ST.zoom;
+  var searchBounds={minX:wp.x-tol,maxX:wp.x+tol,minY:wp.y-tol,maxY:wp.y+tol};
+
+  // Query only nearby entities via spatial index
+  var nearby = queryVisibleEntities(searchBounds.minX,searchBounds.minY,searchBounds.maxX,searchBounds.maxY);
+
+  var best=null, bestD=tol*1.5, bestType='nearest', bestPriority=-1;
+
+  nearby.forEach(function(e) {
+    if(e.type==='point'||e.type==='text') return;
+
+    // ── Endpoints ──────────────────────────────────────────────
+    if(SNAP_CFG.endpoint.on) {
+      var eps=[];
+      if(e.x1!==undefined) eps=[{x:e.x1,y:e.y1},{x:e.x2,y:e.y2}];
+      else if(e.type==='polyline'&&e.pts) eps=[e.pts[0],e.pts[e.pts.length-1]];
+      else if(e.type==='circle') eps=[{x:e.cx+e.r,y:e.cy},{x:e.cx-e.r,y:e.cy},{x:e.cx,y:e.cy+e.r},{x:e.cx,y:e.cy-e.r}];
+      eps.forEach(function(p){if(!p)return;var d=Math.hypot(wp.x-p.x,wp.y-p.y);if(d<bestD&&SNAP_CFG.endpoint.priority>bestPriority){bestD=d;best={x:p.x,y:p.y};bestType='endpoint';bestPriority=SNAP_CFG.endpoint.priority;}});
+    }
+
+    // ── Midpoints ───────────────────────────────────────────────
+    if(SNAP_CFG.midpoint.on) {
+      var mps=[];
+      if(e.x1!==undefined) mps=[{x:(e.x1+e.x2)/2,y:(e.y1+e.y2)/2}];
+      else if(e.type==='polyline'&&e.pts) for(var i2=0;i2<e.pts.length-1;i2++) mps.push({x:(e.pts[i2].x+e.pts[i2+1].x)/2,y:(e.pts[i2].y+e.pts[i2+1].y)/2});
+      mps.forEach(function(p){var d=Math.hypot(wp.x-p.x,wp.y-p.y);if(d<bestD&&SNAP_CFG.midpoint.priority>bestPriority){bestD=d;best=p;bestType='midpoint';bestPriority=SNAP_CFG.midpoint.priority;}});
+    }
+
+    // ── Center ─────────────────────────────────────────────────
+    if(SNAP_CFG.center.on&&e.cx!==undefined){var d2=Math.hypot(wp.x-e.cx,wp.y-e.cy);if(d2<bestD&&SNAP_CFG.center.priority>bestPriority){bestD=d2;best={x:e.cx,y:e.cy};bestType='center';bestPriority=SNAP_CFG.center.priority;}}
+    if(SNAP_CFG.center.on&&e.type==='rect'){var rc={x:e.x+e.w/2,y:e.y+e.h/2};var dr=Math.hypot(wp.x-rc.x,wp.y-rc.y);if(dr<bestD&&SNAP_CFG.center.priority>bestPriority){bestD=dr;best=rc;bestType='center';bestPriority=SNAP_CFG.center.priority;}}
+
+    // ── Perpendicular (line only) ───────────────────────────────
+    if(SNAP_CFG.perpendicular.on&&e.x1!==undefined&&ST.startPt){
+      var dx=e.x2-e.x1,dy=e.y2-e.y1,len2=dx*dx+dy*dy;
+      if(len2>0){
+        var t=((ST.startPt.x-e.x1)*dx+(ST.startPt.y-e.y1)*dy)/len2;
+        var fp={x:e.x1+t*dx,y:e.y1+t*dy};
+        var dp=Math.hypot(wp.x-fp.x,wp.y-fp.y);
+        if(dp<bestD&&SNAP_CFG.perpendicular.priority>bestPriority){bestD=dp;best=fp;bestType='perpendicular';bestPriority=SNAP_CFG.perpendicular.priority;}
+      }
+    }
+
+    // ── Nearest on segment ─────────────────────────────────────
+    if(SNAP_CFG.nearest.on) {
+      var np=null;
+      if(e.x1!==undefined){var dx2=e.x2-e.x1,dy2=e.y2-e.y1,l2=dx2*dx2+dy2*dy2;if(l2>0){var t2=Math.max(0,Math.min(1,((wp.x-e.x1)*dx2+(wp.y-e.y1)*dy2)/l2));np={x:e.x1+t2*dx2,y:e.y1+t2*dy2};}}
+      else if(e.cx!==undefined){var d3=Math.hypot(wp.x-e.cx,wp.y-e.cy);if(d3>0)np={x:e.cx+(wp.x-e.cx)*e.r/d3,y:e.cy+(wp.y-e.cy)*e.r/d3};}
+      if(np){var dn=Math.hypot(wp.x-np.x,wp.y-np.y);if(dn<bestD*0.7&&SNAP_CFG.nearest.priority>bestPriority){bestD=dn;best=np;bestType='nearest';bestPriority=SNAP_CFG.nearest.priority;}}
+    }
+  });
+
+  // ── Intersection snap ──────────────────────────────────────────
+  if(SNAP_CFG.intersection.on&&nearby.length>=2){
+    for(var ia=0;ia<nearby.length;ia++){
+      for(var ib=ia+1;ib<nearby.length;ib++){
+        var ea=nearby[ia],eb=nearby[ib];
+        if(ea.x1===undefined||eb.x1===undefined) continue;
+        var pt=lineIntersect(ea.x1,ea.y1,ea.x2,ea.y2,eb.x1,eb.y1,eb.x2,eb.y2);
+        if(pt){var di=Math.hypot(wp.x-pt.x,wp.y-pt.y);if(di<bestD&&SNAP_CFG.intersection.priority>bestPriority){bestD=di;best=pt;bestType='intersection';bestPriority=SNAP_CFG.intersection.priority;}}
+      }
+    }
+  }
+
+  if(best) {
+    var ss=w2s(best.x,best.y);
+    var canvas2=document.getElementById('cad');
+    if(canvas2) { var ctx3=canvas2.getContext('2d'); drawSnapMarker(ctx3,ss,bestType); }
+    showSnapLabel(ss,bestType);
+    var dot=document.getElementById('snapDot');
+    if(dot){dot.style.display='none';} // hide old dot
+    best._snapType=bestType;
+    return best;
+  }
+
+  // Grid snap fallback
+  if(document.getElementById('snapLabel')) document.getElementById('snapLabel').style.display='none';
+  if(document.getElementById('snapDot'))   document.getElementById('snapDot').style.display='none';
+  if(ST.snap){var gx=ST.gridX||50,gy=ST.gridY||50;return{x:Math.round(wp.x/gx)*gx,y:Math.round(wp.y/gy)*gy};}
+  return wp;
+};
+
+function lineIntersect(x1,y1,x2,y2,x3,y3,x4,y4){
+  var d=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);
+  if(Math.abs(d)<1e-10) return null;
+  var t=((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/d;
+  var u=-((x1-x2)*(y1-y3)-(y1-y2)*(x1-x3))/d;
+  if(t>=0&&t<=1&&u>=0&&u<=1) return{x:x1+t*(x2-x1),y:y1+t*(y2-y1)};
+  return null;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// 5. ADVANCED SELECTION ENGINE — window + crossing + filters
+// ═══════════════════════════════════════════════════════════════════
+var _selState = {active:false, start:null, filter:{layers:null,types:null}};
+
+window.selectInRect = function(wx1,wy1,wx2,wy2,mode) {
+  // mode: 'window' (contained), 'crossing' (touches)
+  var minX=Math.min(wx1,wx2),maxX=Math.max(wx1,wx2);
+  var minY=Math.min(wy1,wy2),maxY=Math.max(wy1,wy2);
+  var candidates = queryVisibleEntities(minX,minY,maxX,maxY);
+  var selected=[];
+
+  candidates.forEach(function(e){
+    if(!ST.layers.find(function(l){return l.id===e.layer&&l.vis!==false&&!l.frz;})) return;
+
+    // Layer filter
+    var f=_selState.filter;
+    if(f.layers&&!f.layers.includes(e.layer)) return;
+    if(f.types&&!f.types.includes(e.type)) return;
+
+    var hits=false;
+    if(mode==='window') {
+      // Entity must be fully contained
+      hits=entityFullyInRect(e,minX,minY,maxX,maxY);
+    } else {
+      // Crossing: entity intersects rect
+      hits=entityTouchesRect(e,minX,minY,maxX,maxY);
+    }
+    if(hits) selected.push(e);
+  });
+
+  return selected;
+};
+
+function entityFullyInRect(e,x1,y1,x2,y2){
+  if(e.x1!==undefined) return e.x1>=x1&&e.x2>=x1&&e.x1<=x2&&e.x2<=x2&&e.y1>=y1&&e.y2>=y1&&e.y1<=y2&&e.y2<=y2;
+  if(e.cx!==undefined) return e.cx-e.r>=x1&&e.cx+e.r<=x2&&e.cy-e.r>=y1&&e.cy+e.r<=y2;
+  if(e.type==='rect') return e.x>=x1&&e.x+e.w<=x2&&e.y>=y1&&e.y+e.h<=y2;
+  if(e.pts) return e.pts.every(function(p){return p.x>=x1&&p.x<=x2&&p.y>=y1&&p.y<=y2;});
+  return (e.x||0)>=x1&&(e.x||0)<=x2&&(e.y||0)>=y1&&(e.y||0)<=y2;
+}
+
+function entityTouchesRect(e,x1,y1,x2,y2){
+  if(e.x1!==undefined) return segIntersectsRect(e.x1,e.y1,e.x2,e.y2,x1,y1,x2,y2);
+  if(e.cx!==undefined) return e.cx+e.r>=x1&&e.cx-e.r<=x2&&e.cy+e.r>=y1&&e.cy-e.r<=y2;
+  if(e.type==='rect') return e.x<=x2&&e.x+e.w>=x1&&e.y<=y2&&e.y+e.h>=y1;
+  if(e.pts) return e.pts.some(function(p){return p.x>=x1&&p.x<=x2&&p.y>=y1&&p.y<=y2;});
+  return (e.x||0)>=x1&&(e.x||0)<=x2&&(e.y||0)>=y1&&(e.y||0)<=y2;
+}
+
+function segIntersectsRect(x1,y1,x2,y2,rx1,ry1,rx2,ry2){
+  // Cohen-Sutherland quick accept/reject
+  if((x1>=rx1&&x1<=rx2&&y1>=ry1&&y1<=ry2)||(x2>=rx1&&x2<=rx2&&y2>=ry1&&y2<=ry2)) return true;
+  var dx=x2-x1,dy=y2-y1;
+  var tests=[[rx1,ry1,rx2,ry1],[rx2,ry1,rx2,ry2],[rx2,ry2,rx1,ry2],[rx1,ry2,rx1,ry1]];
+  for(var i=0;i<tests.length;i++){var t=tests[i];if(lineIntersect(x1,y1,x2,y2,t[0],t[1],t[2],t[3]))return true;}
+  return false;
+}
+
+window.setSelectionFilter = function(filter) { _selState.filter = filter||{}; };
+
+
+// ═══════════════════════════════════════════════════════════════════
+// 6. UNDO/REDO — compact + grouped operations
+// ═══════════════════════════════════════════════════════════════════
+var _undoStack2 = [];
+var _redoStack2 = [];
+var _undoGroup  = null;
+var MAX_UNDO    = 100;
+
+// Compact serializer — only stores entity IDs + deltas
+function serializeState() {
+  return JSON.stringify(ST.entities.map(function(e){
+    var s={_id:e._id,type:e.type,layer:e.layer};
+    if(e.x1!==undefined){s.x1=e.x1;s.y1=e.y1;s.x2=e.x2;s.y2=e.y2;}
+    else if(e.cx!==undefined){s.cx=e.cx;s.cy=e.cy;s.r=e.r;}
+    else if(e.x!==undefined){s.x=e.x;s.y=e.y;}
+    if(e.pts) s.pts=e.pts;
+    if(e.w!==undefined){s.x=e.x;s.y=e.y;s.w=e.w;s.h=e.h;}
+    s.color=e.color;s.lw=e.lw;s.linetype=e.linetype;s.selected=false;
+    return s;
+  }));
+}
+
+window.pushUndo = function(label) {
+  invalidateSpatialIndex();
+  var snap=serializeState();
+  if(_undoGroup!==null) { _undoGroup.push(snap); return; }
+  // Don't push duplicate states
+  if(_undoStack2.length&&_undoStack2[_undoStack2.length-1].state===snap) return;
+  _undoStack2.push({state:snap, label:label||'operation', time:Date.now()});
+  if(_undoStack2.length>MAX_UNDO) _undoStack2.shift();
+  _redoStack2=[];
+  ST.undoStack=[]; // keep legacy ref empty
+};
+
+window.undo = function() {
+  if(!_undoStack2.length){toast('Nothing to undo','warn');return;}
+  var current=serializeState();
+  _redoStack2.push({state:current,label:'redo'});
+  var prev=_undoStack2.pop();
+  try{
+    ST.entities=JSON.parse(prev.state);
+    ST._eid=Math.max.apply(null,ST.entities.map(function(e){return e._id||0;}).concat([ST._eid]));
+    invalidateSpatialIndex();
+    render();
+    if(typeof updatePropPanel==='function') updatePropPanel();
+    toast('Undo: '+prev.label,'ok');
+  }catch(e){toast('Undo failed','err');}
+};
+
+window.redo = function() {
+  if(!_redoStack2.length){toast('Nothing to redo','warn');return;}
+  var current=serializeState();
+  _undoStack2.push({state:current,label:'before redo'});
+  var next=_redoStack2.pop();
+  try{
+    ST.entities=JSON.parse(next.state);
+    invalidateSpatialIndex();
+    render();
+    toast('Redo','ok');
+  }catch(e){toast('Redo failed','err');}
+};
+
+// Group undo
+window.beginUndoGroup = function(label) { _undoGroup=[]; _undoGroupLabel=label; };
+window.endUndoGroup   = function() {
+  if(_undoGroup&&_undoGroup.length){
+    _undoStack2.push({state:_undoGroup[0],label:_undoGroupLabel||'group'});
+    if(_undoStack2.length>MAX_UNDO) _undoStack2.shift();
+    _redoStack2=[];
+  }
+  _undoGroup=null; _undoGroupLabel='';
+};
+var _undoGroupLabel='';
+
+
+// ═══════════════════════════════════════════════════════════════════
+// 7. LAYER MANAGEMENT — groups, bulk edit, filter
+// ═══════════════════════════════════════════════════════════════════
+window.layerGroups = window.layerGroups || {};
+
+window.createLayerGroup = function(name, layerIds) {
+  window.layerGroups[name] = layerIds;
+  toast('Layer group "'+name+'" created ('+layerIds.length+' layers)','ok');
+};
+
+window.isolateLayers = function(ids) {
+  pushUndo('layer isolate');
+  ST.layers.forEach(function(l){ l._preIso=l.vis; l.vis=ids.includes(l.id); });
+  if(typeof renderLayers==='function') renderLayers();
+  render();
+  toast('Isolated '+ids.length+' layers','ok');
+};
+
+window.unIsolateLayers = function() {
+  ST.layers.forEach(function(l){ if(l._preIso!==undefined){l.vis=l._preIso;delete l._preIso;} });
+  if(typeof renderLayers==='function') renderLayers();
+  render();
+};
+
+window.bulkLayerEdit = function(ids, props) {
+  pushUndo('bulk layer edit');
+  ST.layers.filter(function(l){return ids.includes(l.id);}).forEach(function(l){
+    Object.assign(l,props);
+  });
+  if(typeof renderLayers==='function') renderLayers();
+  render();
+};
+
+
+// ═══════════════════════════════════════════════════════════════════
+// 8. PERFORMANCE + DEBUG COMMANDS
+// ═══════════════════════════════════════════════════════════════════
+if(typeof CAD_COMMANDS!=='undefined'){
+  Object.assign(CAD_COMMANDS,{
+    'FPS':'fps','SHOWFPS':'fps','PERF':'fps',
+    'STATS':'stats','ENTITIES':'stats',
+    'REGEN':'regen','RE':'regen',
+    'REGENALL':'regen',
+    'INDEXREBUILD':'rebuildindex',
+    'ISOLATE':'isolate','ISO':'isolate',
+    'UNISOLATE':'unisolate','UNISO':'unisolate',
+    'LAYGROUP':'laygroup',
+    'SELWINDOW':'selwindow','SW':'selwindow',
+    'SELCROSS':'selcross','SC_':'selcross',
+    'SNAPSET':'snapset',
+  });
+}
+
+if(typeof CAD_ACTIONS!=='undefined'){
+  Object.assign(CAD_ACTIONS,{
+    fps:          function(){ ST.showFPS=!ST.showFPS; var el=document.getElementById('fpsOverlay'); if(el)el.style.display=ST.showFPS?'block':'none'; toast('FPS display '+(ST.showFPS?'ON':'OFF'),'ok'); },
+    stats:        function(){ var msg='Entities: '+ST.entities.length+' | Drawn last frame: '+_entitiesDrawn+' | Culled: '+_entitiesCulled+' | FPS: '+_fps+' | Render: '+_renderMS.toFixed(1)+'ms'; toast(msg,'ok'); setMsg(msg); },
+    regen:        function(){ invalidateSpatialIndex(); render(); toast('REGEN — spatial index rebuilt','ok'); },
+    rebuildindex: function(){ invalidateSpatialIndex(); rebuildIndex(); toast('Spatial index rebuilt: '+ST.entities.length+' entities','ok'); },
+    isolate:      function(){ var sels=ST.entities.filter(function(e){return e.selected;}); if(!sels.length){toast('Select objects first','warn');return;} var ids=new Set(sels.map(function(e){return e.layer;})); isolateLayers(Array.from(ids)); },
+    unisolate:    function(){ unIsolateLayers(); },
+    laygroup:     function(){ var sels=ST.entities.filter(function(e){return e.selected;}); if(!sels.length){toast('Select objects for group','warn');return;} var name=prompt('Group name:','Group1'); if(name) createLayerGroup(name.trim(),[...new Set(sels.map(function(e){return e.layer;}))]); },
+    selwindow:    function(){ toast('Window Select — drag left-to-right','ok'); setMsg('Window Select: drag left→right to select fully enclosed objects'); },
+    selcross:     function(){ toast('Crossing Select — drag right-to-left','ok'); setMsg('Crossing Select: drag right→left to select touched objects'); },
+    snapset:      function(){ openSnapSettings(); },
+  });
+}
+
+// Snap settings dialog
+window.openSnapSettings = function() {
+  var existing=document.getElementById('moSnapSettings');
+  if(existing){existing.remove();}
+  var div=document.createElement('div');
+  div.id='moSnapSettings'; div.className='mo';
+  div.innerHTML='<div class="modal" style="max-width:380px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">⊙</span>Object Snap Settings</div><span class="mc" onclick="closeMo(\'moSnapSettings\')">✕</span></div>'
+    +'<div class="mb">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+    +Object.keys(SNAP_CFG).map(function(k){ var c=SNAP_CFG[k]; return '<label style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg2);border:1px solid var(--sep);border-radius:4px;cursor:pointer;font-size:10px"><input type="checkbox" id="snap_'+k+'"'+(c.on?' checked':'')+' style="accent-color:'+c.color+'" onchange="SNAP_CFG[\''+k+'\'].on=this.checked"> <span style="color:'+c.color+'">'+c.label+'</span></label>'; }).join('')
+    +'</div>'
+    +'<div style="margin-top:10px"><label style="font-size:10px;color:var(--m)">Snap Tolerance (pixels): <input type="range" id="snapTolSlider" min="8" max="32" value="'+SNAP_TOL+'" style="accent-color:#1FA8D9;width:120px" oninput="window.SNAP_TOL=parseInt(this.value);document.getElementById(\'snapTolVal\').textContent=this.value"> <span id="snapTolVal">'+SNAP_TOL+'</span>px</label></div>'
+    +'</div>'
+    +'<div class="mf"><button class="btn s" onclick="closeMo(\'moSnapSettings\')">Close</button></div>'
+    +'</div>';
+  document.body.appendChild(div);
+  openMo('moSnapSettings');
+};
+
+
+// ═══════════════════════════════════════════════════════════════════
+// 9. QUICK TOOL PALETTE — floating action button bar
+// ═══════════════════════════════════════════════════════════════════
+(function buildQuickPalette() {
+  if(document.getElementById('quickPalette')) return;
+  var pal=document.createElement('div');
+  pal.id='quickPalette';
+  pal.style.cssText='position:absolute;right:12px;bottom:60px;z-index:500;display:flex;flex-direction:column;gap:4px;pointer-events:all';
+  var tools=[
+    {icon:'/',  cmd:'LINE',     title:'Line (L)'},
+    {icon:'○',  cmd:'CIRCLE',   title:'Circle (C)'},
+    {icon:'□',  cmd:'RECT',     title:'Rectangle (REC)'},
+    {icon:'⌒',  cmd:'PLINE',    title:'Polyline (PL)'},
+    {icon:'A',  cmd:'ARC',      title:'Arc (A)'},
+    {icon:'T',  cmd:'TEXT',     title:'Text (T)'},
+    {icon:'⟺',  cmd:'OFFSET',   title:'Offset (O)'},
+    {icon:'↻',  cmd:'ROTATE',   title:'Rotate (RO)'},
+    {icon:'✂',  cmd:'TRIM',     title:'Trim (TR)'},
+    {icon:'⟳',  cmd:'MIRROR',   title:'Mirror (MI)'},
+    {icon:'⊕',  cmd:'POINT',    title:'Point (PO)'},
+    {icon:'⌗',  cmd:'DIM',      title:'Dimension'},
+  ];
+  var expanded=false;
+  var toggle=document.createElement('button');
+  toggle.style.cssText='width:32px;height:32px;border-radius:50%;background:rgba(31,168,217,.9);border:none;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(31,168,217,.5)';
+  toggle.textContent='⚡';
+  toggle.title='Quick Palette';
+  toggle.onclick=function(){
+    expanded=!expanded;
+    toolsDiv.style.display=expanded?'flex':'none';
+    toggle.style.background=expanded?'rgba(78,255,145,.9)':'rgba(31,168,217,.9)';
+  };
+  var toolsDiv=document.createElement('div');
+  toolsDiv.style.cssText='display:none;flex-direction:column;gap:3px';
+  tools.forEach(function(t){
+    var btn=document.createElement('button');
+    btn.style.cssText='width:32px;height:32px;border-radius:6px;background:rgba(6,14,26,.92);border:1px solid rgba(31,168,217,.3);color:#c8d8e8;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s';
+    btn.textContent=t.icon; btn.title=t.title;
+    btn.onmouseover=function(){this.style.background='rgba(31,168,217,.2)';this.style.borderColor='#1FA8D9';this.style.color='#fff';};
+    btn.onmouseout=function(){this.style.background='rgba(6,14,26,.92)';this.style.borderColor='rgba(31,168,217,.3)';this.style.color='#c8d8e8';};
+    btn.onclick=function(){window.runCommand(t.cmd);};
+    toolsDiv.appendChild(btn);
+  });
+  pal.appendChild(toolsDiv);
+  pal.appendChild(toggle);
+  var vp=document.getElementById('vp')||document.querySelector('.vport');
+  if(vp) vp.appendChild(pal);
+})();
+
+
+// ═══════════════════════════════════════════════════════════════════
+// 10. INIT — rebuild index, force first render
+// ═══════════════════════════════════════════════════════════════════
+setTimeout(function(){
+  // Rebuild spatial index on startup
+  if(ST.entities&&ST.entities.length) rebuildIndex();
+
+  // Show entity count in status
+  var countEl=document.createElement('span');
+  countEl.id='entCount';
+  countEl.style.cssText='font-family:IBM Plex Mono,monospace;font-size:8.5px;color:var(--m);padding:0 6px;border-left:1px solid var(--sep)';
+  var sb=document.querySelector('.statbar,.sb');
+  if(sb&&!document.getElementById('entCount')) sb.appendChild(countEl);
+
+  // Update entity count on render
+  var _prevRender=window.render;
+  window.render=function(){
+    _prevRender();
+    var el=document.getElementById('entCount');
+    if(el) el.textContent=ST.entities.length+' ent';
+  };
+
+  // Hook entity additions to invalidate index
+  var _origPush=Array.prototype.push;
+  // Note: don't override Array.prototype - instead hook at the render level
+
+  render();
+  console.log('[StrataProEngine] Loaded — Quadtree ✓ RAF ✓ LOD ✓ Snap ✓ Undo ✓ SelectRect ✓');
+  console.log('  Entities: '+ST.entities.length+' | Spatial index built');
+},400);
+
+})(); // end StrataProEngine
+
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════
