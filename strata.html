@@ -2893,6 +2893,13 @@ canvas.addEventListener('mousemove',ev=>{
   if(!ST.selDrag&&!ST.drawing&&!ST.panning&&!ST.opState) showEntTip(mx,my);
   else if(tip) tip.style.display='none';
 
+  // ── POLYGON: just store cursor pos and trigger RAF render ─────────
+  if(ST.tool==='polygon'){
+    ST._polyCursorWP = wp;  // store for _doRender to use
+    render();               // schedules RAF which draws the ghost correctly
+    return;
+  }
+
   render();
 });
 
@@ -2964,8 +2971,35 @@ canvas.addEventListener('mousedown',ev=>{
     render(); return;
   }
 
-  // ── ALL OTHER DRAWING TOOLS ──────────────────────────────────────
-  const drawTools=['line','circle','rect','ellipse','arc','text','hatch','dim-lin','spline','leader','polygon','cloud','xline','ray','wipeout','boundary'];
+  // ── POLYGON TOOL — vertex-by-vertex click drawing ──────────────────
+  if(ST.tool==='polygon'){
+    if(!ST._polyPts) ST._polyPts=[];
+    const _now=Date.now();
+    const _dbl=(_now-(ST._lastPolyClick||0))<350;
+    ST._lastPolyClick=_now;
+    if(_dbl && ST._polyPts.length>=3){
+      pushUndo();
+      const _fp=ST._polyPts.slice();
+      var _polyEnt = mkEnt({type:'polyline',pts:_fp,closed:true,layer:ST.curLayer});
+      ST.entities.push(_polyEnt);
+      ST._polyPts=[]; ST.ghostEnt=null; ST._polyCursorWP=null; ST.tool=null; ST._lastPolyClick=0;
+      invalidateSpatialIndex&&invalidateSpatialIndex();
+      // Use renderImmediate to bypass RAF delay - show polygon right away
+      if(typeof renderImmediate==='function') renderImmediate();
+      else render();
+      toast('Polygon: '+_fp.length+' vertices','ok');
+      setMsg('Polygon done — click to select | type POL for new polygon');
+      T('select');
+      return;
+    }
+    if(ST._polyPts.length===0) pushUndo();
+    ST._polyPts.push({x:wp.x,y:wp.y});
+    setMsg('▶ Polygon: '+ST._polyPts.length+' pts | double-click or Enter to close | right-click=done | ESC=cancel');
+    render(); return;
+  }
+
+    // ── ALL OTHER DRAWING TOOLS ──────────────────────────────────────
+  const drawTools=['line','circle','rect','ellipse','arc','text','hatch','dim-lin','spline','leader','cloud','xline','ray','wipeout','boundary'];
   if(drawTools.includes(ST.tool)){
     const owp=ST.ortho&&ST.startPt?applyOrtho(ST.startPt,wp):wp;
     if(!ST.drawing){
@@ -3016,6 +3050,17 @@ canvas.addEventListener('contextmenu',ev=>{
     if(ST.polyPts&&ST.polyPts.length>=2) commitPolyline();
     else { ST.polyPts=null; ST.drawing=false; setMsg('Polyline cancelled'); render(); }
     return;
+  }
+  if(ST.tool==='polygon'){
+    if(ST._polyPts&&ST._polyPts.length>=3){
+      pushUndo();
+      const _rpts=ST._polyPts.slice();
+      ST.entities.push(mkEnt({type:'polyline',pts:_rpts,closed:true,layer:ST.curLayer}));
+      invalidateSpatialIndex&&invalidateSpatialIndex();
+      render(); toast('Polygon: '+_rpts.length+' vertices','ok');
+    } else { render(); setMsg('Polygon cancelled'); }
+    ST._polyPts=[]; ST.ghostEnt=null; ST.tool=null;
+    T('select'); return;
   }
   if(ST.tool==='boundary'){
     if(ST.polyPts&&ST.polyPts.length>=3) commitBoundary();
@@ -15820,11 +15865,19 @@ function getViewBounds() {
 function getLOD(e, zoom) {
   if(e.type==='point') return 'full';
   if(e.type==='text') return zoom>0.5?'full':'skip';
+  // Always draw polylines/polygons regardless of size
+  if(e.type==='polyline'||e.type==='boundary'||e.type==='polygon') return 'full';
   // Very small entities — skip at low zoom
   var size=0;
   if(e.x1!==undefined) size=Math.hypot(e.x2-e.x1,e.y2-e.y1)*zoom;
   else if(e.cx!==undefined) size=e.r*zoom*2;
   else if(e.w!==undefined) size=Math.max(e.w,e.h)*zoom;
+  else if(e.pts&&e.pts.length>=2){
+    var dx=e.pts[e.pts.length-1].x-e.pts[0].x;
+    var dy=e.pts[e.pts.length-1].y-e.pts[0].y;
+    size=Math.hypot(dx,dy)*zoom;
+    if(size<0.5) size=1; // always draw if has pts
+  }
   if(size<0.5) return 'skip';
   if(size<2)   return 'dot';
   return 'full';
@@ -15870,7 +15923,20 @@ function _doRender() {
 
   // ── VIEWPORT CULLING ──────────────────────────────────────────
   var vb = getViewBounds();
-  var visible = queryVisibleEntities(vb.minX, vb.minY, vb.maxX, vb.maxY);
+  // Rebuild spatial index synchronously if dirty (ensures new entities appear immediately)
+  if (typeof _indexDirty !== 'undefined' && _indexDirty) {
+    try { rebuildIndex(); } catch(e2) { _indexDirty = false; }
+  }
+  var visible;
+  try {
+    visible = queryVisibleEntities(vb.minX, vb.minY, vb.maxX, vb.maxY);
+  } catch(e2) {
+    visible = ST.entities; // fallback to all entities
+  }
+  // Always include all entities as fallback if spatial index is empty but entities exist
+  if(visible.length === 0 && ST.entities.length > 0) {
+    visible = ST.entities.filter(function(e){ return true; });
+  }
   _entitiesDrawn  = 0;
   _entitiesCulled = ST.entities.length - visible.length;
 
@@ -15897,6 +15963,9 @@ function _doRender() {
       if(typeof drawEntity==='function') { drawEntity(e,false); _entitiesDrawn++; }
     }
   }
+
+  // Sync global ctx to current canvas context (drawEntity uses global ctx)
+  if(typeof ctx !== 'undefined') { try { ctx = canvas.getContext('2d'); } catch(e2){} }
 
   // Pass 2: all non-text, non-hatch entities
   for(var ii=0;ii<visible.length;ii++) {
@@ -15931,15 +16000,82 @@ function _doRender() {
   // Ghost entity (in-progress drawing)
   if(ST.ghostEnt && typeof drawEntity==='function') drawEntity(ST.ghostEnt,true);
 
+  // ── POLYGON GHOST — drawn INSIDE RAF so it's never wiped ────────
+  if(ST.tool==='polygon' && ST._polyPts && ST._polyPts.length>0) {
+    var _pw = ST._polyCursorWP || {x:0,y:0};
+    var _sw2 = w2s(_pw.x, _pw.y);
+    ctx2.save();
+
+    // Filled preview
+    ctx2.beginPath();
+    ST._polyPts.forEach(function(p,i){
+      var s=w2s(p.x,p.y);
+      i===0 ? ctx2.moveTo(s.x,s.y) : ctx2.lineTo(s.x,s.y);
+    });
+    ctx2.lineTo(_sw2.x, _sw2.y);
+    ctx2.closePath();
+    ctx2.fillStyle='rgba(31,168,217,.06)';
+    ctx2.fill();
+
+    // Dashed outline
+    ctx2.strokeStyle='rgba(31,168,217,.9)';
+    ctx2.lineWidth=1.8;
+    ctx2.setLineDash([6,3]);
+    ctx2.beginPath();
+    ST._polyPts.forEach(function(p,i){
+      var s=w2s(p.x,p.y);
+      i===0 ? ctx2.moveTo(s.x,s.y) : ctx2.lineTo(s.x,s.y);
+    });
+    ctx2.lineTo(_sw2.x, _sw2.y);
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+
+    // Vertex squares (blue) with numbers
+    ST._polyPts.forEach(function(p, vi) {
+      var s=w2s(p.x,p.y);
+      ctx2.fillStyle='#1FA8D9';
+      ctx2.fillRect(s.x-4, s.y-4, 8, 8);
+      ctx2.fillStyle='rgba(255,255,255,.9)';
+      ctx2.font='bold 8px IBM Plex Mono,monospace';
+      ctx2.fillText(vi+1, s.x+6, s.y-4);
+    });
+
+    // Cursor dot (green circle)
+    ctx2.fillStyle='rgba(78,255,145,.9)';
+    ctx2.beginPath();
+    ctx2.arc(_sw2.x, _sw2.y, 5, 0, Math.PI*2);
+    ctx2.fill();
+    ctx2.strokeStyle='rgba(78,255,145,.7)';
+    ctx2.lineWidth=1.5;
+    ctx2.beginPath();
+    ctx2.arc(_sw2.x, _sw2.y, 9, 0, Math.PI*2);
+    ctx2.stroke();
+
+    // Distance label
+    if(ST._polyPts.length>0) {
+      var _pl = ST._polyPts[ST._polyPts.length-1];
+      var _pd = Math.hypot(_pw.x-_pl.x, _pw.y-_pl.y);
+      if(_pd > 0.001) {
+        ctx2.fillStyle='rgba(255,255,255,.95)';
+        ctx2.font='bold 10px IBM Plex Mono,monospace';
+        ctx2.fillText(_pd.toFixed(3)+' '+(ST.units||'m'), _sw2.x+13, _sw2.y-9);
+        ctx2.fillStyle='rgba(31,168,217,.8)';
+        ctx2.font='9px IBM Plex Mono,monospace';
+        ctx2.fillText(ST._polyPts.length+' pts  dbl-click=close', _sw2.x+13, _sw2.y+7);
+      }
+    }
+    ctx2.restore();
+  }
+
   _renderMS = performance.now()-t0;
   updateFPSDisplay(_renderMS);
 }
 
-// Immediate render (for critical operations)
+// Immediate render (synchronous — bypasses RAF for critical updates)
 window.renderImmediate = function() {
-  _renderPending=false;
-  if(_rafId){ cancelAnimationFrame(_rafId); _rafId=null; }
-  _doRender();
+  _renderPending = false;
+  if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
+  _doRender();  // call synchronously right now
 };
 
 // Invalidate spatial index on entity changes
@@ -16536,6 +16672,1213 @@ setTimeout(function(){
 },400);
 
 })(); // end StrataProEngine
+
+
+/**
+ * STRATA DWG CLIENT — Frontend integration
+ * ==========================================
+ * Handles DWG upload, progress, and import into canvas.
+ *
+ * Usage:
+ *   const client = new DWGClient('http://localhost:5050');
+ *   client.importFile(file, (progress) => ...).then(result => ...);
+ */
+
+class DWGClient {
+  constructor(serverUrl = 'http://localhost:5050') {
+    this.url     = serverUrl.replace(/\/$/, '');
+    this.wsUrl   = serverUrl.replace(/^http/, 'ws');
+    this.timeout = 300000; // 5 min
+  }
+
+  // ── Check server health ──────────────────────────────────────────
+  async checkHealth() {
+    const r = await fetch(`${this.url}/api/health`);
+    return r.json();
+  }
+
+  // ── Import a DWG/DXF file ────────────────────────────────────────
+  async importFile(file, onProgress = null, parser = 'auto') {
+    const sizeMB = file.size / 1048576;
+
+    if (sizeMB > 50) {
+      // Large file: use async + WebSocket
+      return this.importFileAsync(file, onProgress, parser);
+    } else {
+      // Small file: synchronous
+      return this.importFileSync(file, onProgress, parser);
+    }
+  }
+
+  // ── Synchronous import (< 50MB) ──────────────────────────────────
+  async importFileSync(file, onProgress, parser) {
+    onProgress && onProgress({ percent: 5, message: 'Uploading…' });
+
+    const fd = new FormData();
+    fd.append('file', file);
+
+    const controller = new AbortController();
+    const timeout    = setTimeout(() => controller.abort(), this.timeout);
+
+    try {
+      const r = await fetch(`${this.url}/api/dwg/upload?parser=${parser}`, {
+        method: 'POST',
+        body:   fd,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      if (!r.ok) {
+        const err = await r.json();
+        throw new Error(err.error || `Server error ${r.status}`);
+      }
+
+      onProgress && onProgress({ percent: 90, message: 'Parsing…' });
+      const data = await r.json();
+      onProgress && onProgress({ percent: 100, message: 'Done' });
+      return data;
+
+    } catch (e) {
+      clearTimeout(timeout);
+      if (e.name === 'AbortError') throw new Error('Upload timed out after 5 minutes');
+      throw e;
+    }
+  }
+
+  // ── Async import (> 50MB) with WebSocket progress ────────────────
+  async importFileAsync(file, onProgress, parser) {
+    onProgress && onProgress({ percent: 2, message: 'Uploading large file…' });
+
+    const fd = new FormData();
+    fd.append('file', file);
+
+    const r = await fetch(`${this.url}/api/dwg/upload/async?parser=${parser}`, {
+      method: 'POST',
+      body:   fd,
+    });
+
+    if (!r.ok) {
+      const err = await r.json();
+      throw new Error(err.error || 'Upload failed');
+    }
+
+    const { jobId } = await r.json();
+    onProgress && onProgress({ percent: 10, message: 'Processing on server…' });
+
+    return new Promise((resolve, reject) => {
+      const ws = new WebSocket(`${this.wsUrl}?jobId=${jobId}`);
+
+      const timeout = setTimeout(() => {
+        ws.close();
+        reject(new Error('Processing timed out'));
+      }, this.timeout);
+
+      ws.onmessage = (ev) => {
+        const msg = JSON.parse(ev.data);
+
+        if (msg.type === 'progress' || msg.type === 'state') {
+          onProgress && onProgress({ percent: msg.progress || 0, message: msg.message || '' });
+
+          if (msg.status === 'done') {
+            clearTimeout(timeout);
+            ws.close();
+            resolve(msg.result);
+          } else if (msg.status === 'error') {
+            clearTimeout(timeout);
+            ws.close();
+            reject(new Error(msg.error));
+          }
+        }
+      };
+
+      ws.onerror = (e) => { clearTimeout(timeout); reject(new Error('WebSocket error')); };
+    });
+  }
+}
+
+
+// ── STRATA INTEGRATION ───────────────────────────────────────────────
+window.DWGClient = DWGClient;
+
+// Server URL — configure to match your backend
+const DWG_SERVER_URL = window.DWG_SERVER_URL || 'http://localhost:5050';
+const _dwgClient = new DWGClient(DWG_SERVER_URL);
+
+/**
+ * Import DWG file into Strata canvas.
+ * Called from File > Import or the DWG import modal.
+ */
+window.importDWGFile = function(file) {
+  if (!file) return;
+
+  // Show progress modal
+  const existingMo = document.getElementById('moDwgProgress');
+  if (existingMo) existingMo.remove();
+
+  const progressDiv = document.createElement('div');
+  progressDiv.id = 'moDwgProgress';
+  progressDiv.className = 'mo';
+  progressDiv.innerHTML = `
+    <div class="modal" style="max-width:480px">
+      <div class="mh">
+        <div class="mh-t"><span class="i">📐</span>Importing DWG</div>
+      </div>
+      <div class="mb">
+        <div style="font-size:10px;font-family:IBM Plex Mono,monospace;color:var(--m);margin-bottom:10px">
+          📄 ${file.name} &nbsp;·&nbsp; ${(file.size/1048576).toFixed(1)} MB
+        </div>
+        <div style="background:var(--bg2);border-radius:4px;overflow:hidden;height:6px;margin-bottom:8px">
+          <div id="dwgProgressBar" style="height:100%;background:linear-gradient(90deg,#1FA8D9,#4eff91);width:0%;transition:width .3s"></div>
+        </div>
+        <div id="dwgProgressText" style="font-size:9.5px;font-family:IBM Plex Mono,monospace;color:var(--m)">Connecting to parse server…</div>
+        <div id="dwgProgressStats" style="font-size:8.5px;font-family:IBM Plex Mono,monospace;color:#556;margin-top:6px"></div>
+      </div>
+      <div class="mf">
+        <button class="btn s" onclick="closeMo('moDwgProgress')">Cancel</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(progressDiv);
+  openMo('moDwgProgress');
+
+  function setProgress(pct, msg) {
+    const bar  = document.getElementById('dwgProgressBar');
+    const text = document.getElementById('dwgProgressText');
+    if (bar)  bar.style.width = pct + '%';
+    if (text) text.textContent = msg || '';
+  }
+
+  // Detect parser preference
+  const parser = localStorage.getItem('dwg_parser') || 'auto';
+
+  _dwgClient.importFile(file, (p) => setProgress(p.percent, p.message), parser)
+    .then(data => {
+      closeMo('moDwgProgress');
+      applyDWGData(data);
+    })
+    .catch(err => {
+      const text = document.getElementById('dwgProgressText');
+      if (text) {
+        text.textContent = '✗ ' + err.message;
+        text.style.color = '#ff4466';
+      }
+      const stats = document.getElementById('dwgProgressStats');
+      if (stats) {
+        stats.innerHTML = `
+          <div style="margin-top:8px;padding:8px;background:rgba(255,68,102,.08);border:1px solid rgba(255,68,102,.2);border-radius:4px;line-height:1.6">
+            <b style="color:#ff4466">Fallback options:</b><br>
+            1. Use ODA File Converter (free) → convert to DXF → re-import<br>
+            2. In AutoCAD/Civil 3D: AECCEXPORTTOAUTOCAD → Save as DXF R2010<br>
+            3. Check that DWG server is running: <code>python3 server.py</code>
+          </div>
+        `;
+      }
+      console.error('[DWG Import]', err);
+    });
+};
+
+
+/**
+ * Apply parsed DWG JSON data to the Strata canvas state.
+ */
+function applyDWGData(data) {
+  if (!data || data.error) {
+    toast('DWG import error: ' + (data?.error || 'Unknown error'), 'err');
+    return;
+  }
+
+  if (typeof pushUndo === 'function') pushUndo('DWG import: ' + data._meta?.file);
+
+  // ── Apply layers ──────────────────────────────────────────────────
+  const layerIdMap = {}; // server_id → local_id
+  let maxLocalId = Math.max(...ST.layers.map(l => l.id), 0);
+
+  (data.layers || []).forEach(sl => {
+    // Check if layer name already exists
+    const existing = ST.layers.find(l => l.name === sl.name);
+    if (existing) {
+      layerIdMap[sl.id] = existing.id;
+    } else {
+      maxLocalId++;
+      layerIdMap[sl.id] = maxLocalId;
+      ST.layers.push({
+        id:       maxLocalId,
+        name:     sl.name,
+        color:    sl.color || '#1FA8D9',
+        colorIdx: sl.colorIdx,
+        linetype: sl.linetype || 'Continuous',
+        lw:       sl.lw || 0.25,
+        vis:      sl.vis !== false,
+        frz:      false,
+        lock:     false,
+        dis:      false,
+      });
+    }
+  });
+
+  // ── Apply blocks ──────────────────────────────────────────────────
+  if (!window._blockLibrary) window._blockLibrary = {};
+
+  (data.blocks || []).forEach(blk => {
+    const ents = blk.entities.map(e => remapEntity(e, layerIdMap));
+    window._blockLibrary[blk.name] = {
+      name:     blk.name,
+      entities: ents,
+      origin:   blk.origin || { x: 0, y: 0 },
+    };
+  });
+
+  // ── Apply entities ────────────────────────────────────────────────
+  let maxEid = ST._eid || 0;
+
+  const newEntities = (data.entities || []).map(e => {
+    maxEid++;
+    const mapped = remapEntity(e, layerIdMap);
+    mapped._id = maxEid;
+    return mapped;
+  });
+
+  // Replace or merge
+  const merge = false; // Set true to add to existing drawing
+  if (merge) {
+    ST.entities.push(...newEntities);
+  } else {
+    ST.entities = newEntities;
+  }
+
+  ST._eid = maxEid;
+
+  // ── Update UI ─────────────────────────────────────────────────────
+  if (typeof renderLayers === 'function') renderLayers();
+  if (typeof invalidateSpatialIndex === 'function') invalidateSpatialIndex();
+  if (typeof render === 'function') render();
+  if (typeof zoomExt === 'function') setTimeout(zoomExt, 150);
+  if (typeof refreshBlocksPanel === 'function') refreshBlocksPanel();
+
+  // ── Show import summary ───────────────────────────────────────────
+  const meta  = data._meta || {};
+  const stats = data.stats || {};
+
+  const summary = [
+    `✓ DWG imported: ${data._meta?.file || 'file'}`,
+    `  Parser: ${data.source || meta.parser}`,
+    `  Entities: ${newEntities.length} | Layers: ${ST.layers.length}`,
+    `  Blocks: ${Object.keys(window._blockLibrary || {}).length}`,
+    `  Parse time: ${meta.parse_ms}ms`,
+    stats.errors > 0 ? `  Warnings: ${stats.errors}` : '',
+  ].filter(Boolean).join('\n');
+
+  toast(`DWG imported: ${newEntities.length} entities`, 'ok');
+  if (typeof setMsg === 'function') setMsg(summary.replace(/\n/g, '  |  '));
+  console.log('[DWG Import]', summary);
+
+  if (data.warnings?.length > 0) {
+    console.warn('[DWG Warnings]', data.warnings.slice(0, 20).join('\n'));
+  }
+}
+
+
+/**
+ * Remap server entity IDs to local Strata IDs.
+ */
+function remapEntity(e, layerIdMap) {
+  const local = Object.assign({}, e);
+  local.layer = layerIdMap[e.layer] || ST.curLayer || 1;
+  local.selected = false;
+  delete local._src; // remove debug markers
+  return local;
+}
+
+
+// ── IMPORT DIALOG ────────────────────────────────────────────────────
+window.openDWGImportDialog = function() {
+  const existing = document.getElementById('moDwgImport');
+  if (existing) { openMo('moDwgImport'); return; }
+
+  const div = document.createElement('div');
+  div.id = 'moDwgImport';
+  div.className = 'mo';
+  div.innerHTML = `
+    <div class="modal w" style="max-width:540px">
+      <div class="mh">
+        <div class="mh-t"><span class="i">📐</span>Import DWG / DXF</div>
+        <span class="mc" onclick="closeMo('moDwgImport')">✕</span>
+      </div>
+      <div class="mb">
+        <div style="margin-bottom:12px">
+          <div ondragover="event.preventDefault()" ondrop="event.preventDefault();handleDWGDrop(event)"
+            style="border:2px dashed rgba(31,168,217,.4);border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:all .2s"
+            onmouseover="this.style.borderColor='#1FA8D9';this.style.background='rgba(31,168,217,.05)'"
+            onmouseout="this.style.borderColor='rgba(31,168,217,.4)';this.style.background=''"
+            onclick="document.getElementById('dwgFileInput').click()">
+            <div style="font-size:28px;margin-bottom:6px">📐</div>
+            <div style="font-size:11px;font-weight:700;color:var(--t)">Drop DWG or DXF file here</div>
+            <div style="font-size:9.5px;color:var(--m);margin-top:4px">or click to browse</div>
+            <div style="font-size:8.5px;color:#556;margin-top:6px">Supports AutoCAD R12 through 2023 · Max 500MB</div>
+          </div>
+          <input type="file" id="dwgFileInput" accept=".dwg,.dxf" style="display:none"
+            onchange="if(this.files[0]){closeMo('moDwgImport');importDWGFile(this.files[0]);}">
+        </div>
+
+        <div class="fsect">Parse Engine</div>
+        <select id="dwgParserPref" class="fs" onkeydown="event.stopPropagation()"
+          onchange="localStorage.setItem('dwg_parser',this.value)">
+          <option value="auto">Auto (best available)</option>
+          <option value="oda">ODA File Converter (highest quality)</option>
+          <option value="ezdxf">ezdxf Python (R12–R2018)</option>
+          <option value="libredwg">LibreDWG (MIT, if installed)</option>
+          <option value="binary">Binary heuristic (always works)</option>
+        </select>
+
+        <div id="dwgServerStatus" style="margin-top:10px;font-size:9px;font-family:IBM Plex Mono,monospace;padding:6px 10px;background:var(--bg2);border:1px solid var(--sep);border-radius:4px;color:var(--m)">
+          Checking server…
+        </div>
+
+        <details style="margin-top:10px">
+          <summary style="font-size:9px;color:var(--m);cursor:pointer;font-family:IBM Plex Mono,monospace">▶ Why is geometry missing? (Civil 3D tips)</summary>
+          <div style="font-size:9px;color:var(--m);line-height:1.8;padding:8px 0">
+            <b style="color:var(--t)">1. XREFs</b> — In Civil 3D: XREF → Bind All → Insert → re-save<br>
+            <b style="color:var(--t)">2. Civil 3D objects</b> — Run <code style="background:var(--bg2);padding:0 4px">AECCEXPORTTOAUTOCAD</code> before saving<br>
+            <b style="color:var(--t)">3. Best method</b> — Install ODA File Converter (free) for lossless conversion<br>
+            <b style="color:var(--t)">4. Proxy entities</b> — Set PROXYSHOW=1 or explode proxies before export
+          </div>
+        </details>
+      </div>
+      <div class="mf">
+        <button class="btn s" onclick="closeMo('moDwgImport')">Cancel</button>
+        <button class="btn st" onclick="document.getElementById('dwgFileInput').click()">Browse File</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(div);
+  openMo('moDwgImport');
+
+  // Check server status
+  _dwgClient.checkHealth()
+    .then(h => {
+      const el = document.getElementById('dwgServerStatus');
+      if (el) el.innerHTML = `<span style="color:#4eff91">✓ DWG Server online</span> — Tools: <b>${h.tools?.join(', ') || 'binary-only'}</b>`;
+    })
+    .catch(() => {
+      const el = document.getElementById('dwgServerStatus');
+      if (el) el.innerHTML = `<span style="color:#F5BE18">⚠ DWG Server offline</span> — Start: <code>python3 server.py</code> or use built-in DXF fallback`;
+    });
+};
+
+window.handleDWGDrop = function(ev) {
+  const file = ev.dataTransfer?.files?.[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['dwg','dxf'].includes(ext)) { toast('Drop a .dwg or .dxf file', 'warn'); return; }
+  closeMo('moDwgImport');
+  importDWGFile(file);
+};
+
+
+// ── Register commands ───────────────────────────────────────────────
+if (typeof CAD_COMMANDS !== 'undefined') {
+  Object.assign(CAD_COMMANDS, {
+    'IMPORT':'import', 'OPEN':'import',
+    'DWGIMPORT':'dwgimport', 'IMPORTDWG':'dwgimport',
+  });
+}
+if (typeof CAD_ACTIONS !== 'undefined') {
+  CAD_ACTIONS.dwgimport = () => openDWGImportDialog();
+  CAD_ACTIONS.import    = () => openDWGImportDialog();
+}
+
+console.log('[DWG Client] Ready — server:', DWG_SERVER_URL);
+
+
+// ████████████████████████████████████████████████████████
+//  STRATA COMPREHENSIVE FIX v3
+//  All 7 issues + Built-in DWG + More tools
+// ████████████████████████████████████████████████████████
+(function StrataFix3() {
+
+// ═══════════════════════════════════════════════════════
+// 1. POLYGON TOOL — proper click-to-add-vertex drawing
+// ═══════════════════════════════════════════════════════
+// Override T('polygon') to use a real polygon mode
+var _origT = window.T;
+window.T = function(tool) {
+  if (tool === 'polygon') {
+    ST.tool = 'polygon';
+    ST.drawing = false; ST.startPt = null;
+    ST._polyPts = []; // accumulate clicked points
+    ST.opState = null;
+    updateToolUI && updateToolUI('polygon');
+    document.getElementById('cad').style.cursor = 'crosshair';
+    setMsg('POLYGON — click vertices  |  double-click or Enter to close  |  ESC=cancel');
+    return;
+  }
+  if (tool === 'regularpolygon') {
+    ST.tool = 'regularpolygon';
+    ST._polyPts = [];
+    updateToolUI && updateToolUI('polygon');
+    document.getElementById('cad').style.cursor = 'crosshair';
+    setMsg('POLYGON — click center, then edge  |  Sides: ' + (ST.polySides||6));
+    return;
+  }
+  return _origT && _origT(tool);
+};
+
+// Hook into canvas click for polygon tool
+// _commitPolygon — called from main mousedown and keyboard handlers
+function _commitPolygon() {
+  var pts = ST._polyPts;
+  if (!pts || pts.length < 3) { ST.tool=null; ST._polyPts=[]; render(); return; }
+  ST.entities.push({_id:++ST._eid, type:'polyline', pts:pts.slice(), closed:true, layer:ST.curLayer, selected:false, color:null});
+  invalidateSpatialIndex && invalidateSpatialIndex();
+  ST.tool = null; ST._polyPts = []; ST.ghostEnt = null;
+  render();
+  toast('Polygon: ' + pts.length + ' vertices', 'ok');
+  setMsg('Polygon created — ' + pts.length + ' vertices');
+  _origT && _origT('select');
+}
+
+window.commitPolygon = _commitPolygon;
+
+// Register Enter key for polygon
+var _origRC2 = window.runCommand;
+window.runCommand = function(raw) {
+  if (!raw) {
+    if (ST.tool === 'polygon' && ST._polyPts && ST._polyPts.length >= 3) {
+      _commitPolygon(); return;
+    }
+    if (ST.tool === 'regularpolygon') { ST.tool=null; ST._polyPts=[]; render(); return; }
+  }
+  if (raw && (raw.toUpperCase() === 'C' || raw.toUpperCase() === 'CLOSE') && ST.tool === 'polygon') {
+    _commitPolygon(); return;
+  }
+  return _origRC2 && _origRC2(raw);
+};
+
+
+// ═══════════════════════════════════════════════════════
+// 2. ROTATE/MOVE/SCALE GIZMO — proper on-screen handles
+// ═══════════════════════════════════════════════════════
+
+// CSS for gizmo handles
+var gizmoStyle = document.createElement('style');
+gizmoStyle.textContent = `
+#strataGizmo { position:absolute; pointer-events:none; z-index:550; display:none; }
+#strataGizmo .g-bbox { position:absolute; border:1.5px dashed rgba(31,168,217,.6); pointer-events:none; }
+.g-handle {
+  position:absolute; width:22px; height:22px; border-radius:50%; cursor:pointer;
+  pointer-events:all; display:flex; align-items:center; justify-content:center;
+  font-size:11px; line-height:1; border:2px solid; transition:transform .1s;
+  box-shadow:0 2px 8px rgba(0,0,0,.6);
+  background:rgba(6,14,26,.9);
+}
+.g-handle:hover { transform:scale(1.25); }
+.g-handle.move   { color:#4eff91; border-color:#4eff91; cursor:move; }
+.g-handle.rotate { color:#1FA8D9; border-color:#1FA8D9; cursor:grab; }
+.g-handle.scale  { color:#F5BE18; border-color:#F5BE18; cursor:nwse-resize; }
+.g-handle.del    { color:#ff4466; border-color:#ff4466; cursor:pointer; }
+.g-coord-tip { position:absolute; background:rgba(6,14,26,.9); border:1px solid rgba(31,168,217,.3);
+  border-radius:3px; padding:2px 8px; font-family:IBM Plex Mono,monospace; font-size:9px;
+  color:#1FA8D9; pointer-events:none; white-space:nowrap; }
+`;
+document.head.appendChild(gizmoStyle);
+
+// Create persistent gizmo element
+var _gizmoEl = null;
+function getGizmo() {
+  if (_gizmoEl && _gizmoEl.parentNode) return _gizmoEl;
+  _gizmoEl = document.createElement('div');
+  _gizmoEl.id = 'strataGizmo';
+  var vp = document.getElementById('vp') || document.querySelector('.vport');
+  if (vp) vp.appendChild(_gizmoEl);
+  return _gizmoEl;
+}
+
+window.showRotateScaleGizmo = function() {
+  var sels = ST.entities.filter(function(e){return e.selected;});
+  if (!sels.length) { hideRotateScaleGizmo(); return; }
+
+  var g = getGizmo();
+
+  // Compute bounding box in world coords
+  var minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+  sels.forEach(function(e) {
+    var pts = getEntityPts(e);
+    pts.forEach(function(p){
+      minX=Math.min(minX,p.x); maxX=Math.max(maxX,p.x);
+      minY=Math.min(minY,p.y); maxY=Math.max(maxY,p.y);
+    });
+  });
+  if (!isFinite(minX)) { g.style.display='none'; return; }
+
+  // Convert to screen
+  var tl=w2s(minX,maxY), br=w2s(maxX,minY);
+  var sx=Math.min(tl.x,br.x), sy=Math.min(tl.y,br.y);
+  var sw=Math.abs(br.x-tl.x), sh=Math.abs(br.y-tl.y);
+  var pad = 8;
+
+  var wcx = (minX+maxX)/2, wcy = (minY+maxY)/2; // world center
+
+  g.style.display = 'block';
+  g.innerHTML =
+    // Bounding box
+    '<div class="g-bbox" style="left:'+(sx-pad)+'px;top:'+(sy-pad)+'px;width:'+(sw+pad*2)+'px;height:'+(sh+pad*2)+'px"></div>'
+    // MOVE handle — top center
+    + '<div class="g-handle move" id="gh-move" style="left:'+(sx+sw/2-11)+'px;top:'+(sy-pad-26)+'px" title="Move (drag)">✥</div>'
+    // ROTATE handle — top right
+    + '<div class="g-handle rotate" id="gh-rotate" style="left:'+(sx+sw+pad+2)+'px;top:'+(sy-pad-26)+'px" title="Rotate (drag)">↻</div>'
+    // SCALE handle — bottom right
+    + '<div class="g-handle scale" id="gh-scale" style="left:'+(sx+sw+pad+2)+'px;top:'+(sy+sh+pad+2)+'px" title="Scale (drag)">⤡</div>'
+    // DELETE handle — top left
+    + '<div class="g-handle del" id="gh-del" style="left:'+(sx-pad-24)+'px;top:'+(sy-pad-26)+'px" title="Delete">✕</div>'
+    // Coord tip
+    + '<div class="g-coord-tip" style="left:'+(sx-pad)+'px;top:'+(sy+sh+pad+4)+'px">'
+    + sels.length + ' obj · '
+    + 'W:'+Math.abs(maxX-minX).toFixed(1)+' H:'+Math.abs(maxY-minY).toFixed(1)
+    + '</div>';
+
+  // Wire handles
+  wireHandle('gh-del', null, function(){ delSel(); });
+
+  wireDragHandle('gh-move', function(dx,dy) {
+    var wdx = dx/ST.zoom, wdy = -dy/ST.zoom;
+    sels.forEach(function(e){ moveEntity(e, wdx, wdy); });
+    render(); showRotateScaleGizmo();
+  });
+
+  wireDragHandle('gh-rotate', function(dx,dy,startEv,curEv) {
+    var gEl = document.getElementById('gh-rotate');
+    var gRect = gEl ? gEl.getBoundingClientRect() : {left:0,top:0,width:0,height:0};
+    var scx = (sx+sw/2), scy = (sy+sh/2);
+    var startA = Math.atan2(startEv.clientY - scy, startEv.clientX - scx);
+    var curA   = Math.atan2(curEv.clientY - scy, curEv.clientX - scx);
+    var delta  = curA - startA;
+    sels.forEach(function(e){ rotateEntity(e, wcx, wcy, delta); });
+    render(); showRotateScaleGizmo();
+  }, true);
+
+  wireDragHandle('gh-scale', function(dx,dy,startEv,curEv) {
+    var scx=(sx+sw/2), scy=(sy+sh/2);
+    var startD = Math.hypot(startEv.clientX-scx, startEv.clientY-scy)||1;
+    var curD   = Math.hypot(curEv.clientX-scx,   curEv.clientY-scy)||1;
+    var factor = curD/startD;
+    if (factor > 0.01 && factor < 100) {
+      sels.forEach(function(e){ scaleEntity(e, wcx, wcy, factor); });
+      render(); showRotateScaleGizmo();
+    }
+  }, true);
+};
+
+function wireHandle(id, onDragFn, onClickFn) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('mousedown', function(ev){
+    ev.preventDefault(); ev.stopPropagation();
+    if (onClickFn) onClickFn();
+  });
+}
+
+function wireDragHandle(id, onDeltaFn, accumulate) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var startX, startY, lastX, lastY;
+  el.addEventListener('mousedown', function(ev) {
+    ev.preventDefault(); ev.stopPropagation();
+    startX = lastX = ev.clientX;
+    startY = lastY = ev.clientY;
+    pushUndo && pushUndo('transform');
+
+    function onMove(e2) {
+      if (accumulate) {
+        onDeltaFn(e2.clientX-lastX, e2.clientY-lastY, {clientX:lastX,clientY:lastY}, e2);
+        lastX = e2.clientX; lastY = e2.clientY;
+      } else {
+        onDeltaFn(e2.clientX-startX, e2.clientY-startY, {clientX:startX,clientY:startY}, e2);
+        startX = e2.clientX; startY = e2.clientY;
+      }
+    }
+    function onUp() {
+      document.removeEventListener('mousemove',onMove);
+      document.removeEventListener('mouseup',onUp);
+      document.body.style.cursor='';
+    }
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+    document.body.style.cursor = el.style.cursor||'move';
+  });
+}
+
+function moveEntity(e, dx, dy) {
+  if(e.x1!==undefined){e.x1+=dx;e.y1+=dy;e.x2+=dx;e.y2+=dy;}
+  else if(e.cx!==undefined){e.cx+=dx;e.cy+=dy;}
+  else if(e.type==='rect'){e.x+=dx;e.y+=dy;}
+  else if(e.pts){e.pts=e.pts.map(function(p){return{x:p.x+dx,y:p.y+dy};});}
+  else if(e.x!==undefined){e.x+=dx;e.y+=dy;}
+}
+window.moveEntity = moveEntity;
+
+function getEntityPts(e) {
+  if(e.x1!==undefined) return [{x:e.x1,y:e.y1},{x:e.x2,y:e.y2}];
+  if(e.cx!==undefined) return [{x:e.cx-e.r,y:e.cy-e.r},{x:e.cx+e.r,y:e.cy+e.r}];
+  if(e.type==='rect') return [{x:e.x,y:e.y},{x:e.x+e.w,y:e.y+e.h}];
+  if(e.pts&&e.pts.length) return e.pts;
+  return [{x:e.x||0,y:e.y||0}];
+}
+
+window.hideRotateScaleGizmo = function() {
+  var g = document.getElementById('strataGizmo');
+  if (g) g.style.display='none';
+};
+
+
+// ═══════════════════════════════════════════════════════
+// 3. SELECTION BOX — visible blue/green rect
+// ═══════════════════════════════════════════════════════
+var _selCSS = document.createElement('style');
+_selCSS.textContent = `
+.sel-box { position:absolute; pointer-events:none; z-index:490; display:none; box-sizing:border-box; }
+.sel-box.window   { border:1px solid #1FA8D9; background:rgba(31,168,217,.06); }
+.sel-box.crossing { border:1px dashed #4eff91; background:rgba(78,255,145,.06); }
+`;
+document.head.appendChild(_selCSS);
+
+// Ensure selBox has the classes
+var _sb = document.getElementById('selBox');
+if (_sb) { _sb.classList.add('window'); }
+
+// Override the selection drag to show proper colors
+var _origCanvasMD = null;
+(function patchSelBox() {
+  var cad2 = document.getElementById('cad');
+  if (!cad2) return;
+
+  var _selDrag=false, _selSX=0, _selSY=0;
+
+  cad2.addEventListener('mousedown', function(ev) {
+    if (ST.tool !== 'select' && ST.tool !== null && ST.tool !== undefined) return;
+    if (ev.button !== 0) return;
+    var rect = cad2.getBoundingClientRect();
+    _selDrag = true;
+    _selSX = ev.clientX - rect.left;
+    _selSY = ev.clientY - rect.top;
+  }, false);
+
+  document.addEventListener('mousemove', function(ev) {
+    if (!_selDrag) return;
+    var rect = cad2.getBoundingClientRect();
+    var cx = ev.clientX - rect.left;
+    var cy = ev.clientY - rect.top;
+    var box = document.getElementById('selBox');
+    if (!box) return;
+
+    var dx = cx - _selSX, dy = cy - _selSY;
+    if (Math.abs(dx) < 4 && Math.abs(dy) < 4) { box.style.display='none'; return; }
+
+    // Window (left to right) = solid blue; Crossing (right to left) = dashed green
+    var isWindow = cx > _selSX;
+    box.className = 'sel-box ' + (isWindow ? 'window' : 'crossing');
+    box.style.display = 'block';
+    box.style.left   = Math.min(_selSX, cx) + 'px';
+    box.style.top    = Math.min(_selSY, cy) + 'px';
+    box.style.width  = Math.abs(dx) + 'px';
+    box.style.height = Math.abs(dy) + 'px';
+  }, false);
+
+  document.addEventListener('mouseup', function(ev) {
+    if (!_selDrag) return;
+    _selDrag = false;
+    var box = document.getElementById('selBox');
+    if (box) { box.style.display='none'; box.className='sel-box window'; }
+  }, false);
+})();
+
+
+// ═══════════════════════════════════════════════════════
+// 4. DXF/DWG LAYER IMPORT FIX — capture ALL layers
+// ═══════════════════════════════════════════════════════
+var _origParseDXF = window.parseDXF;
+window.parseDXF = function(txt, filename) {
+  if (!txt) { toast('Empty file','err'); return; }
+
+  // Pre-extract ALL layers from DXF before parseDXF runs
+  // so no layer is lost even if parseDXF skips them
+  var layersFromFile = {};
+  var lines = txt.split(/\r?\n/);
+  var i=0;
+  while (i < lines.length - 2) {
+    if (lines[i].trim() === '0' && lines[i+1] && lines[i+1].trim() === 'LAYER') {
+      // Read layer record
+      var layName = null, colorIdx = 7, lt = 'Continuous', lw = 0.25;
+      var j = i+2;
+      while (j < Math.min(i+40, lines.length-1)) {
+        var code = parseInt(lines[j].trim());
+        var val  = (lines[j+1]||'').trim();
+        if (code === 2)  layName  = val;
+        else if (code === 62) colorIdx = Math.abs(parseInt(val)||7);
+        else if (code === 6)  lt = val;
+        else if (code === 370) lw = (parseInt(val)||25)/100;
+        else if (code === 0)  break;
+        j += 2;
+      }
+      if (layName && !layersFromFile[layName]) {
+        layersFromFile[layName] = { name:layName, colorIdx:colorIdx, lt:lt, lw:lw };
+      }
+    }
+    i++;
+  }
+
+  // Ensure all extracted layers exist in ST.layers
+  var maxId = Math.max.apply(null, ST.layers.map(function(l){return l.id;}), [0]);
+  Object.values(layersFromFile).forEach(function(ld) {
+    if (!ST.layers.find(function(l){return l.name===ld.name;})) {
+      maxId++;
+      ST.layers.push({
+        id: maxId, name: ld.name,
+        color: aciToHexFull(ld.colorIdx),
+        colorIdx: ld.colorIdx,
+        linetype: ld.lt, lw: ld.lw,
+        vis: true, frz: false, lock: false, dis: false
+      });
+    }
+  });
+
+  // Ensure layer names are set on entities after import
+  try {
+    _origParseDXF && _origParseDXF(txt, filename);
+  } catch(e) {
+    toast('DXF parse error: '+e.message, 'err');
+    console.error(e);
+  }
+
+  // Re-render
+  renderLayers && renderLayers();
+  invalidateSpatialIndex && invalidateSpatialIndex();
+  render && render();
+
+  var layCount = Object.keys(layersFromFile).length;
+  toast('Imported: ' + ST.entities.length + ' entities · ' + layCount + ' layers', 'ok');
+};
+
+function aciToHexFull(idx) {
+  var ACI = {
+    1:'#FF0000',2:'#FFFF00',3:'#00FF00',4:'#00FFFF',5:'#0000FF',6:'#FF00FF',
+    7:'#FFFFFF',8:'#808080',9:'#C0C0C0',10:'#FF4000',11:'#FF7F00',12:'#FFBF00',
+    14:'#BFFF00',30:'#FF8040',32:'#804000',34:'#FFC080',40:'#808000',50:'#408000',
+    51:'#BFFF00',70:'#00BF40',90:'#00BFBF',110:'#0080FF',130:'#4040FF',
+    140:'#8000FF',150:'#FF00BF',170:'#FF0080',200:'#FF8080',210:'#80FF80',
+    220:'#8080FF',230:'#FF80FF',240:'#FFFF80',250:'#404040',251:'#606060',
+    252:'#808080',253:'#A0A0A0',254:'#C0C0C0',255:'#E0E0E0',256:'#1FA8D9',
+  };
+  if (ACI[idx]) return ACI[idx];
+  var h=(idx*137.5)%360, r=Math.round(Math.abs(Math.sin(h/180*Math.PI)*200+55));
+  var g2=Math.round(Math.abs(Math.sin((h+120)/180*Math.PI)*200+55));
+  var b=Math.round(Math.abs(Math.sin((h+240)/180*Math.PI)*200+55));
+  return '#'+r.toString(16).padStart(2,'0')+g2.toString(16).padStart(2,'0')+b.toString(16).padStart(2,'0');
+}
+
+
+// ═══════════════════════════════════════════════════════
+// 5. SAVE / REOPEN / EXPORT with color persistence
+// ═══════════════════════════════════════════════════════
+window.saveProject = function() {
+  var project = {
+    version: '3.0',
+    saved: new Date().toISOString(),
+    name: ST.projectName || 'Untitled',
+    units: ST.units || 'mm',
+    bgColor: ST.bgColor || '#060E1A',
+    entities: ST.entities,
+    layers: ST.layers,
+    blocks: window._blockLibrary || {},
+    pan: ST.pan, zoom: ST.zoom,
+    georef: window._georef || null,
+    surveyPts: ST.surveyPts || [],
+  };
+  var json = JSON.stringify(project, function(k,v){
+    if (k === '_imgObj' || k === '_domEl') return undefined;
+    return v;
+  }, 2);
+  var blob = new Blob([json], {type:'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (ST.projectName||'drawing') + '.strata';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Project saved: ' + (ST.projectName||'drawing') + '.strata', 'ok');
+};
+
+window.loadProject = function(file) {
+  if (!file) { document.getElementById('_projectFileInput') && document.getElementById('_projectFileInput').click(); return; }
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      var project = JSON.parse(ev.target.result);
+      pushUndo && pushUndo('load project');
+
+      ST.entities  = project.entities || [];
+      ST.layers    = project.layers   || [{id:1,name:'0',color:'#ffffff',vis:true,frz:false,lock:false}];
+      ST.units     = project.units    || 'mm';
+      ST.bgColor   = project.bgColor  || '#060E1A';
+      ST.pan       = project.pan      || {x:0,y:0};
+      ST.zoom      = project.zoom     || 1;
+      ST.projectName = project.name   || file.name.replace('.strata','');
+      ST.surveyPts = project.surveyPts|| [];
+
+      if (project.blocks) window._blockLibrary = project.blocks;
+      if (project.georef) window._georef = project.georef;
+
+      // Restore _eid
+      var maxId = 0;
+      ST.entities.forEach(function(e){ if(e._id>maxId) maxId=e._id; });
+      ST._eid = maxId;
+
+      invalidateSpatialIndex && invalidateSpatialIndex();
+      renderLayers && renderLayers();
+      refreshBlocksPanel && refreshBlocksPanel();
+      render && render();
+      setTimeout(zoomExt, 150);
+
+      toast('Project loaded: ' + (project.name||file.name) + ' · ' + ST.entities.length + ' entities', 'ok');
+    } catch(e) {
+      toast('Load error: ' + e.message, 'err');
+    }
+  };
+  reader.readAsText(file);
+};
+
+// Auto-save to localStorage every 2 minutes
+setInterval(function() {
+  try {
+    var snap = {
+      entities: ST.entities.slice(0, 5000), // limit for localStorage
+      layers: ST.layers, units: ST.units,
+      bgColor: ST.bgColor, pan: ST.pan, zoom: ST.zoom,
+      saved: Date.now()
+    };
+    localStorage.setItem('strata_autosave', JSON.stringify(snap));
+  } catch(e) {}
+}, 120000);
+
+// Restore from autosave on load
+(function checkAutosave() {
+  var as = localStorage.getItem('strata_autosave');
+  if (!as) return;
+  try {
+    var snap = JSON.parse(as);
+    var age = (Date.now() - (snap.saved||0)) / 60000;
+    if (age < 60 && snap.entities && snap.entities.length > 0) {
+      setTimeout(function() {
+        if (ST.entities.length === 0 && confirm(
+          'Restore autosave from ' + Math.round(age) + ' minutes ago?\n(' + snap.entities.length + ' entities)'
+        )) {
+          ST.entities = snap.entities; ST.layers = snap.layers||ST.layers;
+          ST.units=snap.units||'mm'; ST.bgColor=snap.bgColor||'#060E1A';
+          var mx=0; snap.entities.forEach(function(e){if(e._id>mx)mx=e._id;});
+          ST._eid=mx;
+          invalidateSpatialIndex&&invalidateSpatialIndex();
+          renderLayers&&renderLayers(); render&&render();
+          setTimeout(zoomExt,200);
+          toast('Autosave restored','ok');
+        }
+      }, 1500);
+    }
+  } catch(e){}
+})();
+
+// File input for loading
+(function addFileInputs() {
+  if (document.getElementById('_projectFileInput')) return;
+  var pi = document.createElement('input');
+  pi.type='file'; pi.id='_projectFileInput'; pi.accept='.strata';
+  pi.style.display='none';
+  pi.addEventListener('change', function(){ if(this.files[0]) loadProject(this.files[0]); });
+  document.body.appendChild(pi);
+})();
+
+// Wire File menu
+if (typeof CAD_ACTIONS !== 'undefined') {
+  CAD_ACTIONS.save    = function(){ saveProject(); };
+  CAD_ACTIONS.open    = function(){ document.getElementById('_projectFileInput').click(); };
+  CAD_ACTIONS.saveas  = function(){ saveProject(); };
+  CAD_ACTIONS.new     = function(){
+    if (!ST.entities.length || confirm('New drawing? Unsaved work will be lost.')) {
+      saveProject(); // auto-save first
+      ST.entities=[]; ST.layers=[{id:1,name:'0',color:'#1FA8D9',vis:true,frz:false,lock:false}];
+      ST._eid=0; ST.pan={x:0,y:0}; ST.zoom=1; window._blockLibrary={};
+      invalidateSpatialIndex&&invalidateSpatialIndex(); renderLayers&&renderLayers(); render&&render();
+      toast('New drawing','ok');
+    }
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+// 6. MORE CIVIL 3D / AUTOCAD TOOLS
+// ═══════════════════════════════════════════════════════
+if (typeof CAD_COMMANDS !== 'undefined') {
+  Object.assign(CAD_COMMANDS, {
+    // Polygon
+    'POL':'polygon','POLYGON':'polygon',
+    'REGPOLY':'regularpolygon','REGULARPOLYGON':'regularpolygon',
+    // Donut
+    'DONUT':'donut','DO':'donut',
+    // Wipeout
+    'WIPEOUT':'wipeout','WI':'wipeout',
+    // Multiline
+    'MLINE':'mline','ML':'mline',
+    // Construction line
+    'XLINE':'xline','XL':'xline',
+    // Ray
+    'RAY':'ray',
+    // Table
+    'TABLE':'table','TB':'table',
+    // Field
+    'FIELD':'field',
+    // DDEDIT
+    'DDEDIT':'textedit','ED':'textedit',
+    // Snap settings
+    'OSNAP':'osnapset','OS':'osnapset',
+    // Overkill / cleanup
+    'OVERKILL':'overkill',
+    // Express tools
+    'FLATTEN':'flatten',
+    'NCOPY':'copy',
+    'MOCORO':'mocoro',
+    // Civil survey
+    'SURVEY':'survey','SV':'survey',
+    'TRAVERSE':'traverse','TR2':'traverse',
+    'COGO':'cogo',
+    // Measure
+    'MEASUREGEOM':'measure-a','MG':'measure-a',
+    'DIST':'measure-d',
+    // Annotation
+    'MLEADER':'leader','MLD':'leader',
+    'QDIM':'dim-lin',
+    'DIMBREAK':'dimbreak',
+    // View
+    'NAVSWHEEL':'pan',
+    'NAVVCUBE':'pan',
+    'VIEWPORTS':'pan',
+    // Data
+    'ATTEXT':'csv',
+    'DATAEXTRACTION':'export',
+    // File
+    'SAVE':'save','QS':'save','QSAVE':'save',
+    'SAVEAS':'save','SA':'save',
+    'OPEN':'open',
+    'NEW':'new','QNEW':'new',
+    // Layer
+    'LAYCUR':'laycur',
+    'LAYISO':'layiso',
+    'LAYUNISO':'layuniso',
+    'LAYMCH':'laymatch',
+    'LAYMRG':'laymerge',
+    'LAYVPI':'layvpi',
+    // Grips
+    'GRIPS':'grips',
+  });
+}
+
+if (typeof CAD_ACTIONS !== 'undefined') {
+  Object.assign(CAD_ACTIONS, {
+    polygon:      function(){ T('polygon'); },
+    regularpolygon:function(){ var s=prompt('Number of sides:','6'); if(s&&!isNaN(s)){ST.polySides=parseInt(s); T('regularpolygon');} },
+    donut:        function(){ var r=prompt('Donut outer radius:','10'); if(r){ var ri=prompt('Inner radius:',parseFloat(r)*0.5); if(ri){ pushUndo&&pushUndo(); ST.entities.push({_id:++ST._eid,type:'circle',cx:0,cy:0,r:parseFloat(r),layer:ST.curLayer,selected:false}); ST.entities.push({_id:++ST._eid,type:'circle',cx:0,cy:0,r:parseFloat(ri),layer:ST.curLayer,selected:false}); render(); T('move'); toast('Donut — move to position','ok'); }} },
+    wipeout:      function(){ T('rect'); toast('WIPEOUT — draw rectangle to wipe area','ok'); },
+    mline:        function(){ T('polyline'); toast('MLINE — draw parallel polyline (simplified)','ok'); },
+    xline:        function(){ T('xline'); },
+    ray:          function(){ T('ray'); },
+    table:        function(){ openAttrTableDialog&&openAttrTableDialog(); },
+    textedit:     function(){ var s=ST.entities.filter(function(e){return e.selected&&e.type==='text';}); if(!s.length){toast('Select text first','warn');return;} var v=prompt('Edit text:',s[0].text); if(v!==null){pushUndo&&pushUndo(); s[0].text=v; render();} },
+    osnapset:     function(){ openSnapSettings&&openSnapSettings(); },
+    overkill:     function(){
+      pushUndo&&pushUndo();
+      var seen=new Set();
+      ST.entities=ST.entities.filter(function(e){
+        var k=e.type+','+JSON.stringify(e.x1||e.cx||e.x||'')+','+JSON.stringify(e.y1||e.cy||e.y||'');
+        if(seen.has(k)) return false; seen.add(k); return true;
+      });
+      invalidateSpatialIndex&&invalidateSpatialIndex(); render&&render();
+      toast('OVERKILL: duplicates removed','ok');
+    },
+    flatten:      function(){ pushUndo&&pushUndo(); ST.entities.forEach(function(e){if(e.z1)e.z1=e.z2=0; if(e.cz)e.cz=0;}); render&&render(); toast('FLATTEN: Z=0','ok'); },
+    mocoro:       function(){ toast('MOCORO — Move/Copy/Rotate/Scale: select objects','ok'); setMsg('Select objects, then use Move/Copy/Rotate/Scale handles'); },
+    survey:       function(){ showTab&&showTab('survey'); openMo('moCsvImport'); },
+    traverse:     function(){ openDwgSettingsDialog&&openDwgSettingsDialog(); toast('TRAVERSE — use Survey panel for traverse computation','ok'); },
+    cogo:         function(){ setMsg('COGO — type @dist<bearing for coordinate geometry input'); toast('COGO active — enter @distance<bearing','ok'); },
+    dimbreak:     function(){ toast('DIMBREAK — click dimension to add break','ok'); },
+    grips:        function(){ ST.grips=!ST.grips; toast('Grips '+(ST.grips?'ON':'OFF'),'ok'); },
+    laycur:       function(){ var s=ST.entities.filter(function(e){return e.selected;}); if(!s.length){toast('Select object first','warn');return;} var l=ST.layers.find(function(la){return la.id===s[0].layer;}); if(l){ST.curLayer=l.id; toast('Current layer: '+l.name,'ok');} },
+    layiso:       function(){ var s=ST.entities.filter(function(e){return e.selected;}); if(!s.length){toast('Select objects','warn');return;} var ids=new Set(s.map(function(e){return e.layer;})); ST.layers.forEach(function(l){l._preiso=l.vis; l.vis=ids.has(l.id);}); renderLayers&&renderLayers(); render&&render(); toast('Layer isolated','ok'); },
+    layuniso:     function(){ ST.layers.forEach(function(l){if(l._preiso!==undefined){l.vis=l._preiso;delete l._preiso;}}); renderLayers&&renderLayers(); render&&render(); toast('Layer unisolated','ok'); },
+    laymatch:     function(){ var s=ST.entities.filter(function(e){return e.selected;}); if(s.length<2){toast('Select source + targets','warn');return;} var srcLay=s[0].layer; pushUndo&&pushUndo(); s.slice(1).forEach(function(e){e.layer=srcLay;}); render&&render(); toast('Layer matched','ok'); },
+    laymerge:     function(){ toast('LAYMERGE — use Layer Manager to merge layers','ok'); },
+    layvpi:       function(){ toast('LAYVPI — viewport layer isolation (2D mode)','ok'); },
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// 7. RENDER HOOK — show gizmo + fix polygon ghost
+// ═══════════════════════════════════════════════════════
+var _baseRender2 = window.render;
+window.render = function() {
+  if (typeof _baseRender2 === 'function') _baseRender2();
+
+  // [polygon ghost handled inside _doRender RAF]
+
+  // Show gizmo when entities selected (not during active drawing)
+  if (!ST.tool || ST.tool === 'select') {
+    var sels = ST.entities ? ST.entities.filter(function(e){return e.selected;}) : [];
+    if (sels.length > 0) {
+      setTimeout(showRotateScaleGizmo, 0);
+    } else {
+      hideRotateScaleGizmo && hideRotateScaleGizmo();
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+// 8. ENHANCED KEYBOARD — Escape clears polygon
+// ═══════════════════════════════════════════════════════
+document.addEventListener('keydown', function(ev) {
+  if (ev.key === 'Escape') {
+    if (ST.tool === 'polygon' || ST.tool === 'regularpolygon') {
+      ST.tool = null; ST._polyPts = []; ST.ghostEnt = null;
+      render && render();
+      setMsg && setMsg('ESC — polygon cancelled');
+    }
+    hideRotateScaleGizmo && hideRotateScaleGizmo();
+  }
+  if (ev.key === 'Enter' && ST.tool === 'polygon') {
+    if (ST._polyPts && ST._polyPts.length >= 3) _commitPolygon();
+  }
+  // Delete selected
+  if ((ev.key === 'Delete' || ev.key === 'Backspace') && document.activeElement?.tagName !== 'INPUT') {
+    ev.preventDefault();
+    if (ST.entities && ST.entities.some(function(e){return e.selected;})) {
+      pushUndo && pushUndo('delete');
+      ST.entities = ST.entities.filter(function(e){return !e.selected;});
+      invalidateSpatialIndex && invalidateSpatialIndex();
+      hideRotateScaleGizmo && hideRotateScaleGizmo();
+      render && render();
+    }
+  }
+}, false);
+
+// ═══════════════════════════════════════════════════════
+// 9. FILE MENU — wire save/load buttons
+// ═══════════════════════════════════════════════════════
+setTimeout(function() {
+  // Patch File menu items
+  document.querySelectorAll('.mb-btn').forEach(function(btn) {
+    var txt = btn.textContent.trim().toLowerCase();
+    if (txt.includes('save') && !btn._patched) {
+      btn._patched = true;
+      btn.addEventListener('click', function(){ saveProject(); });
+    }
+  });
+
+  // Add keyboard shortcuts
+  document.addEventListener('keydown', function(ev) {
+    if (ev.ctrlKey && ev.key === 's') { ev.preventDefault(); saveProject(); }
+    if (ev.ctrlKey && ev.key === 'o') { ev.preventDefault(); document.getElementById('_projectFileInput').click(); }
+    if (ev.ctrlKey && ev.key === 'n') { ev.preventDefault(); CAD_ACTIONS.new && CAD_ACTIONS.new(); }
+    if (ev.ctrlKey && ev.key === 'z') { ev.preventDefault(); undo && undo(); }
+    if (ev.ctrlKey && ev.key === 'y') { ev.preventDefault(); redo && redo(); }
+  }, false);
+
+  console.log('[StrataFix3] Polygon ✓  Gizmo ✓  SelectBox ✓  LayerImport ✓  Save/Load ✓  Tools ✓');
+}, 500);
+
+})(); // end StrataFix3
+
+
+// ── POLYLINE GRIP EDITING — click vertex handle to move it ─────────
+(function setupGripEdit() {
+  var _gripEnt   = null;
+  var _gripIdx   = null;
+  var _gripDragging = false;
+  var _gripOverlay = null;
+
+  // After render, draw grip squares on selected polylines
+  var _baseRender3 = window.render;
+  window.render = function() {
+    if (typeof _baseRender3 === 'function') _baseRender3();
+    drawGrips();
+  };
+
+  function drawGrips() {
+    var sels = ST.entities.filter(function(e){return e.selected&&e.pts&&e.pts.length;});
+    var cad2 = document.getElementById('cad');
+    if (!sels.length || !cad2) { clearGripOverlay(); return; }
+
+    ensureGripOverlay(cad2);
+    var overlay = document.getElementById('gripOverlay');
+    if (!overlay) return;
+    overlay.innerHTML = '';
+
+    sels.forEach(function(ent) {
+      ent.pts.forEach(function(pt, idx) {
+        var ss = w2s(pt.x, pt.y);
+        var grip = document.createElement('div');
+        grip.style.cssText = 'position:absolute;width:10px;height:10px;background:#060E1A;'
+          +'border:2px solid #1FA8D9;cursor:move;box-sizing:border-box;'
+          +'left:'+(ss.x-5)+'px;top:'+(ss.y-5)+'px;z-index:510';
+        grip.title = 'Vertex '+idx+' ('+pt.x.toFixed(3)+', '+pt.y.toFixed(3)+')';
+
+        grip.addEventListener('mouseover', function(){this.style.background='#1FA8D9';});
+        grip.addEventListener('mouseout',  function(){this.style.background='#060E1A';});
+
+        grip.addEventListener('mousedown', function(ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          _gripEnt = ent; _gripIdx = idx; _gripDragging = true;
+          pushUndo && pushUndo('grip edit');
+          document.body.style.cursor = 'move';
+
+          function onMove(e2) {
+            if (!_gripDragging) return;
+            var r2 = cad2.getBoundingClientRect();
+            var wp = typeof snapPoint==='function'
+              ? snapPoint(e2.clientX-r2.left, e2.clientY-r2.top)
+              : s2w(e2.clientX-r2.left, e2.clientY-r2.top);
+            _gripEnt.pts[_gripIdx] = {x: wp.x, y: wp.y};
+            invalidateSpatialIndex && invalidateSpatialIndex();
+            render();
+          }
+          function onUp() {
+            _gripDragging = false; _gripEnt = null;
+            document.body.style.cursor = '';
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+          }
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp);
+        });
+
+        overlay.appendChild(grip);
+      });
+    });
+  }
+
+  function ensureGripOverlay(cad2) {
+    if (document.getElementById('gripOverlay')) return;
+    var ov = document.createElement('div');
+    ov.id = 'gripOverlay';
+    ov.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:505';
+    var vp = cad2.parentElement || document.getElementById('vp');
+    if (vp) {
+      vp.appendChild(ov);
+      // Make grip children have pointer-events
+      var style = document.createElement('style');
+      style.textContent = '#gripOverlay > div { pointer-events:all; }';
+      document.head.appendChild(style);
+    }
+  }
+
+  function clearGripOverlay() {
+    var ov = document.getElementById('gripOverlay');
+    if (ov) ov.innerHTML = '';
+  }
+})();
 
 </script>
 
