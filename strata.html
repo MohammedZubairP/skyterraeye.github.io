@@ -4564,7 +4564,9 @@ function parseDXF(txt, filename) {
     return;
   }
 
-  const { entities, layers, imageDefs, dxfExtents, isCivil, debug } = result;
+  const { entities, layers, imageDefs, dxfExtents, isCivil, debug, blocks } = result;
+  const xrefNames = []; // XREF detection — populated below if XREFs found
+  const missingXrefs = [];
 
   if (!entities.length && !imageDefs.length) {
     toast(
@@ -4607,10 +4609,15 @@ function parseDXF(txt, filename) {
   // Assign correct _eid counter so new entities don't collide
   ST._eid = Math.max(ST._eid, ...entities.map(e => e._id || 0));
 
-  // Store extents and image defs
+  // Store extents, image defs, blocks
   ST.dxfExtents  = dxfExtents;
   ST.imgDefs     = imageDefs;
   ST.imgOverlays = [];
+  // Import blocks into block library
+  if(blocks && typeof blocks === 'object' && window._blockLibrary) {
+    Object.assign(window._blockLibrary, blocks);
+    if(typeof refreshBlocksPanel === 'function') setTimeout(refreshBlocksPanel, 200);
+  }
 
   renderLayers();
   setTimeout(() => zoomExt(), 150);
@@ -17879,6 +17886,884 @@ setTimeout(function() {
     if (ov) ov.innerHTML = '';
   }
 })();
+
+
+// ████████████████████████████████████████████████████████████████
+//  STRATA 3D ENGINE — Full X/Y/Z support
+//  Orthographic + Perspective projection, Orbit controls,
+//  3D primitives, Z-elevation for all existing entities
+// ████████████████████████████████████████████████████████████████
+(function Strata3DEngine() {
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+//  3D STATE
+// ═══════════════════════════════════════════════════════════════
+window.ST3 = {
+  enabled:     false,           // 3D mode on/off
+  projection:  'perspective',   // 'perspective' | 'isometric' | 'top' | 'front' | 'right'
+  // Camera
+  eye:    {x: 800, y: -800, z: 600},
+  target: {x: 0,   y: 0,    z: 0},
+  up:     {x: 0,   y: 0,    z: 1},
+  fov:    45,                   // degrees
+  near:   0.1,
+  far:    1000000,
+  // Orbit state
+  _orbitDrag: false,
+  _orbitLast: {x:0, y:0},
+  _theta: Math.PI/4,            // horizontal angle
+  _phi:   Math.PI/4,            // vertical angle
+  _radius: 1200,                // distance from target
+  // Elevation
+  currentZ: 0,                  // current Z elevation for new entities
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  MATH UTILITIES
+// ═══════════════════════════════════════════════════════════════
+var M = {
+  // 4x4 matrix as flat 16-element array (column-major)
+  identity: function() {
+    return [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
+  },
+  mul: function(a, b) {
+    var r = [];
+    for(var row=0;row<4;row++) for(var col=0;col<4;col++) {
+      r[col*4+row] = a[row]*b[col*4]+a[4+row]*b[col*4+1]+a[8+row]*b[col*4+2]+a[12+row]*b[col*4+3];
+    }
+    return r;
+  },
+  // Transform point
+  xform: function(m, v) {
+    var x=m[0]*v.x+m[4]*v.y+m[8]*v.z+m[12];
+    var y=m[1]*v.x+m[5]*v.y+m[9]*v.z+m[13];
+    var z=m[2]*v.x+m[6]*v.y+m[10]*v.z+m[14];
+    var w=m[3]*v.x+m[7]*v.y+m[11]*v.z+m[15];
+    if(w!==0){x/=w;y/=w;z/=w;}
+    return {x:x,y:y,z:z};
+  },
+  lookAt: function(eye, target, up) {
+    var f = normalize(sub3(target, eye));
+    var r = normalize(cross3(f, up));
+    var u = cross3(r, f);
+    return [
+      r.x,  u.x,  -f.x, 0,
+      r.y,  u.y,  -f.y, 0,
+      r.z,  u.z,  -f.z, 0,
+      -dot3(r,eye), -dot3(u,eye), dot3(f,eye), 1
+    ];
+  },
+  perspective: function(fovY, aspect, near, far) {
+    var f = 1/Math.tan(fovY*Math.PI/360);
+    var nf = 1/(near-far);
+    return [
+      f/aspect, 0, 0, 0,
+      0, f, 0, 0,
+      0, 0, (far+near)*nf, -1,
+      0, 0, 2*far*near*nf, 0
+    ];
+  },
+  ortho: function(l,r,b,t,n,f) {
+    return [
+      2/(r-l), 0, 0, 0,
+      0, 2/(t-b), 0, 0,
+      0, 0, -2/(f-n), 0,
+      -(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1
+    ];
+  }
+};
+
+function normalize(v){var l=Math.hypot(v.x,v.y,v.z)||1;return{x:v.x/l,y:v.y/l,z:v.z/l};}
+function sub3(a,b){return{x:a.x-b.x,y:a.y-b.y,z:a.z-b.z};}
+function add3(a,b){return{x:a.x+b.x,y:a.y+b.y,z:a.z+b.z};}
+function scale3(v,s){return{x:v.x*s,y:v.y*s,z:v.z*s};}
+function dot3(a,b){return a.x*b.x+a.y*b.y+a.z*b.z;}
+function cross3(a,b){return{x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x};}
+function len3(v){return Math.hypot(v.x,v.y,v.z);}
+
+// ═══════════════════════════════════════════════════════════════
+//  PROJECTION: 3D world → 2D screen
+// ═══════════════════════════════════════════════════════════════
+function getViewProjection() {
+  var canvas = document.getElementById('cad');
+  if(!canvas) return {view:M.identity(), proj:M.identity()};
+  var W = canvas.width, H = canvas.height;
+
+  // Update eye from orbit angles
+  var t = ST3._theta, p = ST3._phi, r = ST3._radius;
+  ST3.eye = {
+    x: ST3.target.x + r*Math.sin(p)*Math.cos(t),
+    y: ST3.target.y + r*Math.sin(p)*Math.sin(t),
+    z: ST3.target.z + r*Math.cos(p)
+  };
+
+  var view = M.lookAt(ST3.eye, ST3.target, ST3.up);
+
+  var proj;
+  if(ST3.projection==='perspective') {
+    proj = M.perspective(ST3.fov, W/H, ST3.near, ST3.far);
+  } else {
+    // Orthographic
+    var s = ST3._radius / 200;
+    proj = M.ortho(-W/2*s, W/2*s, -H/2*s, H/2*s, -ST3.far, ST3.far);
+  }
+  return {view:view, proj:proj, W:W, H:H};
+}
+
+// Project a 3D world point to 2D canvas coords
+window.w2s3 = function(x, y, z) {
+  if(!ST3.enabled) {
+    // Fall back to 2D
+    return {x: x*ST.zoom+ST.pan.x, y: -y*ST.zoom+ST.pan.y, z: 0, visible: true};
+  }
+  var vp = getViewProjection();
+  var v = M.xform(vp.view, {x:x,y:y,z:z||0});
+  var p = M.xform(vp.proj, v);
+  // Clip check
+  if(p.z < -1 || p.z > 1) return {x:0, y:0, z:p.z, visible:false};
+  return {
+    x: (p.x+1)*0.5*vp.W,
+    y: (1-p.y)*0.5*vp.H,
+    z: p.z,
+    visible: true
+  };
+};
+
+// Override w2s to use 3D when enabled
+var _orig_w2s = window.w2s;
+window.w2s = function(wx, wy, wz) {
+  if(ST3.enabled) return w2s3(wx, wy, wz||0);
+  return _orig_w2s(wx, wy);
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  3D RENDER — draws all entities in 3D
+// ═══════════════════════════════════════════════════════════════
+function draw3DGrid(ctx, W, H) {
+  var gridSize = 1000, step = 100;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(31,168,217,.12)';
+  ctx.lineWidth = 0.5;
+
+  // XY plane grid
+  for(var gx=-gridSize; gx<=gridSize; gx+=step) {
+    var a=w2s3(gx,-gridSize,0), b=w2s3(gx,gridSize,0);
+    if(a.visible&&b.visible){ ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke(); }
+  }
+  for(var gy=-gridSize; gy<=gridSize; gy+=step) {
+    var a2=w2s3(-gridSize,gy,0), b2=w2s3(gridSize,gy,0);
+    if(a2.visible&&b2.visible){ ctx.beginPath();ctx.moveTo(a2.x,a2.y);ctx.lineTo(b2.x,b2.y);ctx.stroke(); }
+  }
+
+  // Axis lines
+  var O=w2s3(0,0,0), X=w2s3(200,0,0), Y=w2s3(0,200,0), Z=w2s3(0,0,200);
+  var axLen=200;
+  if(O.visible) {
+    // X axis (red)
+    if(X.visible){ ctx.strokeStyle='rgba(255,80,80,.9)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(O.x,O.y);ctx.lineTo(X.x,X.y);ctx.stroke();
+      ctx.fillStyle='rgba(255,80,80,.9)';ctx.font='bold 11px IBM Plex Mono,monospace';ctx.fillText('X',X.x+5,X.y-5); }
+    // Y axis (green)
+    if(Y.visible){ ctx.strokeStyle='rgba(80,255,80,.9)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(O.x,O.y);ctx.lineTo(Y.x,Y.y);ctx.stroke();
+      ctx.fillStyle='rgba(80,255,80,.9)';ctx.fillText('Y',Y.x+5,Y.y-5); }
+    // Z axis (blue)
+    if(Z.visible){ ctx.strokeStyle='rgba(80,160,255,.9)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(O.x,O.y);ctx.lineTo(Z.x,Z.y);ctx.stroke();
+      ctx.fillStyle='rgba(80,160,255,.9)';ctx.fillText('Z',Z.x+5,Z.y-5); }
+    // Origin dot
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(O.x,O.y,3,0,Math.PI*2);ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawEntity3D(ctx, e) {
+  var lay = ST.layers.find(function(l){return l.id===e.layer;});
+  var col = e.selected ? '#F5BE18' : (e.color||(lay?lay.color:'#1FA8D9'));
+  ctx.strokeStyle = col;
+  ctx.fillStyle   = col;
+  ctx.lineWidth   = e.selected ? 2 : 1.2;
+  ctx.setLineDash([]);
+
+  var z1=e.z1||e.z||0, z2=e.z2||e.z||0, cz=e.cz||0;
+
+  switch(e.type) {
+    case 'line': {
+      var a=w2s3(e.x1,e.y1,z1), b=w2s3(e.x2,e.y2,z2);
+      if(!a.visible||!b.visible) return;
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+      break;
+    }
+    case 'circle': {
+      // Draw as ellipse in 3D (approximate)
+      var segs=32, cx2=e.cx, cy2=e.cy, r=e.r;
+      ctx.beginPath();
+      var started=false;
+      for(var s=0;s<=segs;s++){
+        var a3=s/segs*Math.PI*2;
+        var px=cx2+r*Math.cos(a3), py=cy2+r*Math.sin(a3);
+        var sp=w2s3(px,py,cz);
+        if(!sp.visible){started=false;continue;}
+        started?ctx.lineTo(sp.x,sp.y):ctx.moveTo(sp.x,sp.y);
+        started=true;
+      }
+      ctx.stroke();
+      break;
+    }
+    case 'polyline': {
+      if(!e.pts||e.pts.length<2) return;
+      ctx.beginPath();
+      var ps=false;
+      e.pts.forEach(function(p,i){
+        var pz=p.z||e.z||0;
+        var sp=w2s3(p.x,p.y,pz);
+        if(!sp.visible){ps=false;return;}
+        ps?ctx.lineTo(sp.x,sp.y):ctx.moveTo(sp.x,sp.y);
+        ps=true;
+      });
+      if(e.closed){ctx.closePath();if(e.fill){ctx.globalAlpha=0.1;ctx.fill();ctx.globalAlpha=1;}}
+      ctx.stroke();
+      break;
+    }
+    case 'point': {
+      var sp2=w2s3(e.x,e.y,e.z||0);
+      if(!sp2.visible) return;
+      ctx.beginPath();ctx.arc(sp2.x,sp2.y,3,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.moveTo(sp2.x-6,sp2.y);ctx.lineTo(sp2.x+6,sp2.y);
+      ctx.moveTo(sp2.x,sp2.y-6);ctx.lineTo(sp2.x,sp2.y+6);ctx.stroke();
+      break;
+    }
+    case 'text': {
+      var sp3=w2s3(e.x,e.y,e.z||0);
+      if(!sp3.visible) return;
+      ctx.font=(e.height||10)*ST.zoom*0.5+'px IBM Plex Mono,monospace';
+      ctx.fillText(e.text||'',sp3.x,sp3.y);
+      break;
+    }
+    case 'box3d': case 'box': {
+      draw3DBox(ctx, e, col);
+      break;
+    }
+    case 'cylinder3d': {
+      draw3DCylinder(ctx, e, col);
+      break;
+    }
+    case 'sphere3d': {
+      draw3DSphere(ctx, e, col);
+      break;
+    }
+    case 'wedge3d': {
+      draw3DWedge(ctx, e, col);
+      break;
+    }
+    case 'cone3d': {
+      draw3DCone(ctx, e, col);
+      break;
+    }
+    case 'roof3d': {
+      draw3DRoof(ctx, e, col);
+      break;
+    }
+    default:
+      // Try generic 2D render as fallback
+      if(typeof drawEntity==='function') {
+        try { drawEntity(e, false); } catch(er){}
+      }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  3D PRIMITIVE RENDERERS
+// ═══════════════════════════════════════════════════════════════
+function drawBox3D_faces(faces, ctx, col, selCol) {
+  // Sort faces by average Z depth (painter's algorithm)
+  faces.sort(function(a,b){ return b.avgZ - a.avgZ; });
+  faces.forEach(function(face) {
+    if(face.pts.some(function(p){return !p.visible;})) return;
+    ctx.save();
+    var brightness = face.bright;
+    ctx.fillStyle = hexBrightness(col, brightness);
+    ctx.strokeStyle = 'rgba(0,0,0,.3)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(face.pts[0].x, face.pts[0].y);
+    for(var i=1;i<face.pts.length;i++) ctx.lineTo(face.pts[i].x, face.pts[i].y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+
+function hexBrightness(col, factor) {
+  // Darken/lighten a hex color
+  var r=parseInt(col.slice(1,3),16)||80;
+  var g=parseInt(col.slice(3,5),16)||168;
+  var b=parseInt(col.slice(5,7),16)||217;
+  return 'rgba('+Math.round(r*factor)+','+Math.round(g*factor)+','+Math.round(b*factor)+',0.92)';
+}
+
+function draw3DBox(ctx, e, col) {
+  var x=e.x||0,y=e.y||0,z=e.z||0,w2=e.bw||100,d=e.bd||100,h2=e.bh||100;
+  // 8 corners
+  var c=[
+    w2s3(x,y,z),       w2s3(x+w2,y,z),  w2s3(x+w2,y+d,z),  w2s3(x,y+d,z),
+    w2s3(x,y,z+h2),    w2s3(x+w2,y,z+h2), w2s3(x+w2,y+d,z+h2), w2s3(x,y+d,z+h2)
+  ];
+  var faces=[
+    {pts:[c[0],c[1],c[2],c[3]], bright:0.6, avgZ:(c[0].z+c[1].z+c[2].z+c[3].z)/4},  // bottom
+    {pts:[c[4],c[5],c[6],c[7]], bright:1.0, avgZ:(c[4].z+c[5].z+c[6].z+c[7].z)/4},  // top
+    {pts:[c[0],c[1],c[5],c[4]], bright:0.7, avgZ:(c[0].z+c[1].z+c[5].z+c[4].z)/4},  // front
+    {pts:[c[2],c[3],c[7],c[6]], bright:0.5, avgZ:(c[2].z+c[3].z+c[7].z+c[6].z)/4},  // back
+    {pts:[c[1],c[2],c[6],c[5]], bright:0.8, avgZ:(c[1].z+c[2].z+c[6].z+c[5].z)/4},  // right
+    {pts:[c[0],c[3],c[7],c[4]], bright:0.65,avgZ:(c[0].z+c[3].z+c[7].z+c[4].z)/4},  // left
+  ];
+  if(e.selected){ctx.save();ctx.strokeStyle='#F5BE18';ctx.lineWidth=2;}
+  drawBox3D_faces(faces, ctx, col);
+  if(e.selected) ctx.restore();
+}
+
+function draw3DCylinder(ctx, e, col) {
+  var cx2=e.cx||0, cy2=e.cy||0, z3=e.z||0, r=e.r||50, h2=e.ch||100, segs=24;
+  // Draw vertical lines + top/bottom ellipses
+  ctx.save();
+  ctx.strokeStyle=col; ctx.lineWidth=1;
+  // Vertical edges at key angles
+  [0, Math.PI/2, Math.PI, 3*Math.PI/2].forEach(function(a){
+    var b1=w2s3(cx2+r*Math.cos(a),cy2+r*Math.sin(a),z3);
+    var b2=w2s3(cx2+r*Math.cos(a),cy2+r*Math.sin(a),z3+h2);
+    if(b1.visible&&b2.visible){ctx.beginPath();ctx.moveTo(b1.x,b1.y);ctx.lineTo(b2.x,b2.y);ctx.stroke();}
+  });
+  // Top + bottom ellipse
+  ['bottom','top'].forEach(function(side){
+    var cz2=side==='top'?z3+h2:z3;
+    ctx.beginPath();
+    var st=false;
+    for(var s=0;s<=segs;s++){
+      var a=s/segs*Math.PI*2;
+      var sp=w2s3(cx2+r*Math.cos(a),cy2+r*Math.sin(a),cz2);
+      if(!sp.visible){st=false;continue;}
+      st?ctx.lineTo(sp.x,sp.y):ctx.moveTo(sp.x,sp.y);
+      st=true;
+    }
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function draw3DSphere(ctx, e, col) {
+  var cx2=e.cx||0,cy2=e.cy||0,cz2=e.cz||e.z||0,r=e.r||50,segs=18;
+  ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=0.8;
+  // Latitude lines
+  for(var lat=0;lat<segs;lat++) {
+    var ph=lat/segs*Math.PI, sr=r*Math.sin(ph), sz=cz2+r*Math.cos(ph);
+    ctx.beginPath(); var st=false;
+    for(var lon=0;lon<=segs*2;lon++){
+      var a=lon/segs*Math.PI;
+      var sp=w2s3(cx2+sr*Math.cos(a),cy2+sr*Math.sin(a),sz);
+      if(!sp.visible){st=false;continue;}
+      st?ctx.lineTo(sp.x,sp.y):ctx.moveTo(sp.x,sp.y);st=true;
+    }
+    ctx.stroke();
+  }
+  // Longitude lines (4)
+  for(var lon2=0;lon2<4;lon2++){
+    var a2=lon2/4*Math.PI*2;
+    ctx.beginPath();var st2=false;
+    for(var lat2=0;lat2<=segs;lat2++){
+      var ph2=lat2/segs*Math.PI,sr2=r*Math.sin(ph2);
+      var sp2=w2s3(cx2+sr2*Math.cos(a2),cy2+sr2*Math.sin(a2),cz2+r*Math.cos(ph2));
+      if(!sp2.visible){st2=false;continue;}
+      st2?ctx.lineTo(sp2.x,sp2.y):ctx.moveTo(sp2.x,sp2.y);st2=true;
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function draw3DWedge(ctx, e, col) {
+  var x=e.x||0,y=e.y||0,z4=e.z||0,w2=e.bw||100,d=e.bd||100,h2=e.bh||100;
+  var c=[
+    w2s3(x,y,z4),w2s3(x+w2,y,z4),w2s3(x+w2,y+d,z4),w2s3(x,y+d,z4),  // base
+    w2s3(x,y,z4+h2),w2s3(x+w2,y,z4+h2)  // top edge (front only)
+  ];
+  var faces=[
+    {pts:[c[0],c[1],c[2],c[3]],bright:0.6,avgZ:(c[0].z+c[1].z+c[2].z+c[3].z)/4},
+    {pts:[c[0],c[1],c[5],c[4]],bright:0.8,avgZ:(c[0].z+c[1].z+c[5].z+c[4].z)/4},
+    {pts:[c[1],c[2],c[5]],     bright:0.7,avgZ:(c[1].z+c[2].z+c[5].z)/3},
+    {pts:[c[0],c[3],c[2],c[5]],bright:0.5,avgZ:(c[0].z+c[3].z+c[2].z+c[5].z)/4},
+    {pts:[c[3],c[0],c[4]],     bright:0.65,avgZ:(c[3].z+c[0].z+c[4].z)/3},
+  ];
+  drawBox3D_faces(faces, ctx, col);
+}
+
+function draw3DCone(ctx, e, col) {
+  var cx2=e.cx||0,cy2=e.cy||0,z5=e.z||0,r=e.r||50,h2=e.ch||100,segs=20;
+  var apex=w2s3(cx2,cy2,z5+h2);
+  ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=1;
+  // Base circle
+  ctx.beginPath();var st=false;
+  for(var s=0;s<=segs;s++){
+    var a=s/segs*Math.PI*2;
+    var sp=w2s3(cx2+r*Math.cos(a),cy2+r*Math.sin(a),z5);
+    if(!sp.visible){st=false;continue;}
+    st?ctx.lineTo(sp.x,sp.y):ctx.moveTo(sp.x,sp.y);st=true;
+  }
+  ctx.stroke();
+  // Lines to apex
+  if(apex.visible)[0,Math.PI/2,Math.PI,3*Math.PI/2].forEach(function(a){
+    var b=w2s3(cx2+r*Math.cos(a),cy2+r*Math.sin(a),z5);
+    if(b.visible){ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(apex.x,apex.y);ctx.stroke();}
+  });
+  ctx.restore();
+}
+
+function draw3DRoof(ctx, e, col) {
+  var x=e.x||0,y=e.y||0,z6=e.z||0,w2=e.bw||200,d=e.bd||150,h2=e.bh||80;
+  var ridge=[w2s3(x,y+d/2,z6+h2),w2s3(x+w2,y+d/2,z6+h2)];
+  var base=[w2s3(x,y,z6),w2s3(x+w2,y,z6),w2s3(x+w2,y+d,z6),w2s3(x,y+d,z6)];
+  var faces=[
+    {pts:[base[0],base[1],ridge[1],ridge[0]],bright:0.9,avgZ:(base[0].z+base[1].z+ridge[1].z+ridge[0].z)/4},
+    {pts:[base[2],base[3],ridge[0],ridge[1]],bright:0.65,avgZ:(base[2].z+base[3].z+ridge[0].z+ridge[1].z)/4},
+    {pts:[base[0],base[3],ridge[0]],bright:0.7,avgZ:(base[0].z+base[3].z+ridge[0].z)/3},
+    {pts:[base[1],base[2],ridge[1]],bright:0.7,avgZ:(base[1].z+base[2].z+ridge[1].z)/3},
+  ];
+  drawBox3D_faces(faces, ctx, col);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  OVERRIDE _doRender FOR 3D
+// ═══════════════════════════════════════════════════════════════
+var _origDoRender = window._doRender;
+window._doRender = function() {
+  if(!ST3.enabled) { _origDoRender && _origDoRender(); return; }
+
+  var canvas = document.getElementById('cad');
+  if(!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var t0 = performance.now();
+
+  // Clear
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = ST.bgColor||'#060E1A';
+  ctx.fillRect(0,0,W,H);
+
+  // 3D grid + axes
+  if(ST.grid) draw3DGrid(ctx, W, H);
+
+  // Draw all entities in 3D
+  var drawn=0, skipped=0;
+  ST.entities.forEach(function(e) {
+    var lay = ST.layers.find(function(l){return l.id===e.layer;});
+    if(lay && (lay.vis===false||lay.frz)) { skipped++; return; }
+    try { drawEntity3D(ctx, e); drawn++; } catch(err){}
+  });
+
+  // Polygon ghost in 3D
+  if(ST.tool==='polygon' && ST._polyPts && ST._polyPts.length>0) {
+    var pw = ST._polyCursorWP||{x:0,y:0};
+    var sw2 = w2s3(pw.x, pw.y, ST3.currentZ);
+    ctx.save();
+    ctx.strokeStyle='rgba(31,168,217,.9)'; ctx.lineWidth=1.8; ctx.setLineDash([5,3]);
+    ctx.beginPath();
+    ST._polyPts.forEach(function(p,i){
+      var pz=p.z||ST3.currentZ;
+      var s=w2s3(p.x,p.y,pz);
+      i===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y);
+    });
+    if(sw2.visible) ctx.lineTo(sw2.x,sw2.y);
+    ctx.stroke(); ctx.setLineDash([]);
+    if(sw2.visible){
+      ctx.fillStyle='rgba(78,255,145,.9)';
+      ctx.beginPath();ctx.arc(sw2.x,sw2.y,5,0,Math.PI*2);ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // View cube (mini orientation indicator)
+  drawViewCube(ctx, W, H);
+
+  // FPS
+  if(typeof updateFPSDisplay==='function') updateFPSDisplay(performance.now()-t0);
+};
+
+function drawViewCube(ctx, W, H) {
+  var s=50, mx=W-s-15, my=s+15;
+  ctx.save();
+  ctx.globalAlpha=0.7;
+  // Draw 3D cube indicator
+  var o=w2s3(0,0,0); // not used, use manual projection
+  var t2=ST3._theta, p2=ST3._phi;
+  // Simple cube wireframe
+  var r2=s*0.35;
+  var cs=r2*Math.sin(p2), cc=r2*Math.cos(p2);
+  var axes2=[
+    {dx:r2*Math.cos(t2), dy:-cs*Math.sin(t2)*0.6, label:'X', col:'#ff6060'},
+    {dx:r2*Math.sin(t2), dy:-cs*Math.cos(t2)*0.6, label:'Y', col:'#60ff60'},
+    {dx:0,               dy:-r2*Math.cos(p2)*0.8,   label:'Z', col:'#6060ff'},
+  ];
+  ctx.strokeStyle='rgba(255,255,255,.2)';
+  ctx.fillStyle='rgba(31,168,217,.1)';
+  ctx.fillRect(mx-s, my-s, s*2, s*2);
+  ctx.strokeRect(mx-s, my-s, s*2, s*2);
+  axes2.forEach(function(ax){
+    ctx.strokeStyle=ax.col; ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(mx+ax.dx,my+ax.dy);ctx.stroke();
+    ctx.fillStyle=ax.col; ctx.font='bold 9px IBM Plex Mono,monospace';
+    ctx.fillText(ax.label,mx+ax.dx+3,my+ax.dy+3);
+  });
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ORBIT CONTROLS — drag to rotate view
+// ═══════════════════════════════════════════════════════════════
+(function setupOrbitControls() {
+  var canvas = document.getElementById('cad');
+  if(!canvas) return;
+
+  // Right-click drag or middle-mouse = orbit
+  canvas.addEventListener('mousedown', function(ev) {
+    if(!ST3.enabled) return;
+    if(ev.button===2 || ev.button===1) {
+      ev.preventDefault();
+      ST3._orbitDrag = true;
+      ST3._orbitLast = {x:ev.clientX, y:ev.clientY};
+    }
+  }, false);
+
+  document.addEventListener('mousemove', function(ev) {
+    if(!ST3.enabled || !ST3._orbitDrag) return;
+    var dx = ev.clientX - ST3._orbitLast.x;
+    var dy = ev.clientY - ST3._orbitLast.y;
+    ST3._theta -= dx * 0.01;
+    ST3._phi   += dy * 0.01;
+    // Clamp phi
+    ST3._phi = Math.max(0.05, Math.min(Math.PI-0.05, ST3._phi));
+    ST3._orbitLast = {x:ev.clientX, y:ev.clientY};
+    render();
+  }, false);
+
+  document.addEventListener('mouseup', function(ev) {
+    if(ev.button===2||ev.button===1) ST3._orbitDrag=false;
+  }, false);
+
+  // Scroll = zoom
+  canvas.addEventListener('wheel', function(ev) {
+    if(!ST3.enabled) return;
+    ev.preventDefault();
+    ST3._radius *= (ev.deltaY > 0) ? 1.1 : 0.9;
+    ST3._radius = Math.max(10, Math.min(1000000, ST3._radius));
+    render();
+  }, {passive:false});
+
+  // Context menu suppress when in 3D
+  canvas.addEventListener('contextmenu', function(ev){
+    if(ST3.enabled) ev.preventDefault();
+  }, false);
+})();
+
+// ═══════════════════════════════════════════════════════════════
+//  3D TOOLBAR UI
+// ═══════════════════════════════════════════════════════════════
+function build3DToolbar() {
+  if(document.getElementById('toolbar3d')) return;
+
+  var bar = document.createElement('div');
+  bar.id = 'toolbar3d';
+  bar.style.cssText = [
+    'position:absolute;top:8px;left:50%;transform:translateX(-50%)',
+    'background:rgba(5,15,28,.95);border:1px solid rgba(31,168,217,.4)',
+    'border-radius:8px;padding:6px 12px;display:none;z-index:600',
+    'align-items:center;gap:8px;font-family:IBM Plex Mono,monospace;font-size:10px',
+    'box-shadow:0 4px 20px rgba(0,0,0,.8)'
+  ].join(';');
+
+  var views = [
+    {label:'⟲ Orbit',      id:'v-orb',  title:'Right-drag or middle-drag to orbit'},
+    {label:'⊤ Top',        id:'v-top',  title:'Top view (plan)'},
+    {label:'▣ Front',      id:'v-frnt', title:'Front elevation'},
+    {label:'▷ Right',      id:'v-rgt',  title:'Right elevation'},
+    {label:'⬡ Iso',        id:'v-iso',  title:'Isometric view'},
+    {label:'◉ Persp',      id:'v-persp',title:'Perspective view'},
+    {label:'⟳ Reset',      id:'v-rst',  title:'Reset to default view'},
+  ];
+
+  var zLabel = document.createElement('div');
+  zLabel.style.cssText='color:#F5BE18;margin-right:4px;white-space:nowrap';
+  zLabel.textContent='Z:';
+
+  var zInput = document.createElement('input');
+  zInput.id='input3dZ'; zInput.type='number'; zInput.value='0'; zInput.step='0.1';
+  zInput.style.cssText='width:60px;background:rgba(31,168,217,.1);border:1px solid rgba(31,168,217,.4);color:#F5BE18;padding:2px 5px;border-radius:3px;font-family:IBM Plex Mono,monospace;font-size:10px;outline:none;text-align:center';
+  zInput.title='Current Z elevation for new entities';
+  zInput.addEventListener('change',function(){ ST3.currentZ=parseFloat(this.value)||0; updateZDisplay(); });
+  zInput.addEventListener('keydown',function(ev){ev.stopPropagation();});
+
+  var projBtn = document.createElement('select');
+  projBtn.style.cssText='background:rgba(31,168,217,.1);border:1px solid rgba(31,168,217,.3);color:#1FA8D9;font-size:9px;padding:2px 4px;border-radius:3px;font-family:IBM Plex Mono,monospace;cursor:pointer;outline:none';
+  ['perspective','isometric'].forEach(function(p){
+    var o=document.createElement('option');o.value=p;o.textContent=p.charAt(0).toUpperCase()+p.slice(1);
+    projBtn.appendChild(o);
+  });
+  projBtn.addEventListener('change',function(){ST3.projection=this.value;render();});
+
+  bar.appendChild(zLabel);
+  bar.appendChild(zInput);
+  bar.appendChild(projBtn);
+
+  views.forEach(function(v){
+    var btn=document.createElement('button');
+    btn.id=v.id; btn.textContent=v.label; btn.title=v.title;
+    btn.style.cssText='background:rgba(31,168,217,.1);border:1px solid rgba(31,168,217,.3);color:#1FA8D9;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:9.5px;font-family:IBM Plex Mono,monospace;white-space:nowrap';
+    btn.addEventListener('mouseover',function(){this.style.background='rgba(31,168,217,.25)';});
+    btn.addEventListener('mouseout', function(){this.style.background='rgba(31,168,217,.1)';});
+    btn.addEventListener('click', function(){setView3D(v.id);});
+    bar.appendChild(btn);
+  });
+
+  var vp = document.getElementById('vp')||document.querySelector('.vport');
+  if(vp) vp.appendChild(bar);
+}
+
+function setView3D(id) {
+  switch(id) {
+    case 'v-top':  ST3._theta=0;ST3._phi=0.01;ST3.projection='isometric';break;
+    case 'v-frnt': ST3._theta=Math.PI/2;ST3._phi=Math.PI/2;ST3.projection='isometric';break;
+    case 'v-rgt':  ST3._theta=0;ST3._phi=Math.PI/2;ST3.projection='isometric';break;
+    case 'v-iso':  ST3._theta=Math.PI/4;ST3._phi=Math.PI/4;ST3.projection='isometric';break;
+    case 'v-persp':ST3._theta=Math.PI/4;ST3._phi=Math.PI/4;ST3.projection='perspective';break;
+    case 'v-rst':
+      ST3._theta=Math.PI/4;ST3._phi=Math.PI/4;ST3._radius=1200;
+      ST3.projection='perspective';ST3.target={x:0,y:0,z:0};break;
+  }
+  var ps=document.querySelector('#toolbar3d select');
+  if(ps) ps.value=ST3.projection;
+  render();
+}
+
+function updateZDisplay() {
+  var el=document.getElementById('input3dZ');
+  if(el) el.value=ST3.currentZ.toFixed(2);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TOGGLE 3D MODE
+// ═══════════════════════════════════════════════════════════════
+window.toggle3D = function() {
+  ST3.enabled = !ST3.enabled;
+  var btn = document.getElementById('btn3D');
+  var tb  = document.getElementById('toolbar3d');
+
+  if(ST3.enabled) {
+    // Fit camera to current drawing
+    if(ST.entities.length>0) {
+      var xs=[],ys=[];
+      ST.entities.forEach(function(e){
+        if(e.x1!==undefined){xs.push(e.x1,e.x2);ys.push(e.y1,e.y2);}
+        else if(e.cx!==undefined){xs.push(e.cx);ys.push(e.cy);}
+        else if(e.x!==undefined){xs.push(e.x);ys.push(e.y);}
+        if(e.pts) e.pts.forEach(function(p){xs.push(p.x);ys.push(p.y);});
+      });
+      if(xs.length) {
+        var cx=(Math.min.apply(null,xs)+Math.max.apply(null,xs))/2;
+        var cy=(Math.min.apply(null,ys)+Math.max.apply(null,ys))/2;
+        var span=Math.max(Math.max.apply(null,xs)-Math.min.apply(null,xs), Math.max.apply(null,ys)-Math.min.apply(null,ys));
+        ST3.target={x:cx,y:cy,z:0};
+        ST3._radius=span*1.5||1200;
+      }
+    }
+    if(btn){btn.style.background='rgba(78,255,145,.2)';btn.style.borderColor='#4eff91';btn.style.color='#4eff91';}
+    if(tb) tb.style.display='flex';
+    toast('3D Mode ON — right-drag=orbit | scroll=zoom | Z input=elevation','ok');
+    setMsg('3D Mode — right-drag to orbit | scroll to zoom | R-click drag=rotate');
+  } else {
+    if(btn){btn.style.background='';btn.style.borderColor='rgba(31,168,217,.3)';btn.style.color='#1FA8D9';}
+    if(tb) tb.style.display='none';
+    toast('2D Mode — back to plan view','ok');
+  }
+  render();
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  Z ELEVATION — entities gain Z when created in 3D mode
+// ═══════════════════════════════════════════════════════════════
+// Override snapPoint to include Z
+var _origSnap = window.snapPoint;
+window.snapPoint = function(sx, sy) {
+  var wp = _origSnap ? _origSnap(sx, sy) : s2w(sx, sy);
+  if(ST3.enabled) wp.z = ST3.currentZ;
+  return wp;
+};
+
+// Override mkEnt to include Z
+var _origMkEnt = window.mkEnt;
+window.mkEnt = function(base) {
+  var e = _origMkEnt ? _origMkEnt(base) : Object.assign({_id:++ST._eid,selected:false,layer:ST.curLayer},base);
+  if(ST3.enabled && e.z===undefined) {
+    e.z = ST3.currentZ;
+    if(e.z1!==undefined) { e.z1=ST3.currentZ; e.z2=ST3.currentZ; }
+    if(e.cz===undefined&&e.cx!==undefined) e.cz=ST3.currentZ;
+  }
+  return e;
+};
+
+// Coord display — show Z
+var _origCoordUpdate = null;
+(function patchCoordDisplay() {
+  var canvas = document.getElementById('cad');
+  if(!canvas) return;
+  canvas.addEventListener('mousemove', function(ev) {
+    if(!ST3.enabled) return;
+    var coordEl = document.getElementById('coordEl');
+    if(!coordEl) return;
+    var r = canvas.getBoundingClientRect();
+    var wx = (ev.clientX-r.left-ST.pan.x)/ST.zoom;
+    var wy = -(ev.clientY-r.top-ST.pan.y)/ST.zoom;
+    coordEl.innerHTML='X:&nbsp;'+wx.toFixed(3)+'&nbsp;&nbsp;Y:&nbsp;'+wy.toFixed(3)+'&nbsp;&nbsp;<span style="color:#F5BE18">Z:&nbsp;'+ST3.currentZ.toFixed(3)+'</span>&nbsp;'+ST.units;
+  }, false);
+})();
+
+// ═══════════════════════════════════════════════════════════════
+//  3D PRIMITIVE COMMANDS
+// ═══════════════════════════════════════════════════════════════
+function prompt3DBox() {
+  var w=parseFloat(prompt('Box Width (X):','100')||'100');
+  var d=parseFloat(prompt('Box Depth (Y):','100')||'100');
+  var h=parseFloat(prompt('Box Height (Z):','100')||'100');
+  var x=parseFloat(prompt('Base corner X:','0')||'0');
+  var y=parseFloat(prompt('Base corner Y:','0')||'0');
+  var z=parseFloat(prompt('Base corner Z:',String(ST3.currentZ))||'0');
+  pushUndo&&pushUndo('BOX');
+  ST.entities.push({_id:++ST._eid,type:'box3d',x:x,y:y,z:z,bw:w,bd:d,bh:h,
+    layer:ST.curLayer,selected:false,color:null});
+  invalidateSpatialIndex&&invalidateSpatialIndex();
+  render(); toast('BOX: '+w+'×'+d+'×'+h,'ok');
+}
+
+function prompt3DCylinder() {
+  var r=parseFloat(prompt('Radius:','50')||'50');
+  var h=parseFloat(prompt('Height:','100')||'100');
+  var cx2=parseFloat(prompt('Center X:','0')||'0');
+  var cy2=parseFloat(prompt('Center Y:','0')||'0');
+  var z=parseFloat(prompt('Base Z:',String(ST3.currentZ))||'0');
+  pushUndo&&pushUndo('CYLINDER');
+  ST.entities.push({_id:++ST._eid,type:'cylinder3d',cx:cx2,cy:cy2,z:z,r:r,ch:h,
+    layer:ST.curLayer,selected:false,color:null});
+  invalidateSpatialIndex&&invalidateSpatialIndex();
+  render(); toast('CYLINDER r='+r+' h='+h,'ok');
+}
+
+function prompt3DSphere() {
+  var r=parseFloat(prompt('Radius:','50')||'50');
+  var cx2=parseFloat(prompt('Center X:','0')||'0');
+  var cy2=parseFloat(prompt('Center Y:','0')||'0');
+  var cz2=parseFloat(prompt('Center Z:',String(ST3.currentZ))||'0');
+  pushUndo&&pushUndo('SPHERE');
+  ST.entities.push({_id:++ST._eid,type:'sphere3d',cx:cx2,cy:cy2,cz:cz2,r:r,
+    layer:ST.curLayer,selected:false,color:null});
+  invalidateSpatialIndex&&invalidateSpatialIndex();
+  render(); toast('SPHERE r='+r,'ok');
+}
+
+function prompt3DExtrude() {
+  var sels=ST.entities.filter(function(e){return e.selected;});
+  if(!sels.length){toast('Select a 2D entity first, then run EXTRUDE','warn');return;}
+  var h=parseFloat(prompt('Extrude height:','100')||'100');
+  pushUndo&&pushUndo('extrude');
+  sels.forEach(function(e){
+    if(!ST3.enabled) ST3.enabled=true;
+    e.z=e.z||0; e.bh=h; e._extruded=true;
+    if(e.type==='polyline'||e.type==='rect') {
+      // Add top copy
+      var top=Object.assign({},JSON.parse(JSON.stringify(e)));
+      top._id=++ST._eid; top.selected=false;
+      if(top.pts) top.pts=top.pts.map(function(p){return{x:p.x,y:p.y,z:(p.z||0)+h};});
+      if(top.z!==undefined) top.z+=h;
+      ST.entities.push(top);
+      // Add vertical walls
+      if(e.pts) {
+        for(var i=0;i<e.pts.length;i++){
+          var p1=e.pts[i],p2=e.pts[(i+1)%e.pts.length];
+          var wall={_id:++ST._eid,type:'polyline',layer:e.layer,selected:false,
+            pts:[{x:p1.x,y:p1.y,z:e.z||0},{x:p2.x,y:p2.y,z:e.z||0},{x:p2.x,y:p2.y,z:(e.z||0)+h},{x:p1.x,y:p1.y,z:(e.z||0)+h}],
+            closed:true,fill:true,color:e.color};
+          ST.entities.push(wall);
+        }
+      }
+    }
+  });
+  if(!ST3.enabled){toggle3D();}
+  invalidateSpatialIndex&&invalidateSpatialIndex();
+  render(); toast('EXTRUDE: height='+h,'ok');
+}
+
+// Register commands
+if(typeof CAD_COMMANDS!=='undefined'){
+  Object.assign(CAD_COMMANDS,{
+    '3D':'3d','3DMODE':'3d','3DTOGGLE':'3d',
+    'BOX':'box3d','CUBE':'box3d',
+    'CYLINDER':'cylinder3d','CYL':'cylinder3d',
+    'SPHERE':'sphere3d','SPH':'sphere3d',
+    'CONE':'cone3d',
+    'WEDGE':'wedge3d','WE':'wedge3d',
+    'PYRAMID':'pyramid3d',
+    'EXTRUDE':'extrude3d','EXT':'extrude3d',
+    'ORBIT':'orbit3d','3DORBIT':'orbit3d',
+    'VPOINT':'vpoint3d','VP':'vpoint3d',
+    'PLAN':'plan3d','TOPVIEW':'plan3d',
+    'ELEVATION':'elev3d',
+    'ISOVIEW':'iso3d',
+    'ZOFFSET':'zoffset',
+    'ELEVATION':'elev3d',
+    'SETCURRENTZ':'setz',
+    'SETZ':'setz',
+  });
+}
+if(typeof CAD_ACTIONS!=='undefined'){
+  Object.assign(CAD_ACTIONS,{
+    '3d':        function(){ toggle3D(); },
+    box3d:       function(){ if(!ST3.enabled)toggle3D(); prompt3DBox(); },
+    cylinder3d:  function(){ if(!ST3.enabled)toggle3D(); prompt3DCylinder(); },
+    sphere3d:    function(){ if(!ST3.enabled)toggle3D(); prompt3DSphere(); },
+    cone3d:      function(){ if(!ST3.enabled)toggle3D(); var r=parseFloat(prompt('Radius:','50')||'50'),h=parseFloat(prompt('Height:','100')||'100'); pushUndo&&pushUndo(); ST.entities.push({_id:++ST._eid,type:'cone3d',cx:0,cy:0,z:ST3.currentZ,r:r,ch:h,layer:ST.curLayer,selected:false}); invalidateSpatialIndex&&invalidateSpatialIndex(); render(); },
+    wedge3d:     function(){ if(!ST3.enabled)toggle3D(); var w=parseFloat(prompt('Width:','100')||'100'),d=parseFloat(prompt('Depth:','100')||'100'),h=parseFloat(prompt('Height:','100')||'100'); pushUndo&&pushUndo(); ST.entities.push({_id:++ST._eid,type:'wedge3d',x:0,y:0,z:ST3.currentZ,bw:w,bd:d,bh:h,layer:ST.curLayer,selected:false}); invalidateSpatialIndex&&invalidateSpatialIndex(); render(); },
+    pyramid3d:   function(){ toast('PYRAMID — use WEDGE command for pyramid-like shapes','ok'); },
+    extrude3d:   function(){ prompt3DExtrude(); },
+    orbit3d:     function(){ if(!ST3.enabled)toggle3D(); toast('ORBIT — right-drag or middle-drag to rotate','ok'); setMsg('3D ORBIT — right-mouse drag to rotate | scroll to zoom'); },
+    vpoint3d:    function(){ if(!ST3.enabled)toggle3D(); var a=parseFloat(prompt('View angle θ (degrees):','45')||'45'); var e2=parseFloat(prompt('Elevation φ (degrees):','45')||'45'); ST3._theta=a*Math.PI/180; ST3._phi=e2*Math.PI/180; render(); },
+    plan3d:      function(){ if(!ST3.enabled)toggle3D(); setView3D('v-top'); toast('Top View','ok'); },
+    elev3d:      function(){ if(!ST3.enabled)toggle3D(); setView3D('v-frnt'); toast('Front Elevation','ok'); },
+    iso3d:       function(){ if(!ST3.enabled)toggle3D(); setView3D('v-iso'); toast('Isometric View','ok'); },
+    zoffset:     function(){ var z=parseFloat(prompt('Set current Z elevation:',String(ST3.currentZ))||'0'); ST3.currentZ=z; updateZDisplay(); toast('Z elevation: '+z,'ok'); },
+    setz:        function(){ var z=parseFloat(prompt('Set current Z elevation:',String(ST3.currentZ))||'0'); ST3.currentZ=z; updateZDisplay(); toast('Z='+z,'ok'); },
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  3D BUTTON IN STATUS BAR
+// ═══════════════════════════════════════════════════════════════
+setTimeout(function() {
+  build3DToolbar();
+
+  // Add 3D toggle button to status bar
+  if(!document.getElementById('btn3D')) {
+    var sb = document.querySelector('.statbar,.sb,[class*="stat"]');
+    if(sb) {
+      var btn3d = document.createElement('button');
+      btn3d.id = 'btn3D';
+      btn3d.textContent = '⬡ 3D';
+      btn3d.title = 'Toggle 3D Mode (type 3D)';
+      btn3d.style.cssText='background:rgba(31,168,217,.1);border:1px solid rgba(31,168,217,.3);color:#1FA8D9;font-size:9px;padding:2px 9px;border-radius:3px;cursor:pointer;font-family:IBM Plex Mono,monospace;font-weight:700';
+      btn3d.addEventListener('click', toggle3D);
+      sb.appendChild(btn3d);
+    }
+  }
+
+  console.log('[Strata3D] Ready — commands: 3D BOX CYLINDER SPHERE EXTRUDE ORBIT PLAN ELEVATION');
+}, 600);
+
+})(); // end Strata3DEngine
 
 </script>
 
