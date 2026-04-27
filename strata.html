@@ -18736,6 +18736,980 @@ setTimeout(function() {
 
 })(); // end Strata3DEngine
 
+
+// ████████████████████████████████████████████████████████
+//  STRATA FIX ALL — 11 issues fixed
+// ████████████████████████████████████████████████████████
+(function StrataFixAll() {
+'use strict';
+
+// ═══════════════════════════════════════════════════
+// 1. DOUBLE-CLICK TEXT EDIT
+// ═══════════════════════════════════════════════════
+(function setupTextEdit() {
+  var canvas = document.getElementById('cad');
+  if (!canvas) return;
+
+  canvas.addEventListener('dblclick', function(ev) {
+    var r = canvas.getBoundingClientRect();
+    var wp = s2w(ev.clientX - r.left, ev.clientY - r.top);
+    var tol = 20 / ST.zoom;
+
+    // Find text entity under cursor
+    var hit = ST.entities.slice().reverse().find(function(e) {
+      if (e.type !== 'text') return false;
+      return Math.hypot(wp.x - (e.x||0), wp.y - (e.y||0)) < tol ||
+             Math.hypot(wp.x - (e.cx||e.x||0), wp.y - (e.cy||e.y||0)) < tol;
+    });
+
+    if (hit) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openInlineTextEditor(hit, ev.clientX, ev.clientY);
+      return;
+    }
+
+    // Polyline vertex add on dblclick near edge
+    if (!hit && (ST.tool === 'select' || !ST.tool)) {
+      var selPoly = ST.entities.find(function(e){
+        return e.selected && e.type === 'polyline' && e.pts && e.pts.length >= 2;
+      });
+      if (selPoly) {
+        var ins = findNearestEdgeInsert(selPoly, wp, 15/ST.zoom);
+        if (ins >= 0) {
+          pushUndo && pushUndo('add vertex');
+          selPoly.pts.splice(ins + 1, 0, {x: wp.x, y: wp.y});
+          invalidateSpatialIndex && invalidateSpatialIndex();
+          render();
+          toast('Vertex added (drag to move)', 'ok');
+        }
+      }
+    }
+  }, false);
+})();
+
+function findNearestEdgeInsert(e, wp, tol) {
+  if (!e.pts) return -1;
+  var best = -1, bestD = tol;
+  for (var i = 0; i < e.pts.length - 1; i++) {
+    var p1 = e.pts[i], p2 = e.pts[i+1];
+    var dx = p2.x-p1.x, dy = p2.y-p1.y, len2 = dx*dx+dy*dy;
+    if (len2 === 0) continue;
+    var t = Math.max(0, Math.min(1, ((wp.x-p1.x)*dx+(wp.y-p1.y)*dy)/len2));
+    var nx = p1.x+t*dx, ny = p1.y+t*dy;
+    var d = Math.hypot(wp.x-nx, wp.y-ny);
+    if (d < bestD) { bestD = d; best = i; }
+  }
+  // Also check closed last segment
+  if (e.closed && e.pts.length >= 3) {
+    var p1c = e.pts[e.pts.length-1], p2c = e.pts[0];
+    var dxc = p2c.x-p1c.x, dyc = p2c.y-p1c.y, len2c = dxc*dxc+dyc*dyc;
+    if (len2c > 0) {
+      var tc = Math.max(0, Math.min(1, ((wp.x-p1c.x)*dxc+(wp.y-p1c.y)*dyc)/len2c));
+      var nxc = p1c.x+tc*dxc, nyc = p1c.y+tc*dyc;
+      var dc = Math.hypot(wp.x-nxc, wp.y-nyc);
+      if (dc < bestD) { bestD = dc; best = e.pts.length-1; }
+    }
+  }
+  return best;
+}
+
+function openInlineTextEditor(ent, screenX, screenY) {
+  var existing = document.getElementById('inlineTextEditor');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'inlineTextEditor';
+  overlay.style.cssText = 'position:fixed;z-index:10000;background:#050F1C;border:2px solid #1FA8D9;border-radius:6px;padding:8px 12px;box-shadow:0 4px 20px rgba(0,0,0,.9)';
+  overlay.style.left = Math.min(screenX, window.innerWidth - 320) + 'px';
+  overlay.style.top  = Math.min(screenY - 10, window.innerHeight - 120) + 'px';
+
+  var lbl = document.createElement('div');
+  lbl.textContent = '✎ Edit Text (Enter=save, Esc=cancel)';
+  lbl.style.cssText = 'font-size:9px;color:rgba(31,168,217,.7);font-family:IBM Plex Mono,monospace;margin-bottom:6px';
+  overlay.appendChild(lbl);
+
+  var inp = document.createElement('textarea');
+  inp.value = ent.text || '';
+  inp.style.cssText = 'width:280px;min-height:60px;background:rgba(31,168,217,.08);border:1px solid rgba(31,168,217,.4);color:#fff;font-family:IBM Plex Mono,monospace;font-size:11px;padding:6px;border-radius:4px;outline:none;resize:both;box-sizing:border-box';
+  inp.addEventListener('keydown', function(ev) {
+    ev.stopPropagation();
+    if (ev.key === 'Escape') { overlay.remove(); return; }
+    if (ev.key === 'Enter' && !ev.shiftKey) {
+      ev.preventDefault();
+      pushUndo && pushUndo('edit text');
+      ent.text = inp.value;
+      overlay.remove();
+      render();
+      toast('Text updated', 'ok');
+    }
+  });
+  overlay.appendChild(inp);
+
+  var row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;margin-top:6px';
+
+  var saveBtn = document.createElement('button');
+  saveBtn.textContent = '✓ Save';
+  saveBtn.style.cssText = 'flex:1;padding:4px;background:rgba(31,168,217,.2);border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;border-radius:3px;font-size:10px;font-family:IBM Plex Mono,monospace';
+  saveBtn.onclick = function() {
+    pushUndo && pushUndo('edit text');
+    ent.text = inp.value;
+    overlay.remove(); render();
+    toast('Text updated', 'ok');
+  };
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.textContent = '✕ Cancel';
+  cancelBtn.style.cssText = 'padding:4px 8px;background:none;border:1px solid var(--sep);color:var(--m);cursor:pointer;border-radius:3px;font-size:10px;font-family:IBM Plex Mono,monospace';
+  cancelBtn.onclick = function() { overlay.remove(); };
+
+  row.appendChild(saveBtn); row.appendChild(cancelBtn);
+  overlay.appendChild(row);
+  document.body.appendChild(overlay);
+
+  // Height input row
+  var hrow = document.createElement('div');
+  hrow.style.cssText = 'display:flex;gap:6px;align-items:center;margin-top:4px';
+  hrow.innerHTML = '<span style="font-size:9px;color:var(--m);font-family:IBM Plex Mono,monospace">Height:</span>'
+    + '<input type="number" value="' + (ent.height||ent.sz||2.5) + '" step="0.5" '
+    + 'style="width:60px;background:rgba(31,168,217,.08);border:1px solid rgba(31,168,217,.3);color:#fff;font-size:10px;padding:2px 4px;border-radius:3px;outline:none" '
+    + 'onkeydown="event.stopPropagation()" oninput="(function(v){var e=ST.entities.find(function(x){return x._id==='+ent._id+'});if(e){e.height=parseFloat(v)||2.5;e.sz=e.height;}render();})(this.value)">';
+  overlay.appendChild(hrow);
+
+  setTimeout(function() { inp.focus(); inp.select(); }, 50);
+}
+
+window.openInlineTextEditor = openInlineTextEditor;
+
+
+// ═══════════════════════════════════════════════════
+// 2. UNDO/REDO — unified, reliable system
+// ═══════════════════════════════════════════════════
+var _undoStack = [];
+var _redoStack = [];
+var _maxUndo = 80;
+var _lastPush = 0;
+
+function _snapState() {
+  try {
+    return JSON.stringify(ST.entities.map(function(e) {
+      var s = {_id:e._id, type:e.type, layer:e.layer, selected:false};
+      if (e.x1 !== undefined) { s.x1=e.x1; s.y1=e.y1; s.x2=e.x2; s.y2=e.y2; }
+      if (e.cx !== undefined) { s.cx=e.cx; s.cy=e.cy; s.r=e.r; }
+      if (e.x  !== undefined) { s.x=e.x; s.y=e.y; }
+      if (e.w  !== undefined) { s.w=e.w; s.h=e.h; s.x=e.x; s.y=e.y; }
+      if (e.pts) s.pts = e.pts;
+      if (e.text) s.text = e.text;
+      if (e.height) s.height = e.height;
+      if (e.color) s.color = e.color;
+      if (e.linetype) s.linetype = e.linetype;
+      if (e.lw) s.lw = e.lw;
+      if (e.closed) s.closed = e.closed;
+      if (e.sa !== undefined) { s.sa=e.sa; s.ea=e.ea; }
+      if (e.block) s.block = e.block;
+      if (e.attrs) s.attrs = e.attrs;
+      return s;
+    }));
+  } catch(e) { return null; }
+}
+
+window.pushUndo = function(label) {
+  if (typeof invalidateSpatialIndex === 'function') invalidateSpatialIndex();
+  var now = Date.now();
+  // Debounce rapid pushes (< 50ms apart)
+  if (now - _lastPush < 50) { _lastPush = now; return; }
+  _lastPush = now;
+  var snap = _snapState();
+  if (!snap) return;
+  // Don't push duplicate state
+  if (_undoStack.length && _undoStack[_undoStack.length-1].state === snap) return;
+  _undoStack.push({state: snap, label: label || 'op', time: now});
+  if (_undoStack.length > _maxUndo) _undoStack.shift();
+  _redoStack = [];
+};
+
+window.undo = function() {
+  if (!_undoStack.length) { toast('Nothing to undo', 'warn'); return; }
+  var current = _snapState();
+  _redoStack.push({state: current, label: 'redo'});
+  var prev = _undoStack.pop();
+  try {
+    ST.entities = JSON.parse(prev.state);
+    var mx = 0;
+    ST.entities.forEach(function(e) { if ((e._id||0) > mx) mx = e._id; });
+    ST._eid = Math.max(ST._eid || 0, mx);
+    if (typeof invalidateSpatialIndex === 'function') invalidateSpatialIndex();
+    if (typeof renderLayers === 'function') renderLayers();
+    if (typeof render === 'function') render();
+    if (typeof updatePropPanel === 'function') updatePropPanel();
+    toast('Undo: ' + prev.label, 'ok');
+    setMsg && setMsg('Undo: ' + prev.label);
+  } catch(e) { toast('Undo failed: ' + e.message, 'err'); }
+};
+
+window.redo = function() {
+  if (!_redoStack.length) { toast('Nothing to redo', 'warn'); return; }
+  var current = _snapState();
+  _undoStack.push({state: current, label: 'before redo'});
+  var next = _redoStack.pop();
+  try {
+    ST.entities = JSON.parse(next.state);
+    var mx = 0;
+    ST.entities.forEach(function(e) { if ((e._id||0) > mx) mx = e._id; });
+    ST._eid = Math.max(ST._eid || 0, mx);
+    if (typeof invalidateSpatialIndex === 'function') invalidateSpatialIndex();
+    if (typeof render === 'function') render();
+    toast('Redo', 'ok');
+  } catch(e) { toast('Redo failed: ' + e.message, 'err'); }
+};
+
+// Register commands
+if (typeof CAD_COMMANDS !== 'undefined') {
+  CAD_COMMANDS['U'] = 'undo'; CAD_COMMANDS['UNDO'] = 'undo';
+  CAD_COMMANDS['REDO'] = 'redo'; CAD_COMMANDS['RE'] = 'redo';
+}
+if (typeof CAD_ACTIONS !== 'undefined') {
+  CAD_ACTIONS['undo'] = function() { window.undo(); };
+  CAD_ACTIONS['redo'] = function() { window.redo(); };
+}
+
+
+// ═══════════════════════════════════════════════════
+// 3. POLYGON ENTER/SPACE FIX
+// ═══════════════════════════════════════════════════
+// Patch execCmd to close polygon on Enter/Space with empty input
+var _origExecCmd = null;
+setTimeout(function() {
+  // Find and patch the execCmd function
+  var _origRunCmd = window.runCommand;
+  window.runCommand = function(raw) {
+    // Empty command + polygon active = close polygon
+    if ((!raw || raw.trim() === '') && ST.tool === 'polygon') {
+      if (ST._polyPts && ST._polyPts.length >= 3) {
+        commitPolygon && commitPolygon();
+        return;
+      }
+    }
+    // 'C' or 'CLOSE' = close polygon
+    if (raw && (raw.trim().toUpperCase() === 'C' || raw.trim().toUpperCase() === 'CLOSE') && ST.tool === 'polygon') {
+      commitPolygon && commitPolygon();
+      return;
+    }
+    return _origRunCmd && _origRunCmd(raw);
+  };
+
+  // Also patch the handleKey Enter/Space case
+  // Key presses while polygon active should close it
+  document.addEventListener('keydown', function(ev) {
+    if (ST.tool !== 'polygon') return;
+    if (ev.target && (ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA')) return;
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      if (ST._polyPts && ST._polyPts.length >= 3) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        commitPolygon && commitPolygon();
+      }
+    }
+    if (ev.key === 'Escape') {
+      ST.tool = null; ST._polyPts = []; ST.ghostEnt = null;
+      render && render();
+      setMsg && setMsg('Polygon cancelled');
+    }
+  }, true); // capture phase - runs before other handlers
+}, 300);
+
+
+// ═══════════════════════════════════════════════════
+// 4. ENHANCED CONTEXT MENU — with vertex/attribute options
+// ═══════════════════════════════════════════════════
+var _ctxClickWP = null; // world position of right-click
+
+window.showContextMenu = function(cx, cy) {
+  // Store world position of right-click
+  var canvas2 = document.getElementById('cad');
+  if (canvas2) {
+    var r2 = canvas2.getBoundingClientRect();
+    _ctxClickWP = s2w(cx - r2.left, cy - r2.top);
+  }
+
+  var sels = ST.entities.filter(function(e){return e.selected;});
+  var selLines = sels.filter(function(e){return e.type==='polyline'||e.type==='line';});
+  var selTexts = sels.filter(function(e){return e.type==='text';});
+
+  var m = document.getElementById('ctxMenu');
+  if (!m) return;
+
+  // Update dynamic items
+  var vertexItem = document.getElementById('ctxAddVertex');
+  var attrItem   = document.getElementById('ctxAddAttr');
+  var editText   = document.getElementById('ctxEditText');
+  var delVertex  = document.getElementById('ctxDelVertex');
+
+  if (vertexItem)  vertexItem.style.display = selLines.length > 0 ? 'block' : 'none';
+  if (attrItem)    attrItem.style.display   = sels.length > 0 ? 'block' : 'none';
+  if (editText)    editText.style.display   = selTexts.length > 0 ? 'block' : 'none';
+  if (delVertex)   delVertex.style.display  = selLines.length > 0 ? 'block' : 'none';
+
+  m.style.left = Math.min(cx, window.innerWidth - 220) + 'px';
+  m.style.top  = Math.min(cy, window.innerHeight - 350) + 'px';
+  m.style.display = 'block';
+  setTimeout(function(){ document.addEventListener('click', closeCM, {once:true}); }, 50);
+};
+
+// Inject new items into context menu at DOM-ready
+setTimeout(function() {
+  var m = document.getElementById('ctxMenu');
+  if (!m || document.getElementById('ctxAddVertex')) return;
+
+  var sep = document.createElement('div'); sep.className = 'c3d-sep';
+  m.appendChild(sep);
+
+  // Add Vertex
+  var addV = document.createElement('div');
+  addV.id = 'ctxAddVertex'; addV.className = 'c3d-mi';
+  addV.style.color = '#4eff91';
+  addV.innerHTML = '⊕ Add Vertex at click point';
+  addV.onclick = function() {
+    closeCM();
+    var selPoly = ST.entities.find(function(e){return e.selected&&e.type==='polyline'&&e.pts;});
+    if (!selPoly || !_ctxClickWP) { toast('Select a polyline first','warn'); return; }
+    var ins = findNearestEdgeInsert(selPoly, _ctxClickWP, 50/ST.zoom);
+    if (ins >= 0) {
+      pushUndo && pushUndo('add vertex');
+      selPoly.pts.splice(ins+1, 0, {x:_ctxClickWP.x, y:_ctxClickWP.y});
+    } else {
+      pushUndo && pushUndo('add vertex');
+      selPoly.pts.push({x:_ctxClickWP.x, y:_ctxClickWP.y});
+    }
+    invalidateSpatialIndex && invalidateSpatialIndex();
+    render && render();
+    toast('Vertex added', 'ok');
+  };
+  m.appendChild(addV);
+
+  // Delete nearest vertex
+  var delV = document.createElement('div');
+  delV.id = 'ctxDelVertex'; delV.className = 'c3d-mi';
+  delV.style.color = '#ff4466';
+  delV.innerHTML = '⊖ Delete nearest vertex';
+  delV.onclick = function() {
+    closeCM();
+    var selPoly = ST.entities.find(function(e){return e.selected&&e.type==='polyline'&&e.pts;});
+    if (!selPoly || !_ctxClickWP) { toast('Select a polyline first','warn'); return; }
+    var bestI = 0, bestD = Infinity;
+    selPoly.pts.forEach(function(p,i){
+      var d = Math.hypot(p.x-_ctxClickWP.x, p.y-_ctxClickWP.y);
+      if (d < bestD) { bestD=d; bestI=i; }
+    });
+    if (selPoly.pts.length <= 2) { toast('Polyline needs at least 2 vertices','warn'); return; }
+    pushUndo && pushUndo('del vertex');
+    selPoly.pts.splice(bestI, 1);
+    invalidateSpatialIndex && invalidateSpatialIndex();
+    render && render();
+    toast('Vertex deleted', 'ok');
+  };
+  m.appendChild(delV);
+
+  var sep2 = document.createElement('div'); sep2.className = 'c3d-sep';
+  m.appendChild(sep2);
+
+  // Edit Text
+  var editT = document.createElement('div');
+  editT.id = 'ctxEditText'; editT.className = 'c3d-mi';
+  editT.innerHTML = '✎ Edit Text';
+  editT.onclick = function() {
+    closeCM();
+    var selText = ST.entities.find(function(e){return e.selected&&e.type==='text';});
+    if (!selText) { toast('Select text entity first','warn'); return; }
+    var sp = w2s(selText.x||0, selText.y||0);
+    openInlineTextEditor(selText, sp.x + 20, sp.y);
+  };
+  m.appendChild(editT);
+
+  // Add Attributes
+  var addA = document.createElement('div');
+  addA.id = 'ctxAddAttr'; addA.className = 'c3d-mi';
+  addA.innerHTML = '📋 Add/Edit Attributes';
+  addA.onclick = function() {
+    closeCM();
+    openAttrTableDialog && openAttrTableDialog();
+  };
+  m.appendChild(addA);
+
+  var sep3 = document.createElement('div'); sep3.className = 'c3d-sep';
+  m.appendChild(sep3);
+
+  // Properties
+  var propsItem = document.createElement('div');
+  propsItem.className = 'c3d-mi';
+  propsItem.innerHTML = '⚙ Properties';
+  propsItem.onclick = function() { closeCM(); showTab && showTab('props'); };
+  m.appendChild(propsItem);
+}, 600);
+
+
+// ═══════════════════════════════════════════════════
+// 5. SCALE / ROTATE / STRETCH WITH REFERENCE POINT
+// ═══════════════════════════════════════════════════
+window.openReferenceOp = function(opType) {
+  var sels = ST.entities.filter(function(e){return e.selected;});
+  if (!sels.length) { toast('Select objects first', 'warn'); return; }
+
+  var existing = document.getElementById('moRefOp');
+  if (existing) existing.remove();
+
+  var div = document.createElement('div');
+  div.id = 'moRefOp'; div.className = 'mo';
+
+  var title = {rotate:'Rotate', scale:'Scale', stretch:'Stretch', mirror:'Mirror'}[opType] || opType;
+  var icon  = {rotate:'↻',      scale:'⤡',     stretch:'↔',       mirror:'⟺'}[opType] || '⚙';
+
+  div.innerHTML = '<div class="modal" style="max-width:400px">'
+    + '<div class="mh"><div class="mh-t"><span class="i">' + icon + '</span>' + title + ' (Reference)</div>'
+    + '<span class="mc" onclick="closeMo(\'moRefOp\')">✕</span></div>'
+    + '<div class="mb">'
+    + '<div style="font-size:9.5px;color:var(--m);font-family:IBM Plex Mono,monospace;margin-bottom:10px">'
+    + sels.length + ' object(s) selected</div>'
+    + '<div class="fsect">Base / Reference Point</div>'
+    + '<div class="fr">'
+    + '<div class="fg"><label class="fl">Base X</label><input type="number" class="fi" id="refBaseX" value="0" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="fg"><label class="fl">Base Y</label><input type="number" class="fi" id="refBaseY" value="0" onkeydown="event.stopPropagation()"></div>'
+    + '<div class="fg"><button class="btn s" style="margin-top:18px;font-size:9px" onclick="pickRefPoint(\'refBaseX\',\'refBaseY\')" title="Click on canvas to pick point">📍 Pick</button></div>'
+    + '</div>';
+
+  if (opType === 'rotate') {
+    div.innerHTML += '<div class="fsect" style="margin-top:10px">Rotation</div>'
+      + '<div class="fr">'
+      + '<div class="fg"><label class="fl">Angle (°)</label><input type="number" class="fi" id="refAngle" value="0" step="15" onkeydown="event.stopPropagation()"></div>'
+      + '<div class="fg"><label class="fl">Reference angle (°)</label><input type="number" class="fi" id="refFromAngle" value="0" step="15" onkeydown="event.stopPropagation()"></div>'
+      + '</div>'
+      + '<div style="font-size:8.5px;color:var(--m);font-family:IBM Plex Mono,monospace;margin-top:4px">'
+      + 'Effective rotation = Angle − Reference angle</div>';
+  } else if (opType === 'scale') {
+    div.innerHTML += '<div class="fsect" style="margin-top:10px">Scale</div>'
+      + '<div class="fr">'
+      + '<div class="fg"><label class="fl">Scale factor</label><input type="number" class="fi" id="refScale" value="1" step="0.1" onkeydown="event.stopPropagation()"></div>'
+      + '<div class="fg"><label class="fl">Reference length</label><input type="number" class="fi" id="refRefLen" value="1" step="0.1" onkeydown="event.stopPropagation()"></div>'
+      + '<div class="fg"><label class="fl">New length</label><input type="number" class="fi" id="refNewLen" value="1" step="0.1" onkeydown="event.stopPropagation()"></div>'
+      + '</div>'
+      + '<div style="font-size:8.5px;color:var(--m);font-family:IBM Plex Mono,monospace;margin-top:4px">'
+      + 'If using reference: effective scale = New / Reference</div>';
+  } else if (opType === 'mirror') {
+    div.innerHTML += '<div class="fsect" style="margin-top:10px">Mirror Axis (second point)</div>'
+      + '<div class="fr">'
+      + '<div class="fg"><label class="fl">Axis X2</label><input type="number" class="fi" id="refMirX2" value="0" onkeydown="event.stopPropagation()"></div>'
+      + '<div class="fg"><label class="fl">Axis Y2</label><input type="number" class="fi" id="refMirY2" value="100" onkeydown="event.stopPropagation()"></div>'
+      + '<div class="fg"><button class="btn s" style="margin-top:18px;font-size:9px" onclick="pickRefPoint(\'refMirX2\',\'refMirY2\')" title="Pick axis second point">📍 Pick</button></div>'
+      + '</div>'
+      + '<label class="fck"><input type="checkbox" id="refMirDelete"> Delete original after mirror</label>';
+  } else if (opType === 'stretch') {
+    div.innerHTML += '<div class="fsect" style="margin-top:10px">Displacement</div>'
+      + '<div class="fr">'
+      + '<div class="fg"><label class="fl">Move X</label><input type="number" class="fi" id="refStrX" value="0" onkeydown="event.stopPropagation()"></div>'
+      + '<div class="fg"><label class="fl">Move Y</label><input type="number" class="fi" id="refStrY" value="0" onkeydown="event.stopPropagation()"></div>'
+      + '</div>';
+  }
+
+  div.innerHTML += '</div>'
+    + '<div class="mf">'
+    + '<button class="btn s" onclick="closeMo(\'moRefOp\')">Cancel</button>'
+    + '<button class="btn st" onclick="applyRefOp(\'' + opType + '\')">✓ Apply</button>'
+    + '</div></div>';
+
+  document.body.appendChild(div);
+  // Pre-fill base point with centroid
+  var sels2 = ST.entities.filter(function(e){return e.selected;});
+  var cx2 = 0, cy2 = 0, n = sels2.length;
+  sels2.forEach(function(e) {
+    if (e.x1 !== undefined) { cx2+=e.x1; cy2+=e.y1; }
+    else if (e.cx !== undefined) { cx2+=e.cx; cy2+=e.cy; }
+    else if (e.x !== undefined) { cx2+=e.x; cy2+=e.y; }
+  });
+  if (n > 0) {
+    var bx = document.getElementById('refBaseX'), by = document.getElementById('refBaseY');
+    if (bx) bx.value = (cx2/n).toFixed(3);
+    if (by) by.value = (cy2/n).toFixed(3);
+  }
+  openMo('moRefOp');
+};
+
+window.pickRefPoint = function(xId, yId) {
+  closeMo('moRefOp');
+  setMsg && setMsg('Click to pick reference point...');
+  var canvas3 = document.getElementById('cad');
+  if (!canvas3) return;
+  function onPick(ev) {
+    var r3 = canvas3.getBoundingClientRect();
+    var wp3 = s2w(ev.clientX - r3.left, ev.clientY - r3.top);
+    var el1 = document.getElementById(xId), el2 = document.getElementById(yId);
+    if (el1) el1.value = wp3.x.toFixed(3);
+    if (el2) el2.value = wp3.y.toFixed(3);
+    canvas3.removeEventListener('click', onPick);
+    openMo('moRefOp');
+  }
+  canvas3.addEventListener('click', onPick, {once:true});
+};
+
+window.applyRefOp = function(opType) {
+  var sels3 = ST.entities.filter(function(e){return e.selected;});
+  if (!sels3.length) return;
+  var bx = parseFloat(document.getElementById('refBaseX')?.value || '0');
+  var by = parseFloat(document.getElementById('refBaseY')?.value || '0');
+  pushUndo && pushUndo(opType);
+  closeMo('moRefOp');
+
+  if (opType === 'rotate') {
+    var angle = parseFloat(document.getElementById('refAngle')?.value || '0');
+    var fromA = parseFloat(document.getElementById('refFromAngle')?.value || '0');
+    var rad = (angle - fromA) * Math.PI / 180;
+    sels3.forEach(function(e) { rotateEntity && rotateEntity(e, bx, by, rad); });
+
+  } else if (opType === 'scale') {
+    var sf = parseFloat(document.getElementById('refScale')?.value || '1');
+    var refLen = parseFloat(document.getElementById('refRefLen')?.value || '1');
+    var newLen = parseFloat(document.getElementById('refNewLen')?.value || '1');
+    var factor = (refLen !== 0) ? newLen / refLen : sf;
+    if (factor === 0 || !isFinite(factor)) factor = sf;
+    sels3.forEach(function(e) { scaleEntity && scaleEntity(e, bx, by, factor); });
+
+  } else if (opType === 'mirror') {
+    var mx2 = parseFloat(document.getElementById('refMirX2')?.value || '0');
+    var my2 = parseFloat(document.getElementById('refMirY2')?.value || '100');
+    var del = document.getElementById('refMirDelete')?.checked;
+    var dx3 = mx2 - bx, dy3 = my2 - by, len3 = Math.hypot(dx3, dy3);
+    if (len3 > 0) {
+      var ux3 = dx3/len3, uy3 = dy3/len3;
+      function mirrorPt(px, py) {
+        var rx = px-bx, ry = py-by;
+        var dot = rx*ux3+ry*uy3;
+        return {x: bx+2*dot*ux3-rx, y: by+2*dot*uy3-ry};
+      }
+      var clones = del ? [] : null;
+      sels3.forEach(function(e) {
+        var clone = del ? null : JSON.parse(JSON.stringify(e));
+        // Mirror in place (or clone)
+        var target = del ? e : clone;
+        if (target.x1 !== undefined) { var a3=mirrorPt(target.x1,target.y1),b3=mirrorPt(target.x2,target.y2);target.x1=a3.x;target.y1=a3.y;target.x2=b3.x;target.y2=b3.y; }
+        else if (target.cx !== undefined) { var c3=mirrorPt(target.cx,target.cy);target.cx=c3.x;target.cy=c3.y; }
+        else if (target.pts) { target.pts=target.pts.map(function(p){return mirrorPt(p.x,p.y);}); }
+        else if (target.x !== undefined) { var d3=mirrorPt(target.x,target.y);target.x=d3.x;target.y=d3.y; }
+        if (!del) { clone._id=++ST._eid; clone.selected=false; clones.push(clone); }
+      });
+      if (clones) clones.forEach(function(c4){ST.entities.push(c4);});
+    }
+
+  } else if (opType === 'stretch') {
+    var sdx = parseFloat(document.getElementById('refStrX')?.value || '0');
+    var sdy = parseFloat(document.getElementById('refStrY')?.value || '0');
+    sels3.forEach(function(e) { moveEntity && moveEntity(e, sdx, sdy); });
+  }
+
+  invalidateSpatialIndex && invalidateSpatialIndex();
+  render && render();
+  toast(opType + ' applied', 'ok');
+};
+
+// Register commands to open reference dialog
+if (typeof CAD_ACTIONS !== 'undefined') {
+  var _origRotate = CAD_ACTIONS.rotate || function(){ T('rotate'); };
+  var _origScale  = CAD_ACTIONS.scale  || function(){ T('scale'); };
+  CAD_ACTIONS.rotate  = function() {
+    var sels = ST.entities.filter(function(e){return e.selected;});
+    if (sels.length > 0) openReferenceOp('rotate');
+    else T('rotate');
+  };
+  CAD_ACTIONS.scale = function() {
+    var sels = ST.entities.filter(function(e){return e.selected;});
+    if (sels.length > 0) openReferenceOp('scale');
+    else T('scale');
+  };
+  CAD_ACTIONS.mirror = function() {
+    var sels = ST.entities.filter(function(e){return e.selected;});
+    if (sels.length > 0) openReferenceOp('mirror');
+    else T('mirror');
+  };
+  CAD_ACTIONS.stretch = function() {
+    var sels = ST.entities.filter(function(e){return e.selected;});
+    if (sels.length > 0) openReferenceOp('stretch');
+    else T('stretch');
+  };
+}
+
+
+// ═══════════════════════════════════════════════════
+// 6. REAL SHAPEFILE EXPORT (Esri SHP format)
+// ═══════════════════════════════════════════════════
+window.exportRealShapefile = function(entities, layerName) {
+  // Build proper Esri Shapefile binary format
+  // .shp = geometry, .dbf = attributes, .shx = index
+  var ents = entities || ST.entities.filter(function(e){return !e.selected || true;});
+  layerName = layerName || 'export';
+
+  // Determine shape type from entities
+  var hasPolys  = ents.some(function(e){return e.type==='polyline';});
+  var hasLines  = ents.some(function(e){return e.type==='line';});
+  var hasPoints = ents.some(function(e){return e.type==='point';});
+
+  if (hasPolys || hasLines) {
+    _writeShpPolyline(ents, layerName);
+  } else if (hasPoints) {
+    _writeShpPoint(ents, layerName);
+  } else {
+    // Fall back to CSV for mixed/unknown
+    toast('Mixed geometry — downloading as CSV. Import to QGIS → Save as SHP.', 'ok');
+    var rows = ['FID,TYPE,LAYER,X,Y,X2,Y2'];
+    ents.forEach(function(e,i){
+      var lay = ST.layers.find(function(l){return l.id===e.layer;});
+      rows.push([i,e.type,lay?lay.name:'',
+        (e.x1||e.cx||e.x||0).toFixed(4),(e.y1||e.cy||e.y||0).toFixed(4),
+        (e.x2||0).toFixed(4),(e.y2||0).toFixed(4)].join(','));
+    });
+    var blob = new Blob([rows.join('\r\n')], {type:'text/csv'});
+    var a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=layerName+'.csv'; a.click();
+  }
+};
+
+function _writeShpPolyline(ents, name) {
+  // SHP file structure for Polyline (type 3)
+  var SHP_TYPE = 3; // Polyline
+  var records = [];
+  var bbox = {minX:Infinity,minY:Infinity,maxX:-Infinity,maxY:-Infinity};
+
+  ents.forEach(function(e, idx) {
+    var pts = [];
+    if (e.type === 'polyline' && e.pts) {
+      pts = e.pts.map(function(p){return [p.x, p.y];});
+    } else if (e.type === 'line') {
+      pts = [[e.x1,e.y1],[e.x2,e.y2]];
+    }
+    if (pts.length < 2) return;
+
+    pts.forEach(function(p) {
+      bbox.minX=Math.min(bbox.minX,p[0]); bbox.maxX=Math.max(bbox.maxX,p[0]);
+      bbox.minY=Math.min(bbox.minY,p[1]); bbox.maxY=Math.max(bbox.maxY,p[1]);
+    });
+    records.push({id:idx+1, pts:pts, orig:e});
+  });
+
+  if (!records.length) { toast('No polyline/line entities to export', 'warn'); return; }
+
+  // Calculate sizes
+  var contentLen = records.reduce(function(s,r){
+    return s + 8 + 4 + 32 + 4 + 4 + r.pts.length*16;
+  }, 0);
+
+  var shpSize = 100 + contentLen;
+  var buf = new ArrayBuffer(shpSize);
+  var view = new DataView(buf);
+
+  function writeInt32BE(offset, val) { view.setInt32(offset, val, false); }
+  function writeInt32LE(offset, val) { view.setInt32(offset, val, true); }
+  function writeDouble(offset, val)  { view.setFloat64(offset, val, true); }
+
+  // File header
+  writeInt32BE(0, 9994);  // file code
+  writeInt32BE(24, shpSize/2);  // file length in 16-bit words
+  writeInt32LE(28, 1000);  // version
+  writeInt32LE(32, SHP_TYPE);
+  writeDouble(36, bbox.minX); writeDouble(44, bbox.minY);
+  writeDouble(52, bbox.maxX); writeDouble(60, bbox.maxY);
+  writeDouble(68, 0); writeDouble(76, 0);  // Z range
+  writeDouble(84, 0); writeDouble(92, 0);  // M range
+
+  // Records
+  var offset = 100;
+  records.forEach(function(rec) {
+    var recLen = 2 + 16 + 2 + 2 + rec.pts.length*8; // in 16-bit words
+    // Actually: 4 (type) + 32 (bbox) + 4 (nParts) + 4 (nPts) + 4*nParts (parts) + 16*nPts (points)
+    var recContentBytes = 4 + 32 + 4 + 4 + 4 + rec.pts.length*16;
+    writeInt32BE(offset, rec.id);
+    writeInt32BE(offset+4, recContentBytes/2);
+    offset += 8;
+
+    writeInt32LE(offset, SHP_TYPE); offset += 4;
+    // Bounding box
+    var rx1=Infinity,ry1=Infinity,rx2=-Infinity,ry2=-Infinity;
+    rec.pts.forEach(function(p){rx1=Math.min(rx1,p[0]);ry1=Math.min(ry1,p[1]);rx2=Math.max(rx2,p[0]);ry2=Math.max(ry2,p[1]);});
+    writeDouble(offset,rx1);writeDouble(offset+8,ry1);writeDouble(offset+16,rx2);writeDouble(offset+24,ry2);
+    offset+=32;
+    writeInt32LE(offset,1); offset+=4;  // 1 part
+    writeInt32LE(offset,rec.pts.length); offset+=4;  // nPoints
+    writeInt32LE(offset,0); offset+=4;  // part 0 starts at index 0
+    rec.pts.forEach(function(p){
+      writeDouble(offset,p[0]); writeDouble(offset+8,p[1]); offset+=16;
+    });
+  });
+
+  // SHX file
+  var shxBuf = new ArrayBuffer(100 + records.length*8);
+  var sv = new DataView(shxBuf);
+  sv.setInt32(0,9994,false);
+  sv.setInt32(24,(100+records.length*8)/2,false);
+  sv.setInt32(28,1000,true); sv.setInt32(32,SHP_TYPE,true);
+  sv.setFloat64(36,bbox.minX,true);sv.setFloat64(44,bbox.minY,true);sv.setFloat64(52,bbox.maxX,true);sv.setFloat64(60,bbox.maxY,true);
+  var shxOffset2 = 50;
+  var shxIdx = 100;
+  records.forEach(function(rec) {
+    sv.setInt32(shxIdx, shxOffset2, false);
+    var rLen = (4+32+4+4+4+rec.pts.length*16)/2;
+    sv.setInt32(shxIdx+4, rLen, false);
+    shxOffset2 += 4 + rLen;
+    shxIdx += 8;
+  });
+
+  // DBF file (dBase III)
+  var dbfFields = [
+    {name:'FID',      type:'N', len:10, dec:0},
+    {name:'TYPE',     type:'C', len:20, dec:0},
+    {name:'LAYER',    type:'C', len:50, dec:0},
+  ];
+  var dbfBuf = _buildDBF(records.map(function(r,i){
+    var lay = ST.layers.find(function(l){return l.id===r.orig.layer;});
+    return [String(r.id), r.orig.type||'', lay?lay.name:''];
+  }), dbfFields);
+
+  // Download all 3 files
+  function dl(data, fname, mime) {
+    var b = new Blob([data], {type:mime||'application/octet-stream'});
+    var a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download=fname; a.click();
+  }
+  dl(buf, name+'.shp', 'application/octet-stream');
+  setTimeout(function(){dl(shxBuf, name+'.shx', 'application/octet-stream');}, 200);
+  setTimeout(function(){dl(dbfBuf, name+'.dbf', 'application/octet-stream');}, 400);
+  toast('Shapefile exported: '+records.length+' features (.shp + .shx + .dbf)', 'ok');
+}
+
+function _writeShpPoint(ents, name) {
+  var pts2 = ents.filter(function(e){return e.type==='point';});
+  if (!pts2.length) return;
+  var shpSize = 100 + pts2.length*(8+4+16);
+  var buf = new ArrayBuffer(shpSize);
+  var view = new DataView(buf);
+  view.setInt32(0,9994,false);
+  view.setInt32(24,shpSize/2,false);
+  view.setInt32(28,1000,true);
+  view.setInt32(32,1,true);  // Point type
+  var offset = 100;
+  pts2.forEach(function(e,i){
+    view.setInt32(offset,i+1,false); view.setInt32(offset+4,10,false); offset+=8;
+    view.setInt32(offset,1,true); offset+=4;
+    view.setFloat64(offset,e.x||0,true); view.setFloat64(offset+8,e.y||0,true); offset+=16;
+  });
+  var a = document.createElement('a'); a.href=URL.createObjectURL(new Blob([buf]));
+  a.download=name+'.shp'; a.click();
+  toast('Point shapefile exported: '+pts2.length+' points', 'ok');
+}
+
+function _buildDBF(rows, fields) {
+  var fieldDefLen = fields.length * 32;
+  var headerLen   = 32 + fieldDefLen + 1;
+  var recLen = 1 + fields.reduce(function(s,f){return s+f.len;}, 0);
+  var totalLen = headerLen + rows.length * recLen + 1;
+
+  var buf = new ArrayBuffer(totalLen);
+  var v = new DataView(buf);
+  var arr = new Uint8Array(buf);
+
+  v.setUint8(0, 3); // version
+  var now = new Date();
+  v.setUint8(1,now.getFullYear()-1900); v.setUint8(2,now.getMonth()+1); v.setUint8(3,now.getDate());
+  v.setInt32(4, rows.length, true);
+  v.setInt16(8, headerLen, true);
+  v.setInt16(10, recLen, true);
+
+  // Field descriptors
+  var fOff = 32;
+  fields.forEach(function(f) {
+    for (var c=0; c<Math.min(f.name.length,10); c++) arr[fOff+c]=f.name.charCodeAt(c);
+    arr[fOff+11] = f.type.charCodeAt(0);
+    v.setUint8(fOff+16, f.len);
+    v.setUint8(fOff+17, f.dec);
+    fOff += 32;
+  });
+  arr[fOff++] = 0x0D; // header terminator
+
+  // Records
+  rows.forEach(function(row) {
+    arr[fOff++] = 0x20; // not deleted
+    fields.forEach(function(f,fi) {
+      var val = String(row[fi]||'').slice(0,f.len);
+      while (val.length < f.len) val = (f.type==='N') ? ' '+val : val+' ';
+      for (var c=0; c<f.len; c++) arr[fOff+c] = (val.charCodeAt(c)||0x20);
+      fOff += f.len;
+    });
+  });
+  arr[fOff] = 0x1A; // EOF
+  return buf;
+}
+
+// Patch export dialog to use real SHP
+if (typeof CAD_ACTIONS !== 'undefined') {
+  CAD_ACTIONS.exportshp = function() {
+    var sels = ST.entities.filter(function(e){return e.selected;});
+    var toExport = sels.length > 0 ? sels : ST.entities;
+    exportRealShapefile(toExport, 'export');
+  };
+}
+
+
+// ═══════════════════════════════════════════════════
+// 7. XREF IMAGE — prompt to upload missing images
+// ═══════════════════════════════════════════════════
+window.handleMissingXrefImages = function(imageDefs) {
+  if (!imageDefs || !imageDefs.length) return;
+
+  var existing = document.getElementById('moXrefImages');
+  if (existing) existing.remove();
+
+  var div = document.createElement('div');
+  div.id = 'moXrefImages'; div.className = 'mo';
+  div.innerHTML = '<div class="modal w" style="max-width:520px">'
+    + '<div class="mh"><div class="mh-t"><span class="i">🖼</span>External Referenced Images</div>'
+    + '<span class="mc" onclick="closeMo(\'moXrefImages\')">✕</span></div>'
+    + '<div class="mb">'
+    + '<div style="font-size:10px;color:var(--m);font-family:IBM Plex Mono,monospace;margin-bottom:10px">'
+    + 'This drawing references ' + imageDefs.length + ' external image file(s). '
+    + 'Upload them to display as background overlays.</div>'
+    + '<div id="xrefImageList" style="display:flex;flex-direction:column;gap:8px">'
+    + imageDefs.map(function(img, i) {
+        return '<div style="background:var(--bg2);border:1px solid var(--sep);border-radius:5px;padding:8px 12px;display:flex;align-items:center;gap:10px">'
+          + '<div style="flex:1"><div style="font-size:10px;font-weight:700;color:var(--t);font-family:IBM Plex Mono,monospace">' + (img.filename||img.path||'Image '+(i+1)) + '</div>'
+          + '<div style="font-size:8.5px;color:var(--m);font-family:IBM Plex Mono,monospace;margin-top:2px">'
+          + (img.minX ? 'Bounds: ' + img.minX.toFixed(1)+','+img.minY.toFixed(1)+' → '+img.maxX.toFixed(1)+','+img.maxY.toFixed(1) : 'Embedded reference')
+          + '</div></div>'
+          + '<label class="btn s" style="cursor:pointer;font-size:9px">📂 Upload '
+          + '<input type="file" accept="image/*" style="display:none" '
+          + 'onchange="loadXrefImage(this,'+i+')" data-idx="'+i+'">'
+          + '</label>'
+          + '<span id="xrefStatus_'+i+'" style="font-size:9px;color:var(--m)">Not loaded</span>'
+          + '</div>';
+      }).join('')
+    + '</div>'
+    + '</div>'
+    + '<div class="mf"><button class="btn s" onclick="closeMo(\'moXrefImages\')">Close</button></div>'
+    + '</div>';
+  document.body.appendChild(div);
+  openMo('moXrefImages');
+};
+
+window.loadXrefImage = function(input, idx) {
+  var file = input.files[0];
+  if (!file) return;
+  var statusEl = document.getElementById('xrefStatus_'+idx);
+  if (statusEl) statusEl.textContent = 'Loading…';
+
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var img = new Image();
+    img.onload = function() {
+      var imgDef = (ST.imgDefs || [])[idx];
+      if (!imgDef) {
+        if (statusEl) statusEl.textContent = '⚠ No position data';
+        return;
+      }
+      ST.imgOverlays = ST.imgOverlays || [];
+      ST.imgOverlays.push({
+        img:  img,
+        minX: imgDef.minX || 0,
+        minY: imgDef.minY || 0,
+        maxX: imgDef.maxX || img.naturalWidth,
+        maxY: imgDef.maxY || img.naturalHeight,
+        opacity: 0.8,
+      });
+      if (statusEl) { statusEl.textContent = '✓ Loaded'; statusEl.style.color='#4eff91'; }
+      render && render();
+      toast('Image overlay added', 'ok');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+// Hook into parseDXF to show XREF dialog when images found
+var _origPDXFImg = window.parseDXF;
+window.parseDXF = function(txt, filename) {
+  _origPDXFImg && _origPDXFImg(txt, filename);
+  // Show XREF image dialog if imageDefs exist
+  setTimeout(function() {
+    if (ST.imgDefs && ST.imgDefs.length > 0) {
+      handleMissingXrefImages(ST.imgDefs);
+    }
+  }, 800);
+};
+
+
+// ═══════════════════════════════════════════════════
+// 8. ZOOM-TO-EXTENT LOD FIX — min 1px at any zoom
+// ═══════════════════════════════════════════════════
+window.getLOD = function(e, zoom) {
+  if (!e || !e.type) return 'skip';
+  // Text and points: always draw
+  if (e.type === 'point' || e.type === 'text') return 'full';
+  // Polylines and polygons: always draw (they might be large features)
+  if (e.type === 'polyline' || e.type === 'boundary') return 'full';
+  // Lines: use minimum size of 1px (never skip if in viewport)
+  if (e.type === 'line') {
+    if (e.x1 === undefined) return 'full';
+    var screenLen = Math.hypot((e.x2-e.x1)*zoom, (e.y2-e.y1)*zoom);
+    if (screenLen < 0.3) return 'skip';  // truly invisible (< 1/3 pixel)
+    if (screenLen < 1)   return 'dot';   // render as single pixel
+    return 'full';
+  }
+  // Circles, arcs, ellipses
+  if (e.type === 'circle' || e.type === 'arc' || e.type === 'ellipse') {
+    var sr = (e.r || Math.max(e.rx||0, e.ry||0)) * zoom;
+    if (sr < 0.3) return 'skip';
+    if (sr < 1)   return 'dot';
+    return 'full';
+  }
+  // Rects/boxes
+  if (e.type === 'rect' || e.type === 'box3d') {
+    if (e._blockRef) return 'skip'; // unresolved INSERT placeholder
+    var s2 = Math.max(Math.abs(e.w||0), Math.abs(e.h||0)) * zoom;
+    if (s2 < 0.3) return 'skip';
+    if (s2 < 1)   return 'dot';
+    return 'full';
+  }
+  return 'full'; // default: always draw unknown types
+};
+
+
+// ═══════════════════════════════════════════════════
+// 9. KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════
+document.addEventListener('keydown', function(ev) {
+  if (ev.target && (ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA' || ev.target.tagName === 'SELECT')) return;
+  if (ev.ctrlKey || ev.metaKey) {
+    if (ev.key === 'z') { ev.preventDefault(); window.undo(); return; }
+    if (ev.key === 'y' || (ev.shiftKey && ev.key === 'z')) { ev.preventDefault(); window.redo(); return; }
+    if (ev.key === 's') { ev.preventDefault(); saveProject && saveProject(); return; }
+    if (ev.key === 'a') { ev.preventDefault(); ST.entities.forEach(function(e){e.selected=true;}); render && render(); toast('All selected','ok'); return; }
+  }
+  if (ev.key === 'Delete' || ev.key === 'Backspace') {
+    var dels = ST.entities.filter(function(e){return e.selected;});
+    if (dels.length) {
+      ev.preventDefault();
+      pushUndo && pushUndo('delete');
+      ST.entities = ST.entities.filter(function(e){return !e.selected;});
+      invalidateSpatialIndex && invalidateSpatialIndex();
+      hideRotateScaleGizmo && hideRotateScaleGizmo();
+      render && render();
+    }
+  }
+}, false);
+
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+setTimeout(function() {
+  console.log('[StrataFixAll] Loaded: TextEdit ✓ Undo/Redo ✓ Polygon ✓ ContextMenu ✓ Reference ✓ SHP ✓ XREF ✓ LOD ✓');
+}, 200);
+
+})(); // end StrataFixAll
+
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════
