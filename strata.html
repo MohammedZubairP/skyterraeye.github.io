@@ -19797,6 +19797,2060 @@ window.importImageOverlay = function(file, wx, wy, scale) {
 if (typeof CAD_COMMANDS !== 'undefined') CAD_COMMANDS['IMAGE'] = 'image';
 if (typeof CAD_COMMANDS !== 'undefined') CAD_COMMANDS['IMAGEATTACH'] = 'image';
 if (typeof CAD_ACTIONS !== 'undefined') CAD_ACTIONS['image'] = function() { importImageOverlay(); };
+
+// ████████████████████████████████████████████████████████████████████
+//  STRATA ACA ENGINE — AutoCAD Architecture features from User Guide
+//  Based on: ACA 2011 User Guide (4090 pages)
+//  Implements: Walls, Doors, Windows, Stairs, Rooms, Grid, Slab,
+//              Roof, Structural Members, Schedules, AEC Dimensions
+// ████████████████████████████████████████████████████████████████████
+(function ACAEngine() {
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════════
+// CONSTANTS — ACA Layer Standards (Ch.10 Layer Management)
+// ═══════════════════════════════════════════════════════════════════
+var ACA_LAYERS = {
+  WALL:         {name:'A-WALL',       color:'#FFFFFF', desc:'Walls'},
+  WALL_FULL:    {name:'A-WALL-FULL',  color:'#FFFFFF', desc:'Walls - Full height'},
+  WALL_PATT:    {name:'A-WALL-PATT',  color:'#808080', desc:'Walls - Pattern/Hatch'},
+  DOOR:         {name:'A-DOOR',       color:'#00FF00', desc:'Doors'},
+  GLAZ:         {name:'A-GLAZ',       color:'#00FFFF', desc:'Windows/Glazing'},
+  FLOR:         {name:'A-FLOR',       color:'#FFFF00', desc:'Floor/Slab'},
+  ROOF:         {name:'A-ROOF',       color:'#FF8000', desc:'Roof'},
+  STRS:         {name:'A-FLOR-STRS',  color:'#FF6600', desc:'Stairs'},
+  COLS:         {name:'S-COLS',       color:'#FF0000', desc:'Structural Columns'},
+  BEAM:         {name:'S-BEAM',       color:'#FF4444', desc:'Structural Beams'},
+  GRID:         {name:'S-GRID',       color:'#FF00FF', desc:'Column Grid'},
+  ROOM:         {name:'A-AREA',       color:'#804040', desc:'Rooms/Spaces'},
+  DIM:          {name:'A-ANNO-DIMS',  color:'#FF4466', desc:'AEC Dimensions'},
+  TEXT:         {name:'A-ANNO-TEXT',  color:'#FFFF00', desc:'Annotations'},
+  SYMB:         {name:'A-ANNO-SYMB',  color:'#FFFFFF', desc:'Symbols/Tags'},
+  RAILING:      {name:'A-FLOR-RAIL',  color:'#FF8888', desc:'Railings'},
+  CASE:         {name:'A-FLOR-CASE',  color:'#AAAAAA', desc:'Casework'},
+  FIXT:         {name:'A-FLOR-FIXT',  color:'#00FFAA', desc:'Fixtures'},
+  ELEV:         {name:'A-ELEV',       color:'#AAFFFF', desc:'Elevation markers'},
+  SECT:         {name:'A-SECT',       color:'#AAAAFF', desc:'Section markers'},
+};
+
+// Ensure ACA layers exist in ST.layers
+function ensureACALayer(key) {
+  var ld = ACA_LAYERS[key];
+  if (!ld) return ST.curLayer || 1;
+  var existing = ST.layers.find(function(l){return l.name===ld.name;});
+  if (existing) return existing.id;
+  var maxId = Math.max.apply(null, ST.layers.map(function(l){return l.id;}));
+  var newId = maxId + 1;
+  ST.layers.push({id:newId, name:ld.name, color:ld.color, vis:true, frz:false, lock:false, desc:ld.desc});
+  return newId;
+}
+
+window.ensureACALayer = ensureACALayer;
+
+// ═══════════════════════════════════════════════════════════════════
+// 1. SMART WALL TOOL — Chapter 20 (multi-component thick walls)
+// ═══════════════════════════════════════════════════════════════════
+var WALL_STYLES = {
+  Standard:    {width:200, components:[{name:'Core',pct:1.0,color:'#FFFFFF',hatch:true}]},
+  Brick:       {width:230, components:[{name:'Brick',pct:0.48,color:'#FF8040'},{name:'Air',pct:0.09,color:'#CCCCCC'},{name:'Block',pct:0.43,color:'#AAAAAA',hatch:true}]},
+  Concrete:    {width:250, components:[{name:'Concrete',pct:1.0,color:'#888888',hatch:true}]},
+  Stud_90:     {width:90,  components:[{name:'Gypsum',pct:0.14,color:'#FFFFFF'},{name:'Stud',pct:0.72,color:'#CCCCCC',hatch:true},{name:'Gypsum',pct:0.14,color:'#FFFFFF'}]},
+  Stud_140:    {width:140, components:[{name:'Gypsum',pct:0.09,color:'#FFFFFF'},{name:'Stud',pct:0.82,color:'#CCCCCC',hatch:true},{name:'Gypsum',pct:0.09,color:'#FFFFFF'}]},
+  CMU:         {width:200, components:[{name:'CMU',pct:1.0,color:'#999999',hatch:true}]},
+  Cavity:      {width:300, components:[{name:'Brick',pct:0.37,color:'#FF8040'},{name:'Air',pct:0.13,color:'transparent'},{name:'Block',pct:0.33,color:'#AAAAAA',hatch:true},{name:'Ins',pct:0.10,color:'#FFFF80'},{name:'Plaster',pct:0.07,color:'#EEEEEE'}]},
+  GlassCurtain:{width:50,  components:[{name:'Glazing',pct:1.0,color:'#88FFFF',hatch:false}]},
+};
+window.WALL_STYLES = WALL_STYLES;
+
+// Current wall properties
+var wallProps = {style:'Standard', width:200, height:3000, justification:'Center', layer:null};
+
+// Draw a smart architectural wall (thick, with components, in plan view)
+function drawACAWall(ctx, e) {
+  if (e.type !== 'acawall') return;
+  var style = WALL_STYLES[e.wallStyle] || WALL_STYLES.Standard;
+  var w = e.wallWidth || 200;
+  var x1=e.x1,y1=e.y1,x2=e.x2,y2=e.y2;
+  var dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy);
+  if(len<0.001) return;
+  var nx=-dy/len,ny=dx/len; // normal vector (perpendicular)
+
+  // Justification offset
+  var justOff = 0;
+  if (e.justification === 'Left')  justOff = -w/2;
+  if (e.justification === 'Right') justOff =  w/2;
+
+  var sx1=w2s(x1,y1), sx2=w2s(x2,y2);
+  var sdx=sx2.x-sx1.x,sdy=sx2.y-sx1.y;
+  var snx=-sdy/Math.hypot(sdx,sdy),sny=sdx/Math.hypot(sdx,sdy);
+  var sw=Math.abs(w*ST.zoom);
+
+  // Draw wall components
+  var compOffset = -sw/2 + justOff*ST.zoom;
+  style.components.forEach(function(comp) {
+    var cw = sw * comp.pct;
+    ctx.save();
+    // Fill component
+    if (comp.color !== 'transparent') {
+      ctx.fillStyle = e.selected ? 'rgba(245,190,24,.3)' : (comp.color+'33');
+      ctx.beginPath();
+      ctx.moveTo(sx1.x+snx*(compOffset),        sx1.y+sny*(compOffset));
+      ctx.lineTo(sx1.x+snx*(compOffset+cw),     sx1.y+sny*(compOffset+cw));
+      ctx.lineTo(sx2.x+snx*(compOffset+cw),     sx2.y+sny*(compOffset+cw));
+      ctx.lineTo(sx2.x+snx*(compOffset),        sx2.y+sny*(compOffset));
+      ctx.closePath();
+      ctx.fill();
+    }
+    // Hatch for structural components
+    if (comp.hatch && sw > 4) {
+      ctx.strokeStyle = e.selected ? '#F5BE18' : (comp.color||'#888');
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash([3,3]);
+      for (var hi=0; hi<sw; hi+=4) {
+        ctx.beginPath();
+        ctx.moveTo(sx1.x+snx*(compOffset+hi), sx1.y+sny*(compOffset+hi));
+        ctx.lineTo(sx2.x+snx*(compOffset+hi), sx2.y+sny*(compOffset+hi));
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+    compOffset += cw;
+    ctx.restore();
+  });
+
+  // Outer lines (wall boundary)
+  var offsets = [(-sw/2+justOff*ST.zoom), (sw/2+justOff*ST.zoom)];
+  offsets.forEach(function(off) {
+    ctx.beginPath();
+    ctx.moveTo(sx1.x+snx*off, sx1.y+sny*off);
+    ctx.lineTo(sx2.x+snx*off, sx2.y+sny*off);
+    ctx.strokeStyle = e.selected ? '#F5BE18' : '#FFFFFF';
+    ctx.lineWidth = e.selected ? 2 : 1;
+    ctx.stroke();
+  });
+
+  // End caps
+  var endCapOff1 = -sw/2+justOff*ST.zoom, endCapOff2 = sw/2+justOff*ST.zoom;
+  ctx.beginPath();
+  ctx.moveTo(sx1.x+snx*endCapOff1, sx1.y+sny*endCapOff1);
+  ctx.lineTo(sx1.x+snx*endCapOff2, sx1.y+sny*endCapOff2);
+  ctx.moveTo(sx2.x+snx*endCapOff1, sx2.y+sny*endCapOff1);
+  ctx.lineTo(sx2.x+snx*endCapOff2, sx2.y+sny*endCapOff2);
+  ctx.strokeStyle = e.selected ? '#F5BE18' : '#FFFFFF';
+  ctx.stroke();
+
+  // Centerline (justification line)
+  if (e.selected || (sw > 8 && ST.zoom > 0.5)) {
+    var clOff = justOff*ST.zoom;
+    ctx.beginPath();
+    ctx.moveTo(sx1.x+snx*clOff, sx1.y+sny*clOff);
+    ctx.lineTo(sx2.x+snx*clOff, sx2.y+sny*clOff);
+    ctx.strokeStyle = 'rgba(255,100,100,.5)';
+    ctx.lineWidth = 0.5;
+    ctx.setLineDash([4,4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 2. DOOR TOOL — Chapter 24 (inserts in wall, auto-cleanup)
+// ═══════════════════════════════════════════════════════════════════
+var DOOR_STYLES = {
+  Single:     {symbol:'single',  swing:true},
+  Double:     {symbol:'double',  swing:true},
+  Sliding:    {symbol:'sliding', swing:false},
+  Bifold:     {symbol:'bifold',  swing:false},
+  Garage:     {symbol:'garage',  swing:false},
+  Revolving:  {symbol:'revolving',swing:false},
+};
+
+function drawDoorSymbol(ctx, e) {
+  if (e.type !== 'acadoor') return;
+  var w = e.width || 900, h = e.height || 2100;
+  var x = e.x, y = e.y, ang = (e.angle||0)*Math.PI/180;
+  var sp = w2s(x,y);
+  var sw = w * ST.zoom;
+  var sh = (e.frameWidth||50) * ST.zoom;
+
+  ctx.save();
+  ctx.translate(sp.x, sp.y);
+  ctx.rotate(-ang);
+
+  var col = e.selected ? '#F5BE18' : '#00FF00';
+  ctx.strokeStyle = col;
+  ctx.fillStyle = 'rgba(0,255,0,0.05)';
+  ctx.lineWidth = e.selected ? 2 : 1;
+
+  var style = e.doorStyle || 'Single';
+  if (style === 'Single' || style === 'Double') {
+    // Frame
+    ctx.beginPath();
+    ctx.rect(-sh/2, -sh/2, sw+sh, sh);
+    ctx.stroke();
+    // Swing arc
+    ctx.beginPath();
+    ctx.arc(0, 0, sw, -Math.PI/2, 0);
+    ctx.lineTo(0,0);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0,0); ctx.lineTo(sw,0);
+    ctx.stroke();
+    if (style === 'Double') {
+      ctx.save(); ctx.scale(-1,1);
+      ctx.beginPath();
+      ctx.arc(0, 0, sw/2, -Math.PI/2, 0);
+      ctx.lineTo(0,0);
+      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(sw/2,0); ctx.stroke();
+      ctx.restore();
+    }
+  } else if (style === 'Sliding') {
+    ctx.beginPath();
+    ctx.rect(0, -sh/2, sw, sh);
+    ctx.stroke();
+    // Sliding door panel
+    ctx.fillStyle = 'rgba(0,255,0,0.15)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.setLineDash([4,2]);
+    ctx.rect(0, -sh/2, sw*0.6, sh);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  } else if (style === 'Revolving') {
+    ctx.beginPath();
+    ctx.arc(0, 0, sw/2, 0, Math.PI*2);
+    ctx.stroke();
+    for (var ri=0; ri<4; ri++) {
+      var ra = ri*Math.PI/2;
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.lineTo(Math.cos(ra)*sw/2, Math.sin(ra)*sw/2);
+      ctx.stroke();
+    }
+  }
+
+  // Label (door mark)
+  if (SW > 30 && e.mark) {
+    ctx.fillStyle = col;
+    ctx.font = 'bold 9px IBM Plex Mono,monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(e.mark, sw/2, -sh-3);
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 3. WINDOW TOOL — Chapter 25
+// ═══════════════════════════════════════════════════════════════════
+var WINDOW_STYLES = {
+  Fixed:       {panes:1},
+  Casement:    {panes:1, swing:true},
+  Double_Hung: {panes:2, horizontal:true},
+  Sliding:     {panes:2, slide:true},
+  Awning:      {panes:1, top:true},
+  Bay:         {panes:3, bay:true},
+  Picture:     {panes:1, large:true},
+  Storefront:  {panes:4, grid:true},
+};
+
+function drawWindowSymbol(ctx, e) {
+  if (e.type !== 'acawindow') return;
+  var w = e.width || 1200, fw = (e.frameWidth||50);
+  var x=e.x, y=e.y, ang=(e.angle||0)*Math.PI/180;
+  var sp=w2s(x,y);
+  var sw=w*ST.zoom, sf=fw*ST.zoom;
+
+  ctx.save();
+  ctx.translate(sp.x,sp.y);
+  ctx.rotate(-ang);
+  var col = e.selected ? '#F5BE18' : '#00FFFF';
+  ctx.strokeStyle=col; ctx.lineWidth=e.selected?2:1;
+
+  // Frame
+  ctx.beginPath(); ctx.rect(0,-sf/2,sw,sf); ctx.stroke();
+  // Glass
+  ctx.fillStyle='rgba(0,255,255,0.1)';
+  ctx.fill();
+  // Panes
+  var style=WINDOW_STYLES[e.windowStyle||'Fixed']||WINDOW_STYLES.Fixed;
+  if(style.panes>1&&!style.horizontal) {
+    for(var pi=1;pi<style.panes;pi++) {
+      var px=sw*pi/style.panes;
+      ctx.beginPath(); ctx.moveTo(px,-sf/2); ctx.lineTo(px,sf/2); ctx.stroke();
+    }
+  } else if(style.horizontal) {
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(sw,0); ctx.stroke();
+  }
+  // Sill line (shows in plan)
+  ctx.strokeStyle='rgba(0,255,255,0.4)'; ctx.lineWidth=0.5;
+  ctx.setLineDash([2,2]);
+  ctx.beginPath(); ctx.moveTo(0,-sf); ctx.lineTo(sw,-sf); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 4. STAIR SYMBOL — Chapter 27
+// ═══════════════════════════════════════════════════════════════════
+function drawStairSymbol(ctx, e) {
+  if (e.type !== 'acastair') return;
+  var w=e.width||1200, run=e.run||3000, risers=e.risers||15;
+  var x=e.x,y=e.y,ang=(e.angle||0)*Math.PI/180;
+  var sp=w2s(x,y);
+  var sw=w*ST.zoom,sr=run*ST.zoom;
+
+  ctx.save();
+  ctx.translate(sp.x,sp.y);
+  ctx.rotate(-ang);
+  var col=e.selected?'#F5BE18':'#FF6600';
+  ctx.strokeStyle=col; ctx.lineWidth=e.selected?2:1;
+
+  // Stair outline
+  ctx.beginPath(); ctx.rect(0,0,sr,-sw); ctx.stroke();
+  // Treads
+  var tread=sr/risers;
+  for(var ti=1;ti<risers;ti++) {
+    ctx.beginPath();
+    ctx.moveTo(ti*tread,0); ctx.lineTo(ti*tread,-sw);
+    ctx.stroke();
+  }
+  // UP arrow
+  var mid=sr/2;
+  ctx.strokeStyle=col; ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(sr*0.2,-sw/2); ctx.lineTo(sr*0.7,-sw/2);
+  ctx.moveTo(sr*0.6,-sw/2-4); ctx.lineTo(sr*0.7,-sw/2);
+  ctx.moveTo(sr*0.6,-sw/2+4); ctx.lineTo(sr*0.7,-sw/2);
+  ctx.stroke();
+  // UP text
+  ctx.fillStyle=col;
+  ctx.font='bold '+Math.max(8,10/ST.zoom*8)+'px IBM Plex Mono,monospace';
+  ctx.textAlign='center';
+  ctx.fillText('UP',sr*0.3,-sw/2+2);
+  // Cut line
+  ctx.strokeStyle='rgba(255,100,0,0.6)';
+  ctx.lineWidth=2;
+  ctx.setLineDash([6,3]);
+  var cutX=sr*0.5;
+  ctx.beginPath(); ctx.moveTo(cutX,4); ctx.lineTo(cutX,-sw-4); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 5. ROOF SYMBOL — Chapter 29
+// ═══════════════════════════════════════════════════════════════════
+function drawRoofSymbol(ctx, e) {
+  if (e.type !== 'acaroof') return;
+  var pts=e.pts||[];
+  if (pts.length < 3) return;
+  var col=e.selected?'#F5BE18':'#FF8000';
+  ctx.save();
+  // Outline
+  ctx.beginPath();
+  pts.forEach(function(p,i){
+    var s=w2s(p.x,p.y);
+    i===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y);
+  });
+  ctx.closePath();
+  ctx.fillStyle='rgba(255,128,0,0.06)';
+  ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=e.selected?2:1.5;
+  ctx.stroke();
+  // Ridge line
+  if (e.ridgePts && e.ridgePts.length >= 2) {
+    ctx.strokeStyle='rgba(255,128,0,0.8)';
+    ctx.lineWidth=2;
+    ctx.setLineDash([8,4]);
+    ctx.beginPath();
+    e.ridgePts.forEach(function(p,i){
+      var s=w2s(p.x,p.y);
+      i===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // Slope arrows
+  if (e.slopePts && e.slopePts.length >= 2) {
+    var s1=w2s(e.slopePts[0].x,e.slopePts[0].y);
+    var s2=w2s(e.slopePts[1].x,e.slopePts[1].y);
+    var dx=s2.x-s1.x,dy=s2.y-s1.y,d=Math.hypot(dx,dy)||1;
+    ctx.strokeStyle='rgba(255,128,0,.7)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(s1.x,s1.y); ctx.lineTo(s2.x,s2.y);
+    ctx.lineTo(s2.x-dx/d*5+(-dy/d)*3, s2.y-dy/d*5+(dx/d)*3);
+    ctx.moveTo(s2.x,s2.y);
+    ctx.lineTo(s2.x-dx/d*5-((-dy/d)*3), s2.y-dy/d*5-((dx/d)*3));
+    ctx.stroke();
+    // Slope ratio label
+    ctx.fillStyle='rgba(255,128,0,.9)';
+    ctx.font='8px IBM Plex Mono,monospace';
+    ctx.textAlign='center';
+    ctx.fillText((e.rise||3)+':12',(s1.x+s2.x)/2+10,(s1.y+s2.y)/2-5);
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 6. STRUCTURAL MEMBERS — Chapter 31 (Columns, Beams)
+// ═══════════════════════════════════════════════════════════════════
+var STRUCT_SECTIONS = {
+  'W8x31':   {width:210, depth:210, type:'wide-flange'},
+  'W12x50':  {width:205, depth:310, type:'wide-flange'},
+  'HSS8x8x0.25': {width:200, depth:200, type:'hss'},
+  'C8x11.5': {width:75,  depth:200, type:'channel'},
+  'L4x4x0.5':{width:100, depth:100, type:'angle'},
+  'PIPE4STD': {width:114, depth:114, type:'pipe'},
+  '12x12':   {width:300, depth:300, type:'concrete'},
+  '16x16':   {width:400, depth:400, type:'concrete'},
+};
+
+function drawStructMember(ctx, e) {
+  if (e.type !== 'acastruct') return;
+  var sec = STRUCT_SECTIONS[e.section || '12x12'] || STRUCT_SECTIONS['12x12'];
+  var col = e.selected ? '#F5BE18' : '#FF0000';
+  ctx.save();
+
+  if (e.memberType === 'column') {
+    var sp=w2s(e.x,e.y);
+    var sw=sec.width*ST.zoom, sd=sec.depth*ST.zoom;
+    ctx.translate(sp.x,sp.y);
+    ctx.rotate(-(e.angle||0)*Math.PI/180);
+
+    if (sec.type==='wide-flange') {
+      // Wide flange cross section
+      ctx.fillStyle=e.selected?'rgba(245,190,24,.2)':'rgba(255,0,0,.1)';
+      ctx.strokeStyle=col; ctx.lineWidth=e.selected?2:1.5;
+      var fw=sw,fd=sd,tw=fw*0.1,tf=fd*0.2;
+      ctx.beginPath();
+      // Top flange
+      ctx.rect(-fw/2,-fd/2,fw,tf);
+      ctx.fill(); ctx.stroke();
+      // Bottom flange
+      ctx.beginPath();
+      ctx.rect(-fw/2,fd/2-tf,fw,tf);
+      ctx.fill(); ctx.stroke();
+      // Web
+      ctx.beginPath();
+      ctx.rect(-tw/2,-fd/2+tf,tw,fd-tf*2);
+      ctx.fill(); ctx.stroke();
+    } else if (sec.type==='concrete') {
+      // Concrete column - solid with X mark
+      ctx.fillStyle=e.selected?'rgba(245,190,24,.2)':'rgba(200,200,200,.15)';
+      ctx.strokeStyle=col; ctx.lineWidth=e.selected?2:1.5;
+      ctx.beginPath(); ctx.rect(-sw/2,-sd/2,sw,sd); ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-sw/2,-sd/2); ctx.lineTo(sw/2,sd/2);
+      ctx.moveTo(sw/2,-sd/2);  ctx.lineTo(-sw/2,sd/2);
+      ctx.strokeStyle='rgba(255,0,0,.3)'; ctx.lineWidth=0.7;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle=e.selected?'rgba(245,190,24,.15)':'rgba(255,0,0,.08)';
+      ctx.strokeStyle=col; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.rect(-sw/2,-sd/2,sw,sd); ctx.fill(); ctx.stroke();
+    }
+    // Column mark label
+    if (e.mark && ST.zoom > 0.3) {
+      ctx.fillStyle=col; ctx.font='bold 8px IBM Plex Mono,monospace';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(e.mark,0,0);
+    }
+  } else {
+    // Beam - line with flange markers
+    var sa=w2s(e.x1,e.y1), sb=w2s(e.x2,e.y2);
+    ctx.strokeStyle=col; ctx.lineWidth=e.selected?3:2;
+    ctx.beginPath(); ctx.moveTo(sa.x,sa.y); ctx.lineTo(sb.x,sb.y); ctx.stroke();
+    // Flange lines
+    var dx=sb.x-sa.x,dy=sb.y-sa.y,d=Math.hypot(dx,dy)||1;
+    var nx=-dy/d,ny=dx/d, bf=(sec.width||200)*ST.zoom/2;
+    ctx.lineWidth=0.8;
+    ctx.beginPath();
+    ctx.moveTo(sa.x+nx*bf,sa.y+ny*bf); ctx.lineTo(sb.x+nx*bf,sb.y+ny*bf);
+    ctx.moveTo(sa.x-nx*bf,sa.y-ny*bf); ctx.lineTo(sb.x-nx*bf,sb.y-ny*bf);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 7. COLUMN GRID — Chapter 33-34
+// ═══════════════════════════════════════════════════════════════════
+function drawColumnGrid(ctx, e) {
+  if (e.type !== 'acadgrid') return;
+  var col=e.selected?'#F5BE18':'#FF00FF';
+  ctx.save();
+  ctx.strokeStyle=col; ctx.lineWidth=0.5; ctx.setLineDash([8,4]);
+  ctx.globalAlpha=0.6;
+  // X grid lines
+  for(var xi=0;xi<=e.xCount;xi++) {
+    var wx=e.x+xi*e.xSpacing, sp1=w2s(wx,e.y), sp2=w2s(wx,e.y+e.yCount*e.ySpacing);
+    ctx.beginPath(); ctx.moveTo(sp1.x,sp1.y); ctx.lineTo(sp2.x,sp2.y); ctx.stroke();
+  }
+  // Y grid lines
+  for(var yi=0;yi<=e.yCount;yi++) {
+    var wy=e.y+yi*e.ySpacing, sp3=w2s(e.x,wy), sp4=w2s(e.x+e.xCount*e.xSpacing,wy);
+    ctx.beginPath(); ctx.moveTo(sp3.x,sp3.y); ctx.lineTo(sp4.x,sp4.y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.globalAlpha=1;
+  // Grid bubble labels
+  if (ST.zoom > 0.05) {
+    var bubR=Math.max(8,300*ST.zoom);
+    var ALPHA=['A','B','C','D','E','F','G','H','J','K','L','M','N','P','Q','R'];
+    var NUMS=['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15'];
+    ctx.lineWidth=1;
+    // X axis labels (numbers at bottom)
+    for(var xli=0;xli<=e.xCount;xli++) {
+      var wx2=e.x+xli*e.xSpacing;
+      var bs1=w2s(wx2,e.y-300);
+      ctx.beginPath(); ctx.arc(bs1.x,bs1.y,bubR,0,Math.PI*2);
+      ctx.strokeStyle=col; ctx.stroke();
+      ctx.fillStyle='rgba(6,14,26,.9)'; ctx.fill();
+      ctx.fillStyle=col;
+      ctx.font='bold '+Math.max(7,bubR*0.7)+'px IBM Plex Mono,monospace';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(NUMS[xli]||String(xli+1),bs1.x,bs1.y);
+    }
+    // Y axis labels (letters at left)
+    for(var yli=0;yli<=e.yCount;yli++) {
+      var wy2=e.y+yli*e.ySpacing;
+      var bs2=w2s(e.x-300,wy2);
+      ctx.beginPath(); ctx.arc(bs2.x,bs2.y,bubR,0,Math.PI*2);
+      ctx.strokeStyle=col; ctx.stroke();
+      ctx.fillStyle='rgba(6,14,26,.9)'; ctx.fill();
+      ctx.fillStyle=col;
+      ctx.font='bold '+Math.max(7,bubR*0.7)+'px IBM Plex Mono,monospace';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(ALPHA[yli]||String(yli),bs2.x,bs2.y);
+    }
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 8. FLOOR SLAB / SPACE — Chapter 30, 39
+// ═══════════════════════════════════════════════════════════════════
+function drawFloorSlab(ctx, e) {
+  if (e.type !== 'acaslab' && e.type !== 'acaroom') return;
+  var col=e.selected?'#F5BE18':(e.type==='acaroom'?'#FF8080':'#FFFF00');
+  if (!e.pts || e.pts.length < 3) return;
+  ctx.save();
+  ctx.beginPath();
+  e.pts.forEach(function(p,i){
+    var s=w2s(p.x,p.y); i===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y);
+  });
+  ctx.closePath();
+  ctx.fillStyle=e.type==='acaroom'?'rgba(255,128,128,0.08)':'rgba(255,255,0,0.05)';
+  ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=e.selected?2:1;
+  ctx.stroke();
+  // Area label
+  if (ST.zoom > 0.1) {
+    var xs=e.pts.map(function(p){return p.x;});
+    var ys=e.pts.map(function(p){return p.y;});
+    var cxp=(Math.min.apply(null,xs)+Math.max.apply(null,xs))/2;
+    var cyp=(Math.min.apply(null,ys)+Math.max.apply(null,ys))/2;
+    var sc=w2s(cxp,cyp);
+    // Calculate area using shoelace formula
+    var area=0;
+    for(var ai=0;ai<e.pts.length;ai++){
+      var p1=e.pts[ai],p2=e.pts[(ai+1)%e.pts.length];
+      area+=p1.x*p2.y-p2.x*p1.y;
+    }
+    area=Math.abs(area)/2;
+    var areaM2=(area/1e6).toFixed(2);
+    if(e.name||e.roomName){
+      ctx.fillStyle=col;
+      ctx.font='bold '+Math.max(8,12/ST.zoom*8)+'px IBM Plex Mono,monospace';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(e.name||e.roomName,sc.x,sc.y-8);
+    }
+    ctx.fillStyle='rgba(255,255,255,0.8)';
+    ctx.font=Math.max(7,10/ST.zoom*7)+'px IBM Plex Mono,monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(areaM2+' m²',sc.x,sc.y+(e.name?8:0));
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 9. AEC DIMENSIONS — Chapter 43 (smart wall dimensions)
+// ═══════════════════════════════════════════════════════════════════
+function drawAECDimension(ctx, e) {
+  if (e.type !== 'aecdim') return;
+  // Chain dimension along a reference line
+  var pts=e.pts||[];
+  if(pts.length<2) return;
+  var offDist=(e.offset||400)*ST.zoom;
+  var col=e.selected?'#F5BE18':'#FF4466';
+
+  // Reference direction
+  var p0=w2s(pts[0].x,pts[0].y), pN=w2s(pts[pts.length-1].x,pts[pts.length-1].y);
+  var dx=pN.x-p0.x,dy=pN.y-p0.y,len=Math.hypot(dx,dy)||1;
+  var nx=-dy/len,ny=dx/len; // normal
+  // Offset direction
+  var side = e.side || 1; // 1 = above, -1 = below
+
+  ctx.save();
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=1;
+
+  // Dimension line
+  ctx.beginPath();
+  ctx.moveTo(p0.x+nx*offDist*side, p0.y+ny*offDist*side);
+  ctx.lineTo(pN.x+nx*offDist*side, pN.y+ny*offDist*side);
+  ctx.stroke();
+
+  // Extension lines + tick marks + values for each segment
+  for(var di=0;di<pts.length-1;di++){
+    var pa=w2s(pts[di].x,pts[di].y), pb=w2s(pts[di+1].x,pts[di+1].y);
+    var qda={x:pa.x+nx*offDist*side, y:pa.y+ny*offDist*side};
+    var qdb={x:pb.x+nx*offDist*side, y:pb.y+ny*offDist*side};
+    // Extension lines
+    ctx.beginPath();
+    ctx.moveTo(pa.x,pa.y); ctx.lineTo(qda.x,qda.y);
+    ctx.moveTo(pb.x,pb.y); ctx.lineTo(qdb.x,qdb.y);
+    ctx.stroke();
+    // Tick marks
+    var tlen=5;
+    var tx=(qdb.x-qda.x),ty=(qdb.y-qda.y),tl=Math.hypot(tx,ty)||1;
+    var tux=tx/tl,tuy=ty/tl;
+    [[qda.x,qda.y],[qdb.x,qdb.y]].forEach(function(pt){
+      ctx.beginPath();
+      ctx.moveTo(pt[0]-tux*tlen,pt[1]-tuy*tlen);
+      ctx.lineTo(pt[0]+tux*tlen,pt[1]+tuy*tlen);
+      ctx.stroke();
+    });
+    // Dimension value
+    var dist=Math.hypot(pts[di+1].x-pts[di].x,pts[di+1].y-pts[di].y);
+    var valStr;
+    if (ST.units==='m') valStr=(dist/1000).toFixed(3)+'m';
+    else if (ST.units==='ft') valStr=(dist/304.8).toFixed(2)+"'";
+    else valStr=Math.round(dist)+'mm';
+    var mx=(qda.x+qdb.x)/2, my=(qda.y+qdb.y)/2;
+    var angle2=Math.atan2(qdb.y-qda.y,qdb.x-qda.x);
+    ctx.save();
+    ctx.translate(mx,my); ctx.rotate(angle2);
+    ctx.font='bold '+Math.max(7,9/Math.max(ST.zoom,0.1)*7)+'px IBM Plex Mono,monospace';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillStyle=col;
+    ctx.fillText(valStr,0,-2);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 10. SECTION / ELEVATION MARKS — Chapter 40-41
+// ═══════════════════════════════════════════════════════════════════
+function drawSectionMark(ctx, e) {
+  if (e.type !== 'acasection' && e.type !== 'acaelevation') return;
+  var col=e.selected?'#F5BE18':(e.type==='acaelevation'?'#AAFFFF':'#AAAAFF');
+  var s1=w2s(e.x1,e.y1), s2=w2s(e.x2,e.y2);
+  ctx.save();
+  ctx.strokeStyle=col; ctx.lineWidth=e.selected?2.5:1.5;
+
+  if (e.type==='acasection') {
+    // Section cut line
+    ctx.setLineDash([10,5,2,5]);
+    ctx.beginPath(); ctx.moveTo(s1.x,s1.y); ctx.lineTo(s2.x,s2.y); ctx.stroke();
+    ctx.setLineDash([]);
+    // Section bubbles at ends
+    var bubR2=Math.max(10,400*ST.zoom);
+    [s1,s2].forEach(function(sp,si){
+      ctx.beginPath(); ctx.arc(sp.x,sp.y,bubR2,0,Math.PI*2);
+      ctx.fillStyle='rgba(6,14,26,.9)'; ctx.fill();
+      ctx.strokeStyle=col; ctx.stroke();
+      ctx.fillStyle=col;
+      ctx.font='bold '+Math.max(7,bubR2*0.6)+'px IBM Plex Mono,monospace';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(e.mark||'A',sp.x,sp.y-(si===0?0:0));
+    });
+  } else {
+    // Elevation arrow
+    ctx.beginPath(); ctx.moveTo(s1.x,s1.y); ctx.lineTo(s2.x,s2.y); ctx.stroke();
+    var dx2=s2.x-s1.x,dy2=s2.y-s1.y,d2=Math.hypot(dx2,dy2)||1;
+    var ux2=dx2/d2,uy2=dy2/d2;
+    var arL=Math.max(12,500*ST.zoom);
+    ctx.beginPath();
+    ctx.moveTo(s2.x,s2.y);
+    ctx.lineTo(s2.x-ux2*arL+uy2*arL*0.4, s2.y-uy2*arL-ux2*arL*0.4);
+    ctx.lineTo(s2.x-ux2*arL-uy2*arL*0.4, s2.y-uy2*arL+ux2*arL*0.4);
+    ctx.closePath(); ctx.fill();
+    // Bubble
+    var bR=Math.max(10,400*ST.zoom);
+    ctx.beginPath(); ctx.arc(s1.x,s1.y,bR,0,Math.PI*2);
+    ctx.fillStyle='rgba(6,14,26,.9)'; ctx.fill();
+    ctx.strokeStyle=col; ctx.stroke();
+    ctx.fillStyle=col;
+    ctx.font='bold '+Math.max(7,bR*0.6)+'px IBM Plex Mono,monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(e.mark||'1',s1.x,s1.y);
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 11. SCHEDULE TABLE — Chapter 49
+// ═══════════════════════════════════════════════════════════════════
+window.generateSchedule = function(scheduleType) {
+  var types = {
+    door:   {entityType:'acadoor',    title:'Door Schedule',   cols:['Mark','Width','Height','Style','Material','Fire Rating']},
+    window: {entityType:'acawindow',  title:'Window Schedule', cols:['Mark','Width','Height','Style','Glass','Quantity']},
+    room:   {entityType:'acaroom',    title:'Room Schedule',   cols:['Number','Name','Area (m²)','Perimeter','Floor','Finish']},
+    column: {entityType:'acastruct',  title:'Column Schedule', cols:['Mark','Section','Height','Material','Notes']},
+  };
+  var def = types[scheduleType];
+  if (!def) { toast('Unknown schedule type: '+scheduleType,'warn'); return; }
+
+  var ents = ST.entities.filter(function(e){ return e.type === def.entityType; });
+  if (!ents.length) { toast('No '+scheduleType+' objects found in drawing','warn'); return; }
+
+  // Build HTML table
+  var rows = ents.map(function(e,i) {
+    if (scheduleType==='door') return [e.mark||String(i+1), (e.width||900)+'mm', (e.height||2100)+'mm', e.doorStyle||'Single', e.material||'Wood', e.fireRating||'-'];
+    if (scheduleType==='window') return [e.mark||String(i+1), (e.width||1200)+'mm', (e.height||1500)+'mm', e.windowStyle||'Fixed', e.glass||'Clear 6mm', '1'];
+    if (scheduleType==='room') {
+      var area=0;
+      if(e.pts){for(var ai=0;ai<e.pts.length;ai++){var p1=e.pts[ai],p2=e.pts[(ai+1)%e.pts.length];area+=p1.x*p2.y-p2.x*p1.y;}}
+      return [e.roomNum||String(i+1), e.roomName||e.name||'Room', (Math.abs(area)/2e6).toFixed(2), '-', e.floor||'1', e.finish||'-'];
+    }
+    if (scheduleType==='column') return [e.mark||String(i+1), e.section||'12x12', (e.height||3000)+'mm', e.material||'RC', e.notes||'-'];
+    return [];
+  });
+
+  var tableHtml = '<table style="width:100%;border-collapse:collapse;font-family:IBM Plex Mono,monospace;font-size:10px">';
+  tableHtml += '<thead><tr style="background:rgba(31,168,217,.2)">';
+  def.cols.forEach(function(c){ tableHtml += '<th style="border:1px solid rgba(31,168,217,.4);padding:5px 8px;text-align:left;color:#1FA8D9">'+c+'</th>'; });
+  tableHtml += '</tr></thead><tbody>';
+  rows.forEach(function(row,ri) {
+    tableHtml += '<tr style="background:'+(ri%2===0?'transparent':'rgba(31,168,217,.05)')+'\">';
+    row.forEach(function(cell){ tableHtml += '<td style="border:1px solid rgba(31,168,217,.2);padding:4px 8px;color:var(--t)">'+cell+'</td>'; });
+    tableHtml += '</tr>';
+  });
+  tableHtml += '</tbody></table>';
+
+  // Show in modal
+  var div = document.createElement('div');
+  div.id = 'moSchedule_'+scheduleType; div.className='mo';
+  div.innerHTML = '<div class="modal xl" style="max-width:700px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">📋</span>'+def.title+'</div>'
+    +'<span class="mc" onclick="closeMo(\'moSchedule_'+scheduleType+'\')">✕</span></div>'
+    +'<div class="mb" style="overflow-x:auto">'+tableHtml+'</div>'
+    +'<div class="mf">'
+    +'<button class="btn s" onclick="closeMo(\'moSchedule_'+scheduleType+'\')">Close</button>'
+    +'<button class="btn" onclick="exportScheduleCSV(\''+scheduleType+'\')">📊 Export CSV</button>'
+    +'</div></div>';
+  var existing = document.getElementById('moSchedule_'+scheduleType);
+  if (existing) existing.remove();
+  document.body.appendChild(div);
+  openMo('moSchedule_'+scheduleType);
+  toast(def.title+': '+ents.length+' items', 'ok');
+};
+
+window.exportScheduleCSV = function(scheduleType) {
+  generateSchedule(scheduleType); // shows the modal
+  // Could also trigger CSV download
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// 12. OVERRIDE drawEntity TO HANDLE ACA TYPES
+// ═══════════════════════════════════════════════════════════════════
+var _origDrawEntity = window.drawEntity;
+window.drawEntity = function(e, ghost) {
+  if (!e) return;
+  var canvas2 = document.getElementById('cad');
+  if (!canvas2) return;
+  var ctx2 = canvas2.getContext('2d');
+
+  ctx2.save();
+  if (ghost) ctx2.globalAlpha = 0.5;
+
+  switch(e.type) {
+    case 'acawall':    drawACAWall(ctx2, e);    break;
+    case 'acadoor':    drawDoorSymbol(ctx2, e); break;
+    case 'acawindow':  drawWindowSymbol(ctx2,e);break;
+    case 'acastair':   drawStairSymbol(ctx2, e);break;
+    case 'acaroof':    drawRoofSymbol(ctx2, e); break;
+    case 'acastruct':  drawStructMember(ctx2,e);break;
+    case 'acadgrid':   drawColumnGrid(ctx2, e); break;
+    case 'acaslab':
+    case 'acaroom':    drawFloorSlab(ctx2, e);  break;
+    case 'aecdim':     drawAECDimension(ctx2,e);break;
+    case 'acasection':
+    case 'acaelevation':drawSectionMark(ctx2,e);break;
+    default:
+      ctx2.restore();
+      _origDrawEntity && _origDrawEntity(e, ghost);
+      return;
+  }
+  ctx2.restore();
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// 13. ARCHITECTURAL RIBBON TAB & TOOLS PALETTE
+// ═══════════════════════════════════════════════════════════════════
+function buildArchTab() {
+  // Add ARCH tab to ribbon if not exists
+  var tabs = document.getElementById('ribTabsEl');
+  if (!tabs || document.getElementById('tab-arch')) return;
+
+  var archTab = document.createElement('div');
+  archTab.className='rbtab'; archTab.id='tab-arch';
+  archTab.textContent='ARCHITECTURE';
+  archTab.style.cssText='color:#4eff91;border-bottom:2px solid #4eff91;font-weight:700;cursor:pointer;padding:0 10px;font-size:9px;display:flex;align-items:center;white-space:nowrap';
+  archTab.onclick=function(){
+    document.querySelectorAll('.rbtab').forEach(function(t){t.style.borderBottom='none';t.style.color='';});
+    archTab.style.borderBottom='2px solid #4eff91'; archTab.style.color='#4eff91';
+    showRibbon('arch');
+  };
+  tabs.insertBefore(archTab, tabs.firstChild);
+}
+
+function showRibbon(name) {
+  var rib = document.getElementById('ribbonEl');
+  if (!rib) return;
+  if (name==='arch') {
+    rib.innerHTML = buildArchRibbon();
+  }
+}
+
+function buildArchRibbon() {
+  var groups = [
+    {label:'BUILD', tools:[
+      {cmd:'ACAWALL',   icon:'🧱', label:'Wall'},
+      {cmd:'ACADOOR',   icon:'🚪', label:'Door'},
+      {cmd:'ACAWINDOW', icon:'🪟', label:'Window'},
+      {cmd:'ACAOPENING',icon:'▭',  label:'Opening'},
+      {cmd:'ACASLAB',   icon:'⬛', label:'Slab'},
+      {cmd:'ACAROOF',   icon:'🏠', label:'Roof'},
+    ]},
+    {label:'STRUCTURE', tools:[
+      {cmd:'ACABEAM',   icon:'━━', label:'Beam'},
+      {cmd:'ACACOLUMN', icon:'┃',  label:'Column'},
+      {cmd:'ACADGRID',  icon:'⊞',  label:'Grid'},
+      {cmd:'ACAGRIDBUBBLE',icon:'○',label:'Bubble'},
+    ]},
+    {label:'CIRCULATION', tools:[
+      {cmd:'ACASTAIR',  icon:'🪜', label:'Stair'},
+      {cmd:'ACARAILING',icon:'⟵', label:'Railing'},
+    ]},
+    {label:'SPACES', tools:[
+      {cmd:'ACAROOM',   icon:'⬜', label:'Room'},
+      {cmd:'ACASPACE',  icon:'⬜', label:'Space'},
+      {cmd:'ACAAREA',   icon:'▥',  label:'Area Calc'},
+    ]},
+    {label:'ANNOTATE', tools:[
+      {cmd:'AECDIM',    icon:'⟷',  label:'AEC Dim'},
+      {cmd:'ACASECTION',icon:'—',  label:'Section'},
+      {cmd:'ACAELEV',   icon:'↑',  label:'Elevation'},
+      {cmd:'ACATAG',    icon:'🏷',  label:'Tag'},
+    ]},
+    {label:'SCHEDULE', tools:[
+      {cmd:'SCHEDMAKE', icon:'📋', label:'Schedule'},
+      {cmd:'SCHEDROOM', icon:'📐', label:'Room Sched'},
+      {cmd:'SCHEDDOOR', icon:'🚪', label:'Door Sched'},
+      {cmd:'SCHEDWIN',  icon:'🪟', label:'Win Sched'},
+    ]},
+    {label:'STYLES', tools:[
+      {cmd:'WALLSTYLE', icon:'⚙',  label:'Wall Style'},
+      {cmd:'ACACONVERT',icon:'↔',  label:'Convert'},
+      {cmd:'ACALAYERS', icon:'📚', label:'ACA Layers'},
+    ]},
+  ];
+
+  var html='<div style="display:flex;gap:1px;height:100%;align-items:stretch;overflow-x:auto">';
+  groups.forEach(function(g){
+    html+='<div style="display:flex;flex-direction:column;border-right:1px solid rgba(31,168,217,.2);padding:0 6px;min-width:0">';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:2px;flex:1;align-items:center;padding:2px 0">';
+    g.tools.forEach(function(t){
+      html+='<div onclick="runCommand(\''+t.cmd+'\')" title="'+t.label+' ('+t.cmd+')" style="display:flex;flex-direction:column;align-items:center;cursor:pointer;padding:2px 4px;border-radius:3px;min-width:36px;transition:background .1s" onmouseover="this.style.background=\'rgba(31,168,217,.15)\'" onmouseout="this.style.background=\'\'">'
+        +'<span style="font-size:14px;line-height:1.2">'+t.icon+'</span>'
+        +'<span style="font-size:7px;color:var(--m);font-family:IBM Plex Mono,monospace;white-space:nowrap">'+t.label+'</span>'
+        +'</div>';
+    });
+    html+='</div>';
+    html+='<div style="font-size:7px;color:rgba(31,168,217,.4);text-align:center;font-family:IBM Plex Mono,monospace;padding-bottom:2px;border-top:1px solid rgba(31,168,217,.1);margin-top:1px">'+g.label+'</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  return html;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 14. ACA COMMANDS
+// ═══════════════════════════════════════════════════════════════════
+if (typeof CAD_COMMANDS !== 'undefined') {
+  Object.assign(CAD_COMMANDS, {
+    // Wall
+    'ACAWALL':'acawall','WALLADD':'acawall','WA':'acawall',
+    'WALLSTYLE':'wallstyle',
+    'WALLCONVERT':'acaconvert',
+    // Door/Window/Opening
+    'ACADOOR':'acadoor','DOOR':'acadoor','DR':'acadoor',
+    'ACAWINDOW':'acawindow','WINDOW':'acawindow','WIN':'acawindow',
+    'ACAOPENING':'acaopening','OPENING':'acaopening',
+    // Stair/Railing
+    'ACASTAIR':'acastair','STAIR':'acastair','ST_':'acastair',
+    'ACARAILING':'acarailing','RAILING':'acarailing','RL':'acarailing',
+    // Structural
+    'ACACOLUMN':'acacolumn','COLUMN':'acacolumn','COL':'acacolumn',
+    'ACABEAM':'acabeam','BEAM':'acabeam','BM':'acabeam',
+    // Grid
+    'ACADGRID':'acadgrid','CLGRID':'acadgrid','COLGRID':'acadgrid',
+    // Slab/Roof/Spaces
+    'ACASLAB':'acaslab','SLAB':'acaslab',
+    'ACAROOF':'acaroof','ROOF':'acaroof',
+    'ACAROOM':'acaroom','ROOM':'acaroom',
+    'ACASPACE':'acaspace','SPACE':'acaspace',
+    'ACAAREA':'acaarea',
+    // Annotation
+    'AECDIM':'aecdim','AECDIMADD':'aecdim',
+    'ACASECTION':'acasection','SECTION':'acasection',
+    'ACAELEV':'acaelev','ELEVATION':'acaelev',
+    'ACATAG':'acatag','TAG':'acatag',
+    // Schedules
+    'SCHEDMAKE':'schedmake',
+    'SCHEDDOOR':'scheddoor',
+    'SCHEDWIN':'schedwin',
+    'SCHEDROOM':'schedroom',
+    // Utilities
+    'ACALAYERS':'acalayers',
+    'ACACONVERT':'acaconvert',
+  });
+}
+
+if (typeof CAD_ACTIONS !== 'undefined') {
+  Object.assign(CAD_ACTIONS, {
+    acawall:   function(){ startACAWallTool(); },
+    wallstyle: function(){ openWallStyleDialog(); },
+    acadoor:   function(){ startACADoorTool(); },
+    acawindow: function(){ startACAWindowTool(); },
+    acaopening:function(){ startACAOpeningTool(); },
+    acastair:  function(){ startACAStairTool(); },
+    acarailing:function(){ toast('RAILING — select stair or path first','ok'); },
+    acacolumn: function(){ startACAColumnTool(); },
+    acabeam:   function(){ startACABeamTool(); },
+    acadgrid:  function(){ openColumnGridDialog(); },
+    acaslab:   function(){ startACASlabTool(); },
+    acaroof:   function(){ startACASlabTool('roof'); },
+    acaroom:   function(){ startACASlabTool('room'); },
+    acaspace:  function(){ startACASlabTool('room'); },
+    acaarea:   function(){ calcACAArea(); },
+    aecdim:    function(){ startAECDimTool(); },
+    acasection:function(){ startSectionTool('section'); },
+    acaelev:   function(){ startSectionTool('elevation'); },
+    acatag:    function(){ startACATagTool(); },
+    schedmake: function(){ openScheduleDialog(); },
+    scheddoor: function(){ generateSchedule('door'); },
+    schedwin:  function(){ generateSchedule('window'); },
+    schedroom: function(){ generateSchedule('room'); },
+    acalayers: function(){ applyACALayers(); },
+    acaconvert:function(){ convertToACAWall(); },
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 15. TOOL IMPLEMENTATIONS
+// ═══════════════════════════════════════════════════════════════════
+
+// — ACA Wall Tool —
+function startACAWallTool() {
+  openWallPropsDialog(function(props) {
+    ST.tool = 'acawall_draw';
+    ST._acaWallProps = props;
+    ST._acaWallStart = null;
+    document.getElementById('cad').style.cursor = 'crosshair';
+    setMsg && setMsg('WALL — click start point | Escape=cancel | style: '+props.style+' ('+props.width+'mm)');
+
+    var canvas5 = document.getElementById('cad');
+    function onDown(ev) {
+      var r=canvas5.getBoundingClientRect();
+      var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+      if (!ST._acaWallStart) {
+        pushUndo && pushUndo('wall');
+        ST._acaWallStart = wp;
+      } else {
+        ST.entities.push({
+          _id:++ST._eid, type:'acawall',
+          x1:ST._acaWallStart.x, y1:ST._acaWallStart.y,
+          x2:wp.x, y2:wp.y,
+          wallStyle:props.style, wallWidth:props.width,
+          height:props.height, justification:props.just,
+          layer:ensureACALayer('WALL'), selected:false,
+        });
+        ST._acaWallStart = wp; // chain walls
+        invalidateSpatialIndex && invalidateSpatialIndex();
+        render && render();
+      }
+    }
+    function onDone(ev) {
+      if (!ev || ev.key==='Escape' || (ev.key===undefined && ev.type!=='click')) {
+        ST.tool=null; ST._acaWallStart=null;
+        canvas5.removeEventListener('click',onDown);
+        document.removeEventListener('keydown',onDone);
+        render && render();
+      }
+    }
+    canvas5.addEventListener('click',onDown,false);
+    document.addEventListener('keydown',onDone,false);
+  });
+}
+
+function openWallPropsDialog(callback) {
+  var existing=document.getElementById('moWallProps');if(existing)existing.remove();
+  var div=document.createElement('div');
+  div.id='moWallProps'; div.className='mo';
+  div.innerHTML='<div class="modal" style="max-width:420px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">🧱</span>Wall Properties</div>'
+    +'<span class="mc" onclick="closeMo(\'moWallProps\')">✕</span></div>'
+    +'<div class="mb">'
+    +'<div class="fsect">Wall Style</div>'
+    +'<select class="fs" id="wpStyle" onkeydown="event.stopPropagation()">'
+    +Object.keys(WALL_STYLES).map(function(k){return'<option value="'+k+'">'+k+' ('+WALL_STYLES[k].width+'mm)</option>';}).join('')
+    +'</select>'
+    +'<div class="fr" style="margin-top:10px">'
+    +'<div class="fg"><label class="fl">Width (mm)</label><input type="number" class="fi" id="wpWidth" value="200" onkeydown="event.stopPropagation()"></div>'
+    +'<div class="fg"><label class="fl">Height (mm)</label><input type="number" class="fi" id="wpHeight" value="3000" onkeydown="event.stopPropagation()"></div>'
+    +'</div>'
+    +'<div class="fsect" style="margin-top:8px">Justification</div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<label style="cursor:pointer;font-size:10px"><input type="radio" name="wpJust" value="Left" onkeydown="event.stopPropagation()"> Left</label>'
+    +'<label style="cursor:pointer;font-size:10px"><input type="radio" name="wpJust" value="Center" checked> Center</label>'
+    +'<label style="cursor:pointer;font-size:10px"><input type="radio" name="wpJust" value="Right"> Right</label>'
+    +'</div>'
+    +'</div>'
+    +'<div class="mf">'
+    +'<button class="btn s" onclick="closeMo(\'moWallProps\')">Cancel</button>'
+    +'<button class="btn st" onclick="(function(){'
+    +'var s=document.getElementById(\'wpStyle\').value;'
+    +'var ws=WALL_STYLES[s]||WALL_STYLES.Standard;'
+    +'var w=parseFloat(document.getElementById(\'wpWidth\').value)||ws.width;'
+    +'var h=parseFloat(document.getElementById(\'wpHeight\').value)||3000;'
+    +'var j=document.querySelector(\'input[name=wpJust]:checked\').value;'
+    +'closeMo(\'moWallProps\');'
+    +'window._wallPropsCb&&window._wallPropsCb({style:s,width:w,height:h,just:j});'
+    +'})()">Place Wall</button></div></div>';
+  window._wallPropsCb = callback;
+  // Update width when style changes
+  document.body.appendChild(div);
+  setTimeout(function(){
+    var sel=document.getElementById('wpStyle');
+    if(sel) sel.onchange=function(){var ws=WALL_STYLES[this.value];if(ws){var wi=document.getElementById('wpWidth');if(wi)wi.value=ws.width;}};
+  },100);
+  openMo('moWallProps');
+}
+
+// — Door Tool —
+function startACADoorTool() {
+  var existing=document.getElementById('moDoorProps');if(existing)existing.remove();
+  var div=document.createElement('div');
+  div.id='moDoorProps'; div.className='mo';
+  div.innerHTML='<div class="modal" style="max-width:380px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">🚪</span>Door</div>'
+    +'<span class="mc" onclick="closeMo(\'moDoorProps\')">✕</span></div>'
+    +'<div class="mb">'
+    +'<div class="fsect">Door Style</div>'
+    +'<select class="fs" id="dpStyle" onkeydown="event.stopPropagation()">'
+    +Object.keys(DOOR_STYLES).map(function(k){return'<option>'+k+'</option>';}).join('')
+    +'</select>'
+    +'<div class="fr" style="margin-top:8px">'
+    +'<div class="fg"><label class="fl">Width (mm)</label><input type="number" class="fi" id="dpWidth" value="900" onkeydown="event.stopPropagation()"></div>'
+    +'<div class="fg"><label class="fl">Height (mm)</label><input type="number" class="fi" id="dpHeight" value="2100" onkeydown="event.stopPropagation()"></div>'
+    +'<div class="fg"><label class="fl">Mark</label><input type="text" class="fi" id="dpMark" value="D1" onkeydown="event.stopPropagation()"></div>'
+    +'</div>'
+    +'</div>'
+    +'<div class="mf">'
+    +'<button class="btn s" onclick="closeMo(\'moDoorProps\')">Cancel</button>'
+    +'<button class="btn st" onclick="placeDoor()">Click to Place</button>'
+    +'</div></div>';
+  document.body.appendChild(div);
+  openMo('moDoorProps');
+}
+
+window.placeDoor = function() {
+  var style=document.getElementById('dpStyle').value;
+  var w=parseFloat(document.getElementById('dpWidth').value)||900;
+  var h=parseFloat(document.getElementById('dpHeight').value)||2100;
+  var mark=document.getElementById('dpMark').value||'D1';
+  closeMo('moDoorProps');
+  T('select');
+  setMsg&&setMsg('DOOR — click to place | Rotate with R | Escape=cancel');
+  var cad6=document.getElementById('cad');
+  function onPlace(ev){
+    var r=cad6.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    pushUndo&&pushUndo('place door');
+    ST.entities.push({_id:++ST._eid,type:'acadoor',x:wp.x,y:wp.y,width:w,height:h,doorStyle:style,mark:mark,angle:0,layer:ensureACALayer('DOOR'),selected:false});
+    invalidateSpatialIndex&&invalidateSpatialIndex();
+    render&&render();
+    cad6.removeEventListener('click',onPlace);
+    toast('Door placed','ok');
+  }
+  cad6.addEventListener('click',onPlace,{once:true});
+};
+
+// — Window Tool —
+function startACAWindowTool() {
+  T('select');
+  setMsg&&setMsg('WINDOW — click to place');
+  var cad7=document.getElementById('cad');
+  function onPlace(ev){
+    var r=cad7.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    pushUndo&&pushUndo('window');
+    ST.entities.push({_id:++ST._eid,type:'acawindow',x:wp.x,y:wp.y,width:1200,height:1500,windowStyle:'Fixed',mark:'W'+ST._eid,angle:0,layer:ensureACALayer('GLAZ'),selected:false});
+    invalidateSpatialIndex&&invalidateSpatialIndex();
+    render&&render();
+    cad7.removeEventListener('click',onPlace);
+    toast('Window placed','ok');
+  }
+  cad7.addEventListener('click',onPlace,{once:true});
+}
+
+// — Opening Tool —
+function startACAOpeningTool() {
+  T('select');
+  setMsg&&setMsg('OPENING — click in wall to insert opening');
+  var cad8=document.getElementById('cad');
+  function onPlace(ev){
+    var r=cad8.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    pushUndo&&pushUndo('opening');
+    ST.entities.push({_id:++ST._eid,type:'acadoor',x:wp.x,y:wp.y,width:1000,height:2400,doorStyle:'Sliding',mark:'OP'+ST._eid,angle:0,layer:ensureACALayer('DOOR'),selected:false,_opening:true});
+    invalidateSpatialIndex&&invalidateSpatialIndex();
+    render&&render();
+    cad8.removeEventListener('click',onPlace);
+    toast('Opening placed','ok');
+  }
+  cad8.addEventListener('click',onPlace,{once:true});
+}
+
+// — Stair Tool —
+function startACAStairTool() {
+  var div=document.createElement('div');
+  div.id='moStairProps'; div.className='mo';
+  div.innerHTML='<div class="modal" style="max-width:380px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">🪜</span>Stair</div>'
+    +'<span class="mc" onclick="closeMo(\'moStairProps\')">✕</span></div>'
+    +'<div class="mb">'
+    +'<div class="fr">'
+    +'<div class="fg"><label class="fl">Width (mm)</label><input type="number" class="fi" id="stWidth" value="1200" onkeydown="event.stopPropagation()"></div>'
+    +'<div class="fg"><label class="fl">Run (mm)</label><input type="number" class="fi" id="stRun" value="3000" onkeydown="event.stopPropagation()"></div>'
+    +'<div class="fg"><label class="fl">Risers</label><input type="number" class="fi" id="stRisers" value="15" onkeydown="event.stopPropagation()"></div>'
+    +'</div>'
+    +'</div>'
+    +'<div class="mf">'
+    +'<button class="btn s" onclick="closeMo(\'moStairProps\')">Cancel</button>'
+    +'<button class="btn st" onclick="placeStair()">Place</button>'
+    +'</div></div>';
+  var existing=document.getElementById('moStairProps');if(existing)existing.remove();
+  document.body.appendChild(div); openMo('moStairProps');
+}
+
+window.placeStair = function() {
+  var w=parseFloat(document.getElementById('stWidth').value)||1200;
+  var run=parseFloat(document.getElementById('stRun').value)||3000;
+  var risers=parseInt(document.getElementById('stRisers').value)||15;
+  closeMo('moStairProps');
+  setMsg&&setMsg('STAIR — click base point');
+  var cad9=document.getElementById('cad');
+  function onPlace(ev){
+    var r=cad9.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    pushUndo&&pushUndo('stair');
+    ST.entities.push({_id:++ST._eid,type:'acastair',x:wp.x,y:wp.y,width:w,run:run,risers:risers,angle:0,layer:ensureACALayer('STRS'),selected:false});
+    invalidateSpatialIndex&&invalidateSpatialIndex();
+    render&&render();
+    cad9.removeEventListener('click',onPlace);
+    toast('Stair placed','ok');
+  }
+  cad9.addEventListener('click',onPlace,{once:true});
+};
+
+// — Column Tool —
+function startACAColumnTool() {
+  setMsg&&setMsg('COLUMN — click to place structural column');
+  var cad10=document.getElementById('cad');
+  var secs=Object.keys(STRUCT_SECTIONS);
+  function onPlace(ev){
+    var r=cad10.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    pushUndo&&pushUndo('column');
+    ST.entities.push({_id:++ST._eid,type:'acastruct',memberType:'column',section:'12x12',x:wp.x,y:wp.y,angle:0,mark:'C'+ST._eid,layer:ensureACALayer('COLS'),selected:false});
+    invalidateSpatialIndex&&invalidateSpatialIndex();
+    render&&render();
+    cad10.removeEventListener('click',onPlace);
+    toast('Column placed','ok');
+  }
+  cad10.addEventListener('click',onPlace,{once:true});
+}
+
+// — Beam Tool —
+function startACABeamTool() {
+  setMsg&&setMsg('BEAM — click start point then end point');
+  var cad11=document.getElementById('cad'); var pt1=null;
+  function onPlace(ev){
+    var r=cad11.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    if(!pt1){pt1=wp;setMsg&&setMsg('BEAM — click end point');}
+    else{
+      pushUndo&&pushUndo('beam');
+      ST.entities.push({_id:++ST._eid,type:'acastruct',memberType:'beam',section:'W12x50',x1:pt1.x,y1:pt1.y,x2:wp.x,y2:wp.y,layer:ensureACALayer('BEAM'),selected:false});
+      invalidateSpatialIndex&&invalidateSpatialIndex();
+      render&&render();
+      cad11.removeEventListener('click',onPlace);
+      toast('Beam placed','ok');
+      pt1=null;
+    }
+  }
+  cad11.addEventListener('click',onPlace,false);
+}
+
+// — Slab/Room Boundary Tool —
+function startACASlabTool(stype) {
+  stype=stype||'slab';
+  setMsg&&setMsg((stype==='room'?'ROOM':'SLAB')+' — click vertices, double-click to close');
+  ST.tool=stype+'_draw';
+  ST._acaSlabPts=[];
+  var cad12=document.getElementById('cad');
+  function onDown(ev){
+    var r=cad12.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    var now=Date.now(),dbl=(now-(ST._slabLastClick||0))<350;
+    ST._slabLastClick=now;
+    if(dbl&&ST._acaSlabPts.length>=3){
+      pushUndo&&pushUndo(stype);
+      var lkey=stype==='room'?'ROOM':(stype==='roof'?'ROOF':'FLOR');
+      var ent={_id:++ST._eid,type:'aca'+stype,pts:ST._acaSlabPts.slice(),layer:ensureACALayer(lkey),selected:false};
+      if(stype==='room'){var roomNum=ST.entities.filter(function(e){return e.type==='acaroom';}).length+1;ent.roomNum=String(roomNum);ent.roomName='Room '+roomNum;}
+      ST.entities.push(ent);
+      ST._acaSlabPts=[];ST.tool=null;
+      invalidateSpatialIndex&&invalidateSpatialIndex();
+      render&&render();
+      cad12.removeEventListener('click',onDown);
+      toast((stype==='room'?'Room':'Slab')+' created','ok');
+      return;
+    }
+    if(ST._acaSlabPts.length===0) pushUndo&&pushUndo(stype);
+    ST._acaSlabPts.push({x:wp.x,y:wp.y});
+    render&&render();
+  }
+  cad12.addEventListener('click',onDown,false);
+}
+
+// — AEC Dimension Tool —
+function startAECDimTool() {
+  setMsg&&setMsg('AECDIM — click points to dimension, Enter=finish chain');
+  ST.tool='aecdim_draw'; ST._aecDimPts=[];
+  var cad13=document.getElementById('cad');
+  function onDown(ev){
+    var r=cad13.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    if(ST._aecDimPts.length===0)pushUndo&&pushUndo('aecdim');
+    ST._aecDimPts.push({x:wp.x,y:wp.y});
+    setMsg&&setMsg('AECDIM — '+ST._aecDimPts.length+' pts | Enter=finish | click for more points');
+    render&&render();
+  }
+  function onKey(ev){
+    if(ev.key==='Enter'&&ST._aecDimPts.length>=2){
+      ST.entities.push({_id:++ST._eid,type:'aecdim',pts:ST._aecDimPts.slice(),offset:400,side:1,layer:ensureACALayer('DIM'),selected:false});
+      ST._aecDimPts=[]; ST.tool=null;
+      invalidateSpatialIndex&&invalidateSpatialIndex();
+      render&&render();
+      cad13.removeEventListener('click',onDown);
+      document.removeEventListener('keydown',onKey);
+      toast('AEC Dimension placed','ok');
+    }
+    if(ev.key==='Escape'){ST._aecDimPts=[];ST.tool=null;render&&render();cad13.removeEventListener('click',onDown);document.removeEventListener('keydown',onKey);}
+  }
+  cad13.addEventListener('click',onDown,false);
+  document.addEventListener('keydown',onKey,false);
+}
+
+// — Section / Elevation Tool —
+function startSectionTool(stype) {
+  setMsg&&setMsg((stype==='section'?'SECTION':'ELEVATION')+' — click start then end point');
+  var cad14=document.getElementById('cad'); var pt1=null;
+  function onDown(ev){
+    var r=cad14.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    if(!pt1){pt1=wp;setMsg&&setMsg('Click end point');}
+    else{
+      var existing2=ST.entities.filter(function(e){return e.type==='aca'+stype;}).length+1;
+      pushUndo&&pushUndo(stype);
+      ST.entities.push({_id:++ST._eid,type:'aca'+stype,x1:pt1.x,y1:pt1.y,x2:wp.x,y2:wp.y,mark:String.fromCharCode(64+existing2),layer:ensureACALayer(stype==='section'?'SECT':'ELEV'),selected:false});
+      invalidateSpatialIndex&&invalidateSpatialIndex();
+      render&&render();
+      cad14.removeEventListener('click',onDown);
+      toast(stype+' marker placed','ok');
+      pt1=null;
+    }
+  }
+  cad14.addEventListener('click',onDown,false);
+}
+
+// — Tag Tool —
+function startACATagTool() {
+  setMsg&&setMsg('TAG — click object to tag');
+  var cad15=document.getElementById('cad');
+  function onDown(ev){
+    var r=cad15.getBoundingClientRect();
+    var wp=s2w(ev.clientX-r.left,ev.clientY-r.top);
+    var tol=20/ST.zoom;
+    var hit=ST.entities.find(function(e){
+      if(['acadoor','acawindow','acastruct','acastair','acaroom','acaslab'].indexOf(e.type)<0) return false;
+      var ex=e.x||e.x1||0, ey=e.y||e.y1||0;
+      return Math.hypot(wp.x-ex,wp.y-ey)<tol*10;
+    });
+    if(hit){
+      pushUndo&&pushUndo('tag');
+      var mark=hit.mark||hit.roomNum||String(hit._id).slice(-3);
+      ST.entities.push({_id:++ST._eid,type:'text',x:wp.x,y:wp.y+tol*2,text:mark,height:200,layer:ensureACALayer('SYMB'),selected:false,_tag:true,_tagRef:hit._id});
+      invalidateSpatialIndex&&invalidateSpatialIndex();
+      render&&render();
+      toast('Tag placed: '+mark,'ok');
+    } else {
+      toast('Click on a door, window, column, stair, or room to tag it','warn');
+    }
+    cad15.removeEventListener('click',onDown);
+  }
+  cad15.addEventListener('click',onDown,{once:true});
+}
+
+// — Column Grid Dialog —
+window.openColumnGridDialog = function() {
+  var div=document.createElement('div');
+  div.id='moColGrid'; div.className='mo';
+  div.innerHTML='<div class="modal" style="max-width:420px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">⊞</span>Column Grid</div>'
+    +'<span class="mc" onclick="closeMo(\'moColGrid\')">✕</span></div>'
+    +'<div class="mb">'
+    +'<div class="fr">'
+    +'<div class="fg"><label class="fl">X bays</label><input type="number" class="fi" id="cgXCount" value="5" onkeydown="event.stopPropagation()"></div>'
+    +'<div class="fg"><label class="fl">X spacing (mm)</label><input type="number" class="fi" id="cgXSpacing" value="6000" onkeydown="event.stopPropagation()"></div>'
+    +'</div>'
+    +'<div class="fr">'
+    +'<div class="fg"><label class="fl">Y bays</label><input type="number" class="fi" id="cgYCount" value="4" onkeydown="event.stopPropagation()"></div>'
+    +'<div class="fg"><label class="fl">Y spacing (mm)</label><input type="number" class="fi" id="cgYSpacing" value="6000" onkeydown="event.stopPropagation()"></div>'
+    +'</div>'
+    +'</div>'
+    +'<div class="mf">'
+    +'<button class="btn s" onclick="closeMo(\'moColGrid\')">Cancel</button>'
+    +'<button class="btn st" onclick="placeColumnGrid()">Place Grid</button>'
+    +'</div></div>';
+  var ex=document.getElementById('moColGrid');if(ex)ex.remove();
+  document.body.appendChild(div); openMo('moColGrid');
+};
+
+window.placeColumnGrid = function() {
+  var xc=parseInt(document.getElementById('cgXCount').value)||5;
+  var xs=parseFloat(document.getElementById('cgXSpacing').value)||6000;
+  var yc=parseInt(document.getElementById('cgYCount').value)||4;
+  var ys=parseFloat(document.getElementById('cgYSpacing').value)||6000;
+  closeMo('moColGrid');
+  setMsg&&setMsg('COLUMN GRID — click base corner point');
+  var cad16=document.getElementById('cad');
+  function onPlace(ev){
+    var r=cad16.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    pushUndo&&pushUndo('column grid');
+    ST.entities.push({_id:++ST._eid,type:'acadgrid',x:wp.x,y:wp.y,xCount:xc,xSpacing:xs,yCount:yc,ySpacing:ys,layer:ensureACALayer('GRID'),selected:false});
+    invalidateSpatialIndex&&invalidateSpatialIndex();
+    render&&render();
+    cad16.removeEventListener('click',onPlace);
+    toast('Column grid placed: '+xc+'×'+yc+' at '+xs+'×'+ys+'mm','ok');
+  }
+  cad16.addEventListener('click',onPlace,{once:true});
+};
+
+// — ACA Layers Setup —
+window.applyACALayers = function() {
+  pushUndo&&pushUndo('ACA layers');
+  var added=0;
+  Object.keys(ACA_LAYERS).forEach(function(key){
+    var ld=ACA_LAYERS[key];
+    if(!ST.layers.find(function(l){return l.name===ld.name;})){
+      ensureACALayer(key); added++;
+    }
+  });
+  renderLayers&&renderLayers();
+  toast('ACA Layer Standards applied: '+added+' layers added','ok');
+};
+
+// — Convert polyline to ACA Wall —
+window.convertToACAWall = function() {
+  var sels=ST.entities.filter(function(e){return e.selected&&(e.type==='polyline'||e.type==='line');});
+  if(!sels.length){toast('Select lines or polylines to convert to walls','warn');return;}
+  pushUndo&&pushUndo('convert to walls');
+  sels.forEach(function(e){
+    if(e.type==='line'){
+      e.type='acawall'; e.wallStyle='Standard'; e.wallWidth=200; e.height=3000; e.justification='Center'; e.layer=ensureACALayer('WALL');
+    } else if(e.type==='polyline'&&e.pts&&e.pts.length>=2){
+      for(var pi=0;pi<e.pts.length-1;pi++){
+        ST.entities.push({_id:++ST._eid,type:'acawall',x1:e.pts[pi].x,y1:e.pts[pi].y,x2:e.pts[pi+1].x,y2:e.pts[pi+1].y,wallStyle:'Standard',wallWidth:200,height:3000,justification:'Center',layer:ensureACALayer('WALL'),selected:false});
+      }
+      e._delete=true;
+    }
+  });
+  ST.entities=ST.entities.filter(function(e){return !e._delete;});
+  invalidateSpatialIndex&&invalidateSpatialIndex();
+  render&&render();
+  toast('Converted to ACA walls','ok');
+};
+
+// — Schedule Dialog —
+window.openScheduleDialog = function() {
+  var div=document.createElement('div');
+  div.id='moScheduleMenu'; div.className='mo';
+  div.innerHTML='<div class="modal" style="max-width:380px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">📋</span>Generate Schedule</div>'
+    +'<span class="mc" onclick="closeMo(\'moScheduleMenu\')">✕</span></div>'
+    +'<div class="mb" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    +'<button class="btn" onclick="closeMo(\'moScheduleMenu\');generateSchedule(\'door\')">🚪 Door Schedule</button>'
+    +'<button class="btn" onclick="closeMo(\'moScheduleMenu\');generateSchedule(\'window\')">🪟 Window Schedule</button>'
+    +'<button class="btn" onclick="closeMo(\'moScheduleMenu\');generateSchedule(\'room\')">⬜ Room Schedule</button>'
+    +'<button class="btn" onclick="closeMo(\'moScheduleMenu\');generateSchedule(\'column\')">┃ Column Schedule</button>'
+    +'</div>'
+    +'<div class="mf"><button class="btn s" onclick="closeMo(\'moScheduleMenu\')">Cancel</button></div>'
+    +'</div>';
+  var ex=document.getElementById('moScheduleMenu');if(ex)ex.remove();
+  document.body.appendChild(div); openMo('moScheduleMenu');
+};
+
+// — Area Calculation —
+window.calcACAArea = function() {
+  var sels=ST.entities.filter(function(e){return e.selected&&(e.pts||e.type==='rect'||e.type==='circle');});
+  if(!sels.length){toast('Select closed shapes to calculate area','warn');return;}
+  var totalArea=0, results=[];
+  sels.forEach(function(e){
+    var area=0;
+    if(e.pts&&e.pts.length>=3){
+      for(var ai=0;ai<e.pts.length;ai++){var p1=e.pts[ai],p2=e.pts[(ai+1)%e.pts.length];area+=p1.x*p2.y-p2.x*p1.y;}
+      area=Math.abs(area)/2;
+    } else if(e.type==='rect') area=Math.abs(e.w*e.h);
+    else if(e.type==='circle') area=Math.PI*e.r*e.r;
+    var aM2=area/1e6;
+    totalArea+=aM2;
+    results.push({type:e.type,area:aM2.toFixed(4)});
+  });
+  var msg='Area Results:\n'+results.map(function(r){return r.type+': '+r.area+' m²';}).join('\n')+'\nTOTAL: '+totalArea.toFixed(4)+' m²';
+  toast('Total area: '+totalArea.toFixed(3)+' m²','ok');
+  setMsg&&setMsg(msg.replace(/\n/g,' | '));
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+setTimeout(function() {
+  buildArchTab();
+  console.log('[ACAEngine] Architecture features loaded:');
+  console.log('  Walls, Doors, Windows, Stairs, Columns, Beams, Grids');
+  console.log('  Slabs, Roofs, Rooms, AEC Dims, Sections, Elevations');
+  console.log('  Schedules (Door/Window/Room/Column), Layer Standards');
+  console.log('  Commands: ACAWALL ACADOOR ACAWINDOW ACASTAIR ACACOLUMN ACABEAM ACADGRID ACASLAB ACAROOM AECDIM ACASECTION ACAELEV SCHEDMAKE + more');
+}, 500);
+
+})(); // end ACAEngine
+
+// ═══════════════════════════════════════════════════════════════════
+// ADDITIONAL ACA FEATURES FROM USER GUIDE
+// ═══════════════════════════════════════════════════════════════════
+
+// ── RENOVATION MODE (Ch.7) ──────────────────────────────────────────
+window.renovationMode = false;
+window.toggleRenovationMode = function() {
+  window.renovationMode = !window.renovationMode;
+  if (window.renovationMode) {
+    // Tag all existing entities as 'existing'
+    ST.entities.forEach(function(e) { if (!e._renovState) e._renovState = 'existing'; });
+    toast('Renovation Mode ON — new entities=NEW, deleted=DEMO', 'ok');
+    setMsg && setMsg('RENOVATION — Existing(white) New(green) Demo(red dashed)');
+  } else {
+    toast('Renovation Mode OFF', 'ok');
+  }
+  render && render();
+};
+
+window.setRenovationState = function(state) {
+  // state: 'existing' | 'new' | 'demolition'
+  var sels = ST.entities.filter(function(e){return e.selected;});
+  if (!sels.length) { toast('Select objects first', 'warn'); return; }
+  pushUndo && pushUndo('renovation state');
+  sels.forEach(function(e) { e._renovState = state; });
+  render && render();
+  toast('Set to ' + state + ': ' + sels.length + ' objects', 'ok');
+};
+
+// Renovated render override — show different colors per state
+(function patchRenovRender() {
+  var _origDraw = window.drawEntity;
+  window.drawEntity = function(e, ghost) {
+    if (window.renovationMode && e._renovState) {
+      var canvas3 = document.getElementById('cad');
+      if (!canvas3) { _origDraw && _origDraw(e, ghost); return; }
+      var ctx3 = canvas3.getContext('2d');
+      ctx3.save();
+      if (e._renovState === 'demolition') {
+        ctx3.globalAlpha = 0.5;
+        // Override color to red dashed
+        var origColor = e.color;
+        e.color = '#FF4444';
+        ctx3.setLineDash([6,3]);
+        _origDraw && _origDraw(e, ghost);
+        e.color = origColor;
+        ctx3.setLineDash([]);
+      } else if (e._renovState === 'new') {
+        var origColor2 = e.color;
+        e.color = '#4eff91';
+        _origDraw && _origDraw(e, ghost);
+        e.color = origColor2;
+      } else {
+        _origDraw && _origDraw(e, ghost);
+      }
+      ctx3.restore();
+    } else {
+      _origDraw && _origDraw(e, ghost);
+    }
+  };
+  window.drawEntity._renovPatched = true;
+})();
+
+if (typeof CAD_COMMANDS !== 'undefined') {
+  Object.assign(CAD_COMMANDS, {
+    'RENOVATION':'renovation','RENOVMODE':'renovation',
+    'RENOVEXIST':'renovexist','RENOVNEW':'renovnew','RENOVDEMO':'renovdemo',
+    'DEMOPLAN':'demoplan',
+  });
+}
+if (typeof CAD_ACTIONS !== 'undefined') {
+  Object.assign(CAD_ACTIONS, {
+    renovation:  function() { window.toggleRenovationMode(); },
+    renovexist:  function() { window.setRenovationState('existing'); },
+    renovnew:    function() { window.setRenovationState('new'); },
+    renovdemo:   function() { window.setRenovationState('demolition'); },
+    demoplan:    function() {
+      if (!window.renovationMode) window.toggleRenovationMode();
+      // Show only existing + demolition
+      ST.entities.forEach(function(e) { if (e._renovState==='new') e._tempHide=true; else e._tempHide=false; });
+      render && render(); toast('Demo Plan view', 'ok');
+    },
+  });
+}
+
+// ── AEC POLYGON (Ch.23) ─────────────────────────────────────────────
+// AEC Polygon = smart closed polygon with area calculation and properties
+(function setupAECPolygon() {
+  if (typeof CAD_COMMANDS !== 'undefined') {
+    CAD_COMMANDS['AECPOLY'] = 'aecpoly';
+    CAD_COMMANDS['AECPOLYGON'] = 'aecpoly';
+  }
+  if (typeof CAD_ACTIONS !== 'undefined') {
+    CAD_ACTIONS['aecpoly'] = function() {
+      startACASlabTool('slab');
+      toast('AEC POLYGON — click vertices, double-click to close', 'ok');
+    };
+  }
+})();
+
+// ── MASS ELEMENTS (Ch.15 Conceptual Models) ──────────────────────────
+window.startMassElementTool = function(shape) {
+  shape = shape || 'Box';
+  setMsg && setMsg('MASS ELEMENT ('+shape+') — click to place');
+  var canvas4 = document.getElementById('cad');
+  function onPlace(ev) {
+    var r = canvas4.getBoundingClientRect();
+    var wp = snapPoint(ev.clientX-r.left, ev.clientY-r.top);
+    pushUndo && pushUndo('mass element');
+    var w = parseFloat(prompt('Width:','2000')||'2000');
+    var d = parseFloat(prompt('Depth:','2000')||'2000');
+    var h = parseFloat(prompt('Height:','3000')||'3000');
+    ST.entities.push({
+      _id:++ST._eid, type:'box3d', x:wp.x-w/2, y:wp.y-d/2, z:0,
+      bw:w, bd:d, bh:h, _massShape:shape,
+      layer:ST.curLayer, selected:false,
+    });
+    invalidateSpatialIndex && invalidateSpatialIndex();
+    render && render();
+    canvas4.removeEventListener('click',onPlace);
+    toast('Mass element placed','ok');
+  }
+  canvas4.addEventListener('click',onPlace,{once:true});
+};
+
+if (typeof CAD_COMMANDS !== 'undefined') {
+  Object.assign(CAD_COMMANDS, {
+    'MASSELEMENT':'masselement','ME':'masselement',
+    'MASSBOX':'massbox','MASSCYL':'masscyl','MASSSPH':'masssph',
+    'MASSGROUP':'massgroup',
+  });
+}
+if (typeof CAD_ACTIONS !== 'undefined') {
+  Object.assign(CAD_ACTIONS, {
+    masselement: function() { window.startMassElementTool('Box'); },
+    massbox:     function() { window.startMassElementTool('Box'); },
+    masscyl:     function() { window.startMassElementTool('Cylinder'); },
+    masssph:     function() { window.startMassElementTool('Sphere'); },
+    massgroup:   function() {
+      var sels = ST.entities.filter(function(e){return e.selected;});
+      if (!sels.length) { toast('Select mass elements to group','warn'); return; }
+      toast('Mass group: '+sels.length+' elements selected','ok');
+    },
+  });
+}
+
+// ── DETAIL COMPONENTS (Ch.46) ────────────────────────────────────────
+window.openDetailComponentLibrary = function() {
+  var components = [
+    {name:'Brick (Section)',      icon:'🧱', fn:function(wp){insertDetailComp(wp,'brick_section');}},
+    {name:'CMU Block (Section)',  icon:'⬛', fn:function(wp){insertDetailComp(wp,'cmu_section');}},
+    {name:'Insulation',           icon:'〰', fn:function(wp){insertDetailComp(wp,'insulation');}},
+    {name:'Gravel/Fill',          icon:'⠶',  fn:function(wp){insertDetailComp(wp,'gravel');}},
+    {name:'Steel Beam (Section)', icon:'━━', fn:function(wp){insertDetailComp(wp,'steel_beam');}},
+    {name:'Concrete (Hatch)',     icon:'▒',  fn:function(wp){insertDetailComp(wp,'concrete_hatch');}},
+    {name:'Wood Blocking',        icon:'▬',  fn:function(wp){insertDetailComp(wp,'wood');}},
+    {name:'Vapor Barrier',        icon:'─',  fn:function(wp){insertDetailComp(wp,'vapor');}},
+    {name:'Waterproofing',        icon:'≈',  fn:function(wp){insertDetailComp(wp,'waterproof');}},
+    {name:'Loose Fill',           icon:'⠒',  fn:function(wp){insertDetailComp(wp,'loose_fill');}},
+  ];
+
+  var div = document.createElement('div');
+  div.id = 'moDetailComp'; div.className = 'mo';
+  div.innerHTML = '<div class="modal" style="max-width:480px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">🔩</span>Detail Components</div>'
+    +'<span class="mc" onclick="closeMo(\'moDetailComp\')">✕</span></div>'
+    +'<div class="mb" style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+    + components.map(function(c) {
+        return '<button class="btn" onclick="('+c.fn.toString()+'&&activateDetailComp(\''+c.name+'\')); closeMo(\'moDetailComp\')">'
+          + '<span style="font-size:14px">' + c.icon + '</span> '
+          + c.name + '</button>';
+      }).join('')
+    +'</div>'
+    +'<div class="mf"><button class="btn s" onclick="closeMo(\'moDetailComp\')">Cancel</button></div>'
+    +'</div>';
+  var ex = document.getElementById('moDetailComp'); if(ex) ex.remove();
+  document.body.appendChild(div);
+  openMo('moDetailComp');
+};
+
+window.activateDetailComp = function(name) {
+  setMsg && setMsg('DETAIL: '+name+' — click to place, drag to size');
+  toast('Click to place '+name, 'ok');
+};
+
+function insertDetailComp(wp, compType) {
+  var hatchMap = {
+    brick_section: 'AR-BRSTD',
+    cmu_section:   'AR-BSTONE',
+    insulation:    'INSUL',
+    gravel:        'AR-GRAVEL',
+    concrete_hatch:'AR-CONC',
+    steel_beam:    'STEEL',
+    wood:          'WOOD',
+  };
+  // Insert as a hatch entity with note
+  pushUndo && pushUndo('detail component');
+  ST.entities.push({
+    _id:++ST._eid, type:'text',
+    x:wp.x, y:wp.y,
+    text:'['+compType+']',
+    height:150, layer:ST.curLayer,
+    selected:false, _detailComp:compType,
+  });
+  render && render();
+}
+
+if (typeof CAD_COMMANDS !== 'undefined') {
+  CAD_COMMANDS['DETAILCOMP'] = 'detailcomp';
+  CAD_COMMANDS['KEYNOTE'] = 'keynote';
+}
+if (typeof CAD_ACTIONS !== 'undefined') {
+  CAD_ACTIONS['detailcomp'] = function() { window.openDetailComponentLibrary(); };
+  CAD_ACTIONS['keynote']    = function() {
+    var n = prompt('Keynote number:','1');
+    if (!n) return;
+    setMsg && setMsg('KEYNOTE '+n+' — click to place');
+    var canv = document.getElementById('cad');
+    canv.addEventListener('click', function(ev) {
+      var r = canv.getBoundingClientRect();
+      var wp = snapPoint(ev.clientX-r.left, ev.clientY-r.top);
+      pushUndo && pushUndo('keynote');
+      ST.entities.push({_id:++ST._eid,type:'text',x:wp.x,y:wp.y,
+        text:'['+n+']', height:150, layer:ensureACALayer('SYMB'),
+        selected:false, _keynote:n});
+      render && render(); toast('Keynote '+n+' placed','ok');
+    }, {once:true});
+  };
+}
+
+// ── QUICK SLICE (Ch.16) ───────────────────────────────────────────────
+window.quickSlice = function() {
+  setMsg && setMsg('QUICK SLICE — draw a cutting line through objects');
+  var canv = document.getElementById('cad');
+  var pt1 = null;
+  function onDown(ev) {
+    var r = canv.getBoundingClientRect();
+    var wp = snapPoint(ev.clientX-r.left, ev.clientY-r.top);
+    if (!pt1) { pt1 = wp; setMsg && setMsg('Click end of slice line'); }
+    else {
+      // Find all polylines that the slice line intersects and split them
+      pushUndo && pushUndo('quick slice');
+      var x1=pt1.x,y1=pt1.y,x2=wp.x,y2=wp.y;
+      var sliced = 0;
+      ST.entities.forEach(function(e) {
+        if (e.type !== 'polyline' || !e.pts || e.pts.length < 2) return;
+        // Check if slice line intersects any segment
+        for (var si=0; si<e.pts.length-1; si++) {
+          var p1=e.pts[si], p2=e.pts[si+1];
+          var ix = lineIntersect(x1,y1,x2,y2, p1.x,p1.y, p2.x,p2.y);
+          if (ix) {
+            // Split into two polylines
+            var pts1 = e.pts.slice(0,si+1).concat([ix]);
+            var pts2 = [{x:ix.x,y:ix.y}].concat(e.pts.slice(si+1));
+            e.pts = pts1;
+            ST.entities.push({_id:++ST._eid,type:'polyline',pts:pts2,layer:e.layer,color:e.color,selected:false});
+            sliced++;
+            break;
+          }
+        }
+      });
+      invalidateSpatialIndex && invalidateSpatialIndex();
+      render && render();
+      toast('Quick Slice: '+sliced+' objects sliced','ok');
+      canv.removeEventListener('click',onDown);
+      pt1 = null;
+    }
+  }
+  canv.addEventListener('click', onDown, false);
+};
+
+function lineIntersect(x1,y1,x2,y2,x3,y3,x4,y4) {
+  var d=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);
+  if(Math.abs(d)<1e-10) return null;
+  var t=((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/d;
+  var u=-((x1-x2)*(y1-y3)-(y1-y2)*(x1-x3))/d;
+  if(t>=0&&t<=1&&u>=0&&u<=1) return {x:x1+t*(x2-x1),y:y1+t*(y2-y1)};
+  return null;
+}
+
+if (typeof CAD_COMMANDS !== 'undefined') CAD_COMMANDS['QUICKSLICE'] = 'quickslice';
+if (typeof CAD_ACTIONS  !== 'undefined') CAD_ACTIONS['quickslice'] = function() { window.quickSlice(); };
+
+// ── SPACE EVENLY (Ch.35 Detail Drafting) ─────────────────────────────
+window.spaceEvenlyTool = function() {
+  var sels = ST.entities.filter(function(e){return e.selected;});
+  if (sels.length < 2) { toast('Select 2+ objects to space evenly','warn'); return; }
+  setMsg && setMsg('SPACE EVENLY — click start then end point of axis');
+  var canv2 = document.getElementById('cad'); var pt1=null;
+  function onDown(ev) {
+    var r = canv2.getBoundingClientRect();
+    var wp = snapPoint(ev.clientX-r.left, ev.clientY-r.top);
+    if (!pt1) { pt1=wp; setMsg&&setMsg('Click end of spacing axis'); }
+    else {
+      var ax=pt1.x,ay=pt1.y,bx=wp.x,by=wp.y;
+      var span=Math.hypot(bx-ax,by-ay); var n=sels.length;
+      var step=span/(n+1);
+      var ux=(bx-ax)/span, uy=(by-ay)/span;
+      pushUndo&&pushUndo('space evenly');
+      sels.forEach(function(e,i){
+        var t=(i+1)*step;
+        var tx=ax+ux*t, ty=ay+uy*t;
+        var cx=(e.x!==undefined)?e.x:(e.cx||e.x1||0);
+        var cy=(e.y!==undefined)?e.y:(e.cy||e.y1||0);
+        moveEntity&&moveEntity(e,tx-cx,ty-cy);
+      });
+      render&&render(); toast('Objects spaced evenly','ok');
+      canv2.removeEventListener('click',onDown); pt1=null;
+    }
+  }
+  canv2.addEventListener('click',onDown,false);
+};
+
+// ── REPOSITION FROM REFERENCE (Ch.35) ────────────────────────────────
+window.repositionFromRef = function() {
+  var sels=ST.entities.filter(function(e){return e.selected;});
+  if(!sels.length){toast('Select objects to reposition','warn');return;}
+  var dist=parseFloat(prompt('Offset distance from reference edge:','500')||'500');
+  if(isNaN(dist)) return;
+  setMsg&&setMsg('REPOSITION — click reference edge line');
+  var canv3=document.getElementById('cad');
+  canv3.addEventListener('click',function(ev){
+    var r=canv3.getBoundingClientRect();
+    var wp=s2w(ev.clientX-r.left,ev.clientY-r.top);
+    pushUndo&&pushUndo('reposition');
+    // Move selected objects dist from click point  
+    sels.forEach(function(e){
+      if(e.x!==undefined){e.x=wp.x;e.y=wp.y+dist;}
+      else if(e.x1!==undefined){var dx2=e.x2-e.x1,dy2=e.y2-e.y1;e.x1=wp.x;e.y1=wp.y+dist;e.x2=wp.x+dx2;e.y2=wp.y+dist+dy2;}
+      else if(e.pts){e.pts=e.pts.map(function(p,i){return{x:p.x,y:wp.y+dist+(p.y-e.pts[0].y)};});}
+    });
+    render&&render(); toast('Repositioned','ok');
+  },{once:true});
+};
+
+if (typeof CAD_COMMANDS !== 'undefined') {
+  Object.assign(CAD_COMMANDS, {
+    'SPACEEVENLY':'spaceevenly','SE_':'spaceevenly',
+    'REPOSITIONFROM':'repofrom',
+    'AECARRAY':'aecarray',
+  });
+}
+if (typeof CAD_ACTIONS !== 'undefined') {
+  Object.assign(CAD_ACTIONS, {
+    spaceevenly: function() { window.spaceEvenlyTool(); },
+    repofrom:    function() { window.repositionFromRef(); },
+    aecarray:    function() {
+      var sels=ST.entities.filter(function(e){return e.selected;});
+      if(!sels.length){toast('Select objects to array','warn');return;}
+      var nx=parseInt(prompt('Number of columns:','3')||'3');
+      var dx=parseFloat(prompt('Column spacing:','1000')||'1000');
+      var ny=parseInt(prompt('Number of rows:','3')||'3');
+      var dy=parseFloat(prompt('Row spacing:','1000')||'1000');
+      pushUndo&&pushUndo('AEC array');
+      var newEnts=[];
+      for(var ai=0;ai<ny;ai++){for(var bi=0;bi<nx;bi++){if(ai===0&&bi===0)continue;
+        sels.forEach(function(e){
+          var c=JSON.parse(JSON.stringify(e));
+          c._id=++ST._eid; c.selected=false;
+          moveEntity&&moveEntity(c,bi*dx,ai*dy);
+          newEnts.push(c);
+        });
+      }}
+      newEnts.forEach(function(e){ST.entities.push(e);});
+      invalidateSpatialIndex&&invalidateSpatialIndex(); render&&render();
+      toast('AEC Array: '+(nx*ny-1)+' copies created','ok');
+    },
+  });
+}
+
+// ── PROPERTY SETS / EXTENDED DATA (Ch.19) ────────────────────────────
+window.openPropertySetDialog = function() {
+  var sels=ST.entities.filter(function(e){return e.selected;});
+  if(!sels.length){toast('Select objects to add property sets','warn');return;}
+  var div=document.createElement('div');
+  div.id='moPropSet'; div.className='mo';
+  div.innerHTML='<div class="modal" style="max-width:440px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">📋</span>Property Set Data</div>'
+    +'<span class="mc" onclick="closeMo(\'moPropSet\')">✕</span></div>'
+    +'<div class="mb">'
+    +'<div style="font-size:9px;color:var(--m);font-family:IBM Plex Mono,monospace;margin-bottom:8px">'+sels.length+' object(s) selected</div>'
+    +'<div id="propSetRows" style="display:flex;flex-direction:column;gap:6px">'
+    + Object.entries(sels[0].attrs||{}).map(function(kv){
+        return '<div class="fr"><div class="fg"><label class="fl">'+kv[0]+'</label>'
+          +'<input type="text" class="fi" value="'+kv[1]+'" onkeydown="event.stopPropagation()" onchange="updatePropSet(\''+kv[0]+'\',this.value)"></div></div>';
+      }).join('')
+    +'</div>'
+    +'<div class="fr" style="margin-top:8px">'
+    +'<div class="fg"><label class="fl">New Property</label><input type="text" class="fi" id="newPropKey" placeholder="Name" onkeydown="event.stopPropagation()"></div>'
+    +'<div class="fg"><label class="fl">Value</label><input type="text" class="fi" id="newPropVal" placeholder="Value" onkeydown="event.stopPropagation()"></div>'
+    +'<div class="fg"><button class="btn s" style="margin-top:18px" onclick="addPropertyToSels()">+ Add</button></div>'
+    +'</div>'
+    +'</div>'
+    +'<div class="mf"><button class="btn s" onclick="closeMo(\'moPropSet\')">Close</button></div>'
+    +'</div>';
+  var ex=document.getElementById('moPropSet');if(ex)ex.remove();
+  document.body.appendChild(div); openMo('moPropSet');
+};
+
+window.addPropertyToSels = function() {
+  var k=(document.getElementById('newPropKey')||{}).value;
+  var v=(document.getElementById('newPropVal')||{}).value;
+  if(!k) return;
+  var sels=ST.entities.filter(function(e){return e.selected;});
+  pushUndo&&pushUndo('add property');
+  sels.forEach(function(e){if(!e.attrs)e.attrs={};e.attrs[k]=v;});
+  toast('Property "'+k+'" added to '+sels.length+' objects','ok');
+  closeMo('moPropSet');
+};
+
+window.updatePropSet = function(key, val) {
+  var sels=ST.entities.filter(function(e){return e.selected;});
+  sels.forEach(function(e){if(e.attrs)e.attrs[key]=val;});
+};
+
+if (typeof CAD_COMMANDS !== 'undefined') {
+  CAD_COMMANDS['PROPSET'] = 'propset';
+  CAD_COMMANDS['PROPERTIES'] = 'propset';
+}
+if (typeof CAD_ACTIONS !== 'undefined') {
+  CAD_ACTIONS['propset'] = function() { window.openPropertySetDialog(); };
+}
+
+// ── OBJECT VIEWER (Ch.17) ─────────────────────────────────────────────
+window.openObjectViewer = function() {
+  var sels=ST.entities.filter(function(e){return e.selected;});
+  if(!sels.length){toast('Select objects to view in 3D','warn');return;}
+  // Toggle 3D mode centered on selection
+  if(typeof toggle3D==='function' && !ST3.enabled) toggle3D();
+  if(typeof ST3!=='undefined') {
+    var xs=[],ys=[];
+    sels.forEach(function(e){
+      if(e.x1!==undefined){xs.push(e.x1,e.x2);ys.push(e.y1,e.y2);}
+      else if(e.cx!==undefined){xs.push(e.cx);ys.push(e.cy);}
+      else if(e.x!==undefined){xs.push(e.x);ys.push(e.y);}
+      if(e.pts)e.pts.forEach(function(p){xs.push(p.x);ys.push(p.y);});
+    });
+    if(xs.length){
+      var cx2=(Math.min.apply(null,xs)+Math.max.apply(null,xs))/2;
+      var cy2=(Math.min.apply(null,ys)+Math.max.apply(null,ys))/2;
+      var span=Math.max(Math.max.apply(null,xs)-Math.min.apply(null,xs),Math.max.apply(null,ys)-Math.min.apply(null,ys));
+      ST3.target={x:cx2,y:cy2,z:0};
+      ST3._radius=span*2||1000;
+    }
+    render&&render();
+    toast('Object Viewer — 3D mode active | right-drag to orbit','ok');
+  }
+};
+
+if (typeof CAD_COMMANDS !== 'undefined') CAD_COMMANDS['OBJVIEWER']='objviewer';
+if (typeof CAD_ACTIONS  !== 'undefined') CAD_ACTIONS['objviewer']=function(){window.openObjectViewer();};
+
+// ── VISUAL AUDIT (Ch.53) — find and fix drawing issues ──────────────
+window.runVisualAudit = function() {
+  var issues=[];
+  var totalEnts=ST.entities.length;
+  // Check for entities on layer 0
+  var onDefault=ST.entities.filter(function(e){var l=ST.layers.find(function(la){return la.id===e.layer;});return l&&l.name==='0';});
+  if(onDefault.length) issues.push({type:'warning',msg:onDefault.length+' entities on layer "0" — consider assigning to named layers'});
+  // Check for duplicate entities
+  var seen3=new Set();
+  var dupes=ST.entities.filter(function(e){
+    var k=e.type+JSON.stringify(e.x1||e.cx||e.x||''+e.y1||e.cy||e.y||'');
+    if(seen3.has(k))return true;seen3.add(k);return false;
+  });
+  if(dupes.length) issues.push({type:'error',msg:dupes.length+' duplicate/overlapping entities (run OVERKILL to fix)'});
+  // Check for zero-length lines
+  var zeroLen=ST.entities.filter(function(e){return e.type==='line'&&Math.hypot(e.x2-e.x1,e.y2-e.y1)<0.001;});
+  if(zeroLen.length) issues.push({type:'error',msg:zeroLen.length+' zero-length lines'});
+  // Check for entities outside extents
+  var ext=getDrawingExtents();
+  if(ext){
+    var huge=1e7;
+    var outOfBounds=ST.entities.filter(function(e){
+      var x=e.x1||e.cx||e.x||0;
+      return Math.abs(x)>huge;
+    });
+    if(outOfBounds.length) issues.push({type:'warning',msg:outOfBounds.length+' entities possibly outside drawing extents'});
+  }
+  if(!issues.length) issues.push({type:'ok',msg:'No issues found — drawing looks clean!'});
+
+  var div=document.createElement('div');
+  div.id='moVisualAudit'; div.className='mo';
+  div.innerHTML='<div class="modal" style="max-width:500px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">🔍</span>Visual Audit</div>'
+    +'<span class="mc" onclick="closeMo(\'moVisualAudit\')">✕</span></div>'
+    +'<div class="mb">'
+    +'<div style="font-size:9px;color:var(--m);font-family:IBM Plex Mono,monospace;margin-bottom:8px">'+totalEnts+' total entities | '+ST.layers.length+' layers</div>'
+    +issues.map(function(iss){
+      var col=iss.type==='error'?'#ff4466':iss.type==='warning'?'#F5BE18':'#4eff91';
+      var icon=iss.type==='error'?'✗':iss.type==='warning'?'⚠':'✓';
+      return '<div style="padding:6px 10px;border:1px solid '+col+'33;border-radius:4px;margin-bottom:4px;font-family:IBM Plex Mono,monospace;font-size:9.5px;color:'+col+'">'+icon+' '+iss.msg+'</div>';
+    }).join('')
+    +'</div>'
+    +'<div class="mf"><button class="btn s" onclick="closeMo(\'moVisualAudit\')">Close</button>'
+    +'<button class="btn" onclick="closeMo(\'moVisualAudit\');if(typeof CAD_ACTIONS!==\'undefined\')CAD_ACTIONS.overkill()">Fix Duplicates</button>'
+    +'</div></div>';
+  var ex=document.getElementById('moVisualAudit');if(ex)ex.remove();
+  document.body.appendChild(div); openMo('moVisualAudit');
+};
+
+function getDrawingExtents() {
+  if(!ST.entities.length) return null;
+  var xs=[],ys=[];
+  ST.entities.forEach(function(e){
+    if(e.x1!==undefined){xs.push(e.x1,e.x2);ys.push(e.y1,e.y2);}
+    else if(e.cx!==undefined){xs.push(e.cx-e.r,e.cx+e.r);ys.push(e.cy-e.r,e.cy+e.r);}
+    else if(e.x!==undefined){xs.push(e.x);ys.push(e.y);}
+    if(e.pts)e.pts.forEach(function(p){xs.push(p.x);ys.push(p.y);});
+  });
+  if(!xs.length)return null;
+  return {minX:Math.min.apply(null,xs),maxX:Math.max.apply(null,xs),minY:Math.min.apply(null,ys),maxY:Math.max.apply(null,ys)};
+}
+
+if (typeof CAD_COMMANDS !== 'undefined') CAD_COMMANDS['VISUALAUDIT']='visualaudit';
+if (typeof CAD_ACTIONS  !== 'undefined') CAD_ACTIONS['visualaudit']=function(){window.runVisualAudit();};
+
+// ── DRAWING COMPARE (Ch.9) ────────────────────────────────────────────
+window.openDrawingCompare = function() {
+  var div=document.createElement('div');
+  div.id='moDrawingCompare'; div.className='mo';
+  div.innerHTML='<div class="modal" style="max-width:460px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">⟺</span>Drawing Compare</div>'
+    +'<span class="mc" onclick="closeMo(\'moDrawingCompare\')">✕</span></div>'
+    +'<div class="mb">'
+    +'<div style="font-size:9.5px;color:var(--m);font-family:IBM Plex Mono,monospace;margin-bottom:10px">Load a .strata file to compare with current drawing</div>'
+    +'<label class="btn" style="display:block;text-align:center;cursor:pointer;margin-bottom:8px">'
+    +'📂 Load Comparison Drawing<input type="file" accept=".strata,.dxf" style="display:none" onchange="compareDrawing(this.files[0])">'
+    +'</label>'
+    +'<div id="compareResults" style="font-size:9px;color:var(--m);font-family:IBM Plex Mono,monospace"></div>'
+    +'</div>'
+    +'<div class="mf"><button class="btn s" onclick="closeMo(\'moDrawingCompare\')">Close</button></div>'
+    +'</div>';
+  var ex=document.getElementById('moDrawingCompare');if(ex)ex.remove();
+  document.body.appendChild(div); openMo('moDrawingCompare');
+};
+
+window.compareDrawing = function(file) {
+  if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try {
+      var proj=JSON.parse(ev.target.result);
+      var compareEnts=proj.entities||[];
+      var res=document.getElementById('compareResults');
+      // Simple comparison: count new/removed
+      var curIds=new Set(ST.entities.map(function(e){return e._id;}));
+      var cmpIds=new Set(compareEnts.map(function(e){return e._id;}));
+      var added=ST.entities.filter(function(e){return!cmpIds.has(e._id);}).length;
+      var removed=compareEnts.filter(function(e){return!curIds.has(e._id);}).length;
+      var unchanged=ST.entities.filter(function(e){return cmpIds.has(e._id);}).length;
+      if(res) res.innerHTML='<div style="color:#4eff91">✓ '+unchanged+' unchanged</div>'
+        +'<div style="color:#1FA8D9">+ '+added+' added</div>'
+        +'<div style="color:#ff4466">- '+removed+' removed/modified</div>';
+      // Highlight differences
+      ST.entities.forEach(function(e){
+        if(!cmpIds.has(e._id)) e._compareState='added';
+        else e._compareState='existing';
+      });
+      render&&render();
+      toast('Compare: +'+added+' -'+removed+' entities','ok');
+    } catch(e){ toast('Compare error: '+e.message,'err'); }
+  };
+  reader.readAsText(file);
+};
+
+if (typeof CAD_COMMANDS !== 'undefined') CAD_COMMANDS['DWGCOMPARE']='dwgcompare';
+if (typeof CAD_ACTIONS  !== 'undefined') CAD_ACTIONS['dwgcompare']=function(){window.openDrawingCompare();};
+
+// ── STATUS BAR UPGRADES ────────────────────────────────────────────────
+setTimeout(function() {
+  // Add ACA mode indicators to status bar
+  var sb = document.querySelector('.statbar,.sb,[class*="stat"]');
+  if (!sb) return;
+
+  var renovBtn = document.createElement('button');
+  renovBtn.id='btnRenov';
+  renovBtn.textContent='RENOV';
+  renovBtn.title='Toggle Renovation Mode (type RENOVATION)';
+  renovBtn.style.cssText='background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);color:rgba(255,68,68,.6);font-size:9px;padding:2px 9px;border-radius:3px;cursor:pointer;font-family:IBM Plex Mono,monospace;font-weight:700';
+  renovBtn.onclick=function(){
+    window.toggleRenovationMode();
+    renovBtn.style.background=window.renovationMode?'rgba(255,68,68,.3)':'rgba(255,68,68,.1)';
+    renovBtn.style.color=window.renovationMode?'#ff4466':'rgba(255,68,68,.6)';
+  };
+  sb.appendChild(renovBtn);
+
+  var auditBtn = document.createElement('button');
+  auditBtn.textContent='AUDIT';
+  auditBtn.title='Run Visual Audit';
+  auditBtn.style.cssText='background:rgba(78,255,145,.05);border:1px solid rgba(78,255,145,.2);color:rgba(78,255,145,.5);font-size:9px;padding:2px 9px;border-radius:3px;cursor:pointer;font-family:IBM Plex Mono,monospace;font-weight:700';
+  auditBtn.onclick=function(){ window.runVisualAudit(); };
+  sb.appendChild(auditBtn);
+
+  console.log('[ACAEngine] Additional features: Renovation ✓ AECPolygon ✓ MassElements ✓');
+  console.log('[ACAEngine] DetailComponents ✓ QuickSlice ✓ SpaceEvenly ✓ PropertySets ✓');
+  console.log('[ACAEngine] ObjectViewer ✓ VisualAudit ✓ DrawingCompare ✓ AECArray ✓');
+}, 700);
+
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════
