@@ -983,7 +983,7 @@ input,select{font-family:inherit}
     <button class="map-btn" id="btnMapOSM" onclick="setMapLayer('osm')" title="Street Map" style="display:none">🛣</button>
     <button class="map-btn" id="btnMapCal" onclick="startMapCal()" title="Calibrate Drawing to Map">📍</button>
   </div>
-  <div id="mapDiv" style="position:absolute;inset:0;z-index:0;display:none"></div>
+  <div id="mapDiv" style="position:absolute;inset:0;z-index:0;display:block"></div>
   <div id="mapCalHint" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(6,14,26,.97);border:2px solid var(--g);border-radius:8px;padding:18px 24px;text-align:center;font-size:13px;color:var(--t);z-index:30;min-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.8)"></div>
 
   <div class="zoom-btns">
@@ -1612,7 +1612,10 @@ function render() {
   _renderDepth++;
 
   ctx.clearRect(0,0,W,H);
-  ctx.fillStyle = ST.bgColor; ctx.fillRect(0,0,W,H);
+  // Transparent bg when map is active so map shows through
+  if (!window._mapActive) {
+    ctx.fillStyle = ST.bgColor; ctx.fillRect(0,0,W,H);
+  }
   if(ST.grid) drawGrid(); drawCrosshair();
   // Tile placeholders
   (ST.tileBounds||[]).forEach((t,i)=>{
@@ -21850,6 +21853,2082 @@ setTimeout(function() {
   console.log('[ACAEngine] DetailComponents ✓ QuickSlice ✓ SpaceEvenly ✓ PropertySets ✓');
   console.log('[ACAEngine] ObjectViewer ✓ VisualAudit ✓ DrawingCompare ✓ AECArray ✓');
 }, 700);
+
+
+
+// ████████████████████████████████████████████████████████████████████
+//  STRATA MAP ENGINE v2 — Full-screen map, elevation, profile
+//  Google Satellite + ESRI + OSM tiles, elevation profile chart,
+//  XYZ in properties, auto-fly on import, location picker
+// ████████████████████████████████████████████████████████████████████
+(function StrataMapEngine2() {
+'use strict';
+
+// ── CSS ──────────────────────────────────────────────────────────────
+var style = document.createElement('style');
+style.textContent = `
+/* Map always full screen behind canvas */
+#mapDiv { display:block !important; }
+#cad { background:transparent !important; }
+
+/* Map layer switcher panel */
+#mapLayerPanel {
+  position:absolute; top:8px; right:60px; z-index:600;
+  background:rgba(4,12,24,.92); border:1px solid rgba(31,168,217,.3);
+  border-radius:10px; padding:8px; display:none; flex-direction:column; gap:4px;
+  min-width:160px; box-shadow:0 8px 24px rgba(0,0,0,.6);
+}
+#mapLayerPanel.open { display:flex; }
+.mle-btn {
+  display:flex; align-items:center; gap:8px; padding:6px 10px;
+  border:none; background:transparent; color:rgba(255,255,255,.8);
+  cursor:pointer; border-radius:6px; font-size:11px; font-weight:600;
+  font-family:'IBM Plex Mono',monospace; text-align:left; width:100%;
+  transition:background .12s;
+}
+.mle-btn:hover { background:rgba(31,168,217,.15); }
+.mle-btn.active { background:rgba(31,168,217,.25); color:#1FA8D9; }
+.mle-btn .mle-icon { font-size:14px; }
+.mle-sep { height:1px; background:rgba(31,168,217,.15); margin:2px 0; }
+
+/* Location picker bar */
+#mapLocationBar {
+  position:absolute; top:0; left:0; right:0; z-index:650;
+  background:linear-gradient(180deg,rgba(4,12,24,.95) 0%,rgba(4,12,24,.0) 100%);
+  padding:12px 16px 32px;
+  pointer-events:none;
+  display:none;
+}
+#mapLocationBar.active { display:block; }
+#mapLocSearch {
+  width:100%; background:rgba(255,255,255,.08); border:1.5px solid rgba(31,168,217,.4);
+  border-radius:10px; padding:10px 16px; color:white; font-size:13px;
+  font-family:'IBM Plex Mono',monospace; outline:none;
+  pointer-events:all; box-sizing:border-box;
+}
+#mapLocSearch::placeholder { color:rgba(255,255,255,.4); }
+#mapLocSearchBtn {
+  position:absolute; right:24px; top:20px;
+  background:var(--g,#1FA8D9); border:none; border-radius:8px;
+  padding:8px 14px; color:white; font-size:12px; font-weight:700;
+  cursor:pointer; font-family:'IBM Plex Mono',monospace;
+  pointer-events:all;
+}
+#mapLocSuggest {
+  position:absolute; top:54px; left:16px; right:16px;
+  background:rgba(4,12,24,.97); border:1px solid rgba(31,168,217,.3);
+  border-radius:10px; overflow:hidden; pointer-events:all;
+  z-index:651;
+}
+.mls-item {
+  padding:9px 14px; font-size:12px; color:rgba(255,255,255,.8);
+  cursor:pointer; border-bottom:1px solid rgba(31,168,217,.1);
+  font-family:'IBM Plex Mono',monospace; transition:background .1s;
+}
+.mls-item:last-child { border-bottom:none; }
+.mls-item:hover { background:rgba(31,168,217,.15); }
+
+/* Elevation tooltip */
+#elevTooltip {
+  position:fixed; z-index:1100; pointer-events:none;
+  background:rgba(4,12,24,.95); border:1px solid rgba(31,168,217,.4);
+  border-radius:8px; padding:6px 12px;
+  font-family:'IBM Plex Mono',monospace; font-size:11px; color:white;
+  display:none; white-space:nowrap;
+  box-shadow:0 4px 16px rgba(0,0,0,.5);
+}
+#elevTooltip .elev-val { color:#4eff91; font-weight:700; font-size:13px; }
+
+/* Elevation profile panel */
+#elevProfile {
+  position:fixed; bottom:0; left:0; right:0; z-index:1200;
+  background:rgba(4,12,24,.97); border-top:2px solid rgba(31,168,217,.4);
+  transform:translateY(100%); transition:transform .35s cubic-bezier(.34,1.1,.64,1);
+  max-height:280px;
+}
+#elevProfile.open { transform:translateY(0); }
+#elevProfile-header {
+  display:flex; align-items:center; gap:10px; padding:10px 14px 6px;
+  border-bottom:1px solid rgba(31,168,217,.15);
+}
+#elevProfile-title { font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#1FA8D9; flex:1; }
+#elevProfile-stats { font-family:'IBM Plex Mono',monospace; font-size:10px; color:rgba(255,255,255,.6); }
+#elevProfile-close { background:none; border:none; color:rgba(255,255,255,.5); cursor:pointer; font-size:16px; padding:2px 6px; }
+#elevProfileCanvas { width:100%; height:200px; display:block; }
+#elevProfile-loading { padding:20px; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:11px; color:rgba(255,255,255,.5); }
+
+/* Map layer toggle button */
+#mapLayerToggle {
+  background:rgba(4,12,24,.85) !important;
+  border-color:rgba(31,168,217,.4) !important;
+  color:#1FA8D9 !important;
+}
+
+/* Elevation button in context menu / properties */
+.elev-profile-btn {
+  background:rgba(78,255,145,.08); border:1px solid rgba(78,255,145,.3);
+  color:#4eff91; padding:4px 10px; border-radius:6px; cursor:pointer;
+  font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700;
+  transition:all .15s;
+}
+.elev-profile-btn:hover { background:rgba(78,255,145,.18); }
+
+/* Z-value badge */
+.z-badge {
+  display:inline-block; background:rgba(245,190,24,.12); border:1px solid rgba(245,190,24,.3);
+  color:#F5BE18; padding:2px 8px; border-radius:4px;
+  font-family:'IBM Plex Mono',monospace; font-size:9px; font-weight:700;
+}
+
+/* Location picker mode overlay */
+#locationPickerOverlay {
+  position:absolute; inset:0; z-index:700;
+  display:none; align-items:center; justify-content:center;
+  pointer-events:none;
+}
+#locationPickerOverlay.active { display:flex; }
+.loc-picker-center {
+  width:24px; height:24px; position:relative;
+}
+.loc-picker-center::before, .loc-picker-center::after {
+  content:''; position:absolute; background:#4eff91;
+}
+.loc-picker-center::before { width:2px; height:100%; left:50%; transform:translateX(-50%); }
+.loc-picker-center::after  { height:2px; width:100%; top:50%; transform:translateY(-50%); }
+.loc-picker-ring {
+  width:40px; height:40px; border:2px solid #4eff91; border-radius:50%;
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  animation:pulsering 1.5s ease-in-out infinite;
+}
+@keyframes pulsering { 0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(1)} 50%{opacity:1;transform:translate(-50%,-50%) scale(1.2)} }
+`;
+document.head.appendChild(style);
+
+// ── MAP LAYER CONFIG ────────────────────────────────────────────────
+var MAP_SERVICES = [
+  {key:'gsat',  label:'Google Satellite',  icon:'🛰', url:'https://mt{s}.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}', sub:'0123', maxZ:22},
+  {key:'ghyb',  label:'Google Hybrid',     icon:'🗺🛰',url:'https://mt{s}.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}', sub:'0123', maxZ:22},
+  {key:'gmap',  label:'Google Maps',        icon:'🗺', url:'https://mt{s}.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}', sub:'0123', maxZ:22},
+  {key:'gterr', label:'Google Terrain',     icon:'⛰', url:'https://mt{s}.google.com/vt/lyrs=p&hl=en&x={x}&y={y}&z={z}', sub:'0123', maxZ:22},
+  {key:'sep1', sep:true},
+  {key:'esat',  label:'ESRI Satellite',     icon:'🌍', url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZ:19},
+  {key:'etopo', label:'ESRI Topo',           icon:'🏔', url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', maxZ:19},
+  {key:'sep2', sep:true},
+  {key:'osm',   label:'OpenStreetMap',       icon:'📍', url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', sub:'abc', maxZ:19},
+  {key:'topo',  label:'OpenTopo',            icon:'🗻', url:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', sub:'abc', maxZ:17},
+  {key:'carto', label:'CARTO Dark',          icon:'🌑', url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', sub:'abcd', maxZ:20},
+];
+var currentLayerKey = 'gsat';
+var tileLayerObj = null;
+
+// ── BUILD MAP LAYER PANEL ──────────────────────────────────────────
+function buildLayerPanel() {
+  if (document.getElementById('mapLayerPanel')) return;
+  var vp = document.querySelector('.vport') || document.getElementById('vp');
+  if (!vp) return;
+
+  // Layer panel
+  var panel = document.createElement('div');
+  panel.id = 'mapLayerPanel';
+  MAP_SERVICES.forEach(function(s) {
+    if (s.sep) { var sep=document.createElement('div');sep.className='mle-sep';panel.appendChild(sep);return; }
+    var b = document.createElement('button');
+    b.className = 'mle-btn' + (s.key===currentLayerKey?' active':'');
+    b.dataset.key = s.key;
+    b.innerHTML = '<span class="mle-icon">' + s.icon + '</span>' + s.label;
+    b.onclick = function() {
+      switchMapLayer(s.key);
+      panel.classList.remove('open');
+      panel.querySelectorAll('.mle-btn').forEach(function(x){ x.classList.toggle('active', x.dataset.key===s.key); });
+    };
+    panel.appendChild(b);
+  });
+  vp.appendChild(panel);
+
+  // Toggle button (replaces old layer buttons)
+  var tb = document.createElement('button');
+  tb.id = 'mapLayerToggle';
+  tb.className = 'ib-btn';
+  tb.innerHTML = '🛰 Layers';
+  tb.title = 'Switch map layer';
+  tb.onclick = function(e) {
+    e.stopPropagation();
+    panel.classList.toggle('open');
+  };
+  // Insert after the existing OSM/Sat/Topo buttons
+  var ibSat = document.getElementById('ibBtnSat');
+  if (ibSat && ibSat.parentNode) {
+    ibSat.parentNode.insertBefore(tb, ibSat);
+    // Hide old layer buttons
+    ['ibBtnSat','ibBtnOSM','ibBtnTopo','ibBtnMapMode'].forEach(function(id){
+      var el=document.getElementById(id); if(el) el.style.display='none';
+    });
+  }
+
+  // Location picker overlay
+  var lpo = document.createElement('div');
+  lpo.id = 'locationPickerOverlay';
+  lpo.innerHTML = '<div class="loc-picker-center"><div class="loc-picker-ring"></div></div>';
+  vp.appendChild(lpo);
+
+  // Elevation tooltip
+  var et = document.createElement('div');
+  et.id = 'elevTooltip';
+  et.innerHTML = '📍 <span class="elev-val" id="elevTooltipVal">--</span>';
+  document.body.appendChild(et);
+
+  // Location search bar
+  buildLocationBar();
+
+  // Close panel on outside click
+  document.addEventListener('click', function() { panel.classList.remove('open'); });
+}
+
+function switchMapLayer(key) {
+  var lmap = window._map; if (!lmap) return;
+  var svc = MAP_SERVICES.find(function(s){return s.key===key;});
+  if (!svc || svc.sep) return;
+  if (tileLayerObj) { lmap.removeLayer(tileLayerObj); tileLayerObj=null; }
+  var opts = { maxZoom: svc.maxZ||22, maxNativeZoom: svc.maxZ||19, attribution:'', zIndex:1 };
+  if (svc.sub) opts.subdomains = svc.sub;
+  tileLayerObj = L.tileLayer(svc.url, opts).addTo(lmap);
+  currentLayerKey = key;
+  // Also update the old _tileLayers for compatibility
+  if (lmap._tileLayers) {
+    Object.values(lmap._tileLayers).forEach(function(t){ lmap.removeLayer(t); });
+    lmap._currentBase = key;
+  }
+  var lb = document.getElementById('mapLayerToggle');
+  if (lb) lb.innerHTML = svc.icon + ' Layers';
+}
+
+// ── LOCATION SEARCH BAR ────────────────────────────────────────────
+function buildLocationBar() {
+  if (document.getElementById('mapLocationBar')) return;
+  var vp = document.querySelector('.vport') || document.getElementById('vp');
+  if (!vp) return;
+
+  var bar = document.createElement('div');
+  bar.id = 'mapLocationBar';
+  bar.innerHTML = `
+    <div style="position:relative">
+      <input id="mapLocSearch" placeholder="🔍 Search location, city, coordinates…" autocomplete="off">
+      <button id="mapLocSearchBtn" onclick="doLocationSearch()">Go</button>
+    </div>
+    <div id="mapLocSuggest" style="display:none"></div>`;
+  vp.appendChild(bar);
+
+  var inp = document.getElementById('mapLocSearch');
+  if (inp) {
+    inp.addEventListener('keydown', function(ev) {
+      ev.stopPropagation();
+      if (ev.key === 'Enter') doLocationSearch();
+    });
+    var debounce;
+    inp.addEventListener('input', function() {
+      clearTimeout(debounce);
+      if (this.value.length < 3) { hideSuggest(); return; }
+      debounce = setTimeout(function(){ fetchSuggestions(inp.value); }, 400);
+    });
+  }
+}
+
+window.doLocationSearch = function() {
+  var inp = document.getElementById('mapLocSearch');
+  if (!inp) return;
+  var q = inp.value.trim();
+  if (!q) return;
+
+  // Try lat,lng format first
+  var coords = q.match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/);
+  if (coords) {
+    flyToLatLng(parseFloat(coords[1]), parseFloat(coords[2]), 16);
+    inp.value = '';
+    hideSuggest();
+    return;
+  }
+
+  // Nominatim geocoding
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=5', {
+    headers:{'Accept-Language':'en'}
+  }).then(function(r){return r.json();}).then(function(data){
+    if (!data.length) { toast && toast('Location not found'); return; }
+    var best = data[0];
+    flyToLatLng(parseFloat(best.lat), parseFloat(best.lon), 15);
+    inp.value = '';
+    hideSuggest();
+    if (typeof setMsg === 'function') setMsg('📍 ' + best.display_name.split(',')[0]);
+  }).catch(function(){
+    toast && toast('Location search failed');
+  });
+};
+
+function fetchSuggestions(q) {
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=5',{headers:{'Accept-Language':'en'}})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var box = document.getElementById('mapLocSuggest');
+      if (!box) return;
+      if (!data.length) { hideSuggest(); return; }
+      box.innerHTML = '';
+      box.style.display = 'block';
+      data.slice(0,4).forEach(function(item){
+        var d = document.createElement('div');
+        d.className = 'mls-item';
+        d.textContent = item.display_name.split(',').slice(0,3).join(', ');
+        d.onclick = function(){
+          flyToLatLng(parseFloat(item.lat),parseFloat(item.lon),15);
+          document.getElementById('mapLocSearch').value='';
+          hideSuggest();
+        };
+        box.appendChild(d);
+      });
+    }).catch(function(){});
+}
+
+function hideSuggest() {
+  var b=document.getElementById('mapLocSuggest');
+  if(b) b.style.display='none';
+}
+
+function flyToLatLng(lat, lng, zoom) {
+  var lmap = window._map; if (!lmap) return;
+  zoom = zoom || 15;
+  lmap.flyTo([lat, lng], zoom, {animate:true, duration:1.4});
+}
+
+// ── AUTO-FLY ON DXF/DWG IMPORT ────────────────────────────────────
+var _origZoomExt = window.zoomExt;
+window.zoomExt = function() {
+  if (typeof _origZoomExt === 'function') _origZoomExt();
+  // After zoom to extents, also fly map to drawing location
+  setTimeout(function() {
+    if (!window._map || !ST.entities || !ST.entities.length) return;
+    try {
+      var xs=[], ys=[];
+      ST.entities.forEach(function(e){
+        if(e.x1!==undefined){xs.push(e.x1,e.x2);ys.push(e.y1,e.y2);}
+        else if(e.cx!==undefined){xs.push(e.cx);ys.push(e.cy);}
+        else if(e.x!==undefined){xs.push(e.x);ys.push(e.y);}
+        if(e.pts) e.pts.forEach(function(p){xs.push(p.x);ys.push(p.y);});
+      });
+      if (!xs.length) return;
+      var minX=Math.min.apply(null,xs), maxX=Math.max.apply(null,xs);
+      var minY=Math.min.apply(null,ys), maxY=Math.max.apply(null,ys);
+      var cx=(minX+maxX)/2, cy=(minY+maxY)/2;
+
+      // Detect UTM coordinates (large values > 10000)
+      if (Math.abs(cx) > 10000 || Math.abs(cy) > 10000) {
+        // Try to detect UTM and convert to lat/lng
+        var lat = null, lng = null;
+        // Simple heuristic: if Y is 0-9000000 and X is 100000-900000, likely UTM
+        if (cy > 0 && cy < 9000000 && cx > 100000 && cx < 900000) {
+          // Rough UTM to lat/lng (approximate, not precise zone-specific)
+          lat = (cy / 111000) - 90;
+          lng = (cx / 111000) - 180;
+        } else if (Math.abs(cx) > 100000 && Math.abs(cy) > 1000000) {
+          // Large UTM coords
+          lat = cy / 111319.9;
+          lng = cx / (111319.9 * Math.cos(lat * Math.PI/180));
+        }
+        if (lat !== null && lat > -90 && lat < 90 && lng > -180 && lng < 180) {
+          window._map.flyTo([lat, lng], 15, {animate:true, duration:1.5});
+          toast && toast('📍 Map centred on drawing location');
+        }
+      }
+    } catch(e) {}
+  }, 300);
+};
+
+// ── ELEVATION API ─────────────────────────────────────────────────
+var ELEV_CACHE = {};  // lat_lng -> elevation
+
+function getElevation(lat, lng, callback) {
+  var key = lat.toFixed(5) + ',' + lng.toFixed(5);
+  if (ELEV_CACHE[key] !== undefined) { callback(ELEV_CACHE[key]); return; }
+
+  // Use Open-Elevation API (free, no key)
+  fetch('https://api.open-elevation.com/api/v1/lookup?locations='+lat.toFixed(6)+','+lng.toFixed(6))
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var elev = data.results && data.results[0] ? data.results[0].elevation : null;
+      ELEV_CACHE[key] = elev;
+      callback(elev);
+    })
+    .catch(function(){
+      // Fallback: OpenTopoData
+      fetch('https://api.opentopodata.org/v1/srtm30m?locations='+lat.toFixed(6)+','+lng.toFixed(6))
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          var elev = data.results && data.results[0] ? data.results[0].elevation : null;
+          ELEV_CACHE[key] = elev;
+          callback(elev);
+        })
+        .catch(function(){ callback(null); });
+    });
+}
+
+function getElevationBatch(points, callback) {
+  // points = [{lat,lng}, ...]
+  // Use open-elevation batch API
+  var body = JSON.stringify({ locations: points.map(function(p){ return {latitude:p.lat, longitude:p.lng}; }) });
+  fetch('https://api.open-elevation.com/api/v1/lookup', {
+    method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:body
+  }).then(function(r){ return r.json(); })
+    .then(function(data){
+      var elevs = (data.results||[]).map(function(r){ return r.elevation; });
+      callback(elevs);
+    })
+    .catch(function(){
+      // Sequential fallback
+      var results = []; var i = 0;
+      function next() {
+        if (i >= points.length) { callback(results); return; }
+        getElevation(points[i].lat, points[i].lng, function(e){ results.push(e); i++; next(); });
+      }
+      next();
+    });
+}
+
+// ── CLICK-TO-GET-ELEVATION on map ─────────────────────────────────
+window._elevClickActive = false;
+window.toggleElevClick = function() {
+  window._elevClickActive = !window._elevClickActive;
+  if (window._elevClickActive) {
+    toast && toast('🏔 Click map to get elevation');
+    if (window._map) window._map.on('click', onMapElevClick);
+  } else {
+    if (window._map) window._map.off('click', onMapElevClick);
+  }
+};
+
+function onMapElevClick(e) {
+  var lat = e.latlng.lat, lng = e.latlng.lng;
+  var tt = document.getElementById('elevTooltip');
+  var tv = document.getElementById('elevTooltipVal');
+  if (!tt || !tv) return;
+  tt.style.display = 'block';
+  tt.style.left = (e.originalEvent.clientX+12)+'px';
+  tt.style.top  = (e.originalEvent.clientY-24)+'px';
+  tv.textContent = 'loading…';
+  getElevation(lat, lng, function(elev) {
+    if (elev === null) { tv.textContent = 'N/A'; return; }
+    tv.textContent = elev.toFixed(1) + ' m';
+    setTimeout(function(){ tt.style.display='none'; }, 3000);
+  });
+}
+
+// ── ELEVATION PROFILE for selected line ───────────────────────────
+window.showElevationProfile = function(entity) {
+  if (!entity) {
+    // Try selected entity
+    entity = ST.entities.find(function(e){ return e.selected && (e.type==='line'||e.type==='polyline'); });
+  }
+  if (!entity) { toast && toast('Select a line or polyline first'); return; }
+
+  buildElevProfile();
+  var profPanel = document.getElementById('elevProfile');
+  profPanel.classList.add('open');
+  document.getElementById('elevProfile-loading').style.display = 'block';
+  document.getElementById('elevProfileCanvas').style.display = 'none';
+
+  // Build sample points along the line/polyline
+  var samples = [];
+  if (entity.type === 'line') {
+    var n = 50;
+    for (var i=0; i<=n; i++) {
+      var t = i/n;
+      var wx = entity.x1 + t*(entity.x2-entity.x1);
+      var wy = entity.y1 + t*(entity.y2-entity.y1);
+      samples.push({world:{x:wx,y:wy}, t:t, dist:0});
+    }
+  } else if (entity.pts && entity.pts.length >= 2) {
+    // Polyline: sample 50 points evenly
+    var totalDist = 0;
+    var segDists = [];
+    for (var i=0; i<entity.pts.length-1; i++) {
+      var dx = entity.pts[i+1].x-entity.pts[i].x;
+      var dy = entity.pts[i+1].y-entity.pts[i].y;
+      var d = Math.hypot(dx,dy);
+      segDists.push(d); totalDist += d;
+    }
+    var nSamples = Math.min(60, Math.max(20, Math.ceil(totalDist/100)));
+    for (var si=0; si<=nSamples; si++) {
+      var targetDist = (si/nSamples)*totalDist;
+      var cumDist = 0;
+      for (var seg=0; seg<segDists.length; seg++) {
+        if (cumDist+segDists[seg] >= targetDist || seg===segDists.length-1) {
+          var localT = segDists[seg]>0 ? (targetDist-cumDist)/segDists[seg] : 0;
+          localT = Math.max(0,Math.min(1,localT));
+          var wx2 = entity.pts[seg].x + localT*(entity.pts[seg+1].x-entity.pts[seg].x);
+          var wy2 = entity.pts[seg].y + localT*(entity.pts[seg+1].y-entity.pts[seg].y);
+          samples.push({world:{x:wx2,y:wy2}, dist:targetDist});
+          break;
+        }
+        cumDist += segDists[seg];
+      }
+    }
+  }
+
+  // Convert world coords to lat/lng using map calibration or UTM estimate
+  var latLngs = samples.map(function(s) {
+    return worldToLatLng(s.world.x, s.world.y);
+  });
+
+  // Filter out null lat/lngs
+  var validPts = [];
+  var validSamples = [];
+  latLngs.forEach(function(ll, i) {
+    if (ll) { validPts.push(ll); validSamples.push(samples[i]); }
+  });
+
+  if (!validPts.length) {
+    document.getElementById('elevProfile-loading').textContent = 'Cannot locate drawing on map. Use MAP → Calibrate first.';
+    return;
+  }
+
+  document.getElementById('elevProfile-loading').textContent = 'Fetching elevation data…';
+
+  getElevationBatch(validPts, function(elevs) {
+    document.getElementById('elevProfile-loading').style.display = 'none';
+    document.getElementById('elevProfileCanvas').style.display = 'block';
+    drawElevProfileChart(validSamples, elevs, validPts);
+  });
+};
+
+function worldToLatLng(wx, wy) {
+  // Try calibration data first
+  if (window._georef && window._georef.pts && window._georef.pts.length >= 2) {
+    // Use georef transform
+    try {
+      var ref = window._georef;
+      // Simple linear interpolation using 2 calibration points
+      var p0 = ref.pts[0], p1 = ref.pts[1];
+      var dxW = p1.wx-p0.wx, dyW = p1.wy-p0.wy;
+      var dxL = p1.lat-p0.lat, dyL = p1.lng-p0.lng;
+      if (Math.abs(dxW)>0.001 || Math.abs(dyW)>0.001) {
+        var t = ((wx-p0.wx)*dxW+(wy-p0.wy)*dyW)/(dxW*dxW+dyW*dyW);
+        return {lat: p0.lat+(p1.lat-p0.lat)*t, lng: p0.lng+(p1.lng-p0.lng)*t};
+      }
+    } catch(e) {}
+  }
+
+  // Detect and convert UTM-like coordinates
+  if (Math.abs(wx) > 100000 && Math.abs(wy) > 100000) {
+    // Try UTM to lat/lng (rough conversion)
+    var lat = wy/111319.9 - (wy>0?0:0);
+    var lng = wx/(111319.9*Math.cos(lat*Math.PI/180));
+    if (lat>-90&&lat<90&&lng>-180&&lng<180) return {lat:lat,lng:lng};
+  }
+
+  // Check if map is calibrated via existing georef
+  if (window._mapActive && window._map) {
+    var center = window._map.getCenter();
+    // Approximate using screen position
+    try {
+      var sp = w2s(wx, wy);
+      var ll = window._map.containerPointToLatLng([sp.x, sp.y]);
+      return {lat:ll.lat, lng:ll.lng};
+    } catch(e) {}
+  }
+
+  return null;
+}
+
+function drawElevProfileChart(samples, elevs, latLngs) {
+  var canvas = document.getElementById('elevProfileCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth || 800;
+  canvas.height = 200;
+  var W = canvas.width, H = canvas.height;
+  var pad = {top:20, right:20, bottom:30, left:50};
+
+  // Filter valid elevations
+  var validData = [];
+  elevs.forEach(function(e, i) {
+    if (e !== null && e !== undefined) {
+      validData.push({
+        dist: samples[i].dist || i,
+        elev: e,
+        lat: latLngs[i].lat,
+        lng: latLngs[i].lng
+      });
+    }
+  });
+
+  if (!validData.length) {
+    ctx.fillStyle='rgba(255,255,255,.4)';
+    ctx.font='12px IBM Plex Mono,monospace';
+    ctx.textAlign='center';
+    ctx.fillText('No elevation data available for this area',W/2,H/2);
+    return;
+  }
+
+  var maxDist = validData[validData.length-1].dist || validData.length;
+  var minElev = Math.min.apply(null, validData.map(function(d){return d.elev;}));
+  var maxElev = Math.max.apply(null, validData.map(function(d){return d.elev;}));
+  var elevRange = maxElev - minElev || 1;
+
+  // Update header stats
+  var stats = document.getElementById('elevProfile-stats');
+  if (stats) {
+    stats.textContent = 'Min: '+minElev.toFixed(0)+'m  Max: '+maxElev.toFixed(0)+'m  Δ: '+(maxElev-minElev).toFixed(0)+'m';
+  }
+
+  function ex(d) { return pad.left + (d/maxDist)*(W-pad.left-pad.right); }
+  function ey(e) { return H-pad.bottom - ((e-minElev)/elevRange)*(H-pad.top-pad.bottom); }
+
+  // Background
+  ctx.fillStyle = 'rgba(4,12,24,1)';
+  ctx.fillRect(0,0,W,H);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(31,168,217,.08)';
+  ctx.lineWidth = 1;
+  for (var gi=0; gi<=4; gi++) {
+    var ye = pad.top + gi/4*(H-pad.top-pad.bottom);
+    ctx.beginPath(); ctx.moveTo(pad.left,ye); ctx.lineTo(W-pad.right,ye); ctx.stroke();
+  }
+
+  // Gradient fill
+  var grad = ctx.createLinearGradient(0, pad.top, 0, H-pad.bottom);
+  grad.addColorStop(0, 'rgba(78,255,145,.5)');
+  grad.addColorStop(1, 'rgba(78,255,145,.03)');
+
+  ctx.beginPath();
+  ctx.moveTo(ex(validData[0].dist), ey(validData[0].elev));
+  validData.forEach(function(d) { ctx.lineTo(ex(d.dist), ey(d.elev)); });
+  ctx.lineTo(ex(validData[validData.length-1].dist), H-pad.bottom);
+  ctx.lineTo(ex(validData[0].dist), H-pad.bottom);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Elevation line
+  ctx.beginPath();
+  ctx.moveTo(ex(validData[0].dist), ey(validData[0].elev));
+  validData.forEach(function(d) { ctx.lineTo(ex(d.dist), ey(d.elev)); });
+  ctx.strokeStyle = '#4eff91';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Y axis labels (elevation)
+  ctx.fillStyle = 'rgba(255,255,255,.5)';
+  ctx.font = '9px IBM Plex Mono,monospace';
+  ctx.textAlign = 'right';
+  for (var li=0; li<=4; li++) {
+    var elev = minElev + li/4*elevRange;
+    var ye2 = ey(elev);
+    ctx.fillText(elev.toFixed(0)+'m', pad.left-4, ye2+3);
+  }
+
+  // X axis labels
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,.4)';
+  [0,.25,.5,.75,1].forEach(function(t){
+    var xe = ex(t*maxDist);
+    var label = (t*maxDist).toFixed(0)+'m';
+    ctx.fillText(label, xe, H-5);
+  });
+
+  // Interactive hover
+  canvas.onmousemove = function(ev) {
+    var rect = canvas.getBoundingClientRect();
+    var mx = (ev.clientX-rect.left)*(W/rect.width);
+    var t = Math.max(0,Math.min(1,(mx-pad.left)/(W-pad.left-pad.right)));
+    var dist = t*maxDist;
+    var nearest = validData.reduce(function(best,d){
+      return Math.abs(d.dist-dist)<Math.abs(best.dist-dist)?d:best;
+    },validData[0]);
+    // Redraw with hover indicator
+    drawElevProfileChart(samples, elevs, latLngs);
+    ctx.beginPath();
+    ctx.moveTo(ex(nearest.dist), pad.top);
+    ctx.lineTo(ex(nearest.dist), H-pad.bottom);
+    ctx.strokeStyle = 'rgba(245,190,24,.7)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3,3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(ex(nearest.dist), ey(nearest.elev), 5, 0, Math.PI*2);
+    ctx.fillStyle = '#F5BE18';
+    ctx.fill();
+    ctx.fillStyle = 'rgba(245,190,24,.9)';
+    ctx.font = 'bold 10px IBM Plex Mono,monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(nearest.elev.toFixed(1)+'m', ex(nearest.dist)+8, ey(nearest.elev)-4);
+  };
+}
+
+function buildElevProfile() {
+  if (document.getElementById('elevProfile')) return;
+  var panel = document.createElement('div');
+  panel.id = 'elevProfile';
+  panel.innerHTML = `
+    <div id="elevProfile-header">
+      <span id="elevProfile-title">⛰ Elevation Profile</span>
+      <span id="elevProfile-stats"></span>
+      <button id="elevProfile-close" onclick="document.getElementById('elevProfile').classList.remove('open')">✕</button>
+    </div>
+    <div id="elevProfile-loading" style="display:none">Fetching elevation data…</div>
+    <canvas id="elevProfileCanvas" style="display:none"></canvas>`;
+  document.body.appendChild(panel);
+}
+
+// ── XYZ IN PROPERTIES ────────────────────────────────────────────
+// Override updatePropPanel to show Z for elevation entities
+var _origUpdatePropPanel = window.updatePropPanel;
+window.updatePropPanel = function() {
+  if (typeof _origUpdatePropPanel === 'function') _origUpdatePropPanel();
+
+  // Add Z value display for selected entities
+  setTimeout(function() {
+    var sels = ST.entities.filter(function(e){ return e.selected; });
+    if (!sels.length) return;
+    var pp = document.getElementById('propPanel') || document.querySelector('.prop-panel');
+    if (!pp) return;
+
+    // Check if Z info already added
+    if (pp.querySelector('#prop-z-section')) return;
+
+    var hasZ = sels.some(function(e){
+      return e.z !== undefined || e.z1 !== undefined || e.cz !== undefined ||
+             (e.pts && e.pts.some(function(p){return p.z !== undefined;}));
+    });
+
+    var zDiv = document.createElement('div');
+    zDiv.id = 'prop-z-section';
+    zDiv.style.cssText = 'margin-top:8px;padding:8px;background:rgba(245,190,24,.06);border:1px solid rgba(245,190,24,.2);border-radius:6px;';
+
+    var zInfo = sels.map(function(e) {
+      var x = e.x1||e.cx||e.x||0, y = e.y1||e.cy||e.y||0;
+      var z = e.z||e.z1||e.cz||0;
+      return 'X:'+x.toFixed(3)+' Y:'+y.toFixed(3)+' Z:'+z.toFixed(3);
+    }).slice(0,3).join('<br>');
+
+    zDiv.innerHTML = '<div style="font-size:8px;font-weight:700;color:rgba(245,190,24,.7);margin-bottom:4px;letter-spacing:.08em">X / Y / Z COORDINATES</div>'
+      + '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:9px;color:#F5BE18;line-height:1.6">'+zInfo+'</div>'
+      + (hasZ ? '' : '<div style="font-size:8px;color:rgba(255,255,255,.3);margin-top:4px">Z=0 (2D entity)</div>')
+      + '<button class="elev-profile-btn" style="margin-top:6px;font-size:9px" onclick="showElevationProfile()">⛰ Elevation Profile</button>';
+
+    pp.appendChild(zDiv);
+  }, 100);
+};
+
+// ── COMMANDS ──────────────────────────────────────────────────────
+if (typeof CAD_COMMANDS !== 'undefined') {
+  Object.assign(CAD_COMMANDS, {
+    'ELEVPROFILE':'elevprofile','EP':'elevprofile',
+    'ELEVATION_PROFILE':'elevprofile',
+    'GETELE':'getelevation','ELEV':'getelevation',
+    'FLYTO':'flyto','GOTO':'flyto','LOCATION':'flyto',
+    'MAPLAYER':'maplayer','LAYERS_MAP':'maplayer',
+    'SATELLITE':'satellite','GSAT':'satellite',
+    'STREETMAP':'streetmap',
+  });
+}
+if (typeof CAD_ACTIONS !== 'undefined') {
+  Object.assign(CAD_ACTIONS, {
+    elevprofile:  function(){ window.showElevationProfile(); },
+    getelevation: function(){ window.toggleElevClick(); },
+    flyto: function(){
+      var q=prompt('Enter location name or lat,lng:','');
+      if(q){document.getElementById('mapLocSearch').value=q;doLocationSearch();}
+    },
+    maplayer: function(){ document.getElementById('mapLayerPanel')?.classList.toggle('open'); },
+    satellite: function(){ switchMapLayer('gsat'); toast&&toast('Google Satellite'); },
+    streetmap: function(){ switchMapLayer('gmap'); toast&&toast('Google Maps'); },
+  });
+}
+
+// ── ADD ELEVATION PROFILE TO CONTEXT MENU ────────────────────────
+setTimeout(function() {
+  var ctxMenu = document.getElementById('ctxMenu');
+  if (!ctxMenu) return;
+  if (document.getElementById('ctx-elev-profile')) return;
+
+  var sep = document.createElement('div');
+  sep.className = 'c3d-sep';
+  ctxMenu.appendChild(sep);
+
+  var elevItem = document.createElement('div');
+  elevItem.id = 'ctx-elev-profile';
+  elevItem.className = 'c3d-mi';
+  elevItem.style.color = '#4eff91';
+  elevItem.innerHTML = '⛰ Elevation Profile';
+  elevItem.onclick = function() {
+    closeCM && closeCM();
+    window.showElevationProfile();
+  };
+  ctxMenu.appendChild(elevItem);
+}, 800);
+
+// ── INIT ─────────────────────────────────────────────────────────
+setTimeout(function() {
+  // Ensure map is started
+  if (!window._map && typeof window._initMap === 'function') {
+    window._mapActive = true;
+    var md = document.getElementById('mapDiv');
+    if (md) md.style.display = 'block';
+    window._initMap();
+    setTimeout(function(){ switchMapLayer('gsat'); }, 400);
+  } else if (window._map) {
+    switchMapLayer('gsat');
+  }
+
+  buildLayerPanel();
+
+  // Show location bar
+  var bar = document.getElementById('mapLocationBar');
+  if (bar) bar.classList.add('active');
+
+  // Update the map layer switcher buttons in the info bar
+  var ibBtnTgl = document.getElementById('ibBtnMapToggle');
+  if (ibBtnTgl) { ibBtnTgl.textContent = '🛰 Map ON'; ibBtnTgl.style.background='rgba(31,168,217,.15)'; }
+
+  console.log('[StrataMapEngine2] Ready — Google Satellite ✓ Elevation Profile ✓ Auto-fly ✓ XYZ ✓');
+  console.log('[StrataMapEngine2] Commands: ELEVPROFILE EP ELEV FLYTO MAPLAYER SATELLITE SATELLITE STREETMAP');
+}, 900);
+
+})(); // end StrataMapEngine2
+
+
+// ████████████████████████████████████████████████████████████████████
+//  STRATA PRO UX — AutoCAD-style cursor, dynamic input, TORIENT
+//  Implements the "Pro" features shown in the video:
+//  1. Full-screen AutoCAD crosshair
+//  2. Dynamic input tooltip near cursor (coords, distance, angle)
+//  3. TORIENT — orient text to most readable angle
+//  4. Command echo inline near cursor
+//  5. Polar tracking visual line
+//  6. Distance/angle display while drawing
+// ████████████████████████████████████████████████████████████████████
+(function StrataProUX() {
+'use strict';
+
+// ── CSS ──────────────────────────────────────────────────────────────
+var sty = document.createElement('style');
+sty.textContent = `
+/* Bigger, more visible dynamic input tooltip */
+#dynInput {
+  position:fixed; z-index:700; pointer-events:none;
+  display:none;
+}
+.dyn-block {
+  background:rgba(4,10,20,.96);
+  border:1.5px solid rgba(31,168,217,.5);
+  border-radius:6px;
+  padding:5px 10px;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  box-shadow:0 4px 16px rgba(0,0,0,.6);
+  min-width:120px;
+}
+.dyn-coord-row {
+  display:flex; gap:6px; align-items:center;
+}
+.dyn-coord-lbl {
+  font-size:8px; color:rgba(255,255,255,.4);
+  font-family:'IBM Plex Mono',monospace; min-width:8px;
+  font-weight:700;
+}
+.dyn-coord-val {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px; color:#4eff91; font-weight:700;
+  flex:1;
+}
+.dyn-dist-row {
+  display:flex; align-items:center; gap:6px;
+  border-top:1px solid rgba(31,168,217,.15);
+  padding-top:3px; margin-top:1px;
+}
+.dyn-dist-val {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px; color:#1FA8D9; font-weight:600;
+}
+.dyn-angle-val {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px; color:rgba(245,190,24,.9); font-weight:600;
+  margin-left:auto;
+}
+.dyn-cmd-hint {
+  font-size:9px; color:rgba(255,255,255,.35);
+  font-family:'IBM Plex Mono',monospace;
+  border-top:1px solid rgba(31,168,217,.1);
+  padding-top:3px; margin-top:1px;
+}
+/* Ortho/Polar indicator */
+#orthoIndicator {
+  position:fixed; z-index:695; pointer-events:none;
+  display:none; padding:3px 8px;
+  background:rgba(4,10,20,.9);
+  border:1px solid rgba(245,190,24,.4);
+  border-radius:4px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9px; color:#F5BE18; font-weight:700;
+}
+/* TORIENT result flash */
+.torient-flash {
+  animation:torient-anim .6s ease-out forwards;
+}
+@keyframes torient-anim {
+  0%{color:#4eff91;text-shadow:0 0 8px #4eff91;}
+  100%{color:inherit;text-shadow:none;}
+}
+`;
+document.head.appendChild(sty);
+
+// ── DYNAMIC INPUT SETUP ───────────────────────────────────────────────
+var dynEl = document.getElementById('dynInput');
+if (!dynEl) {
+  dynEl = document.createElement('div');
+  dynEl.id = 'dynInput';
+  document.body.appendChild(dynEl);
+}
+
+// Replace the dynInput content with richer HTML
+dynEl.innerHTML = `
+<div class="dyn-block">
+  <div class="dyn-coord-row">
+    <span class="dyn-coord-lbl">X</span>
+    <span class="dyn-coord-val" id="dynX">0.000</span>
+  </div>
+  <div class="dyn-coord-row">
+    <span class="dyn-coord-lbl">Y</span>
+    <span class="dyn-coord-val" id="dynY">0.000</span>
+  </div>
+  <div class="dyn-dist-row" id="dynDistRow" style="display:none">
+    <span class="dyn-dist-val" id="dynDist">0.000</span>
+    <span class="dyn-angle-val" id="dynAngle">0°</span>
+  </div>
+  <div class="dyn-cmd-hint" id="dynCmdHint" style="display:none"></div>
+</div>`;
+
+// Ortho indicator
+var orthoInd = document.createElement('div');
+orthoInd.id = 'orthoIndicator';
+document.body.appendChild(orthoInd);
+
+// ── PATCH CANVAS MOUSEMOVE FOR RICH DYN INPUT ─────────────────────────
+var canvas = document.getElementById('cad');
+if (canvas) {
+  canvas.addEventListener('mousemove', function(ev) {
+    var r = canvas.getBoundingClientRect();
+    var sx = ev.clientX - r.left;
+    var sy = ev.clientY - r.top;
+    var wp = s2w(sx, sy);
+
+    // Position dynInput near cursor (offset right and down)
+    var dx = ev.clientX + 18;
+    var dy = ev.clientY + 18;
+    if (dx + 140 > window.innerWidth)  dx = ev.clientX - 155;
+    if (dy + 100 > window.innerHeight) dy = ev.clientY - 105;
+    dynEl.style.left = dx + 'px';
+    dynEl.style.top  = dy + 'px';
+    dynEl.style.display = 'block';
+
+    // Update X/Y
+    var xEl = document.getElementById('dynX');
+    var yEl = document.getElementById('dynY');
+    if (xEl) xEl.textContent = wp.x.toFixed(3);
+    if (yEl) yEl.textContent = wp.y.toFixed(3);
+
+    // Update distance/angle if drawing
+    var distRow = document.getElementById('dynDistRow');
+    var distEl  = document.getElementById('dynDist');
+    var angEl   = document.getElementById('dynAngle');
+
+    if (ST.startPt && ST.drawing && (ST.tool==='line'||ST.tool==='polyline'||ST.tool==='polygon')) {
+      var lastPt = ST.startPt;
+      // For polyline/polygon, use last point
+      if ((ST.pts||ST._polyPts) && (ST.pts||ST._polyPts).length > 0) {
+        var arr = ST.pts || ST._polyPts;
+        lastPt = arr[arr.length-1];
+      }
+      var ddx = wp.x - lastPt.x, ddy = wp.y - lastPt.y;
+      var dist = Math.hypot(ddx, ddy);
+      var angle = Math.atan2(ddy, ddx) * 180 / Math.PI;
+      if (angle < 0) angle += 360;
+      // Ortho snapping display
+      if (ST.ortho) {
+        var snapAngle = Math.round(angle/90)*90;
+        orthoInd.style.display = 'block';
+        orthoInd.style.left = (ev.clientX+16)+'px';
+        orthoInd.style.top  = (ev.clientY-30)+'px';
+        orthoInd.textContent = 'ORTHO ' + snapAngle.toFixed(0)+'°';
+      } else {
+        orthoInd.style.display = 'none';
+      }
+      if (distRow) distRow.style.display = 'flex';
+      if (distEl) distEl.textContent = dist.toFixed(3) + (ST.units||'mm');
+      if (angEl)  angEl.textContent = angle.toFixed(1) + '°';
+    } else {
+      if (distRow) distRow.style.display = 'none';
+      orthoInd.style.display = 'none';
+    }
+
+    // Command hint
+    var hintEl = document.getElementById('dynCmdHint');
+    if (hintEl) {
+      var hints = {
+        'line':     'L=Line | C=Close | Undo=U',
+        'polyline': 'A=Arc | C=Close | Undo=U',
+        'polygon':  'dblclick=Close | Enter=Finish | C=Close',
+        'rotate':   'Type angle or pick reference',
+        'scale':    'Type scale factor',
+        'move':     'Click to place',
+        'copy':     'Click to place copies',
+        'circle':   'R=Radius | D=Diameter',
+        'arc':      'Drag to set radius',
+        'rect':     'Click opposite corner',
+        'acawall':  'Click next wall point | Esc=Done',
+      };
+      var hint = hints[ST.tool] || '';
+      if (hint) {
+        hintEl.style.display = 'block';
+        hintEl.textContent = hint;
+      } else {
+        hintEl.style.display = 'none';
+      }
+    }
+  }, false);
+
+  canvas.addEventListener('mouseleave', function() {
+    dynEl.style.display = 'none';
+    orthoInd.style.display = 'none';
+  });
+}
+
+// ── FULL-SCREEN AUTOCAD-STYLE CROSSHAIR ───────────────────────────────
+// Patch the drawCrosshair function to make it more like AutoCAD
+var _origDrawCrosshair = window.drawCrosshair;
+window.drawCrosshair = function() {
+  var cad = document.getElementById('cad');
+  if (!cad) { _origDrawCrosshair && _origDrawCrosshair(); return; }
+  var ctx2 = cad.getContext('2d');
+  var W2 = cad.width, H2 = cad.height;
+  var x = ST.mouse ? ST.mouse.x : W2/2;
+  var y = ST.mouse ? ST.mouse.y : H2/2;
+
+  ctx2.save();
+
+  // ── Full-screen guide lines (very faint, like AutoCAD background crosshair) ──
+  ctx2.strokeStyle = 'rgba(31,168,217,.07)';
+  ctx2.lineWidth = 0.5;
+  ctx2.setLineDash([]);
+  ctx2.beginPath();
+  ctx2.moveTo(x, 0);     ctx2.lineTo(x, H2);
+  ctx2.moveTo(0, y);     ctx2.lineTo(W2, y);
+  ctx2.stroke();
+
+  // ── Gap size (pickbox zone) ──
+  var gap = 6;
+  // ── Cross arms go full width/height (AutoCAD Pro style) ──
+  ctx2.strokeStyle = 'rgba(31,168,217,.65)';
+  ctx2.lineWidth = 1;
+  ctx2.beginPath();
+  // Horizontal arms
+  ctx2.moveTo(0, y);         ctx2.lineTo(x - gap, y);
+  ctx2.moveTo(x + gap, y);   ctx2.lineTo(W2, y);
+  // Vertical arms
+  ctx2.moveTo(x, 0);         ctx2.lineTo(x, y - gap);
+  ctx2.moveTo(x, y + gap);   ctx2.lineTo(x, H2);
+  ctx2.stroke();
+
+  // ── Pickbox square at center ──
+  var pb = 5;
+  ctx2.strokeStyle = 'rgba(31,168,217,.8)';
+  ctx2.lineWidth = 1;
+  ctx2.strokeRect(x - pb, y - pb, pb*2, pb*2);
+
+  // ── Snap marker (if snap point active) ──
+  if (window._snapPt) {
+    var ss = w2s(window._snapPt.x, window._snapPt.y);
+    var snapColors = {endpoint:'#F5BE18', midpoint:'#4eff91', center:'#1FA8D9', intersection:'#ff4466', nearest:'#FF8C00'};
+    var sc = snapColors[window._snapPt.type] || '#F5BE18';
+    ctx2.strokeStyle = sc;
+    ctx2.lineWidth = 2;
+    if (window._snapPt.type === 'endpoint') {
+      ctx2.strokeRect(ss.x-5, ss.y-5, 10, 10);
+    } else if (window._snapPt.type === 'midpoint') {
+      ctx2.beginPath();
+      ctx2.moveTo(ss.x, ss.y-6); ctx2.lineTo(ss.x+6, ss.y+4); ctx2.lineTo(ss.x-6, ss.y+4);
+      ctx2.closePath(); ctx2.stroke();
+    } else if (window._snapPt.type === 'center') {
+      ctx2.beginPath(); ctx2.arc(ss.x, ss.y, 6, 0, Math.PI*2); ctx2.stroke();
+      ctx2.beginPath(); ctx2.arc(ss.x, ss.y, 1.5, 0, Math.PI*2);
+      ctx2.fillStyle=sc; ctx2.fill();
+    }
+    // Snap type label
+    ctx2.fillStyle = sc;
+    ctx2.font = 'bold 8px IBM Plex Mono,monospace';
+    ctx2.textAlign = 'left';
+    ctx2.fillText(window._snapPt.type.toUpperCase(), ss.x+9, ss.y-7);
+  }
+
+  // ── Polar tracking line ──
+  if (ST.ortho && ST.startPt && ST.drawing) {
+    var wp = s2w(x, y);
+    var ddx = wp.x-ST.startPt.x, ddy = wp.y-ST.startPt.y;
+    var ang = Math.atan2(ddy, ddx);
+    var snapAng = Math.round(ang/(Math.PI/2))*(Math.PI/2);
+    var dist2 = Math.hypot(ddx, ddy);
+    var ex2 = w2s(ST.startPt.x + dist2*Math.cos(snapAng), ST.startPt.y + dist2*Math.sin(snapAng));
+    var sp = w2s(ST.startPt.x, ST.startPt.y);
+    ctx2.strokeStyle='rgba(245,190,24,.5)'; ctx2.lineWidth=1; ctx2.setLineDash([4,4]);
+    ctx2.beginPath(); ctx2.moveTo(sp.x,sp.y); ctx2.lineTo(ex2.x,ex2.y); ctx2.stroke();
+    ctx2.setLineDash([]);
+  }
+
+  ctx2.restore();
+};
+
+// ── TORIENT COMMAND ────────────────────────────────────────────────────
+// Orient text entities to be "Most Readable" (like AutoCAD TORIENT)
+window.torientCommand = function(mode) {
+  mode = mode || 'mostreadable'; // 'mostreadable' | 'horizontal' | 'angle'
+
+  var sels = ST.entities.filter(function(e){ return e.selected && e.type==='text'; });
+  var all  = sels.length > 0 ? sels : ST.entities.filter(function(e){ return e.type==='text'; });
+
+  if (!all.length) { toast && toast('No text entities found. Select text or leave nothing selected for all.','warn'); return; }
+
+  pushUndo && pushUndo('TORIENT');
+  var count = 0;
+
+  all.forEach(function(e) {
+    var a = e.angle || 0;
+    if (mode === 'horizontal') {
+      e.angle = 0;
+    } else if (mode === 'mostreadable') {
+      // AutoCAD Most Readable: text should read left-to-right or bottom-to-top
+      // Normalize to 0-360
+      a = ((a % 360) + 360) % 360;
+      // If text is flipped (90-270 range means it reads right-to-left or upside down)
+      if (a > 90 && a <= 270) {
+        e.angle = a - 180;
+      } else if (a > 270) {
+        e.angle = a - 360;
+      } else {
+        e.angle = a;
+      }
+      // Final normalize to -180 to 180
+      e.angle = ((e.angle + 180) % 360) - 180;
+    } else if (mode === 'vertical') {
+      e.angle = 90;
+    }
+    count++;
+  });
+
+  invalidateSpatialIndex && invalidateSpatialIndex();
+  if (typeof renderImmediate === 'function') renderImmediate();
+  else render && render();
+  toast && toast('TORIENT: ' + count + ' text(s) oriented to Most Readable');
+  setMsg && setMsg('TORIENT complete — ' + count + ' text objects oriented');
+};
+
+// ── COMMAND PROMPT ECHO near cursor ──────────────────────────────────
+// When a command is active, show prompt near cursor (like AutoCAD dynamic prompt)
+var _cmdEcho = null;
+
+function updateCmdEcho() {
+  if (!_cmdEcho) {
+    _cmdEcho = document.createElement('div');
+    _cmdEcho.id = 'cmdEcho';
+    _cmdEcho.style.cssText = 'position:fixed;z-index:699;pointer-events:none;display:none;'
+      + 'background:rgba(4,10,20,.9);border:1px solid rgba(31,168,217,.3);border-radius:4px;'
+      + 'padding:4px 10px;font-family:IBM Plex Mono,monospace;font-size:10px;color:rgba(255,255,255,.7);'
+      + 'max-width:300px;box-shadow:0 2px 8px rgba(0,0,0,.4);';
+    document.body.appendChild(_cmdEcho);
+  }
+}
+
+// Intercept command messages to echo near cursor
+var _origSetMsg = window.setMsg;
+window.setMsg = function(msg) {
+  if (typeof _origSetMsg === 'function') _origSetMsg(msg);
+  if (!msg) return;
+  updateCmdEcho();
+  // Show the most relevant part near cursor
+  var short = msg.split('|')[0].trim();
+  if (short.length > 60) short = short.slice(0,60)+'…';
+  if (_cmdEcho && short && ST.tool) {
+    _cmdEcho.textContent = short;
+    _cmdEcho.style.display = 'block';
+    // Position below the dynamic input
+    var cad = document.getElementById('cad');
+    if (cad && ST.mouse) {
+      var r = cad.getBoundingClientRect();
+      var cx = r.left + ST.mouse.x;
+      var cy = r.top  + ST.mouse.y;
+      _cmdEcho.style.left = Math.min(cx+18, window.innerWidth-320)+'px';
+      _cmdEcho.style.top  = (cy+80)+'px';
+    }
+    clearTimeout(_cmdEcho._timer);
+    _cmdEcho._timer = setTimeout(function(){ if(_cmdEcho&&!ST.tool) _cmdEcho.style.display='none'; },4000);
+  } else if (_cmdEcho && !ST.tool) {
+    _cmdEcho.style.display = 'none';
+  }
+};
+
+// ── COMMAND HISTORY in cmdline ────────────────────────────────────────
+// The command line already exists — enhance it with history scroll
+var cmdInput = document.getElementById('cmdInput');
+if (cmdInput) {
+  var _cmdHistory = [];
+  var _cmdHistIdx = -1;
+
+  var _origKeydown = cmdInput.onkeydown;
+  cmdInput.addEventListener('keydown', function(ev) {
+    if (ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      if (_cmdHistIdx < _cmdHistory.length-1) {
+        _cmdHistIdx++;
+        cmdInput.value = _cmdHistory[_cmdHistory.length-1-_cmdHistIdx];
+      }
+    } else if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      if (_cmdHistIdx > 0) {
+        _cmdHistIdx--;
+        cmdInput.value = _cmdHistory[_cmdHistory.length-1-_cmdHistIdx];
+      } else {
+        _cmdHistIdx = -1;
+        cmdInput.value = '';
+      }
+    } else if (ev.key === 'Enter') {
+      if (cmdInput.value.trim()) {
+        _cmdHistory.push(cmdInput.value.trim());
+        _cmdHistIdx = -1;
+        if (_cmdHistory.length > 50) _cmdHistory.shift();
+      }
+    } else if (ev.key === 'Escape') {
+      _cmdHistIdx = -1;
+    }
+  }, false);
+}
+
+// ── F1 HELP HINTS on keypress ─────────────────────────────────────────
+document.addEventListener('keydown', function(ev) {
+  if (ev.key === 'F1') {
+    ev.preventDefault();
+    var helps = {
+      'line':     'LINE: Click start point. Click end points. Enter=finish. C=close. U=undo last.',
+      'polyline': 'PLINE: Click vertices. Enter=finish. C=close polyline. A=switch to arc mode.',
+      'polygon':  'POLYGON: Click vertices. Double-click or Enter=finish. C=close. Esc=cancel.',
+      'circle':   'CIRCLE: Click center. Type radius or drag. D=diameter mode.',
+      'arc':      'ARC: Click 3 points (start, mid, end) or drag.',
+      'rotate':   'ROTATE: Select objects, click base point, drag or type angle (°).',
+      'scale':    'SCALE: Select objects, click base point, drag or type factor.',
+      'move':     'MOVE: Select objects, click base point, click destination. Or @dx,dy.',
+      'copy':     'COPY: Like MOVE but keeps original. Click multiple destinations.',
+      'trim':     'TRIM: Select cutting edges, then click lines to trim.',
+      'extend':   'EXTEND: Select boundary, then click lines to extend to it.',
+      'offset':   'OFFSET: Type distance, click object, click side to offset.',
+      'mirror':   'MIRROR: Select objects, click 2 points of mirror axis.',
+      'fillet':   'FILLET: Type R for radius, then click 2 lines to fillet.',
+      'chamfer':  'CHAMFER: Type D for distances, then click 2 lines.',
+      'acawall':  'ACAWALL: Click start, click end points to chain walls. Esc=stop.',
+    };
+    var msg = helps[ST.tool] || 'Type command name or press L=Line, PL=Polyline, C=Circle, RO=Rotate, SC=Scale, M=Move, CO=Copy';
+    if (typeof openMo === 'function') {
+      var div = document.createElement('div');
+      div.id='moHelp'; div.className='mo';
+      div.innerHTML='<div class="modal" style="max-width:480px"><div class="mh"><div class="mh-t"><span class="i">❓</span>Help — '+(ST.tool||'Command Reference')+'</div><span class="mc" onclick="closeMo(\'moHelp\')">✕</span></div><div class="mb"><p style="font-family:IBM Plex Mono,monospace;font-size:11px;line-height:1.7;color:var(--t)">'+msg+'</p></div><div class="mf"><button class="btn s" onclick="closeMo(\'moHelp\')">OK</button></div></div>';
+      var ex=document.getElementById('moHelp');if(ex)ex.remove();
+      document.body.appendChild(div); openMo('moHelp');
+    } else {
+      alert(msg);
+    }
+  }
+}, false);
+
+// ── TORIENT & new commands ────────────────────────────────────────────
+if (typeof CAD_COMMANDS !== 'undefined') {
+  Object.assign(CAD_COMMANDS, {
+    'TORIENT':'torient',    // Orient text most readable
+    'TCENTER':'tcenter',    // Center text horizontally
+    'THORIZ':'thoriz',      // Horizontal text
+    'TVERT':'tvert',        // Vertical text
+    // AutoCAD shorthand
+    'TO':'torient',
+    // Selection & display
+    'WHOHAS':'whohas',
+    'QDIM':'qdim',
+    'QLEADER':'leader',
+    // Pro workflow commands
+    'NCOPY':'copy',
+    'ALIGN':'align3d',
+    'FLATTEN':'flatten',
+    'BURST':'burst',         // Explode attributes
+    'SUPER':'superselect',
+  });
+}
+
+if (typeof CAD_ACTIONS !== 'undefined') {
+  Object.assign(CAD_ACTIONS, {
+    torient:      function() { window.torientCommand('mostreadable'); },
+    tcenter:      function() { window.torientCommand('horizontal'); },
+    thoriz:       function() { window.torientCommand('horizontal'); },
+    tvert:        function() { window.torientCommand('vertical'); },
+    whohas:       function() {
+      var sels = ST.entities.filter(function(e){return e.selected;});
+      if (!sels.length) { toast&&toast('Select objects first','warn'); return; }
+      var info = sels.map(function(e){
+        var lay = ST.layers.find(function(l){return l.id===e.layer;});
+        return 'ID:'+e._id+' Type:'+e.type+' Layer:'+(lay?lay.name:'?');
+      }).join('\n');
+      setMsg && setMsg(info);
+      toast && toast(sels.length+' object(s) — see command bar');
+    },
+    superselect:  function() {
+      // Select all of same type as current selection
+      var sels = ST.entities.filter(function(e){return e.selected;});
+      if (!sels.length) { toast&&toast('Select one object first to select all of same type','warn'); return; }
+      var type = sels[0].type;
+      pushUndo && pushUndo();
+      ST.entities.forEach(function(e){ e.selected=(e.type===type); });
+      render && render();
+      var count = ST.entities.filter(function(e){return e.selected;}).length;
+      toast && toast('Selected all '+type+' entities: '+count);
+    },
+    align3d:      function() {
+      toast && toast('ALIGN — select source points then destination points','ok');
+    },
+    burst:        function() {
+      // Explode blocks with attributes
+      var sels = ST.entities.filter(function(e){return e.selected&&e.type==='blockref';});
+      if (!sels.length) { toast&&toast('Select block references to burst','warn'); return; }
+      pushUndo&&pushUndo('BURST');
+      sels.forEach(function(e){
+        var blk = window._blockLibrary&&window._blockLibrary[e.block];
+        if (!blk||!blk.entities) return;
+        blk.entities.forEach(function(be){
+          var copy = JSON.parse(JSON.stringify(be));
+          copy._id = ++ST._eid; copy.selected=false;
+          ST.entities.push(copy);
+        });
+        e._delete=true;
+      });
+      ST.entities=ST.entities.filter(function(e){return !e._delete;});
+      invalidateSpatialIndex&&invalidateSpatialIndex();
+      render&&render();
+      toast&&toast('BURST: blocks exploded with attributes');
+    },
+  });
+}
+
+// ── DOUBLE-CLICK to edit entities (Pro workflow) ──────────────────────
+// Already handled for text — also handle polyline vertex editing
+var cad2 = document.getElementById('cad');
+if (cad2) {
+  cad2.addEventListener('dblclick', function(ev) {
+    if (ST.tool && ST.tool !== 'select') return;
+    var r = cad2.getBoundingClientRect();
+    var wp = s2w(ev.clientX-r.left, ev.clientY-r.top);
+    var tol = 15/ST.zoom;
+
+    // Find entity under click
+    var hit = ST.entities.slice().reverse().find(function(e) {
+      if (!e.selected) return false;
+      if (e.type === 'text') return false; // handled elsewhere
+      if (e.type === 'line') return Math.hypot((e.x1+e.x2)/2-wp.x,(e.y1+e.y2)/2-wp.y) < tol*5;
+      if (e.type === 'circle') return Math.abs(Math.hypot(e.cx-wp.x,e.cy-wp.y)-e.r) < tol;
+      if (e.type === 'polyline'&&e.pts) {
+        return e.pts.some(function(p){return Math.hypot(p.x-wp.x,p.y-wp.y)<tol;});
+      }
+      return false;
+    });
+
+    if (hit && hit.type === 'circle') {
+      var nr = prompt('Circle radius:', hit.r.toFixed(3));
+      if (nr !== null && !isNaN(parseFloat(nr))) {
+        pushUndo&&pushUndo('edit radius'); hit.r=parseFloat(nr);
+        invalidateSpatialIndex&&invalidateSpatialIndex();
+        if(typeof renderImmediate==='function')renderImmediate();else render&&render();
+      }
+    }
+  }, false);
+}
+
+// ── STATUS BAR IMPROVEMENTS ───────────────────────────────────────────
+// Add crosshair size control, DYN toggle
+setTimeout(function() {
+  var sb = document.querySelector('.statbar');
+  if (!sb) return;
+  var extra = sb.querySelector('div[style*="margin-left:auto"]');
+  if (!extra) return;
+
+  // DYN toggle (toggle dynamic input)
+  var dynBtn = document.createElement('button');
+  dynBtn.className = 'stbtn'; dynBtn.id = 'btn-dyn';
+  dynBtn.textContent = 'DYN';
+  dynBtn.title = 'Dynamic Input (near-cursor tooltip)';
+  dynBtn.classList.add('on');
+  dynBtn.onclick = function() {
+    window._dynOff = !window._dynOff;
+    dynBtn.classList.toggle('on', !window._dynOff);
+    dynEl.style.display = window._dynOff ? 'none' : '';
+    toast && toast('Dynamic Input ' + (window._dynOff?'OFF':'ON'));
+  };
+  extra.insertBefore(dynBtn, extra.firstChild);
+
+  // TORIENT quick button
+  var torBtn = document.createElement('button');
+  torBtn.className = 'stbtn';
+  torBtn.textContent = 'TORIENT';
+  torBtn.title = 'Orient text to Most Readable (like AutoCAD TORIENT)';
+  torBtn.style.cssText = 'font-size:7px;';
+  torBtn.onclick = function() { window.torientCommand('mostreadable'); };
+  extra.insertBefore(torBtn, extra.firstChild);
+
+  console.log('[StrataProUX] Full crosshair ✓  Dynamic input ✓  TORIENT ✓  F1 Help ✓  cmd history ✓');
+}, 700);
+
+})(); // end StrataProUX
+
+
+// ████████████████████████████████████████████████████████████████████
+//  STRATA — SCALE (Copy+Reference) + DIST + Civil 3D Point Table
+//  From Video 1: AutoCAD SCALE command tutorial
+//  From Video 2: Civil 3D PNEZD Point Table Creation
+// ████████████████████████████████████████████████████████████████████
+(function StrataScaleDistTable() {
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════════
+//  1. ENHANCED SCALE COMMAND
+//     - Phase 1: select objects (if none selected)
+//     - Phase 2: click base point
+//     - Phase 3: type scale factor OR press C (copy) OR press R (reference)
+//     - Reference: pick 2 points for ref length → type/drag new length
+//     - Copy: keeps original, scales a copy
+// ═══════════════════════════════════════════════════════════════════
+
+// Patch applyOp scale block to add Copy + Reference support
+var _origApplyOp = window.applyOp;
+window.applyOp = function(wp) {
+  var op = ST.opState;
+  if (!op || op.type !== 'scale') { _origApplyOp && _origApplyOp(wp); return; }
+
+  var sels = ST.entities.filter(function(e){ return e.selected; });
+  if (!sels.length) { toast('Nothing selected','warn'); ST.opState=null; T('select'); return; }
+
+  // Phase 1: base point
+  if (!op.base) {
+    op.base = wp;
+    setMsg && setMsg('SCALE base set → type factor | C=Copy mode | R=Reference | ESC=cancel');
+    // Show prompt options below DYN input
+    showScalePrompt(op);
+    return;
+  }
+
+  // Reference mode — need 3 total clicks after base
+  if (op.refMode) {
+    if (!op.refPt1) {
+      op.refPt1 = wp;
+      setMsg && setMsg('SCALE Reference — click second point of reference length');
+      return;
+    }
+    if (!op.refPt2) {
+      op.refPt2 = wp;
+      var refLen = Math.hypot(op.refPt2.x-op.refPt1.x, op.refPt2.y-op.refPt1.y);
+      op.refLength = refLen;
+      op.refPt = wp; // for live preview
+      // Now ask for new length
+      setMsg && setMsg('SCALE Reference length: '+refLen.toFixed(3)+' — type new length or drag');
+      var ib = document.getElementById('ibDist');
+      if (ib) { ib.value=''; ib.placeholder='new length…'; ib.focus(); }
+      return;
+    }
+    // Final click = new length from base to cursor
+    var newLen = Math.hypot(wp.x-op.base.x, wp.y-op.base.y);
+    if (op.refLength && op.refLength > 0) {
+      var factor = newLen / op.refLength;
+      _applyScaleFactor(sels, op, factor);
+    }
+    return;
+  }
+
+  // Normal mode — Phase 2: use drag distance as scale factor
+  if (!op.refPt) {
+    op.refPt = wp;
+    setMsg && setMsg('SCALE drag to set scale | type factor in DIST field | C=copy | R=reference');
+    return;
+  }
+
+  var d1 = Math.hypot(op.refPt.x-op.base.x, op.refPt.y-op.base.y) || 1;
+  var d2 = Math.hypot(wp.x-op.base.x, wp.y-op.base.y) || 0.001;
+  var factor = d2/d1;
+  _applyScaleFactor(sels, op, factor);
+};
+
+function _applyScaleFactor(sels, op, factor) {
+  pushUndo && pushUndo('scale');
+  if (op.copyMode) {
+    // Copy mode: keep original, add scaled clone
+    var copies = sels.map(function(e) {
+      var ne = JSON.parse(JSON.stringify(e));
+      ne._id = ++ST._eid;
+      ne.selected = false;
+      _scaleEnt(ne, op.base, factor);
+      return ne;
+    });
+    sels.forEach(function(e){ e.selected=false; });
+    copies.forEach(function(c){ ST.entities.push(c); c.selected=true; });
+    invalidateSpatialIndex && invalidateSpatialIndex();
+    render && render();
+    toast('Scale×'+factor.toFixed(3)+' — copy created ('+copies.length+' obj)','ok');
+  } else {
+    ST.entities = ST.entities.map(function(e){
+      return e.selected ? _scaleEnt(e, op.base, factor) : e;
+    });
+    invalidateSpatialIndex && invalidateSpatialIndex();
+    render && render();
+    toast('Scaled ×'+factor.toFixed(3)+' ('+sels.length+' obj)','ok');
+  }
+  // Keep op active for chaining
+  op.refPt=null; op.refPt1=null; op.refPt2=null;
+  setMsg && setMsg('Scaled ×'+factor.toFixed(3)+' — base point? | ESC=done');
+  hideScalePrompt();
+}
+
+function _scaleEnt(e, base, f) {
+  function sc(x,y){ return {x: base.x+(x-base.x)*f, y: base.y+(y-base.y)*f}; }
+  if (e.type==='line') { var a=sc(e.x1,e.y1),b=sc(e.x2,e.y2); e.x1=a.x;e.y1=a.y;e.x2=b.x;e.y2=b.y; }
+  else if (e.type==='circle'||e.type==='arc') { var c=sc(e.cx,e.cy); e.cx=c.x;e.cy=c.y;e.r*=f; }
+  else if (e.type==='rect') { var r=sc(e.x,e.y); e.x=r.x;e.y=r.y;e.w*=f;e.h*=f; }
+  else if (e.type==='polyline'&&e.pts) { e.pts=e.pts.map(function(p){return sc(p.x,p.y);}); }
+  else if (e.type==='text') { var s=sc(e.x,e.y); e.x=s.x;e.y=s.y; e.sz=(e.sz||12)*f; e.height=(e.height||12)*f; }
+  else if (e.x!==undefined) { var ss=sc(e.x,e.y); e.x=ss.x;e.y=ss.y; }
+  return e;
+}
+
+// Scale prompt popup (shows options C / R below canvas)
+var _scalePromptEl = null;
+function showScalePrompt(op) {
+  if (!_scalePromptEl) {
+    _scalePromptEl = document.createElement('div');
+    _scalePromptEl.id = 'scalePrompt';
+    _scalePromptEl.style.cssText = 'position:fixed;z-index:800;background:rgba(4,12,24,.96);border:1.5px solid rgba(31,168,217,.5);border-radius:8px;padding:8px 14px;font-family:IBM Plex Mono,monospace;font-size:11px;color:white;box-shadow:0 4px 20px rgba(0,0,0,.6);display:flex;gap:10px;align-items:center;';
+    document.body.appendChild(_scalePromptEl);
+  }
+  _scalePromptEl.innerHTML =
+    '<span style="color:rgba(255,255,255,.5)">SCALE → </span>'
+    + '<span style="color:#4eff91">drag</span> to scale '
+    + '| <button onclick="scaleSetCopy()" style="background:rgba(31,168,217,.15);border:1px solid rgba(31,168,217,.4);color:#1FA8D9;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:IBM Plex Mono,monospace;font-size:10px;font-weight:700">[C] Copy</button>'
+    + '| <button onclick="scaleSetRef()" style="background:rgba(78,255,145,.1);border:1px solid rgba(78,255,145,.3);color:#4eff91;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:IBM Plex Mono,monospace;font-size:10px;font-weight:700">[R] Reference</button>';
+
+  // Position at bottom-left of viewport
+  _scalePromptEl.style.left = '12px';
+  _scalePromptEl.style.bottom = '90px';
+  _scalePromptEl.style.display = 'flex';
+}
+function hideScalePrompt() {
+  if (_scalePromptEl) _scalePromptEl.style.display='none';
+}
+
+window.scaleSetCopy = function() {
+  if (!ST.opState || ST.opState.type!=='scale') return;
+  ST.opState.copyMode = true;
+  if (_scalePromptEl) _scalePromptEl.innerHTML = '<span style="color:#F5BE18;font-weight:700">📋 COPY MODE ON</span> — drag to scale a copy | click to finish';
+  setMsg && setMsg('SCALE Copy mode — drag to scale (original kept) | ESC=cancel');
+  toast('Scale Copy mode — drag to set size','ok');
+};
+
+window.scaleSetRef = function() {
+  if (!ST.opState || ST.opState.type!=='scale') return;
+  ST.opState.refMode = true;
+  if (_scalePromptEl) _scalePromptEl.innerHTML = '<span style="color:#4eff91;font-weight:700">📏 REFERENCE MODE</span> — click first reference point';
+  setMsg && setMsg('SCALE Reference — click first point of known reference length');
+  toast('Scale Reference — pick 2 points of known length then new length','ok');
+};
+
+// Keyboard shortcuts for scale modes
+document.addEventListener('keydown', function(ev) {
+  if (ev.target && (ev.target.tagName==='INPUT'||ev.target.tagName==='TEXTAREA')) return;
+  if (!ST.opState || ST.opState.type!=='scale' || !ST.opState.base) return;
+  if (ev.key.toUpperCase() === 'C') { ev.preventDefault(); window.scaleSetCopy(); }
+  if (ev.key.toUpperCase() === 'R') { ev.preventDefault(); window.scaleSetRef(); }
+}, false);
+
+// Apply numeric scale from DIST input field
+var _origIbDistEnter = window.ibDistEnter;
+window.ibDistEnter = function(val) {
+  if (ST.opState && ST.opState.type==='scale' && ST.opState.base) {
+    var f = parseFloat(val);
+    if (isNaN(f)||f<=0) { toast('Invalid scale factor','warn'); return; }
+    var sels = ST.entities.filter(function(e){return e.selected;});
+    if (sels.length) {
+      _applyScaleFactor(sels, ST.opState, f);
+      document.getElementById('ibDist').value='';
+      return;
+    }
+  }
+  // Reference new length
+  if (ST.opState && ST.opState.type==='scale' && ST.opState.refLength) {
+    var newLen = parseFloat(val);
+    if (isNaN(newLen)||newLen<=0) { toast('Invalid length','warn'); return; }
+    var factor2 = newLen / ST.opState.refLength;
+    var sels2 = ST.entities.filter(function(e){return e.selected;});
+    if (sels2.length) { _applyScaleFactor(sels2, ST.opState, factor2); document.getElementById('ibDist').value=''; return; }
+  }
+  if (typeof _origIbDistEnter==='function') _origIbDistEnter(val);
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  2. DIST COMMAND — Distance + Angle like AutoCAD DIST
+//     Shows: Distance, Angle in XY, Delta X, Delta Y, Delta Z
+// ═══════════════════════════════════════════════════════════════════
+window.startDIST = function() {
+  T && T('select');
+  setMsg && setMsg('DIST — click first point');
+  toast('DIST — click 2 points to measure distance + angle','ok');
+
+  var pts = [];
+  var resultDiv = null;
+  var cad = document.getElementById('cad');
+
+  function buildDistResult(p1, p2) {
+    var dx=p2.x-p1.x, dy=p2.y-p1.y;
+    var dist = Math.hypot(dx, dy);
+    var angleXY = ((Math.atan2(dy, dx)*180/Math.PI)+360)%360;
+    var units = ST.units || 'mm';
+
+    // Show result panel
+    if (!resultDiv) {
+      resultDiv = document.createElement('div');
+      resultDiv.id = 'distResult';
+      resultDiv.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:900;background:rgba(4,12,24,.97);border:2px solid rgba(31,168,217,.5);border-radius:10px;padding:12px 18px;font-family:IBM Plex Mono,monospace;min-width:320px;box-shadow:0 8px 32px rgba(0,0,0,.7);';
+      document.body.appendChild(resultDiv);
+    }
+    resultDiv.innerHTML =
+      '<div style="color:#1FA8D9;font-size:10px;font-weight:700;margin-bottom:8px;letter-spacing:.1em">DIST COMMAND RESULT</div>'
+      + row('Distance',        dist.toFixed(4)+' '+units,            '#4eff91')
+      + row('Angle in XY Plane', angleXY.toFixed(4)+'°',            '#F5BE18')
+      + row('Angle from XY Plane','0.0000°',                         '#F5BE18')
+      + row('Delta X',          dx.toFixed(4)+' '+units,             '#1FA8D9')
+      + row('Delta Y',          dy.toFixed(4)+' '+units,             '#1FA8D9')
+      + row('Delta Z',          '0.0000 '+units,                     '#1FA8D9')
+      + '<div style="margin-top:8px;display:flex;gap:6px;justify-content:center">'
+      + '<button onclick="document.getElementById(\'distResult\').style.display=\'none\'" style="background:rgba(31,168,217,.15);border:1px solid rgba(31,168,217,.4);color:#1FA8D9;padding:4px 12px;border-radius:5px;cursor:pointer;font-family:IBM Plex Mono,monospace;font-size:10px">Close</button>'
+      + '</div>';
+    resultDiv.style.display='block';
+
+    // Also show in status bar / command output
+    setMsg && setMsg(
+      'Distance: '+dist.toFixed(4)+' '+units
+      +'  |  Angle: '+angleXY.toFixed(2)+'°'
+      +'  |  ΔX:'+dx.toFixed(3)+'  ΔY:'+dy.toFixed(3)
+    );
+    toast('📏 Distance: '+dist.toFixed(3)+' '+units+' | Angle: '+angleXY.toFixed(1)+'°','ok');
+  }
+
+  function row(label, val, col) {
+    return '<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(31,168,217,.08)">'
+      +'<span style="color:rgba(255,255,255,.5);font-size:10px">'+label+'</span>'
+      +'<span style="color:'+col+';font-size:11px;font-weight:700">'+val+'</span></div>';
+  }
+
+  function onCanvasClick(ev) {
+    var r=cad.getBoundingClientRect();
+    var mx=ev.clientX-r.left, my=ev.clientY-r.top;
+    var wp = snapPoint(mx, my);
+    pts.push(wp);
+
+    if (pts.length===1) {
+      setMsg && setMsg('DIST — click second point');
+      // Draw first point marker
+      render && render();
+    } else if (pts.length===2) {
+      buildDistResult(pts[0], pts[1]);
+      cad.removeEventListener('click', onCanvasClick);
+      pts=[];
+    }
+  }
+
+  cad.addEventListener('click', onCanvasClick, false);
+};
+
+// Register DIST
+if (typeof CAD_COMMANDS!=='undefined') {
+  CAD_COMMANDS['DIST']='dist';
+  CAD_COMMANDS['DI']='dist';
+  CAD_COMMANDS['DISTANCE']='dist';
+  CAD_COMMANDS['MEASURE']='dist';
+  CAD_COMMANDS['MEA']='dist';
+}
+if (typeof CAD_ACTIONS!=='undefined') {
+  CAD_ACTIONS['dist']=function(){ window.startDIST(); };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  3. CIVIL 3D POINT TABLE — PNEZD Format
+//     Point#, Northing, Easting, Z(Elevation), Description
+//     Create from: survey points, DXF point entities, import CSV
+// ═══════════════════════════════════════════════════════════════════
+
+// Collect all point entities from drawing
+function collectPoints() {
+  var pts = [];
+  var idx = 1;
+  ST.entities.forEach(function(e) {
+    if (e.type==='point'||e.type==='acastruct'||(e.type==='text'&&e._surveyPoint)) {
+      var lay = ST.layers.find(function(l){return l.id===e.layer;}) || {name:''};
+      pts.push({
+        num:   e._ptNum || idx++,
+        northing: (e.y||e.y1||e.cy||0).toFixed(3),
+        easting:  (e.x||e.x1||e.cx||0).toFixed(3),
+        elev:     (e.z||e._z||e.elevation||0).toFixed(2),
+        desc:     e._desc||e.text||e.name||lay.name||'',
+        _entity:  e,
+      });
+    }
+  });
+  // Also include survey/COGO points stored in ST.surveyPoints
+  if (ST.surveyPoints && ST.surveyPoints.length) {
+    ST.surveyPoints.forEach(function(p) {
+      pts.push({
+        num:      p.num||idx++,
+        northing: (+p.northing||+p.n||0).toFixed(3),
+        easting:  (+p.easting||+p.e||0).toFixed(3),
+        elev:     (+p.elev||+p.z||+p.elevation||0).toFixed(2),
+        desc:     p.desc||p.description||'',
+      });
+    });
+  }
+  return pts;
+}
+
+// Open Point Table Creation dialog
+window.openPointTableDialog = function() {
+  var pts = collectPoints();
+  var existing = document.getElementById('moPTCreate'); if(existing) existing.remove();
+
+  var div = document.createElement('div');
+  div.id='moPTCreate'; div.className='mo';
+  div.innerHTML = '<div class="modal w" style="max-width:520px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">📋</span>Point Table Creation</div>'
+    +'<span class="mc" onclick="closeMo(\'moPTCreate\')">✕</span></div>'
+    +'<div class="mb">'
+    +'<div class="fr"><div class="fg" style="flex:1.5"><label class="fl">Table style</label>'
+    +'<select class="fs" id="ptStyle" onkeydown="event.stopPropagation()">'
+    +'<option value="PNEZD">PNEZD format</option>'
+    +'<option value="PNEZ">PNEZ format (no desc)</option>'
+    +'<option value="PENZ">Point-Easting-Northing-Z</option>'
+    +'<option value="LatLon">Latitude and Longitude</option>'
+    +'</select></div>'
+    +'<div class="fg"><label class="fl">Table layer</label>'
+    +'<input type="text" class="fi" id="ptLayer" value="V-NODE-TABL" onkeydown="event.stopPropagation()"></div></div>'
+
+    +'<div class="fsect" style="margin-top:10px">Selection ('+(pts.length)+' points found)</div>'
+    +'<div style="font-size:9px;color:var(--m);font-family:IBM Plex Mono,monospace;margin:4px 0 8px">'
+    + (pts.length ? pts.length+' point(s) in drawing' : 'No points found — import CSV or add point entities')
+    +'</div>'
+    +'<label class="fck"><input type="checkbox" id="ptSelectAll" '+(pts.length?'checked':'')+'> Use all points in drawing</label>'
+
+    +'<div class="fsect" style="margin-top:10px">Table Options</div>'
+    +'<div class="fr">'
+    +'<div class="fg"><label class="fl">Max rows/table</label><input type="number" class="fi" id="ptMaxRows" value="20" onkeydown="event.stopPropagation()"></div>'
+    +'<div class="fg"><label class="fl">Max tables/stack</label><input type="number" class="fi" id="ptMaxStack" value="4" onkeydown="event.stopPropagation()"></div>'
+    +'</div>'
+    +'<div class="fr"><div class="fg"><label class="fl">Offset (mm)</label><input type="number" class="fi" id="ptOffset" value="40" onkeydown="event.stopPropagation()"></div>'
+    +'<div class="fg"><label class="fl">Tile tables</label>'
+    +'<select class="fs" id="ptTile" onkeydown="event.stopPropagation()"><option value="across">Across</option><option value="down">Down</option></select>'
+    +'</div></div>'
+
+    +'<div class="fr" style="margin-top:8px">'
+    +'<label class="fck"><input type="radio" name="ptReact" value="dynamic" checked> Dynamic (updates with drawing)</label>'
+    +'<label class="fck" style="margin-left:12px"><input type="radio" name="ptReact" value="static"> Static</label>'
+    +'</div>'
+
+    +'<div class="fsect" style="margin-top:10px">Import Points (CSV)</div>'
+    +'<div style="font-size:9px;color:var(--m);font-family:IBM Plex Mono,monospace;margin-bottom:6px">Format: Point#,Elevation,Northing,Easting,Description  OR  P,N,E,Z,D</div>'
+    +'<label class="btn s" style="cursor:pointer;display:inline-block">'
+    +'📂 Import CSV  <input type="file" accept=".csv,.txt" style="display:none" onchange="importPointsCSV(this.files[0])"></label>'
+    +'<button class="btn s" style="margin-left:6px" onclick="openSampleCSV()">📝 Sample</button>'
+    +'</div>'
+
+    +'<div class="mf">'
+    +'<button class="btn s" onclick="closeMo(\'moPTCreate\')">Cancel</button>'
+    +'<button class="btn" onclick="placePointTable()">📍 OK — Place Table</button>'
+    +'</div></div>';
+
+  document.body.appendChild(div);
+  openMo('moPTCreate');
+};
+
+window.openSampleCSV = function() {
+  var sample = 'Point#,Elevation,Northing,Easting,Description\n'
+    + '1,101.16,20068.47,989.43,BM1\n'
+    + '2,101.43,20076.08,987.52,TBM\n'
+    + '3,101.41,20074.01,977.60,TP1\n'
+    + '4,101.34,20064.17,980.47,IP1\n'
+    + '5,101.08,20054.57,983.71,IP2\n';
+  var blob=new Blob([sample],{type:'text/csv'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sample_PNEZD.csv';a.click();
+  toast('Sample CSV downloaded','ok');
+};
+
+window.importPointsCSV = function(file) {
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var text = ev.target.result;
+    var lines = text.split(/\r?\n/).filter(function(l){return l.trim();});
+    var pts = [];
+    // Auto-detect header
+    var startLine = 0;
+    if (lines[0] && /[a-zA-Z]/.test(lines[0].replace(/[#,\s]/g,''))) startLine=1;
+
+    lines.slice(startLine).forEach(function(line) {
+      var cols = line.split(',').map(function(c){return c.trim();});
+      if (cols.length>=2) {
+        var p = {
+          num:  cols[0]||pts.length+1,
+          elev: parseFloat(cols[1])||0,
+          northing: parseFloat(cols[2])||0,
+          easting:  parseFloat(cols[3])||0,
+          desc: cols[4]||'',
+        };
+        pts.push(p);
+        // Also add as drawing entity
+        pushUndo && pushUndo();
+        var ent = {
+          _id:++ST._eid, type:'point',
+          x:p.easting, y:p.northing, z:p.elev,
+          _z:p.elev, _ptNum:p.num, _desc:p.desc,
+          layer:ST.curLayer, selected:false, _surveyPoint:true
+        };
+        ST.entities.push(ent);
+      }
+    });
+
+    ST.surveyPoints = ST.surveyPoints || [];
+    ST.surveyPoints.push.apply(ST.surveyPoints, pts);
+    invalidateSpatialIndex && invalidateSpatialIndex();
+    render && render();
+    toast('Imported '+pts.length+' points (PNEZD)','ok');
+    closeMo('moPTCreate');
+    setTimeout(function(){ openPointTableDialog(); }, 200);
+  };
+  reader.readAsText(file);
+};
+
+window.placePointTable = function() {
+  closeMo('moPTCreate');
+  var pts = collectPoints();
+  if (!pts.length) { toast('No points found. Add point entities or import CSV first.','warn'); return; }
+
+  var style    = (document.getElementById('ptStyle')||{}).value||'PNEZD';
+  var maxRows  = parseInt((document.getElementById('ptMaxRows')||{}).value||20);
+  var maxStack = parseInt((document.getElementById('ptMaxStack')||{}).value||4);
+  var offset   = parseFloat((document.getElementById('ptOffset')||{}).value||40);
+  var tile     = (document.getElementById('ptTile')||{}).value||'across';
+
+  setMsg && setMsg('POINT TABLE — click upper-left corner to place');
+  toast('Click to place Point Table on drawing','ok');
+
+  var cad = document.getElementById('cad');
+  function onPlace(ev) {
+    var r=cad.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left, ev.clientY-r.top);
+
+    pushUndo && pushUndo('Point Table');
+    _buildPointTableEntities(pts, wp, style, maxRows, maxStack, offset, tile);
+    invalidateSpatialIndex && invalidateSpatialIndex();
+    if(typeof renderImmediate==='function') renderImmediate();
+    else render && render();
+    cad.removeEventListener('click', onPlace);
+    toast('Point Table placed ('+pts.length+' points)','ok');
+    setMsg && setMsg('Point Table placed — '+(pts.length)+' points');
+  }
+  cad.addEventListener('click', onPlace, false);
+};
+
+function _buildPointTableEntities(pts, origin, style, maxRows, maxStack, offset, tile) {
+  var colW, cols, hdr;
+  if (style==='PNEZD') {
+    colW=[3,8,10,10,8];
+    cols=['PT#','ELEVATION','NORTHING','EASTING','DESCRIPTION'];
+    hdr='PNEZD FORMAT';
+  } else if (style==='PNEZ') {
+    colW=[3,8,10,10];
+    cols=['PT#','ELEVATION','NORTHING','EASTING'];
+    hdr='PNEZ FORMAT';
+  } else {
+    colW=[3,10,10,8,8];
+    cols=['PT#','NORTHING','EASTING','Z','DESC'];
+    hdr='POINT TABLE';
+  }
+  var totalW = colW.reduce(function(a,b){return a+b;},0);
+  var rowH   = 300;   // mm
+  var scl    = ST.zoom > 0.01 ? 1 : 1;
+  var cellH  = rowH;
+  var cellSz = 150;  // text size
+
+  var tableW = totalW * 300;  // mm total width
+
+  // Split into tables of maxRows
+  var pages = [];
+  for (var pi=0; pi<pts.length; pi+=maxRows) pages.push(pts.slice(pi,pi+maxRows));
+
+  // Determine table layout
+  var tileAcross = (tile==='across');
+  var ox = origin.x, oy = origin.y;
+  var tableGap = tableW + offset*10;  // gap in drawing units
+
+  var layId = ST.curLayer;
+
+  pages.forEach(function(page, tableIdx) {
+    // Position this table
+    var tx, ty;
+    if (tileAcross) {
+      tx = ox + (tableIdx % maxStack) * tableGap;
+      ty = oy - Math.floor(tableIdx / maxStack) * (page.length+3)*cellH;
+    } else {
+      tx = ox + Math.floor(tableIdx / maxStack) * tableGap;
+      ty = oy - (tableIdx % maxStack) * (page.length+3)*cellH;
+    }
+
+    // Title row
+    _addTableCell(tx, ty, tableW, cellH*2, hdr, cellSz*1.5, layId, true);
+    // Header row
+    var cx = tx;
+    cols.forEach(function(col, ci) {
+      var cw = colW[ci]*300;
+      _addTableCell(cx, ty-cellH*2, cw, cellH, col, cellSz, layId, true);
+      cx+=cw;
+    });
+
+    // Data rows
+    page.forEach(function(pt, ri) {
+      var rx = tx;
+      var ry = ty - cellH*3 - ri*cellH;
+      var rowData = (style==='PNEZD') ? [pt.num, pt.elev, pt.northing, pt.easting, pt.desc]
+                   : (style==='PNEZ')  ? [pt.num, pt.elev, pt.northing, pt.easting]
+                   :                     [pt.num, pt.northing, pt.easting, pt.elev, pt.desc];
+      rowData.forEach(function(val, ci) {
+        var cw=colW[ci]*300;
+        _addTableCell(rx, ry, cw, cellH, String(val||''), cellSz, layId, false);
+        rx+=cw;
+      });
+    });
+
+    // Border around whole table
+    var totalH = (page.length+3)*cellH;
+    ST.entities.push({
+      _id:++ST._eid, type:'rect',
+      x:tx, y:ty-totalH, w:tableW, h:totalH,
+      layer:layId, selected:false, _ptTable:true,
+    });
+  });
+}
+
+function _addTableCell(x, y, w, h, text, sz, layId, isBold) {
+  // Cell border
+  ST.entities.push({
+    _id:++ST._eid, type:'rect',
+    x:x, y:y-h, w:w, h:h,
+    layer:layId, selected:false, _ptTableCell:true,
+    color:isBold?'#1FA8D9':undefined,
+  });
+  // Cell text
+  ST.entities.push({
+    _id:++ST._eid, type:'text',
+    x:x+50, y:y-h/2,
+    text:text, sz:sz, height:sz,
+    layer:layId, selected:false, _ptTableText:true,
+    bold:isBold,
+  });
+}
+
+// ── Command aliases ───────────────────────────────────────────────
+if (typeof CAD_COMMANDS!=='undefined') {
+  Object.assign(CAD_COMMANDS, {
+    'POINTTABLE':'pointtable','PTBL':'pointtable','PT':'pointtable',
+    'CREATETABLE':'pointtable',
+    'IMPORTPTS':'importpoints','IMPORTPOINTS':'importpoints',
+    'ADDPOINTS':'importpoints',
+    'PNEZD':'pointtable',
+    'SURVEYPTS':'pointtable',
+  });
+}
+if (typeof CAD_ACTIONS!=='undefined') {
+  Object.assign(CAD_ACTIONS, {
+    pointtable:   function(){ window.openPointTableDialog(); },
+    importpoints: function(){
+      var fi=document.createElement('input');fi.type='file';fi.accept='.csv,.txt';
+      fi.onchange=function(){window.importPointsCSV(this.files[0]);};
+      fi.click();
+    },
+  });
+}
+
+// ─── Add Point Table + DIST buttons to Survey ribbon ────────────
+setTimeout(function(){
+  var surveyRib = document.getElementById('rib-survey');
+  if (!surveyRib) return;
+
+  var group = surveyRib.querySelector('.rg') || surveyRib;
+
+  function addRibBtn(icon, label, cmd, color) {
+    if (document.getElementById('rb-'+cmd)) return;
+    var b=document.createElement('button');
+    b.id='rb-'+cmd; b.className='rb';
+    b.title=label+' ('+cmd.toUpperCase()+')';
+    b.innerHTML='<span class="rb-i">'+icon+'</span>'+label;
+    if (color) b.style.cssText='background:'+color+';border-color:'+color.replace('.1',',.3')+';';
+    b.onclick=function(){ if(typeof runCommand==='function') runCommand(cmd.toUpperCase()); };
+    group.appendChild(b);
+  }
+
+  addRibBtn('📏','DIST','DIST','rgba(31,168,217,.1)');
+  addRibBtn('📋','Point Table','POINTTABLE','rgba(78,255,145,.1)');
+  addRibBtn('📂','Import CSV','IMPORTPOINTS','rgba(245,190,24,.1)');
+
+  console.log('[StrataScaleDistTable] Scale(C+R) ✓  DIST ✓  PointTable ✓  ImportCSV ✓');
+}, 800);
+
+// ─── Draw survey points with elevation label ──────────────────────
+var _origDrawEnt = window.drawEntity;
+window.drawEntity = function(e, ghost) {
+  if (e && e.type==='point' && e._surveyPoint) {
+    var cad2=document.getElementById('cad');
+    if (!cad2) { _origDrawEnt&&_origDrawEnt(e,ghost); return; }
+    var ctx2=cad2.getContext('2d');
+    var sp=w2s(e.x||0,e.y||0);
+    var col=e.selected?'#F5BE18':'#00FFFF';
+    ctx2.save();
+    if(ghost)ctx2.globalAlpha=0.5;
+    // Draw cross marker
+    var mk=5;
+    ctx2.strokeStyle=col; ctx2.lineWidth=e.selected?2:1.5;
+    ctx2.beginPath();
+    ctx2.moveTo(sp.x-mk,sp.y); ctx2.lineTo(sp.x+mk,sp.y);
+    ctx2.moveTo(sp.x,sp.y-mk); ctx2.lineTo(sp.x,sp.y+mk);
+    ctx2.stroke();
+    // Circle
+    ctx2.beginPath(); ctx2.arc(sp.x,sp.y,mk*0.6,0,Math.PI*2);
+    ctx2.fillStyle=col; ctx2.fill();
+    // Labels: point# and elevation
+    if (ST.zoom>0.1) {
+      ctx2.fillStyle=col; ctx2.font='bold 8px IBM Plex Mono,monospace';
+      ctx2.textAlign='left'; ctx2.textBaseline='bottom';
+      ctx2.fillText(String(e._ptNum||''), sp.x+mk+1, sp.y-1);
+      ctx2.fillStyle='rgba(78,255,145,.9)'; ctx2.font='7px IBM Plex Mono,monospace';
+      ctx2.textBaseline='top';
+      ctx2.fillText(e._z!==undefined?e._z.toFixed(2)+'m':'', sp.x+mk+1, sp.y+1);
+    }
+    ctx2.restore();
+  } else {
+    _origDrawEnt && _origDrawEnt(e, ghost);
+  }
+};
+
+})(); // end StrataScaleDistTable
 
 </script>
 
