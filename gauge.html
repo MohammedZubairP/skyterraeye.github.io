@@ -1,0 +1,1023 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gauge — Land Measurement Tools | Sky TerraEye Dubai</title>
+<meta name="description" content="Free professional land measurement tools for Dubai surveyors. Area calculator, coordinate converter, total station, GNSS/GPS, drone survey planner and Dubai Municipality compliance checker.">
+<link rel="canonical" href="https://skyterraeye.com/gauge.html">
+<link rel="icon" href="assets/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════ ROOT ═══════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --B:#1FA8D9;--B2:#1482AA;--B3:#0D608A;
+  --Bdim:rgba(31,168,217,.12);--Bl:rgba(31,168,217,.22);
+  --G:#F5BE18;--Gl:rgba(245,190,24,.14);
+  --Gr:#22C55E;--Grd:rgba(34,197,94,.12);
+  --D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;--C:#16283C;
+  --T:#D0E8F5;--M:#5A839E;--Dm:#243D52;--W:#fff;
+  --r:14px;--r2:22px;
+  --s:0 18px 64px rgba(0,0,0,.6);
+  --e:.32s cubic-bezier(.4,0,.2,1);
+  --mono:'IBM Plex Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--T);font-size:16px;line-height:1.65;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%;height:auto}
+input,select,textarea,button{font-family:'Plus Jakarta Sans',sans-serif}
+
+/* Tool nav buttons — matches index.html exactly */
+.eye-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(245,190,24,.1);border:1.5px solid rgba(245,190,24,.35);color:#F5BE18;font-size:13.5px;font-weight:700;padding:7px 16px;border-radius:999px;margin-left:8px;transition:var(--e);cursor:pointer}
+.eye-btn:hover{background:rgba(245,190,24,.18);border-color:rgba(245,190,24,.6);transform:translateY(-1px);box-shadow:0 6px 20px rgba(245,190,24,.2)}
+.eye-btn svg{width:15px;height:15px}
+.terra-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(34,197,94,.1);border:1.5px solid rgba(34,197,94,.28);color:#4ADE80;font-size:13.5px;font-weight:700;padding:7px 16px;border-radius:999px;margin-left:4px;transition:var(--e);cursor:pointer}
+.terra-btn:hover{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.5);transform:translateY(-1px);box-shadow:0 6px 20px rgba(34,197,94,.2)}
+.terra-btn svg{width:15px;height:15px}
+.strata-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(167,139,250,.1);border:1.5px solid rgba(167,139,250,.32);color:#A78BFA;font-size:13.5px;font-weight:700;padding:7px 16px;border-radius:999px;margin-left:4px;transition:var(--e);cursor:pointer}
+.strata-btn:hover{background:rgba(167,139,250,.18);border-color:rgba(167,139,250,.58);transform:translateY(-1px);box-shadow:0 6px 20px rgba(167,139,250,.25)}
+.strata-btn svg{width:15px;height:15px}
+/* Gauge — active state (current page) */
+.gauge-active{display:inline-flex;align-items:center;gap:7px;background:rgba(6,182,212,.15);border:1.5px solid rgba(6,182,212,.55);color:#22D3EE;font-size:13.5px;font-weight:700;padding:7px 16px;border-radius:999px;margin-left:4px;transition:var(--e);cursor:pointer;box-shadow:0 0 16px rgba(6,182,212,.15)}
+.gauge-active svg{width:15px;height:15px}
+
+/* ═══ UAE BAR ═══ */
+.uae{height:5px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
+
+/* ═══ NAV ═══ */
+.nav{background:rgba(4,13,22,.96);backdrop-filter:blur(24px);border-bottom:1px solid rgba(31,168,217,.1);padding:0}
+.nw{max-width:1280px;margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:68px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo img{height:30px;width:auto}
+.logt{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--W)}
+.logt b{color:var(--B)}
+.nl{display:flex;align-items:center;gap:4px}
+.nl a{font-size:13.5px;font-weight:600;color:var(--M);padding:7px 13px;border-radius:var(--r);transition:var(--e)}
+.nl a:hover{color:var(--W);background:rgba(255,255,255,.06)}
+.nl .cta{background:var(--B);color:#fff;font-weight:700;margin-left:6px}
+.nl .cta:hover{background:var(--B2)}
+.gauge-active{background:rgba(34,197,94,.1)!important;border:1px solid rgba(34,197,94,.25);color:#4ADE80!important;font-weight:700;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r)}
+.gauge-active svg{flex-shrink:0}
+
+/* ═══ HERO ═══ */
+.gh{position:relative;padding:80px 0 60px;overflow:hidden;border-bottom:1px solid rgba(31,168,217,.1)}
+.gh-bg{position:absolute;inset:0;background:linear-gradient(135deg,#030D18 0%,#071828 50%,#030D18 100%)}
+.gh-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(31,168,217,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(31,168,217,.06) 1px,transparent 1px);background-size:48px 48px}
+.gh-glow{position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:800px;height:400px;background:radial-gradient(ellipse,rgba(34,197,94,.07) 0%,rgba(31,168,217,.04) 40%,transparent 70%);pointer-events:none}
+.gh-inner{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:0 32px;text-align:center}
+.gauge-badge{display:inline-flex;align-items:center;gap:10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);color:#4ADE80;font-size:10px;font-weight:800;letter-spacing:3px;text-transform:uppercase;padding:7px 18px;border-radius:999px;margin-bottom:24px}
+.gauge-dot{width:7px;height:7px;border-radius:50%;background:#4ADE80;animation:gp 2s infinite}
+@keyframes gp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.5)}}
+.gh h1{font-family:'Syne',sans-serif;font-size:clamp(28px,4vw,52px);font-weight:800;line-height:1.08;letter-spacing:-1px;color:var(--W);margin-bottom:16px}
+.gh h1 span{color:#4ADE80}
+.gh-sub{font-size:16px;color:var(--M);max-width:64ch;margin:0 auto 36px}
+.gh-pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:36px}
+.gh-pill{background:rgba(31,168,217,.08);border:1px solid rgba(31,168,217,.18);color:rgba(208,232,245,.7);font-size:12px;font-weight:600;padding:5px 13px;border-radius:999px}
+.gh-stats{display:flex;gap:32px;justify-content:center;flex-wrap:wrap}
+.gh-stat{text-align:center}
+.gh-stat-n{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#4ADE80}
+.gh-stat-l{font-size:11px;color:var(--M);margin-top:3px}
+
+/* ═══ MAIN LAYOUT ═══ */
+.wrap{max-width:1280px;margin:0 auto;padding:0 32px}
+.main{padding:40px 0 80px}
+
+/* ═══ TABS ═══ */
+.tabs-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:32px;padding-bottom:0;border-bottom:none}
+.g-tab{background:var(--D2);border:1px solid rgba(31,168,217,.14);color:var(--M);padding:10px 18px;border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;transition:var(--e);white-space:nowrap}
+.g-tab svg{width:14px;height:14px;flex-shrink:0}
+.g-tab:hover{border-color:rgba(31,168,217,.3);color:var(--T)}
+.g-tab.on{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.3);color:#4ADE80;box-shadow:0 0 20px rgba(34,197,94,.08)}
+.g-panel{display:none;animation:pfade .2s ease}
+.g-panel.on{display:block}
+@keyframes pfade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ═══ CARDS ═══ */
+.gc{background:var(--D2);border:1px solid rgba(31,168,217,.14);border-radius:var(--r2);padding:22px}
+.gc-title{font-size:9.5px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--B);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.gc-title::before{content:'';width:12px;height:2px;background:var(--B);border-radius:2px;flex-shrink:0}
+.gc-title.green{color:#4ADE80}
+.gc-title.green::before{background:#4ADE80}
+
+/* ═══ FORM ELEMENTS ═══ */
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:9.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--M);margin-bottom:5px}
+.fi{width:100%;background:#040D16;border:1px solid rgba(31,168,217,.18);color:var(--T);padding:9px 12px;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;transition:border-color .2s;font-family:inherit}
+.fi:focus{border-color:var(--B);box-shadow:0 0 0 3px rgba(31,168,217,.07)}
+.fi::placeholder{color:var(--Dm)}
+.fs{width:100%;background:#040D16;border:1px solid rgba(31,168,217,.18);color:var(--T);padding:9px 12px;border-radius:10px;font-size:13px;outline:none;appearance:none;cursor:pointer}
+.fta{width:100%;background:#040D16;border:1px solid rgba(31,168,217,.18);color:var(--T);padding:9px 12px;border-radius:10px;font-size:13px;outline:none;resize:none;font-family:inherit}
+
+/* ═══ BUTTONS ═══ */
+.btn-p{background:var(--B);color:#fff;border:none;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:var(--e)}
+.btn-p:hover{background:var(--B2);transform:translateY(-1px)}
+.btn-g{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.28);color:#4ADE80;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:var(--e)}
+.btn-g:hover{background:rgba(34,197,94,.18)}
+.btn-o{background:transparent;border:1px solid rgba(31,168,217,.28);color:var(--B);padding:9px 18px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;transition:var(--e)}
+.btn-o:hover{background:var(--Bdim)}
+.btn-r{background:transparent;border:1px solid rgba(239,68,68,.25);color:#EF4444;padding:9px 16px;border-radius:10px;font-size:12px;cursor:pointer;transition:var(--e)}
+.btn-r:hover{background:rgba(239,68,68,.1)}
+
+/* ═══ RESULT BOXES ═══ */
+.rb{background:#040D16;border:1px solid rgba(31,168,217,.14);border-radius:10px;padding:11px 14px;margin-bottom:7px}
+.rb.hi{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.06)}
+.rb.blu{border-color:var(--B);background:var(--Bdim)}
+.rb-l{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--M);margin-bottom:4px}
+.rb-v{font-family:var(--mono);font-size:13px;color:var(--T);font-weight:400}
+.rb.hi .rb-v{color:#4ADE80;font-weight:700}
+.rb.blu .rb-v{color:var(--B);font-weight:700}
+
+/* ═══ UNIT PILLS ═══ */
+.upills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.upill{background:transparent;border:1px solid rgba(31,168,217,.18);color:var(--M);padding:4px 11px;border-radius:999px;font-size:11px;font-weight:600;cursor:pointer;transition:var(--e)}
+.upill:hover{border-color:var(--B);color:var(--T)}
+.upill.on{background:rgba(31,168,217,.14);border-color:var(--B);color:var(--B)}
+
+/* ═══ METRICS ROW ═══ */
+.metrics{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:stretch}
+.metric{background:var(--D3);border:1px solid rgba(31,168,217,.14);border-radius:12px;padding:13px 16px;flex:1;min-width:120px}
+.metric-l{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--M);margin-bottom:5px}
+.metric-v{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#4ADE80;line-height:1}
+.metric-u{font-size:11px;color:var(--Dm);margin-top:4px}
+
+/* ═══ MAP CANVAS ═══ */
+.map-wrap{position:relative;border-radius:var(--r2);overflow:hidden;border:1px solid rgba(31,168,217,.14)}
+#g-canvas{display:block;width:100%;background:#030C14;cursor:crosshair}
+.map-hint{position:absolute;top:10px;left:10px;background:rgba(4,13,22,.88);border:1px solid rgba(31,168,217,.18);border-radius:8px;padding:5px 11px;font-size:10px;color:var(--M);line-height:1.8;pointer-events:none}
+.map-compass{position:absolute;top:10px;right:14px;font-size:11px;font-weight:800;color:rgba(90,131,158,.6);font-family:var(--mono)}
+
+/* ═══ PLOT LIST ═══ */
+.plot-item{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:10px;background:#040D16;border:1px solid rgba(31,168,217,.1);cursor:pointer;margin-bottom:6px;transition:var(--e)}
+.plot-item.on{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.06)}
+.plot-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.plot-name{flex:1;font-size:13px;font-weight:600;color:var(--T)}
+.plot-item.on .plot-name{color:#4ADE80}
+.plot-del{background:none;border:none;color:rgba(239,68,68,.4);cursor:pointer;font-size:14px;padding:0 2px;transition:color .2s}
+.plot-del:hover{color:#EF4444}
+
+/* ═══ SWATCHES ═══ */
+.swatches{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.swatch{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;transition:transform .15s,border-color .15s}
+.swatch:hover{transform:scale(1.25)}
+.swatch.on{border-color:#fff}
+
+/* ═══ ALL UNITS TABLE ═══ */
+.utbl{width:100%;border-collapse:collapse;font-size:12px}
+.utbl td{padding:5px 8px;border-bottom:1px solid rgba(31,168,217,.07)}
+.utbl td:first-child{color:var(--Dm);font-weight:600;width:72px;font-family:var(--mono)}
+.utbl td:last-child{color:var(--T);font-weight:600;text-align:right;font-family:var(--mono)}
+.utbl tr.on td{color:#4ADE80}
+
+/* ═══ TABLES ═══ */
+.gtbl{width:100%;border-collapse:collapse;font-size:12px}
+.gtbl th{padding:7px 10px;font-size:9px;letter-spacing:2px;font-weight:700;text-transform:uppercase;color:var(--B);border-bottom:1px solid rgba(31,168,217,.18);text-align:left;white-space:nowrap}
+.gtbl td{padding:7px 10px;border-bottom:1px solid rgba(31,168,217,.06);color:var(--T);font-weight:500}
+.gtbl tr:nth-child(even) td{background:rgba(31,168,217,.025)}
+.gtbl td.mono{font-family:var(--mono);font-size:11px}
+.gtbl td.hi{color:#4ADE80;font-weight:700}
+.gtbl td input{background:transparent;border:none;color:var(--T);font-family:var(--mono);font-size:11px;width:90px;outline:none}
+.gtbl td input.nm{color:#4ADE80;font-weight:700;width:60px}
+
+/* ═══ NOTIF ═══ */
+.notif{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#4ADE80;padding:7px 14px;border-radius:9px;font-size:12px;font-weight:600;margin-top:8px;display:none}
+.notif.show{display:block}
+
+/* ═══ DOP BAR ═══ */
+.dop-row{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;background:#040D16;border:1px solid rgba(31,168,217,.1);border-radius:8px;margin-bottom:6px}
+.dop-l{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--M)}
+.dop-v{font-weight:700;font-size:12px;font-family:var(--mono)}
+
+/* ═══ DUBAI COMPLIANCE ═══ */
+.dclass{border-left:3px solid;padding:16px 18px;border-radius:0 var(--r2) var(--r2) 0;background:var(--D2);margin-bottom:12px}
+.dclass-tag{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
+.dclass-acc{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--W);margin-bottom:6px}
+.dclass-info{font-size:12px;color:var(--M);line-height:1.65}
+.comp-box{padding:20px;border-radius:12px;text-align:center;margin-top:14px}
+.comp-box.pass{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.28)}
+.comp-box.fail{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.28)}
+.comp-name{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px}
+
+/* ═══ FOOTER ═══ */
+.footer{background:#03080F;border-top:1px solid rgba(31,168,217,.08);padding:40px 0 24px}
+.footer-inner{max-width:1280px;margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-brand{display:flex;align-items:center;gap:10px}
+.footer-brand img{height:28px}
+.footer-bt{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--W)}
+.footer-bt b{color:var(--B)}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap}
+.footer-links a{font-size:13px;color:var(--M);transition:color .2s}
+.footer-links a:hover{color:var(--T)}
+.footer-copy{font-size:11.5px;color:var(--Dm)}
+.footer-note{max-width:1280px;margin:16px auto 0;padding:16px 32px 0;border-top:1px solid rgba(255,255,255,.04);font-size:10.5px;color:var(--Dm);line-height:1.7}
+
+/* ═══ GRID HELPERS ═══ */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
+.split-l{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start}
+.split-m{display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start}
+.split-3{display:grid;grid-template-columns:280px 1fr 200px;gap:16px;align-items:start}
+.map-panel{display:grid;grid-template-columns:220px 1fr 210px;gap:14px;align-items:start}
+
+/* ═══ SCROLLBAR ═══ */
+*{scrollbar-width:thin;scrollbar-color:var(--D4) transparent}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--D4);border-radius:4px}
+
+@media(max-width:1000px){.map-panel,.split-3,.split-m,.split-l{grid-template-columns:1fr}.g4{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr}}
+@media(max-width:680px){.g2,.g3,.g4{grid-template-columns:1fr}.tabs-bar{gap:4px}.g-tab{font-size:12px;padding:8px 12px}}
+</style>
+</head>
+<body>
+
+<div class="uae"></div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nw">
+    <a class="logo" href="index.html">
+      <img src="assets/img/logo.png" alt="Sky TerraEye Logo">
+      <div class="logt"><b>SKY</b> TERRAEYE</div>
+    </a>
+    <div class="nl">
+      <a href="services.html">Services</a>
+      <a href="process.html">Process</a>
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
+      <a class="eye-btn" href="eye.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Eye
+      </a>
+      <a class="terra-btn" href="terra.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        Terra
+      </a>
+      <a class="strata-btn" href="strata.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="4" rx="1"/><rect x="2" y="10" width="20" height="4" rx="1"/><rect x="2" y="17" width="20" height="4" rx="1"/></svg>
+        Strata
+      </a>
+      <a class="gauge-active" href="gauge.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Gauge
+      </a>
+      <a class="cta" href="contact.html">Get a Quote</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="gh">
+  <div class="gh-bg"></div>
+  <div class="gh-grid"></div>
+  <div class="gh-glow"></div>
+  <div class="gh-inner">
+    <div class="gauge-badge"><span class="gauge-dot"></span>Sky TerraEye — Free Tool</div>
+    <h1>Gauge<br><span>Precision Measurement Suite</span></h1>
+    <p class="gh-sub">Professional geodetic calculators built for Dubai surveyors — area measurement, coordinate conversion, total station, GNSS/GPS processing, drone flight planning and Dubai Municipality compliance.</p>
+    <div class="gh-pills">
+      <span class="gh-pill">WGS84 · UTM Zone 40N</span>
+      <span class="gh-pill">Dubai Municipality Standards</span>
+      <span class="gh-pill">Total Station · GNSS · DGPS</span>
+      <span class="gh-pill">Drone GSD & Flight Planner</span>
+      <span class="gh-pill">All Area & Distance Units</span>
+    </div>
+    <div class="gh-stats">
+      <div class="gh-stat"><div class="gh-stat-n">7</div><div class="gh-stat-l">Tools in One</div></div>
+      <div class="gh-stat"><div class="gh-stat-n">20+</div><div class="gh-stat-l">Unit Conversions</div></div>
+      <div class="gh-stat"><div class="gh-stat-n">100%</div><div class="gh-stat-l">Free · No Login</div></div>
+      <div class="gh-stat"><div class="gh-stat-n">🇦🇪</div><div class="gh-stat-l">Dubai Calibrated</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+<div class="wrap">
+
+<!-- TABS -->
+<div class="tabs-bar" role="tablist">
+  <button class="g-tab on" onclick="gTab('map',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+    Map &amp; Area
+  </button>
+  <button class="g-tab" onclick="gTab('dist',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    Distance Path
+  </button>
+  <button class="g-tab" onclick="gTab('coord',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20"/></svg>
+    Coordinates
+  </button>
+  <button class="g-tab" onclick="gTab('ts',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
+    Total Station
+  </button>
+  <button class="g-tab" onclick="gTab('gnss',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    GNSS / GPS
+  </button>
+  <button class="g-tab" onclick="gTab('drone',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="12" cy="12" r="3"/><path d="M7 5h10M5 7v10M19 7v10M7 19h10"/></svg>
+    Drone Survey
+  </button>
+  <button class="g-tab" onclick="gTab('dubai',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Dubai Standards
+  </button>
+</div>
+
+<!-- ════════════ PANEL: MAP & AREA ════════════ -->
+<div class="g-panel on" id="p-map">
+<div class="map-panel">
+
+  <!-- Left -->
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div class="gc">
+      <div class="gc-title green">Plots</div>
+      <div id="g-plot-list"></div>
+      <button class="btn-o" style="width:100%;margin-top:6px" onclick="gAddPlot()">+ Add Plot</button>
+    </div>
+    <div class="gc" id="g-active-card">
+      <div class="gc-title green">Active Plot</div>
+      <div class="fg"><label>Name</label><input class="fi" id="g-pname" oninput="gRename(this.value)" placeholder="Plot A"></div>
+      <div class="fg"><label>Color</label><div class="swatches" id="g-swatches"></div></div>
+      <div class="fg"><label>Notes</label><textarea class="fta" id="g-notes" rows="2" oninput="gSaveNotes(this.value)" placeholder="Field notes..."></textarea></div>
+    </div>
+    <div class="gc">
+      <div class="gc-title">Add Point</div>
+      <div class="fg"><label>Latitude (°)</label><input class="fi" id="g-lat-in" placeholder="e.g. 25.2048" onkeydown="if(event.key==='Enter')gAddManual()"></div>
+      <div class="fg"><label>Longitude (°)</label><input class="fi" id="g-lon-in" placeholder="e.g. 55.2708" onkeydown="if(event.key==='Enter')gAddManual()"></div>
+      <button class="btn-g" style="width:100%" onclick="gAddManual()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg>
+        Add Point
+      </button>
+      <div class="notif" id="g-notif"></div>
+    </div>
+  </div>
+
+  <!-- Center -->
+  <div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-l">Area</div><div class="metric-v" id="g-area-v">0</div><div class="metric-u" id="g-area-u">m²</div></div>
+      <div class="metric"><div class="metric-l">Perimeter</div><div class="metric-v" id="g-perim-v">0</div><div class="metric-u" id="g-perim-u">m</div></div>
+      <div class="metric"><div class="metric-l">Points</div><div class="metric-v" id="g-pts-v">0</div><div class="metric-u">vertices</div></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-o" onclick="document.getElementById('g-unit-drop').style.display=document.getElementById('g-unit-drop').style.display==='none'?'block':'none'">⚙ Units</button>
+        <button class="btn-r" onclick="gClear()">Clear</button>
+      </div>
+    </div>
+    <div id="g-unit-drop" style="display:none;background:var(--D2);border:1px solid rgba(31,168,217,.14);border-radius:12px;padding:14px;margin-bottom:12px">
+      <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#4ADE80;margin-bottom:8px">AREA</div>
+      <div class="upills" id="g-area-pills"></div>
+      <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#4ADE80;margin-top:8px;margin-bottom:8px">DISTANCE</div>
+      <div class="upills" id="g-dist-pills"></div>
+    </div>
+    <div class="map-wrap">
+      <canvas id="g-canvas" height="460"></canvas>
+      <div class="map-hint">Click → add &nbsp;·&nbsp; Drag → move &nbsp;·&nbsp; Dbl-click → remove</div>
+      <div class="map-compass">↑ N</div>
+    </div>
+  </div>
+
+  <!-- Right -->
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div class="gc">
+      <div class="gc-title">All Area Units</div>
+      <table class="utbl" id="g-all-area"></table>
+    </div>
+    <div class="gc">
+      <div class="gc-title">All Distance Units</div>
+      <table class="utbl" id="g-all-dist"></table>
+    </div>
+    <div class="gc" id="g-coord-panel">
+      <div class="gc-title">First Point</div>
+      <div id="g-first-coord" style="font-size:11px;color:var(--Dm)">Add points to view</div>
+    </div>
+    <div class="gc" id="g-total-panel" style="display:none">
+      <div class="gc-title green">All Plots Total</div>
+      <div id="g-total-v" style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#4ADE80">—</div>
+    </div>
+  </div>
+
+</div>
+</div><!-- /p-map -->
+
+<!-- ════════════ PANEL: DISTANCE PATH ════════════ -->
+<div class="g-panel" id="p-dist">
+<div class="split-m">
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="gc">
+      <div class="gc-title">Distance Unit</div>
+      <div class="upills" id="dp-upills"></div>
+    </div>
+    <div class="gc">
+      <div class="gc-title">Waypoints</div>
+      <div id="dp-list"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn-o" style="flex:1" onclick="dpAdd()">+ Waypoint</button>
+        <button class="btn-g" style="flex:1" onclick="dpCalc()">Calculate →</button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div id="dp-result" style="display:none">
+      <div class="g2" style="margin-bottom:16px">
+        <div class="gc" style="border-color:rgba(34,197,94,.3)">
+          <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#4ADE80;margin-bottom:6px">TOTAL DISTANCE</div>
+          <div style="font-family:'Syne',sans-serif;font-size:30px;font-weight:800;color:#4ADE80" id="dp-tot-v">—</div>
+          <div style="font-size:12px;color:var(--M);margin-top:4px" id="dp-tot-u">m</div>
+        </div>
+        <div class="gc">
+          <div class="gc-title">All Units</div>
+          <table class="utbl" id="dp-all"></table>
+        </div>
+      </div>
+      <div class="gc">
+        <div class="gc-title">Segment Table</div>
+        <div style="overflow-x:auto"><table class="gtbl">
+          <thead><tr><th>#</th><th>Segment</th><th>Distance</th><th>Azimuth</th><th>Back Az.</th></tr></thead>
+          <tbody id="dp-segs"></tbody>
+        </table></div>
+      </div>
+    </div>
+    <div id="dp-empty" class="gc" style="text-align:center;padding:60px 20px;color:var(--Dm)">Add waypoints and click Calculate</div>
+  </div>
+</div>
+</div><!-- /p-dist -->
+
+<!-- ════════════ PANEL: COORDINATES ════════════ -->
+<div class="g-panel" id="p-coord">
+<div class="split-m">
+  <div class="gc">
+    <div class="gc-title">Input Format</div>
+    <div class="upills" style="margin-bottom:18px">
+      <button class="upill on" onclick="crdMode('dd',this)">Decimal Deg</button>
+      <button class="upill" onclick="crdMode('dms',this)">DMS</button>
+      <button class="upill" onclick="crdMode('utm',this)">UTM</button>
+    </div>
+    <div id="crd-dd">
+      <div class="fg"><label>Latitude (°)</label><input class="fi" id="c-dd-la" placeholder="e.g. 25.2048"></div>
+      <div class="fg"><label>Longitude (°)</label><input class="fi" id="c-dd-lo" placeholder="e.g. 55.2708"></div>
+    </div>
+    <div id="crd-dms" style="display:none">
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--B);margin-bottom:7px">LATITUDE</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 46px;gap:5px;margin-bottom:12px">
+        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">DEG</label><input class="fi" id="c-d1" placeholder="°"></div>
+        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">MIN</label><input class="fi" id="c-m1" placeholder="'"></div>
+        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">SEC</label><input class="fi" id="c-s1" placeholder='"'></div>
+        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">DIR</label><select class="fs" id="c-r1"><option>N</option><option>S</option></select></div>
+      </div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--B);margin-bottom:7px">LONGITUDE</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 46px;gap:5px">
+        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">DEG</label><input class="fi" id="c-d2" placeholder="°"></div>
+        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">MIN</label><input class="fi" id="c-m2" placeholder="'"></div>
+        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">SEC</label><input class="fi" id="c-s2" placeholder='"'></div>
+        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">DIR</label><select class="fs" id="c-r2"><option>E</option><option>W</option></select></div>
+      </div>
+    </div>
+    <div id="crd-utm" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 52px;gap:8px">
+        <div class="fg"><label>Zone</label><input class="fi" id="c-uz" placeholder="40"></div>
+        <div class="fg"><label>Hemi</label><select class="fs" id="c-uh"><option value="N">N</option><option value="S">S</option></select></div>
+      </div>
+      <div class="fg"><label>Easting (m)</label><input class="fi" id="c-ue" placeholder="e.g. 418240.000"></div>
+      <div class="fg"><label>Northing (m)</label><input class="fi" id="c-un" placeholder="e.g. 2792500.000"></div>
+    </div>
+    <div class="fg" style="margin-top:10px"><label>Height (m)</label><input class="fi" id="c-h" placeholder="0" value="0"></div>
+    <button class="btn-g" style="width:100%;margin-top:4px" onclick="crdConvert()">Convert All Formats →</button>
+  </div>
+  <div id="crd-res" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-content:start">
+    <div class="gc"><div class="gc-title green">Decimal Degrees</div>
+      <div class="rb hi"><div class="rb-l">LATITUDE</div><div class="rb-v" id="cr-la">—</div></div>
+      <div class="rb hi"><div class="rb-l">LONGITUDE</div><div class="rb-v" id="cr-lo">—</div></div>
+    </div>
+    <div class="gc"><div class="gc-title">DMS</div>
+      <div class="rb"><div class="rb-l">LATITUDE</div><div class="rb-v" id="cr-dms-la">—</div></div>
+      <div class="rb"><div class="rb-l">LONGITUDE</div><div class="rb-v" id="cr-dms-lo">—</div></div>
+    </div>
+    <div class="gc"><div class="gc-title">UTM Zone 40N</div>
+      <div class="rb blu"><div class="rb-l">ZONE / BAND</div><div class="rb-v" id="cr-uz">—</div></div>
+      <div class="rb"><div class="rb-l">EASTING</div><div class="rb-v" id="cr-ue">—</div></div>
+      <div class="rb"><div class="rb-l">NORTHING</div><div class="rb-v" id="cr-un">—</div></div>
+    </div>
+    <div class="gc"><div class="gc-title">ECEF (XYZ)</div>
+      <div class="rb"><div class="rb-l">X (m)</div><div class="rb-v" id="cr-x">—</div></div>
+      <div class="rb"><div class="rb-l">Y (m)</div><div class="rb-v" id="cr-y">—</div></div>
+      <div class="rb"><div class="rb-l">Z (m)</div><div class="rb-v" id="cr-z">—</div></div>
+    </div>
+    <div class="gc"><div class="gc-title">Degrees Decimal Minutes</div>
+      <div class="rb"><div class="rb-l">LATITUDE</div><div class="rb-v" id="cr-ddm-la">—</div></div>
+      <div class="rb"><div class="rb-l">LONGITUDE</div><div class="rb-v" id="cr-ddm-lo">—</div></div>
+    </div>
+    <div class="gc"><div class="gc-title">Hemisphere</div>
+      <div class="rb"><div class="rb-l">N / S</div><div class="rb-v" id="cr-ns">—</div></div>
+      <div class="rb"><div class="rb-l">E / W</div><div class="rb-v" id="cr-ew">—</div></div>
+    </div>
+  </div>
+</div>
+</div><!-- /p-coord -->
+
+<!-- ════════════ PANEL: TOTAL STATION ════════════ -->
+<div class="g-panel" id="p-ts">
+<div class="g3" style="align-items:start;margin-bottom:16px">
+  <div class="gc">
+    <div class="gc-title">Station Setup</div>
+    <div class="fg"><label>Northing (m)</label><input class="fi" id="ts-n" placeholder="e.g. 2793450.000"></div>
+    <div class="fg"><label>Easting (m)</label><input class="fi" id="ts-e" placeholder="e.g. 419250.000"></div>
+    <div class="fg"><label>Elevation (m)</label><input class="fi" id="ts-z" placeholder="e.g. 8.500"></div>
+    <div class="fg"><label>Instrument Height HI (m)</label><input class="fi" id="ts-hi" value="1.500"></div>
+  </div>
+  <div class="gc">
+    <div class="gc-title">Backsight Orientation</div>
+    <div class="fg"><label>BS Point Northing (m)</label><input class="fi" id="ts-bn" placeholder="Known point N"></div>
+    <div class="fg"><label>BS Point Easting (m)</label><input class="fi" id="ts-be" placeholder="Known point E"></div>
+    <div class="fg"><label>Hz Circle Reading (°)</label><input class="fi" id="ts-bhz" value="0.0000"></div>
+    <button class="btn-p" style="width:100%;margin-top:4px" onclick="tsOri()">Compute Orientation →</button>
+    <div id="ts-ori-box" style="display:none;margin-top:10px">
+      <div class="rb hi"><div class="rb-l">ORIENTATION CORRECTION</div><div class="rb-v" id="ts-ori-v">—</div></div>
+    </div>
+  </div>
+  <div class="gc">
+    <div class="gc-title green">Station Summary</div>
+    <div class="rb"><div class="rb-l">STATION N / E</div><div class="rb-v" id="ts-sum-ne">—</div></div>
+    <div class="rb"><div class="rb-l">ELEVATION</div><div class="rb-v" id="ts-sum-z">—</div></div>
+    <div class="rb"><div class="rb-l">HI</div><div class="rb-v" id="ts-sum-hi">—</div></div>
+    <div class="rb"><div class="rb-l">ORIENTATION</div><div class="rb-v" id="ts-sum-ori">Not set</div></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn-o" onclick="tsAddShot()">+ Shot</button>
+      <button class="btn-g" style="flex:1" onclick="tsCompute()">▶ Compute</button>
+      <button class="btn-o" onclick="tsExport()">↓ CSV</button>
+    </div>
+  </div>
+</div>
+<div class="gc">
+  <div class="gc-title">Radiation Shots — Zenith Angle Mode</div>
+  <div style="overflow-x:auto"><table class="gtbl" id="ts-tbl">
+    <thead><tr><th>Point</th><th>Hz Reading (°)</th><th>Zenith Angle (°)</th><th>Slope Dist (m)</th><th>Target Ht (m)</th><th>Northing</th><th>Easting</th><th>Elevation</th><th>HD (m)</th><th>Azimuth (°)</th><th></th></tr></thead>
+    <tbody id="ts-body"></tbody>
+  </table></div>
+  <div style="font-size:10px;color:var(--Dm);margin-top:10px">ZA=90° is horizontal · HD=SD×sin(ZA) · ΔZ=SD×cos(ZA)+HI−HT · WGS84 bearings</div>
+</div>
+</div><!-- /p-ts -->
+
+<!-- ════════════ PANEL: GNSS / GPS ════════════ -->
+<div class="g-panel" id="p-gnss">
+<div class="upills" style="margin-bottom:16px">
+  <button class="upill on" onclick="gnMode('rtk',this)">RTK GNSS</button>
+  <button class="upill" onclick="gnMode('gps',this)">GPS / SBAS</button>
+  <button class="upill" onclick="gnMode('dgps',this)">DGPS / DGNSS</button>
+</div>
+<div class="split-m">
+  <div class="gc">
+    <div class="gc-title" id="gn-title">RTK GNSS Observation</div>
+    <div class="fg"><label>Latitude (°)</label><input class="fi" id="gn-la" placeholder="e.g. 25.204800"></div>
+    <div class="fg"><label>Longitude (°)</label><input class="fi" id="gn-lo" placeholder="e.g. 55.270800"></div>
+    <div class="fg"><label>Ellipsoidal Height (m)</label><input class="fi" id="gn-h" placeholder="e.g. 65.420"></div>
+    <div id="gn-rtk-extra">
+      <div class="fg"><label>Fix Type</label><select class="fs" id="gn-fix"><option>RTK Fixed</option><option>RTK Float</option><option>DGNSS</option><option>SBAS</option><option>Autonomous</option></select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div class="fg"><label>PDOP</label><input class="fi" id="gn-pd" placeholder="1.4"></div>
+        <div class="fg"><label>HDOP</label><input class="fi" id="gn-hd" placeholder="0.9"></div>
+        <div class="fg"><label>VDOP</label><input class="fi" id="gn-vd" placeholder="1.2"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg"><label>Satellites Used</label><input class="fi" id="gn-sv" placeholder="e.g. 18"></div>
+        <div class="fg"><label>Age of Corr. (s)</label><input class="fi" id="gn-age" placeholder="e.g. 0.5"></div>
+      </div>
+      <div class="fg"><label>Sigma / Precision (m)</label><input class="fi" id="gn-sig" placeholder="e.g. 0.010"></div>
+    </div>
+    <div id="gn-dgps-extra" style="display:none">
+      <div class="fg"><label>Base Station Latitude</label><input class="fi" id="gn-bsla" placeholder="e.g. 25.190000"></div>
+      <div class="fg"><label>Base Station Longitude</label><input class="fi" id="gn-bslo" placeholder="e.g. 55.260000"></div>
+      <div class="fg"><label>Correction Source</label><select class="fs" id="gn-corr"><option>NRTK</option><option>RTK Base</option><option>RTCM 3.x</option><option>SBAS</option><option>OMNISTAR</option></select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div class="fg"><label>PDOP</label><input class="fi" id="gn-pd2" placeholder="1.8"></div>
+        <div class="fg"><label>HDOP</label><input class="fi" id="gn-hd2" placeholder="1.1"></div>
+        <div class="fg"><label>VDOP</label><input class="fi" id="gn-vd2" placeholder="1.5"></div>
+      </div>
+    </div>
+    <button class="btn-g" style="width:100%;margin-top:8px" onclick="gnProcess()">▶ Process Observation</button>
+  </div>
+  <div>
+    <div id="gn-res" style="display:none">
+      <div class="g2" style="margin-bottom:14px">
+        <div class="gc" id="gn-fix-card">
+          <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px" id="gn-fix-lbl">FIX TYPE</div>
+          <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800" id="gn-fix-v">—</div>
+          <div style="font-size:11px;color:var(--M);margin-top:6px" id="gn-fix-acc">—</div>
+        </div>
+        <div class="gc">
+          <div class="rb hi"><div class="rb-l">H ACCURACY (est.)</div><div class="rb-v" id="gn-hacc">—</div></div>
+          <div class="rb"><div class="rb-l">V ACCURACY (est.)</div><div class="rb-v" id="gn-vacc">—</div></div>
+        </div>
+      </div>
+      <div class="gc" style="margin-bottom:14px">
+        <div class="gc-title green">Computed Coordinates</div>
+        <div class="g2">
+          <div class="rb hi"><div class="rb-l">LATITUDE (WGS84)</div><div class="rb-v" id="gn-out-la">—</div></div>
+          <div class="rb hi"><div class="rb-l">LONGITUDE (WGS84)</div><div class="rb-v" id="gn-out-lo">—</div></div>
+          <div class="rb"><div class="rb-l">UTM Z40N — EASTING</div><div class="rb-v" id="gn-out-e">—</div></div>
+          <div class="rb"><div class="rb-l">UTM Z40N — NORTHING</div><div class="rb-v" id="gn-out-n">—</div></div>
+          <div class="rb"><div class="rb-l">DMS LATITUDE</div><div class="rb-v" id="gn-dms-la">—</div></div>
+          <div class="rb"><div class="rb-l">DMS LONGITUDE</div><div class="rb-v" id="gn-dms-lo">—</div></div>
+        </div>
+        <div class="rb" style="margin-top:8px"><div class="rb-l">ELLIPSOIDAL HEIGHT</div><div class="rb-v" id="gn-out-h">—</div></div>
+      </div>
+      <div class="gc" id="gn-dop-card" style="display:none">
+        <div class="gc-title">DOP Quality Assessment</div>
+        <div class="dop-row"><span class="dop-l">PDOP — POSITION</span><span class="dop-v" id="gn-pdop-q">—</span></div>
+        <div class="dop-row"><span class="dop-l">HDOP — HORIZONTAL</span><span class="dop-v" id="gn-hdop-q">—</span></div>
+        <div class="dop-row"><span class="dop-l">VDOP — VERTICAL</span><span class="dop-v" id="gn-vdop-q">—</span></div>
+        <div class="dop-row" id="gn-sv-row" style="display:none"><span class="dop-l">SATELLITES USED</span><span class="dop-v" id="gn-sv-q">—</span></div>
+      </div>
+    </div>
+    <div id="gn-empty" class="gc" style="text-align:center;padding:60px 20px;color:var(--Dm)">Enter observation data and click Process</div>
+  </div>
+</div>
+</div><!-- /p-gnss -->
+
+<!-- ════════════ PANEL: DRONE SURVEY ════════════ -->
+<div class="g-panel" id="p-drone">
+<div class="split-m">
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="gc">
+      <div class="gc-title">Drone &amp; Camera</div>
+      <div class="fg"><label>Drone Model</label>
+        <select class="fs" id="dr-model" onchange="drPreset()">
+          <option value="p4r">DJI Phantom 4 RTK</option>
+          <option value="m300">DJI Matrice 300 RTK</option>
+          <option value="mv3">DJI Mavic 3 Enterprise</option>
+          <option value="wing">Wingtra WingtraOne</option>
+          <option value="custom">Custom / Manual</option>
+        </select>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>Sensor W (mm)</label><input class="fi" id="dr-sw" value="35.9"></div>
+        <div class="fg"><label>Sensor H (mm)</label><input class="fi" id="dr-sh" value="24.0"></div>
+        <div class="fg"><label>Focal Length (mm)</label><input class="fi" id="dr-fl" value="35"></div>
+        <div class="fg"><label>Image W (px)</label><input class="fi" id="dr-iw" value="5472"></div>
+        <div class="fg"><label>Image H (px)</label><input class="fi" id="dr-ih" value="3648"></div>
+      </div>
+    </div>
+    <div class="gc">
+      <div class="gc-title">Flight Parameters</div>
+      <div class="fg"><label>Altitude AGL (m)</label><input class="fi" id="dr-alt" value="120"></div>
+      <div class="fg"><label>Flight Speed (m/s)</label><input class="fi" id="dr-spd" value="10"></div>
+      <div class="g2">
+        <div class="fg"><label>Forward Overlap (%)</label><input class="fi" id="dr-fo" value="80"></div>
+        <div class="fg"><label>Side Overlap (%)</label><input class="fi" id="dr-so" value="70"></div>
+      </div>
+      <div class="fg"><label>Survey Area (ha)</label><input class="fi" id="dr-area" value="10"></div>
+      <div class="fg"><label>Min. GCP Count</label><input class="fi" id="dr-gcp" value="5"></div>
+      <button class="btn-g" style="width:100%" onclick="drCompute()">▶ Compute Flight Plan</button>
+    </div>
+  </div>
+  <div>
+    <div id="dr-res" style="display:none">
+      <div class="g3" style="margin-bottom:14px">
+        <div class="gc" style="border-color:rgba(34,197,94,.3)">
+          <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#4ADE80;margin-bottom:6px">GSD</div>
+          <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#4ADE80" id="dr-gsd">—</div>
+          <div style="font-size:10px;color:var(--M)">cm/pixel</div>
+          <div style="font-size:10px;margin-top:6px;font-weight:700" id="dr-cls">—</div>
+        </div>
+        <div class="gc">
+          <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--M);margin-bottom:6px">TOTAL IMAGES</div>
+          <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--T)" id="dr-imgs">—</div>
+          <div style="font-size:10px;color:var(--M)" id="dr-lines">—</div>
+        </div>
+        <div class="gc">
+          <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--M);margin-bottom:6px">FLIGHT TIME</div>
+          <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--G)" id="dr-time">—</div>
+          <div style="font-size:10px;color:var(--M)">minutes (approx)</div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="gc">
+          <div class="gc-title">Footprint &amp; Spacing</div>
+          <div class="rb hi"><div class="rb-l">IMAGE FOOTPRINT (W)</div><div class="rb-v" id="dr-fw">—</div></div>
+          <div class="rb"><div class="rb-l">IMAGE FOOTPRINT (H)</div><div class="rb-v" id="dr-fh">—</div></div>
+          <div class="rb"><div class="rb-l">LINE SPACING</div><div class="rb-v" id="dr-ls">—</div></div>
+          <div class="rb"><div class="rb-l">IMAGE INTERVAL</div><div class="rb-v" id="dr-ii">—</div></div>
+          <div class="rb"><div class="rb-l">TOTAL FLIGHT DIST.</div><div class="rb-v" id="dr-fd">—</div></div>
+        </div>
+        <div class="gc">
+          <div class="gc-title">Quality &amp; Accuracy</div>
+          <div class="rb hi"><div class="rb-l">PT CLOUD DENSITY</div><div class="rb-v" id="dr-pcd">—</div></div>
+          <div class="rb"><div class="rb-l">GCP REQUIRED</div><div class="rb-v" id="dr-gcpr">—</div></div>
+          <div class="rb"><div class="rb-l">EXPECTED H ACCURACY</div><div class="rb-v" id="dr-ha">—</div></div>
+          <div class="rb"><div class="rb-l">EXPECTED V ACCURACY</div><div class="rb-v" id="dr-va">—</div></div>
+          <div style="background:#040D16;border-radius:10px;padding:12px 14px;margin-top:10px">
+            <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#4ADE80;margin-bottom:5px">DUBAI MUNICIPALITY COMPLIANCE</div>
+            <div style="font-size:12px;color:var(--M);line-height:1.7" id="dr-comp">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="dr-empty" class="gc" style="text-align:center;padding:60px 20px;color:var(--Dm)">Configure parameters and click Compute</div>
+  </div>
+</div>
+</div><!-- /p-drone -->
+
+<!-- ════════════ PANEL: DUBAI STANDARDS ════════════ -->
+<div class="g-panel" id="p-dubai">
+  <div style="background:var(--D2);border:1px solid rgba(31,168,217,.2);border-radius:var(--r2);padding:22px;margin-bottom:20px;display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+    <div style="font-size:36px">🇦🇪</div>
+    <div>
+      <div style="font-size:15px;font-weight:800;color:var(--W);letter-spacing:.5px">Dubai Municipality — Survey & Land Department</div>
+      <div style="font-size:12px;color:var(--M);margin-top:5px">Land Registration · GIS Centre · Spatial Data Infrastructure (SDI)</div>
+    </div>
+    <div style="margin-left:auto;text-align:right;font-family:var(--mono);font-size:11px;color:var(--Dm);line-height:1.8">
+      <div>Datum: WGS84 (ETRS89 compatible)</div>
+      <div>Projection: UTM Zone 40N</div>
+      <div>Geoid: EGM2008 / UAE National Geoid</div>
+    </div>
+  </div>
+  <div class="g2" style="margin-bottom:20px;align-items:start">
+    <div>
+      <div class="dclass" style="border-color:#1FA8D9">
+        <div class="dclass-tag" style="color:#1FA8D9">Class A — Cadastral</div>
+        <div class="dclass-acc">± 25 mm H &nbsp;/&nbsp; ± 50 mm V</div>
+        <div class="dclass-info">RTK GNSS, Total Station · Scale 1:250–1:500 · Boundary delimitation, subdivision, property registration with DLD</div>
+      </div>
+      <div class="dclass" style="border-color:#22C55E">
+        <div class="dclass-tag" style="color:#22C55E">Class B — Engineering 1:500</div>
+        <div class="dclass-acc">± 100 mm H / ± 150 mm V</div>
+        <div class="dclass-info">RTK GNSS, TS, Drone ≤3 cm GSD · Scale 1:500–1:1000 · Roads, utilities, infrastructure, cut/fill verification</div>
+      </div>
+      <div class="dclass" style="border-color:#F5BE18">
+        <div class="dclass-tag" style="color:#F5BE18">Class C — Topographic 1:1000</div>
+        <div class="dclass-acc">± 250 mm H / ± 350 mm V</div>
+        <div class="dclass-info">GNSS, TS, Drone ≤5 cm GSD · Scale 1:1000–1:2000 · Site planning, earthworks, topo mapping</div>
+      </div>
+      <div class="dclass" style="border-color:#8B5CF6">
+        <div class="dclass-tag" style="color:#8B5CF6">Class D — GIS / Urban</div>
+        <div class="dclass-acc">± 1.0 m H &nbsp;/&nbsp; ± 2.0 m V</div>
+        <div class="dclass-info">DGPS, Drone ≤10 cm GSD, Mobile Mapping · Scale 1:2000–1:5000 · Asset mapping, GIS layers</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="gc">
+        <div class="gc-title green">Compliance Checker</div>
+        <div class="fg"><label>Achieved H Accuracy (m)</label><input class="fi" id="dub-h" placeholder="e.g. 0.025"></div>
+        <div class="fg"><label>Achieved V Accuracy (m)</label><input class="fi" id="dub-v" placeholder="e.g. 0.050"></div>
+        <div class="fg"><label>Survey Method</label>
+          <select class="fs" id="dub-meth"><option>RTK GNSS</option><option>Static GNSS</option><option>Total Station</option><option>DGPS</option><option>Drone Photogrammetry</option><option>Mobile Mapping</option></select>
+        </div>
+        <button class="btn-g" style="width:100%;margin-top:4px" onclick="dubCheck()">▶ Check Compliance</button>
+        <div id="dub-res"></div>
+      </div>
+      <div class="gc">
+        <div class="gc-title">Required Deliverables (DM)</div>
+        <div style="display:flex;flex-direction:column;gap:7px;font-size:12px">
+          <div style="background:#040D16;border:1px solid rgba(31,168,217,.1);border-radius:8px;padding:9px 12px"><span style="color:var(--B);font-weight:700">DWG/DXF </span><span style="color:var(--M)">AutoCAD in DM template format, UTM Zone 40N, title block with north arrow, scale bar, DM seal.</span></div>
+          <div style="background:#040D16;border:1px solid rgba(31,168,217,.1);border-radius:8px;padding:9px 12px"><span style="color:var(--B);font-weight:700">RINEX Files </span><span style="color:var(--M)">Raw GNSS data. Min. 4-hr static sessions for control. Calibration certificates required.</span></div>
+          <div style="background:#040D16;border:1px solid rgba(31,168,217,.1);border-radius:8px;padding:9px 12px"><span style="color:var(--B);font-weight:700">Field Books </span><span style="color:var(--M)">Signed traverse & leveling sheets, closure calculations, angle/distance observations.</span></div>
+          <div style="background:#040D16;border:1px solid rgba(31,168,217,.1);border-radius:8px;padding:9px 12px"><span style="color:var(--B);font-weight:700">GCP Report </span><span style="color:var(--M)">Ground Control Point list, residuals, photo documentation.</span></div>
+          <div style="background:#040D16;border:1px solid rgba(31,168,217,.1);border-radius:8px;padding:9px 12px"><span style="color:var(--B);font-weight:700">PDF Report </span><span style="color:var(--M)">Methodology, equipment list, QA/QC summary, adjustment report, coordinate list.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /p-dubai -->
+
+</div><!-- /wrap -->
+</div><!-- /main -->
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="assets/img/logo.png" alt="Sky TerraEye">
+      <div class="footer-bt"><b>SKY</b> TERRAEYE &mdash; Gauge</div>
+    </div>
+    <div class="footer-links">
+      <a href="index.html">Home</a>
+      <a href="services.html">Services</a>
+      <a href="contact.html">Contact</a>
+      <a href="eye.html" style="color:#F5BE18">Eye</a>
+      <a href="terra.html" style="color:#4ADE80">Terra</a>
+      <a href="strata.html" style="color:#A78BFA">Strata</a>
+    </div>
+    <div class="footer-copy">© 2026 Sky TerraEye · Dubai, UAE</div>
+  </div>
+  <div class="footer-note">
+    Gauge is a free precision measurement utility by Sky TerraEye. All calculations use WGS84 ellipsoid, Haversine formula for geodesic distances, Shoelace theorem for polygon area, and Bowring Transverse Mercator series for UTM projection. Results are for reference and planning purposes only — not for legal boundary delimitation or official survey submission without field verification.
+  </div>
+</footer>
+
+<script>
+'use strict';
+/* ══════════════════════ MATH ENGINE ══════════════════════ */
+const PI=Math.PI,r2d=r=>r*180/PI,d2r=d=>d*PI/180;
+const WA=6378137,WF=1/298.257223563,We2=2*WF-WF**2,Wep2=We2/(1-We2);
+
+function hav(a,b){const R=6371000,dp=d2r(b[0]-a[0]),dl=d2r(b[1]-a[1]),x=Math.sin(dp/2)**2+Math.cos(d2r(a[0]))*Math.cos(d2r(b[0]))*Math.sin(dl/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+function polyA(pts){if(pts.length<3)return 0;const o=pts[0],xy=pts.map(p=>[hav([o[0],o[1]],[o[0],p[1]])*(p[1]>=o[1]?1:-1),hav([o[0],o[1]],[p[0],o[1]])*(p[0]>=o[0]?1:-1)]);let a=0;xy.forEach((p,i)=>{const q=xy[(i+1)%xy.length];a+=p[0]*q[1]-q[0]*p[1];});return Math.abs(a)/2;}
+function perim(pts){let p=0;pts.forEach((pt,i)=>p+=hav(pt,pts[(i+1)%pts.length]));return p;}
+function azim(a,b){const dl=d2r(b[1]-a[1]),y=Math.sin(dl)*Math.cos(d2r(b[0])),x=Math.cos(d2r(a[0]))*Math.sin(d2r(b[0]))-Math.sin(d2r(a[0]))*Math.cos(d2r(b[0]))*Math.cos(dl);return(r2d(Math.atan2(y,x))+360)%360;}
+function toUTM(lat,lon){const p=d2r(lat),l=d2r(lon),z=Math.floor((lon+180)/6)+1,l0=d2r((z-1)*6-180+3),sp=Math.sin(p),cp=Math.cos(p),T=Math.tan(p)**2,C=Wep2*cp**2,A=cp*(l-l0),N=WA/Math.sqrt(1-We2*sp**2),M=WA*((1-We2/4-3*We2**2/64-5*We2**3/256)*p-(3*We2/8+3*We2**2/32+45*We2**3/1024)*Math.sin(2*p)+(15*We2**2/256+45*We2**3/1024)*Math.sin(4*p)-(35*We2**3/3072)*Math.sin(6*p));const E=0.9996*N*(A+(1-T+C)*A**3/6+(5-18*T+T**2+72*C-58*Wep2)*A**5/120)+500000;let Nv=0.9996*(M+N*Math.tan(p)*(A**2/2+(5-T+9*C+4*C**2)*A**4/24+(61-58*T+T**2+600*C-330*Wep2)*A**6/720));if(lat<0)Nv+=10000000;return{zone:z,band:'CDEFGHJKLMNPQRSTUVWXX'[Math.min(Math.max(Math.floor((lat+80)/8),0),20)],E:E.toFixed(3),N:Nv.toFixed(3)};}
+function utmToLL(zone,hemi,E,N){const e1=(1-Math.sqrt(1-We2))/(1+Math.sqrt(1-We2)),x=E-500000;let y=hemi==='S'?N-10000000:N;const l0=d2r((zone-1)*6-180+3),M=y/0.9996,mu=M/(WA*(1-We2/4-3*We2**2/64-5*We2**3/256)),p1=mu+(3*e1/2-27*e1**3/32)*Math.sin(2*mu)+(21*e1**2/16-55*e1**4/32)*Math.sin(4*mu)+(151*e1**3/96)*Math.sin(6*mu)+(1097*e1**4/512)*Math.sin(8*mu),N1=WA/Math.sqrt(1-We2*Math.sin(p1)**2),T1=Math.tan(p1)**2,C1=Wep2*Math.cos(p1)**2,R1=WA*(1-We2)/(1-We2*Math.sin(p1)**2)**1.5,D=x/(N1*0.9996),lat=p1-(N1*Math.tan(p1)/R1)*(D**2/2-(5+3*T1+10*C1-4*C1**2-9*Wep2)*D**4/24+(61+90*T1+298*C1+45*T1**2-252*Wep2-3*C1**2)*D**6/720),lon=l0+(D-(1+2*T1+C1)*D**3/6+(5-2*C1+28*T1-3*C1**2+8*Wep2+24*T1**2)*D**5/120)/Math.cos(p1);return{lat:r2d(lat),lon:r2d(lon)};}
+function toECEF(lat,lon,h){const p=d2r(lat),l=d2r(lon),N=WA/Math.sqrt(1-We2*Math.sin(p)**2),H=h||0;return{X:((N+H)*Math.cos(p)*Math.cos(l)).toFixed(3),Y:((N+H)*Math.cos(p)*Math.sin(l)).toFixed(3),Z:((N*(1-We2)+H)*Math.sin(p)).toFixed(3)};}
+function toDMS(dd,isLat){const dir=isLat?(dd>=0?'N':'S'):(dd>=0?'E':'W'),a=Math.abs(dd),d=Math.floor(a),mf=(a-d)*60,m=Math.floor(mf),s=((mf-m)*60).toFixed(4);return d+'° '+m+"' "+s+'" '+dir;}
+function toDDM(dd,isLat){const dir=isLat?(dd>=0?'N':'S'):(dd>=0?'E':'W'),a=Math.abs(dd),d=Math.floor(a);return d+'° '+((a-d)*60).toFixed(7)+"' "+dir;}
+function dmsToDD(d,m,s,dir){const a=+d+ +m/60+ +s/3600;return(dir==='S'||dir==='W')?-a:a;}
+const AU={'m²':1,'ha':1/10000,'a':1/100,'ac':1/4046.856,'km²':1/1e6,'ft²':10.7639,'yd²':1.19599,'Marla':1/25.293,'Kanal':1/505.857,'Guntha':1/101.171};
+const DU={'m':1,'km':1/1000,'ft':3.28084,'yd':1.09361,'in':39.3701,'cm':100,'mi':1/1609.34,'nmi':1/1852,'chain':1/20.1168,'link':1/0.201168};
+const cvA=(m2,u)=>m2*(AU[u]||1),cvD=(m,u)=>m*(DU[u]||1);
+const dopQ=v=>v<1.5?{l:'IDEAL',c:'#22C55E'}:v<2?{l:'EXCELLENT',c:'#1FA8D9'}:v<3?{l:'GOOD',c:'#1FA8D9'}:v<5?{l:'MODERATE',c:'#F5BE18'}:v<10?{l:'FAIR',c:'#F59E0B'}:{l:'POOR',c:'#EF4444'};
+const COLORS=['#1FA8D9','#F5BE18','#EF4444','#22C55E','#8B5CF6','#EC4899','#06B6D4','#F97316','#84CC16'];
+
+/* ══════════════════════ TABS ══════════════════════ */
+function gTab(id,el){document.querySelectorAll('.g-tab').forEach(t=>t.classList.remove('on'));document.querySelectorAll('.g-panel').forEach(p=>p.classList.remove('on'));el.classList.add('on');document.getElementById('p-'+id).classList.add('on');}
+
+/* ══════════════════════ MAP & AREA ══════════════════════ */
+let plots=[{id:1,name:'Plot A',color:COLORS[0],points:[],notes:''}],activeId=1,plotCnt=1;
+let aU='m²',dU='m',drag=null;
+const cv=document.getElementById('g-canvas');
+
+function ap(){return plots.find(p=>p.id===activeId)||plots[0];}
+function initPills(){
+  ['g-area-pills','g-dist-pills','dp-upills'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const isA=id==='g-area-pills',isDU=id!=='g-area-pills',units=isA?Object.keys(AU):Object.keys(DU);el.innerHTML=units.map(u=>`<button class="upill${(isA?aU:dU)===u?' on':''}" onclick="${isA?'setAU':'setDU'}('${u}',this)">${u}</button>`).join('');});
+}
+function setAU(u,el){aU=u;document.querySelectorAll('#g-area-pills .upill,#dp-upills .upill').forEach(p=>p.classList.remove('on'));document.querySelectorAll(`[onclick="setAU('${u}',this)"]`).forEach(p=>p.classList.add('on'));redraw();metrics();}
+function setDU(u,el){dU=u;document.querySelectorAll('#g-dist-pills .upill,#dp-upills .upill').forEach(p=>p.classList.remove('on'));document.querySelectorAll(`[onclick="setDU('${u}',this)"]`).forEach(p=>p.classList.add('on'));redraw();metrics();}
+
+function renderPlots(){
+  const el=document.getElementById('g-plot-list');if(!el)return;
+  el.innerHTML=plots.map(p=>`<div class="plot-item${p.id===activeId?' on':''}" onclick="selPlot(${p.id})"><div class="plot-dot" style="background:${p.color}"></div><div class="plot-name">${p.name}</div><button class="plot-del" onclick="event.stopPropagation();delPlot(${p.id})">✕</button></div>`).join('');
+  const a=ap();if(!a)return;
+  const ni=document.getElementById('g-pname'),nt=document.getElementById('g-notes');if(ni)ni.value=a.name;if(nt)nt.value=a.notes||'';
+  const sw=document.getElementById('g-swatches');if(sw)sw.innerHTML=COLORS.map(c=>`<div class="swatch${c===a.color?' on':''}" style="background:${c}" onclick="setColor('${c}')"></div>`).join('');
+  if(plots.length>1){document.getElementById('g-total-panel').style.display='block';const tot=plots.reduce((s,p)=>s+polyA(p.points),0);document.getElementById('g-total-v').textContent=cvA(tot,aU).toFixed(4)+' '+aU;}
+}
+function selPlot(id){activeId=id;renderPlots();redraw();metrics();}
+function gAddPlot(){plotCnt++;const p={id:plotCnt,name:'Plot '+String.fromCharCode(64+plotCnt),color:COLORS[(plotCnt-1)%COLORS.length],points:[],notes:''};plots.push(p);activeId=p.id;renderPlots();redraw();}
+function delPlot(id){if(plots.length===1)return;plots=plots.filter(p=>p.id!==id);activeId=plots[0].id;renderPlots();redraw();metrics();}
+function gRename(v){const a=ap();if(a){a.name=v;renderPlots();}}
+function gSaveNotes(v){const a=ap();if(a)a.notes=v;}
+function setColor(c){const a=ap();if(a){a.color=c;renderPlots();redraw();}}
+function gClear(){const a=ap();if(a){a.points=[];redraw();metrics();}}
+
+/* Canvas */
+function bounds(){const all=plots.flatMap(p=>p.points);if(!all.length)return{minLa:25.14,maxLa:25.29,minLo:55.17,maxLo:55.39};const las=all.map(p=>p[0]),los=all.map(p=>p[1]);let[a,b,c,d]=[Math.min(...las),Math.max(...las),Math.min(...los),Math.max(...los)];const dl=b-a||.005,do_=d-c||.005;return{minLa:a-dl*.22,maxLa:b+dl*.22,minLo:c-do_*.22,maxLo:d+do_*.22};}
+function xf(){const W=cv.width,H=cv.height,p=50,b=bounds();const toC=([la,lo])=>[(lo-b.minLo)/(b.maxLo-b.minLo)*(W-2*p)+p,(1-(la-b.minLa)/(b.maxLa-b.minLa))*(H-2*p)+p];const toLL=(x,y)=>[b.minLa+(1-(y-p)/(H-2*p))*(b.maxLa-b.minLa),b.minLo+(x-p)/(W-2*p)*(b.maxLo-b.minLo)];return{toC,toLL,...b};}
+function redraw(){
+  if(!cv)return;
+  const W=cv.clientWidth||800;cv.width=W;cv.height=Math.round(W*.6);
+  const ctx=cv.getContext('2d'),H=cv.height,t=xf();
+  ctx.fillStyle='#030C14';ctx.fillRect(0,0,W,H);
+  for(let i=0;i<=6;i++){const la=t.minLa+i*(t.maxLa-t.minLa)/6,lo=t.minLo+i*(t.maxLo-t.minLo)/6;const[,yg]=t.toC([la,t.minLo]);const[xg,]=t.toC([t.minLa,lo]);ctx.strokeStyle='rgba(31,168,217,.09)';ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(48,yg);ctx.lineTo(W-8,yg);ctx.stroke();ctx.beginPath();ctx.moveTo(xg,6);ctx.lineTo(xg,H-20);ctx.stroke();ctx.fillStyle='rgba(90,131,158,.45)';ctx.font='8px monospace';ctx.textAlign='right';ctx.fillText(la.toFixed(4)+'°',44,yg+3);ctx.textAlign='center';ctx.fillText(lo.toFixed(4)+'°',xg,H-5);}
+  for(const plot of plots){const pts=plot.points,act=plot.id===activeId,col=plot.color;if(!pts.length)continue;
+    if(pts.length>=3){ctx.beginPath();const[x0,y0]=t.toC(pts[0]);ctx.moveTo(x0,y0);pts.slice(1).forEach(p=>{const[x,y]=t.toC(p);ctx.lineTo(x,y);});ctx.closePath();ctx.fillStyle=col+'28';ctx.fill();}
+    if(pts.length>=2){ctx.strokeStyle=col;ctx.lineWidth=act?2.5:1.5;ctx.setLineDash(act?[]:[5,3]);ctx.beginPath();const[ex,ey]=t.toC(pts[0]);ctx.moveTo(ex,ey);pts.slice(1).forEach(p=>{const[x,y]=t.toC(p);ctx.lineTo(x,y);});if(pts.length>=3)ctx.closePath();ctx.stroke();ctx.setLineDash([]);
+      for(let i=0;i<pts.length;i++){const j=(i+1)%pts.length;if(i===pts.length-1&&pts.length<3)break;const d=cvD(hav(pts[i],pts[j]),dU),lb=d.toFixed(dU==='m'?2:3)+' '+dU;const[x1,y1]=t.toC(pts[i]),[x2,y2]=t.toC(pts[j]),mx=(x1+x2)/2,my=(y1+y2)/2;ctx.font='9px monospace';const tw=ctx.measureText(lb).width;ctx.fillStyle='rgba(4,13,22,.88)';ctx.fillRect(mx-tw/2-3,my-10,tw+6,13);ctx.fillStyle=col;ctx.textAlign='center';ctx.fillText(lb,mx,my);}}
+    pts.forEach(([la,lo],i)=>{const[x,y]=t.toC([la,lo]);ctx.beginPath();ctx.arc(x,y,act?7:5,0,2*PI);ctx.fillStyle=act?col:'#fff';ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.fill();ctx.stroke();ctx.fillStyle=col;ctx.font='bold 9px monospace';ctx.textAlign='left';ctx.fillText(plot.name.slice(0,2).toUpperCase()+(i+1),x+9,y-4);});
+    if(pts.length>=3){const ar=cvA(polyA(pts),aU),lb=ar.toFixed(4)+' '+aU,cxv=pts.reduce((s,p)=>s+t.toC(p)[0],0)/pts.length,cyv=pts.reduce((s,p)=>s+t.toC(p)[1],0)/pts.length;ctx.font='bold 11px monospace';const tw=ctx.measureText(lb).width;ctx.fillStyle='rgba(4,13,22,.92)';ctx.fillRect(cxv-tw/2-5,cyv-11,tw+10,16);ctx.fillStyle=col;ctx.textAlign='center';ctx.fillText(lb,cxv,cyv+2);}
+  }
+  if(!plots.some(p=>p.points.length)){ctx.fillStyle='rgba(90,131,158,.35)';ctx.font='13px monospace';ctx.textAlign='center';ctx.fillText('Click to add survey points to active plot',W/2,H/2);ctx.fillText('Centred on Dubai, UAE — UTM Zone 40N',W/2,H/2+22);}
+}
+function metrics(){
+  const a=ap();if(!a)return;
+  const ar=polyA(a.points),pe=perim(a.points);
+  function sv(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+  sv('g-area-v',cvA(ar,aU).toFixed(ar>10000?2:4));sv('g-area-u',aU);sv('g-perim-v',cvD(pe,dU).toFixed(2));sv('g-perim-u',dU);sv('g-pts-v',a.points.length);
+  const at=document.getElementById('g-all-area');if(at)at.innerHTML=Object.keys(AU).map(u=>`<tr class="${u===aU?'on':''}"><td>${u}</td><td>${cvA(ar,u).toFixed(['ha','ac','km²'].includes(u)?6:2)}</td></tr>`).join('');
+  const dt=document.getElementById('g-all-dist');if(dt)dt.innerHTML=Object.keys(DU).map(u=>`<tr class="${u===dU?'on':''}"><td>${u}</td><td>${cvD(pe,u).toFixed(u==='m'||u==='ft'?2:4)}</td></tr>`).join('');
+  const fc=document.getElementById('g-first-coord');if(fc){if(a.points[0]){const u=toUTM(a.points[0][0],a.points[0][1]);fc.innerHTML=`<div class="rb hi" style="margin-bottom:6px"><div class="rb-l">LATITUDE</div><div class="rb-v">${toDMS(a.points[0][0],true)}</div></div><div class="rb hi"><div class="rb-l">LONGITUDE</div><div class="rb-v">${toDMS(a.points[0][1],false)}</div></div><div class="rb" style="margin-top:6px"><div class="rb-l">UTM Z${u.zone}${u.band}</div><div class="rb-v">E:${u.E} N:${u.N}</div></div>`;}else fc.innerHTML='<span style="font-size:11px;color:var(--Dm)">Add points to view</span>';}
+  renderPlots();
+}
+function hit(e){const r=cv.getBoundingClientRect(),sx=cv.width/r.width,sy=cv.height/r.height,cx=(e.clientX-r.left)*sx,cy=(e.clientY-r.top)*sy,t=xf();for(const plot of plots)for(let i=0;i<plot.points.length;i++){const[px,py]=t.toC(plot.points[i]);if(Math.hypot(cx-px,cy-py)<13)return{pid:plot.id,idx:i,cx,cy,t};}return{pid:null,idx:-1,cx,cy,t};}
+if(cv){
+  cv.addEventListener('click',e=>{if(drag)return;const h=hit(e);if(h.idx===-1){const a=ap();if(a){a.points.push(h.t.toLL(h.cx,h.cy));redraw();metrics();}}});
+  cv.addEventListener('dblclick',e=>{const h=hit(e);if(h.idx>=0&&h.pid===activeId){const p=plots.find(pl=>pl.id===h.pid);if(p){p.points.splice(h.idx,1);redraw();metrics();}}});
+  cv.addEventListener('mousedown',e=>{const h=hit(e);if(h.idx>=0)drag=h;});
+  cv.addEventListener('mousemove',e=>{if(!drag)return;const r=cv.getBoundingClientRect(),sx=cv.width/r.width,sy=cv.height/r.height,cx=(e.clientX-r.left)*sx,cy=(e.clientY-r.top)*sy,t=xf(),ll=t.toLL(cx,cy);const p=plots.find(pl=>pl.id===drag.pid);if(p&&drag.idx<p.points.length){p.points[drag.idx]=ll;redraw();metrics();}});
+  cv.addEventListener('mouseup',()=>{drag=null;});
+  cv.addEventListener('mouseleave',()=>{drag=null;});
+}
+function gAddManual(){const la=parseFloat(document.getElementById('g-lat-in').value),lo=parseFloat(document.getElementById('g-lon-in').value);if(isNaN(la)||isNaN(lo)){gNotif('⚠ Invalid coordinates');return;}const a=ap();if(a){a.points.push([la,lo]);document.getElementById('g-lat-in').value='';document.getElementById('g-lon-in').value='';redraw();metrics();gNotif('✓ Point added to '+a.name);}}
+function gNotif(msg){const n=document.getElementById('g-notif');if(n){n.textContent=msg;n.classList.add('show');setTimeout(()=>n.classList.remove('show'),2200);}}
+
+/* ══════════════════════ DISTANCE PATH ══════════════════════ */
+let wps=[{id:1,la:'',lo:''},{id:2,la:'',lo:''}],wpCnt=2;
+function dpRender(){const el=document.getElementById('dp-list');if(!el)return;el.innerHTML=wps.map((w,i)=>`<div style="background:#040D16;border:1px solid rgba(31,168,217,.12);border-radius:10px;padding:10px 12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--B)">WP ${i+1}</span>${wps.length>2?`<button onclick="dpDel(${w.id})" style="background:none;border:none;color:rgba(239,68,68,.5);cursor:pointer;font-size:13px">✕</button>`:''}</div><input class="fi" style="margin-bottom:5px" placeholder="Latitude" value="${w.la}" oninput="dpUp(${w.id},'la',this.value)"><input class="fi" placeholder="Longitude" value="${w.lo}" oninput="dpUp(${w.id},'lo',this.value)"></div>`).join('');}
+function dpAdd(){wpCnt++;wps.push({id:wpCnt,la:'',lo:''});dpRender();}
+function dpDel(id){if(wps.length<=2)return;wps=wps.filter(w=>w.id!==id);dpRender();}
+function dpUp(id,f,v){const w=wps.find(x=>x.id===id);if(w)w[f]=v;}
+function dpCalc(){
+  const pts=wps.map(w=>[parseFloat(w.la),parseFloat(w.lo)]).filter(p=>!isNaN(p[0])&&!isNaN(p[1]));
+  if(pts.length<2){alert('Enter at least 2 valid waypoints');return;}
+  let tot=0;const segs=[];for(let i=0;i<pts.length-1;i++){const d=hav(pts[i],pts[i+1]),az=azim(pts[i],pts[i+1]);segs.push({d,az,baz:(az+180)%360,f:i+1,t:i+2});tot+=d;}
+  document.getElementById('dp-tot-v').textContent=cvD(tot,dU).toFixed(3);
+  document.getElementById('dp-tot-u').textContent=dU;
+  document.getElementById('dp-all').innerHTML=Object.keys(DU).map(u=>`<tr class="${u===dU?'on':''}"><td>${u}</td><td>${cvD(tot,u).toFixed(u==='m'||u==='ft'?2:4)}</td></tr>`).join('');
+  document.getElementById('dp-segs').innerHTML=segs.map(s=>`<tr><td>${s.f}→${s.t}</td><td class="hi">${cvD(s.d,dU).toFixed(3)} ${dU}</td><td class="mono">${s.az.toFixed(4)}°</td><td class="mono">${s.baz.toFixed(4)}°</td></tr>`).join('');
+  document.getElementById('dp-result').style.display='grid';document.getElementById('dp-empty').style.display='none';
+}
+
+/* ══════════════════════ COORDINATES ══════════════════════ */
+let cM='dd';
+function crdMode(m,el){cM=m;document.querySelectorAll('#p-coord .upill').forEach(p=>p.classList.remove('on'));el.classList.add('on');['crd-dd','crd-dms','crd-utm'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('crd-'+m).style.display='block';}
+function crdConvert(){
+  let lat,lon;
+  if(cM==='dd'){lat=parseFloat(document.getElementById('c-dd-la').value);lon=parseFloat(document.getElementById('c-dd-lo').value);}
+  else if(cM==='dms'){lat=dmsToDD(document.getElementById('c-d1').value,document.getElementById('c-m1').value,document.getElementById('c-s1').value,document.getElementById('c-r1').value);lon=dmsToDD(document.getElementById('c-d2').value,document.getElementById('c-m2').value,document.getElementById('c-s2').value,document.getElementById('c-r2').value);}
+  else{const r=utmToLL(+document.getElementById('c-uz').value,document.getElementById('c-uh').value,+document.getElementById('c-ue').value,+document.getElementById('c-un').value);lat=r.lat;lon=r.lon;}
+  if(isNaN(lat)||isNaN(lon)){alert('Invalid coordinates');return;}
+  const h=parseFloat(document.getElementById('c-h').value)||0,utm=toUTM(lat,lon),ecef=toECEF(lat,lon,h);
+  function sv(id,v){document.getElementById(id).textContent=v;}
+  sv('cr-la',lat.toFixed(10)+'°');sv('cr-lo',lon.toFixed(10)+'°');
+  sv('cr-dms-la',toDMS(lat,true));sv('cr-dms-lo',toDMS(lon,false));
+  sv('cr-ddm-la',toDDM(lat,true));sv('cr-ddm-lo',toDDM(lon,false));
+  sv('cr-uz',utm.zone+utm.band);sv('cr-ue',utm.E+' m');sv('cr-un',utm.N+' m');
+  sv('cr-x',ecef.X+' m');sv('cr-y',ecef.Y+' m');sv('cr-z',ecef.Z+' m');
+  sv('cr-ns',lat>=0?'NORTHERN HEMISPHERE':'SOUTHERN HEMISPHERE');
+  sv('cr-ew',lon>=0?'EASTERN HEMISPHERE':'WESTERN HEMISPHERE');
+}
+
+/* ══════════════════════ TOTAL STATION ══════════════════════ */
+let shots=[{id:1,nm:'P1',hz:'',va:'90.0000',sd:'',ht:'1.500',N:'',E:'',Z:'',HD:'',AZ:''}],sCnt=1,tsOriV=null;
+function tsRender(){
+  const tb=document.getElementById('ts-body');if(!tb)return;
+  tb.innerHTML=shots.map(s=>`<tr><td><input class="nm" value="${s.nm}" oninput="tsUp(${s.id},'nm',this.value)"></td>${['hz','va','sd','ht'].map(f=>`<td><input value="${s[f]}" placeholder="${f==='va'?'90.0000':f==='ht'?'1.500':'—'}" oninput="tsUp(${s.id},'${f}',this.value)" style="width:82px"></td>`).join('')}<td class="hi">${s.N||'—'}</td><td class="hi">${s.E||'—'}</td><td class="hi">${s.Z||'—'}</td><td class="mono">${s.HD||'—'}</td><td class="mono">${s.AZ||'—'}</td><td><button onclick="tsDel(${s.id})" style="background:none;border:none;color:rgba(239,68,68,.4);cursor:pointer;font-size:14px">✕</button></td></tr>`).join('');
+  document.getElementById('ts-sum-ne').textContent=document.getElementById('ts-n').value&&document.getElementById('ts-e').value?document.getElementById('ts-n').value+' / '+document.getElementById('ts-e').value:'—';
+  document.getElementById('ts-sum-z').textContent=document.getElementById('ts-z').value?document.getElementById('ts-z').value+' m':'—';
+  document.getElementById('ts-sum-hi').textContent=(parseFloat(document.getElementById('ts-hi').value)||1.5).toFixed(3)+' m';
+  document.getElementById('ts-sum-ori').textContent=tsOriV!==null?tsOriV.toFixed(6)+'°':'Not set';
+}
+function tsUp(id,f,v){const s=shots.find(x=>x.id===id);if(s)s[f]=v;}
+function tsAddShot(){sCnt++;shots.push({id:sCnt,nm:'P'+sCnt,hz:'',va:'90.0000',sd:'',ht:'1.500',N:'',E:'',Z:'',HD:'',AZ:''});tsRender();}
+function tsDel(id){shots=shots.filter(s=>s.id!==id);tsRender();}
+function tsOri(){
+  const sn=parseFloat(document.getElementById('ts-n').value),se=parseFloat(document.getElementById('ts-e').value),bn=parseFloat(document.getElementById('ts-bn').value),be=parseFloat(document.getElementById('ts-be').value),hz=parseFloat(document.getElementById('ts-bhz').value)||0;
+  if([sn,se,bn,be].some(isNaN)){alert('Enter station and BS coordinates');return;}
+  const gb=(r2d(Math.atan2(be-se,bn-sn))+360)%360;tsOriV=(gb-hz+360)%360;
+  document.getElementById('ts-ori-v').textContent=tsOriV.toFixed(6)+'°';document.getElementById('ts-ori-box').style.display='block';tsRender();
+}
+function tsCompute(){
+  const sn=parseFloat(document.getElementById('ts-n').value)||0,se=parseFloat(document.getElementById('ts-e').value)||0,sz=parseFloat(document.getElementById('ts-z').value)||0,hi=parseFloat(document.getElementById('ts-hi').value)||1.5,ori=tsOriV||0;
+  shots.forEach(s=>{const hz=parseFloat(s.hz),va=parseFloat(s.va),sd=parseFloat(s.sd),ht=parseFloat(s.ht)||1.5;if([hz,va,sd].some(isNaN)){s.N=s.E=s.Z=s.HD=s.AZ='?';return;}const az=(hz+ori+360)%360,azR=d2r(az),vaR=d2r(va),hd=sd*Math.sin(vaR),dz=sd*Math.cos(vaR)+hi-ht;s.N=(sn+hd*Math.cos(azR)).toFixed(4);s.E=(se+hd*Math.sin(azR)).toFixed(4);s.Z=(sz+dz).toFixed(4);s.HD=hd.toFixed(4);s.AZ=az.toFixed(4);});tsRender();
+}
+function tsExport(){const rows=[['Name','Hz°','ZA°','SD m','HT m','Northing','Easting','Elevation','HD m','Azimuth°'],...shots.map(s=>[s.nm,s.hz,s.va,s.sd,s.ht,s.N,s.E,s.Z,s.HD,s.AZ])].map(r=>r.join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows],{type:'text/csv'}));a.download='ts_shots.csv';a.click();}
+
+/* ══════════════════════ GNSS / GPS ══════════════════════ */
+let gnM='rtk';
+const fixC={'RTK Fixed':'#22C55E','RTK Float':'#1FA8D9','DGNSS':'#F5BE18','SBAS':'#F5BE18','Autonomous':'#EF4444'};
+const fixA={'RTK Fixed':'Accuracy: 1–3 cm H · 2–4 cm V','RTK Float':'Accuracy: 10–30 cm','DGNSS':'Accuracy: 0.3–1.5 m','SBAS':'Accuracy: 0.5–3 m','Autonomous':'Accuracy: 3–15 m'};
+function gnMode(m,el){gnM=m;document.querySelectorAll('#p-gnss .upill').forEach(p=>p.classList.remove('on'));el.classList.add('on');document.getElementById('gn-title').textContent=m==='rtk'?'RTK GNSS Observation':m==='gps'?'GPS Observation':'DGPS / DGNSS Observation';document.getElementById('gn-rtk-extra').style.display=m==='dgps'?'none':'block';document.getElementById('gn-dgps-extra').style.display=m==='dgps'?'block':'none';}
+function gnProcess(){
+  const lat=parseFloat(document.getElementById('gn-la').value),lon=parseFloat(document.getElementById('gn-lo').value),h=parseFloat(document.getElementById('gn-h').value)||0;
+  if(isNaN(lat)||isNaN(lon)){alert('Enter valid coordinates');return;}
+  const utm=toUTM(lat,lon),fix=document.getElementById('gn-fix').value;
+  const pd=parseFloat(document.getElementById('gn-pd').value)||1.5,hd=parseFloat(document.getElementById('gn-hd').value)||1.0,vd=parseFloat(document.getElementById('gn-vd').value)||1.5,sig=parseFloat(document.getElementById('gn-sig').value)||0.01;
+  const fc=document.getElementById('gn-fix-card');if(fc)fc.style.borderColor=fixC[fix]||'var(--B)';
+  document.getElementById('gn-fix-lbl').style.color=fixC[fix];document.getElementById('gn-fix-v').textContent=fix;document.getElementById('gn-fix-v').style.color=fixC[fix];document.getElementById('gn-fix-acc').textContent=fixA[fix];
+  document.getElementById('gn-hacc').textContent='± '+(hd*sig*1000).toFixed(3)+' m';document.getElementById('gn-vacc').textContent='± '+(vd*sig*1500).toFixed(3)+' m';
+  document.getElementById('gn-out-la').textContent=toDMS(lat,true);document.getElementById('gn-out-lo').textContent=toDMS(lon,false);
+  document.getElementById('gn-out-e').textContent=utm.E+' m';document.getElementById('gn-out-n').textContent=utm.N+' m';
+  document.getElementById('gn-dms-la').textContent=lat.toFixed(8)+'°';document.getElementById('gn-dms-lo').textContent=lon.toFixed(8)+'°';
+  document.getElementById('gn-out-h').textContent=h.toFixed(3)+' m';
+  document.getElementById('gn-dop-card').style.display='block';
+  [['gn-pdop-q',pd],['gn-hdop-q',hd],['gn-vdop-q',vd]].forEach(([id,v])=>{const q=dopQ(v);document.getElementById(id).textContent=v.toFixed(2)+' — '+q.l;document.getElementById(id).style.color=q.c;});
+  const sv=document.getElementById('gn-sv').value;if(sv){document.getElementById('gn-sv-row').style.display='flex';document.getElementById('gn-sv-q').textContent=sv+' SVs';}
+  document.getElementById('gn-res').style.display='block';document.getElementById('gn-empty').style.display='none';
+}
+
+/* ══════════════════════ DRONE ══════════════════════ */
+const drP={p4r:[35.9,24.0,35,5472,3648],m300:[35.9,24.1,35,5472,3648],mv3:[35.9,24.0,35,5280,3956],wing:[35.9,24.0,50,8688,5792],custom:[35.9,24.0,35,5472,3648]};
+function drPreset(){const v=document.getElementById('dr-model').value,p=drP[v]||drP.p4r;['dr-sw','dr-sh','dr-fl','dr-iw','dr-ih'].forEach((id,i)=>document.getElementById(id).value=p[i]);}
+function drCompute(){
+  const alt=parseFloat(document.getElementById('dr-alt').value),fl=parseFloat(document.getElementById('dr-fl').value),iw=parseFloat(document.getElementById('dr-iw').value),ih=parseFloat(document.getElementById('dr-ih').value),sw=parseFloat(document.getElementById('dr-sw').value),sh=parseFloat(document.getElementById('dr-sh').value),fo=parseFloat(document.getElementById('dr-fo').value)/100,so=parseFloat(document.getElementById('dr-so').value)/100,area=parseFloat(document.getElementById('dr-area').value),spd=parseFloat(document.getElementById('dr-spd').value)||10,gcp=parseInt(document.getElementById('dr-gcp').value)||5;
+  if([alt,fl,iw,ih,sw,sh].some(isNaN)){alert('Fill in all camera fields');return;}
+  const gsd=(alt*sw/iw/fl)*100,fw=iw*gsd/100,fh=ih*gsd/100,ls=fw*(1-so),is_=fh*(1-fo),aM2=area*1e4,side=Math.sqrt(aM2),len=aM2/side,nl=Math.ceil(side/ls)+1,ni=Math.ceil(len/is_)+1,total=nl*ni,flen=nl*len,ftime=flen/spd/60,gcpN=Math.max(gcp,Math.ceil(area/5)),pcd=Math.round(5/(gsd**2)*1000);
+  const cls=gsd<=2?{l:'✓ Class A Cadastral (±25mm)',c:'#22C55E'}:gsd<=5?{l:'✓ Class B Topo 1:500 (±100mm)',c:'#1FA8D9'}:gsd<=10?{l:'✓ Class C Topo 1:1000 (±250mm)',c:'#F5BE18'}:{l:'○ Class D GIS (±1m)',c:'#EF4444'};
+  document.getElementById('dr-gsd').textContent=gsd.toFixed(2);document.getElementById('dr-cls').textContent=cls.l;document.getElementById('dr-cls').style.color=cls.c;
+  document.getElementById('dr-imgs').textContent=total;document.getElementById('dr-lines').textContent=nl+' lines × '+ni+' imgs';
+  document.getElementById('dr-time').textContent=ftime.toFixed(1);
+  document.getElementById('dr-fw').textContent=fw.toFixed(2)+' m';document.getElementById('dr-fh').textContent=fh.toFixed(2)+' m';document.getElementById('dr-ls').textContent=ls.toFixed(2)+' m';document.getElementById('dr-ii').textContent=is_.toFixed(2)+' m';document.getElementById('dr-fd').textContent=(flen/1000).toFixed(2)+' km';
+  document.getElementById('dr-pcd').textContent='~'+pcd+' pts/m²';document.getElementById('dr-gcpr').textContent='≥ '+gcpN+' GCPs';document.getElementById('dr-ha').textContent='± '+(gsd*1.5/100).toFixed(3)+' m';document.getElementById('dr-va').textContent='± '+(gsd*3/100).toFixed(3)+' m';
+  document.getElementById('dr-comp').innerHTML='<span style="color:'+cls.c+'">'+cls.l+'</span><br>GCP spacing: ~'+Math.round(Math.sqrt(aM2/gcpN))+' m average';
+  document.getElementById('dr-res').style.display='block';document.getElementById('dr-empty').style.display='none';
+}
+
+/* ══════════════════════ DUBAI STANDARDS ══════════════════════ */
+function dubCheck(){
+  const h=parseFloat(document.getElementById('dub-h').value),v=parseFloat(document.getElementById('dub-v').value),meth=document.getElementById('dub-meth').value;
+  if(isNaN(h)||isNaN(v)){alert('Enter H and V accuracy values');return;}
+  const cls=h<=.025&&v<=.05?{n:'CLASS A — CADASTRAL',c:'#1FA8D9'}:h<=.1&&v<=.15?{n:'CLASS B — ENGINEERING',c:'#22C55E'}:h<=.25&&v<=.35?{n:'CLASS C — TOPOGRAPHIC',c:'#F5BE18'}:h<=1&&v<=2?{n:'CLASS D — GIS / URBAN',c:'#8B5CF6'}:null;
+  const el=document.getElementById('dub-res');
+  if(cls){el.innerHTML=`<div class="comp-box pass"><div class="comp-name" style="color:${cls.c}">${cls.n}</div><div style="font-size:14px;font-weight:700;color:#22C55E;margin-bottom:8px">✓ COMPLIANT</div><div style="font-size:12px;color:var(--M)">H: ± ${(h*1000).toFixed(1)} mm · V: ± ${(v*1000).toFixed(1)} mm · ${meth}</div><div style="font-size:11px;color:var(--M);margin-top:8px">Suitable for submission to Dubai Municipality Land Registration Department.</div></div>`;}
+  else{el.innerHTML=`<div class="comp-box fail"><div class="comp-name" style="color:#EF4444">NON-COMPLIANT</div><div style="font-size:14px;font-weight:700;color:#EF4444;margin-bottom:8px">✕ DOES NOT MEET ANY CLASS</div><div style="font-size:12px;color:var(--M)">H: ± ${(h*1000).toFixed(1)} mm · V: ± ${(v*1000).toFixed(1)} mm</div><div style="font-size:11px;color:#EF4444;margin-top:8px">Review survey methodology, instrument calibration, and observation procedures.</div></div>`;}
+}
+
+/* ══════════════════════ INIT ══════════════════════ */
+initPills();renderPlots();dpRender();tsRender();redraw();metrics();
+window.addEventListener('resize',()=>redraw());
+</script>
+</body>
+</html>
