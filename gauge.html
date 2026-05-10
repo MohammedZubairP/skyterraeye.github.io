@@ -3,233 +3,216 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gauge — Land Measurement Tools | Sky TerraEye Dubai</title>
-<meta name="description" content="Free professional land measurement tools for Dubai surveyors. Area calculator, coordinate converter, total station, GNSS/GPS, drone survey planner and Dubai Municipality compliance checker.">
-<link rel="canonical" href="https://skyterraeye.com/gauge.html">
+<title>Gauge — Precision Measurement Platform | Sky TerraEye Dubai</title>
+<meta name="description" content="Professional satellite map measurement tool for Dubai surveyors. Draw polygons, measure distances, import Total Station and GNSS data, coordinate conversion and Dubai Municipality compliance.">
 <link rel="icon" href="assets/img/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- PapaParse CSV -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
 <style>
-/* ═══════════════════════════════════════ ROOT ═══════════════════════════════════════ */
+/* ══════════════ ROOT ══════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --B:#1FA8D9;--B2:#1482AA;--B3:#0D608A;
-  --Bdim:rgba(31,168,217,.12);--Bl:rgba(31,168,217,.22);
-  --G:#F5BE18;--Gl:rgba(245,190,24,.14);
-  --Gr:#22C55E;--Grd:rgba(34,197,94,.12);
-  --D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;--C:#16283C;
+  --B:#1FA8D9;--B2:#1482AA;--Bdim:rgba(31,168,217,.12);--Bl:rgba(31,168,217,.2);
+  --G:#F5BE18;--Gr:#22C55E;--Cy:#22D3EE;
+  --D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;
   --T:#D0E8F5;--M:#5A839E;--Dm:#243D52;--W:#fff;
-  --r:14px;--r2:22px;
-  --s:0 18px 64px rgba(0,0,0,.6);
-  --e:.32s cubic-bezier(.4,0,.2,1);
+  --r:10px;--r2:16px;--e:.25s cubic-bezier(.4,0,.2,1);
   --mono:'IBM Plex Mono',monospace;
+  --sb:280px;
 }
-html{scroll-behavior:smooth}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--T);font-size:16px;line-height:1.65;overflow-x:hidden}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--T);font-size:14px}
 a{color:inherit;text-decoration:none}
-img{display:block;max-width:100%;height:auto}
-input,select,textarea,button{font-family:'Plus Jakarta Sans',sans-serif}
+input,select,textarea,button{font-family:inherit}
+img{display:block;max-width:100%}
 
-/* Tool nav buttons — matches index.html exactly */
-.eye-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(245,190,24,.1);border:1.5px solid rgba(245,190,24,.35);color:#F5BE18;font-size:13.5px;font-weight:700;padding:7px 16px;border-radius:999px;margin-left:8px;transition:var(--e);cursor:pointer}
-.eye-btn:hover{background:rgba(245,190,24,.18);border-color:rgba(245,190,24,.6);transform:translateY(-1px);box-shadow:0 6px 20px rgba(245,190,24,.2)}
-.eye-btn svg{width:15px;height:15px}
-.terra-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(34,197,94,.1);border:1.5px solid rgba(34,197,94,.28);color:#4ADE80;font-size:13.5px;font-weight:700;padding:7px 16px;border-radius:999px;margin-left:4px;transition:var(--e);cursor:pointer}
-.terra-btn:hover{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.5);transform:translateY(-1px);box-shadow:0 6px 20px rgba(34,197,94,.2)}
-.terra-btn svg{width:15px;height:15px}
-.strata-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(167,139,250,.1);border:1.5px solid rgba(167,139,250,.32);color:#A78BFA;font-size:13.5px;font-weight:700;padding:7px 16px;border-radius:999px;margin-left:4px;transition:var(--e);cursor:pointer}
-.strata-btn:hover{background:rgba(167,139,250,.18);border-color:rgba(167,139,250,.58);transform:translateY(-1px);box-shadow:0 6px 20px rgba(167,139,250,.25)}
-.strata-btn svg{width:15px;height:15px}
-/* Gauge — active state (current page) */
-.gauge-active{display:inline-flex;align-items:center;gap:7px;background:rgba(6,182,212,.15);border:1.5px solid rgba(6,182,212,.55);color:#22D3EE;font-size:13.5px;font-weight:700;padding:7px 16px;border-radius:999px;margin-left:4px;transition:var(--e);cursor:pointer;box-shadow:0 0 16px rgba(6,182,212,.15)}
-.gauge-active svg{width:15px;height:15px}
-
-/* ═══ UAE BAR ═══ */
-.uae{height:5px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
-
-/* ═══ NAV ═══ */
-.nav{background:rgba(4,13,22,.96);backdrop-filter:blur(24px);border-bottom:1px solid rgba(31,168,217,.1);padding:0}
-.nw{max-width:1280px;margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:68px}
-.logo{display:flex;align-items:center;gap:12px}
-.logo img{height:30px;width:auto}
-.logt{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--W)}
+/* ══════════════ UAE + NAV ══════════════ */
+.uae{height:4px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
+.nav{background:rgba(4,13,22,.97);backdrop-filter:blur(24px);border-bottom:1px solid rgba(31,168,217,.1);height:60px;display:flex;align-items:center;padding:0 24px;gap:16px;justify-content:space-between;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px}
+.logo img{height:26px}
+.logt{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--W)}
 .logt b{color:var(--B)}
-.nl{display:flex;align-items:center;gap:4px}
-.nl a{font-size:13.5px;font-weight:600;color:var(--M);padding:7px 13px;border-radius:var(--r);transition:var(--e)}
+.nl{display:flex;align-items:center;gap:3px}
+.nl a{font-size:13px;font-weight:600;color:var(--M);padding:6px 11px;border-radius:var(--r);transition:var(--e)}
 .nl a:hover{color:var(--W);background:rgba(255,255,255,.06)}
-.nl .cta{background:var(--B);color:#fff;font-weight:700;margin-left:6px}
+.nl .cta{background:var(--B);color:#fff;font-weight:700}
 .nl .cta:hover{background:var(--B2)}
-.gauge-active{background:rgba(34,197,94,.1)!important;border:1px solid rgba(34,197,94,.25);color:#4ADE80!important;font-weight:700;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r)}
-.gauge-active svg{flex-shrink:0}
+.eye-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(245,190,24,.1);border:1.5px solid rgba(245,190,24,.35);color:var(--G);font-size:13px;font-weight:700;padding:6px 13px;border-radius:999px;margin-left:6px;transition:var(--e)}
+.eye-btn:hover{background:rgba(245,190,24,.2);transform:translateY(-1px)}
+.eye-btn svg,.terra-btn svg,.strata-btn svg,.gauge-active svg{width:13px;height:13px}
+.terra-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,.1);border:1.5px solid rgba(34,197,94,.28);color:#4ADE80;font-size:13px;font-weight:700;padding:6px 13px;border-radius:999px;margin-left:3px;transition:var(--e)}
+.terra-btn:hover{background:rgba(34,197,94,.2);transform:translateY(-1px)}
+.strata-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(167,139,250,.1);border:1.5px solid rgba(167,139,250,.32);color:#A78BFA;font-size:13px;font-weight:700;padding:6px 13px;border-radius:999px;margin-left:3px;transition:var(--e)}
+.strata-btn:hover{background:rgba(167,139,250,.2);transform:translateY(-1px)}
+.gauge-active{display:inline-flex;align-items:center;gap:6px;background:rgba(6,182,212,.15);border:1.5px solid rgba(6,182,212,.55);color:var(--Cy);font-size:13px;font-weight:700;padding:6px 13px;border-radius:999px;margin-left:3px;box-shadow:0 0 14px rgba(6,182,212,.15)}
 
-/* ═══ HERO ═══ */
-.gh{position:relative;padding:80px 0 60px;overflow:hidden;border-bottom:1px solid rgba(31,168,217,.1)}
-.gh-bg{position:absolute;inset:0;background:linear-gradient(135deg,#030D18 0%,#071828 50%,#030D18 100%)}
-.gh-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(31,168,217,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(31,168,217,.06) 1px,transparent 1px);background-size:48px 48px}
-.gh-glow{position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:800px;height:400px;background:radial-gradient(ellipse,rgba(34,197,94,.07) 0%,rgba(31,168,217,.04) 40%,transparent 70%);pointer-events:none}
-.gh-inner{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:0 32px;text-align:center}
-.gauge-badge{display:inline-flex;align-items:center;gap:10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);color:#4ADE80;font-size:10px;font-weight:800;letter-spacing:3px;text-transform:uppercase;padding:7px 18px;border-radius:999px;margin-bottom:24px}
-.gauge-dot{width:7px;height:7px;border-radius:50%;background:#4ADE80;animation:gp 2s infinite}
-@keyframes gp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.5)}}
-.gh h1{font-family:'Syne',sans-serif;font-size:clamp(28px,4vw,52px);font-weight:800;line-height:1.08;letter-spacing:-1px;color:var(--W);margin-bottom:16px}
-.gh h1 span{color:#4ADE80}
-.gh-sub{font-size:16px;color:var(--M);max-width:64ch;margin:0 auto 36px}
-.gh-pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:36px}
-.gh-pill{background:rgba(31,168,217,.08);border:1px solid rgba(31,168,217,.18);color:rgba(208,232,245,.7);font-size:12px;font-weight:600;padding:5px 13px;border-radius:999px}
-.gh-stats{display:flex;gap:32px;justify-content:center;flex-wrap:wrap}
-.gh-stat{text-align:center}
-.gh-stat-n{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#4ADE80}
-.gh-stat-l{font-size:11px;color:var(--M);margin-top:3px}
+/* ══════════════ APP LAYOUT ══════════════ */
+#app{display:flex;height:calc(100vh - 64px);overflow:hidden}
 
-/* ═══ MAIN LAYOUT ═══ */
-.wrap{max-width:1280px;margin:0 auto;padding:0 32px}
-.main{padding:40px 0 80px}
+/* ══════════════ LEFT SIDEBAR ══════════════ */
+#sidebar{width:var(--sb);min-width:var(--sb);background:var(--D2);border-right:1px solid var(--Bl);display:flex;flex-direction:column;overflow:hidden;z-index:200}
+#sidebar.collapsed{width:48px;min-width:48px}
+.sb-tabs{display:flex;flex-direction:column;padding:6px;gap:2px;border-bottom:1px solid var(--Bl);background:var(--D)}
+.sb-tab{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--M);font-size:12px;font-weight:600;transition:var(--e);white-space:nowrap;overflow:hidden;border:none;background:none;width:100%;text-align:left}
+.sb-tab svg{width:16px;height:16px;flex-shrink:0}
+.sb-tab:hover{background:rgba(31,168,217,.07);color:var(--T)}
+.sb-tab.on{background:rgba(34,197,94,.08);color:var(--Cy);border:1px solid rgba(6,182,212,.2)}
+.sb-content{flex:1;overflow-y:auto;overflow-x:hidden}
+.sb-content::-webkit-scrollbar{width:4px}
+.sb-content::-webkit-scrollbar-thumb{background:var(--D4);border-radius:2px}
+.sb-panel{display:none;padding:14px}
+.sb-panel.on{display:block}
+.sb-toggle{position:absolute;left:calc(var(--sb) - 0px);top:50%;transform:translateY(-50%);z-index:300;width:20px;height:40px;background:var(--D2);border:1px solid var(--Bl);border-left:none;border-radius:0 8px 8px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--M);transition:var(--e)}
 
-/* ═══ TABS ═══ */
-.tabs-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:32px;padding-bottom:0;border-bottom:none}
-.g-tab{background:var(--D2);border:1px solid rgba(31,168,217,.14);color:var(--M);padding:10px 18px;border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;transition:var(--e);white-space:nowrap}
-.g-tab svg{width:14px;height:14px;flex-shrink:0}
-.g-tab:hover{border-color:rgba(31,168,217,.3);color:var(--T)}
-.g-tab.on{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.3);color:#4ADE80;box-shadow:0 0 20px rgba(34,197,94,.08)}
-.g-panel{display:none;animation:pfade .2s ease}
-.g-panel.on{display:block}
-@keyframes pfade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* ══════════════ MAP AREA ══════════════ */
+#map-area{flex:1;position:relative;overflow:hidden}
+#map{width:100%;height:100%}
 
-/* ═══ CARDS ═══ */
-.gc{background:var(--D2);border:1px solid rgba(31,168,217,.14);border-radius:var(--r2);padding:22px}
-.gc-title{font-size:9.5px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--B);margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.gc-title::before{content:'';width:12px;height:2px;background:var(--B);border-radius:2px;flex-shrink:0}
-.gc-title.green{color:#4ADE80}
-.gc-title.green::before{background:#4ADE80}
+/* Map Toolbar */
+#map-toolbar{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;gap:4px;background:rgba(4,13,22,.92);backdrop-filter:blur(16px);border:1px solid rgba(31,168,217,.2);border-radius:12px;padding:6px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.mt-btn{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:none;background:transparent;color:var(--M);font-size:11.5px;font-weight:700;cursor:pointer;transition:var(--e);white-space:nowrap;letter-spacing:.3px}
+.mt-btn svg{width:14px;height:14px;flex-shrink:0}
+.mt-btn:hover{background:rgba(31,168,217,.1);color:var(--T)}
+.mt-btn.on{background:rgba(6,182,212,.15);color:var(--Cy);border:1px solid rgba(6,182,212,.3)}
+.mt-sep{width:1px;background:rgba(31,168,217,.15);margin:4px 2px}
 
-/* ═══ FORM ELEMENTS ═══ */
-.fg{margin-bottom:12px}
-.fg label{display:block;font-size:9.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--M);margin-bottom:5px}
-.fi{width:100%;background:#040D16;border:1px solid rgba(31,168,217,.18);color:var(--T);padding:9px 12px;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;transition:border-color .2s;font-family:inherit}
-.fi:focus{border-color:var(--B);box-shadow:0 0 0 3px rgba(31,168,217,.07)}
+/* Layer control */
+#layer-ctrl{position:absolute;top:10px;right:10px;z-index:1000;background:rgba(4,13,22,.92);backdrop-filter:blur(16px);border:1px solid rgba(31,168,217,.2);border-radius:10px;padding:6px;display:flex;flex-direction:column;gap:4px}
+.lc-btn{padding:6px 12px;border-radius:6px;border:none;background:transparent;color:var(--M);font-size:11px;font-weight:700;cursor:pointer;transition:var(--e);text-align:left;white-space:nowrap}
+.lc-btn:hover{background:rgba(31,168,217,.08);color:var(--T)}
+.lc-btn.on{background:rgba(31,168,217,.14);color:var(--B)}
+
+/* Coord bar */
+#coord-bar{position:absolute;bottom:0;left:0;right:0;z-index:1000;background:rgba(4,13,22,.88);backdrop-filter:blur(10px);border-top:1px solid rgba(31,168,217,.12);padding:6px 14px;display:flex;align-items:center;gap:16px;font-family:var(--mono);font-size:11px;color:var(--M);pointer-events:none}
+#coord-bar span{color:var(--Cy)}
+.cb-sep{color:rgba(31,168,217,.2)}
+
+/* Draw preview */
+.draw-cursor{cursor:crosshair!important}
+.draw-cursor * {cursor:crosshair!important}
+
+/* ══════════════ RIGHT PANEL ══════════════ */
+#right-panel{width:340px;min-width:340px;background:var(--D2);border-left:1px solid var(--Bl);display:none;flex-direction:column;overflow:hidden;z-index:200}
+#right-panel.show{display:flex}
+.rp-head{padding:14px;border-bottom:1px solid var(--Bl);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.rp-title{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--Cy)}
+.rp-close{background:none;border:none;color:var(--M);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:4px}
+.rp-close:hover{color:var(--T);background:rgba(255,255,255,.06)}
+.rp-body{flex:1;overflow-y:auto;padding:14px}
+.rp-body::-webkit-scrollbar{width:4px}
+.rp-body::-webkit-scrollbar-thumb{background:var(--D4)}
+
+/* ══════════════ SHARED UI ══════════════ */
+.sec-head{font-size:9.5px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--Cy);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sec-head::before{content:'';width:10px;height:2px;background:var(--Cy);border-radius:1px;flex-shrink:0}
+.card{background:rgba(4,13,22,.6);border:1px solid rgba(31,168,217,.12);border-radius:10px;padding:14px;margin-bottom:10px}
+.fi{width:100%;background:#040D16;border:1px solid rgba(31,168,217,.18);color:var(--T);padding:8px 10px;border-radius:8px;font-size:12px;outline:none;box-sizing:border-box;transition:border-color .2s}
+.fi:focus{border-color:var(--Cy)}
 .fi::placeholder{color:var(--Dm)}
-.fs{width:100%;background:#040D16;border:1px solid rgba(31,168,217,.18);color:var(--T);padding:9px 12px;border-radius:10px;font-size:13px;outline:none;appearance:none;cursor:pointer}
-.fta{width:100%;background:#040D16;border:1px solid rgba(31,168,217,.18);color:var(--T);padding:9px 12px;border-radius:10px;font-size:13px;outline:none;resize:none;font-family:inherit}
-
-/* ═══ BUTTONS ═══ */
-.btn-p{background:var(--B);color:#fff;border:none;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:var(--e)}
+.fs{width:100%;background:#040D16;border:1px solid rgba(31,168,217,.18);color:var(--T);padding:8px 10px;border-radius:8px;font-size:12px;outline:none;appearance:none}
+.fg{margin-bottom:10px}
+.fg label{display:block;font-size:9px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--M);margin-bottom:4px}
+.btn-p{background:var(--B);color:#fff;border:none;padding:9px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:var(--e)}
 .btn-p:hover{background:var(--B2);transform:translateY(-1px)}
-.btn-g{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.28);color:#4ADE80;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:var(--e)}
+.btn-g{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#4ADE80;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:var(--e)}
 .btn-g:hover{background:rgba(34,197,94,.18)}
-.btn-o{background:transparent;border:1px solid rgba(31,168,217,.28);color:var(--B);padding:9px 18px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;transition:var(--e)}
+.btn-c{background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);color:var(--Cy);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:var(--e)}
+.btn-c:hover{background:rgba(6,182,212,.18)}
+.btn-o{background:transparent;border:1px solid rgba(31,168,217,.25);color:var(--B);padding:7px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;transition:var(--e)}
 .btn-o:hover{background:var(--Bdim)}
-.btn-r{background:transparent;border:1px solid rgba(239,68,68,.25);color:#EF4444;padding:9px 16px;border-radius:10px;font-size:12px;cursor:pointer;transition:var(--e)}
+.btn-r{background:transparent;border:1px solid rgba(239,68,68,.22);color:#EF4444;padding:7px 12px;border-radius:8px;font-size:11px;cursor:pointer;transition:var(--e)}
 .btn-r:hover{background:rgba(239,68,68,.1)}
+.rb{background:#040D16;border:1px solid rgba(31,168,217,.12);border-radius:8px;padding:9px 12px;margin-bottom:6px}
+.rb.hi{border-color:rgba(6,182,212,.35);background:rgba(6,182,212,.06)}
+.rb.ok{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.06)}
+.rb.warn{border-color:rgba(245,190,24,.35);background:rgba(245,190,24,.06)}
+.rb-l{font-size:8.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--M);margin-bottom:3px}
+.rb-v{font-family:var(--mono);font-size:12px;color:var(--T);font-weight:400;word-break:break-all}
+.rb.hi .rb-v{color:var(--Cy);font-weight:700}
+.rb.ok .rb-v{color:#4ADE80;font-weight:700}
 
-/* ═══ RESULT BOXES ═══ */
-.rb{background:#040D16;border:1px solid rgba(31,168,217,.14);border-radius:10px;padding:11px 14px;margin-bottom:7px}
-.rb.hi{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.06)}
-.rb.blu{border-color:var(--B);background:var(--Bdim)}
-.rb-l{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--M);margin-bottom:4px}
-.rb-v{font-family:var(--mono);font-size:13px;color:var(--T);font-weight:400}
-.rb.hi .rb-v{color:#4ADE80;font-weight:700}
-.rb.blu .rb-v{color:var(--B);font-weight:700}
+/* Feature list */
+.feat-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#040D16;border:1px solid rgba(31,168,217,.1);cursor:pointer;margin-bottom:5px;transition:var(--e)}
+.feat-item:hover{border-color:rgba(6,182,212,.3);background:rgba(6,182,212,.04)}
+.feat-item.sel{border-color:var(--Cy);background:rgba(6,182,212,.08)}
+.feat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.feat-name{flex:1;font-size:12px;font-weight:600;color:var(--T);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feat-sub{font-size:10px;color:var(--M);margin-top:1px}
+.feat-del{background:none;border:none;color:rgba(239,68,68,.4);cursor:pointer;font-size:14px;padding:0 2px;flex-shrink:0}
+.feat-del:hover{color:#EF4444}
 
-/* ═══ UNIT PILLS ═══ */
-.upills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
-.upill{background:transparent;border:1px solid rgba(31,168,217,.18);color:var(--M);padding:4px 11px;border-radius:999px;font-size:11px;font-weight:600;cursor:pointer;transition:var(--e)}
-.upill:hover{border-color:var(--B);color:var(--T)}
-.upill.on{background:rgba(31,168,217,.14);border-color:var(--B);color:var(--B)}
+/* Unit pills */
+.upills{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.upill{background:transparent;border:1px solid rgba(31,168,217,.15);color:var(--M);padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;cursor:pointer;transition:var(--e)}
+.upill:hover{border-color:var(--Cy);color:var(--T)}
+.upill.on{background:rgba(6,182,212,.12);border-color:var(--Cy);color:var(--Cy)}
 
-/* ═══ METRICS ROW ═══ */
-.metrics{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:stretch}
-.metric{background:var(--D3);border:1px solid rgba(31,168,217,.14);border-radius:12px;padding:13px 16px;flex:1;min-width:120px}
-.metric-l{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--M);margin-bottom:5px}
-.metric-v{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#4ADE80;line-height:1}
-.metric-u{font-size:11px;color:var(--Dm);margin-top:4px}
+/* File drop zone */
+.drop-zone{border:2px dashed rgba(31,168,217,.25);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:var(--e);background:rgba(4,13,22,.4)}
+.drop-zone:hover,.drop-zone.over{border-color:var(--Cy);background:rgba(6,182,212,.06)}
+.drop-zone svg{width:28px;height:28px;color:var(--Dm);margin:0 auto 8px}
+.drop-zone p{font-size:12px;color:var(--M);line-height:1.6}
+.drop-zone .hint{font-size:10px;color:var(--Dm);margin-top:6px}
 
-/* ═══ MAP CANVAS ═══ */
-.map-wrap{position:relative;border-radius:var(--r2);overflow:hidden;border:1px solid rgba(31,168,217,.14)}
-#g-canvas{display:block;width:100%;background:#030C14;cursor:crosshair}
-.map-hint{position:absolute;top:10px;left:10px;background:rgba(4,13,22,.88);border:1px solid rgba(31,168,217,.18);border-radius:8px;padding:5px 11px;font-size:10px;color:var(--M);line-height:1.8;pointer-events:none}
-.map-compass{position:absolute;top:10px;right:14px;font-size:11px;font-weight:800;color:rgba(90,131,158,.6);font-family:var(--mono)}
+/* Table */
+.g-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.g-tbl th{padding:6px 8px;font-size:8.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--Cy);border-bottom:1px solid rgba(31,168,217,.15);text-align:left;font-weight:700;white-space:nowrap}
+.g-tbl td{padding:5px 8px;border-bottom:1px solid rgba(31,168,217,.05);color:var(--T);font-weight:500}
+.g-tbl tr:hover td{background:rgba(6,182,212,.03)}
+.g-tbl td.mono{font-family:var(--mono);font-size:10px}
+.g-tbl td.ok{color:#4ADE80;font-weight:700}
+.g-tbl td.warn{color:var(--G);font-weight:700}
+.g-tbl td.bad{color:#EF4444;font-weight:700}
 
-/* ═══ PLOT LIST ═══ */
-.plot-item{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:10px;background:#040D16;border:1px solid rgba(31,168,217,.1);cursor:pointer;margin-bottom:6px;transition:var(--e)}
-.plot-item.on{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.06)}
-.plot-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.plot-name{flex:1;font-size:13px;font-weight:600;color:var(--T)}
-.plot-item.on .plot-name{color:#4ADE80}
-.plot-del{background:none;border:none;color:rgba(239,68,68,.4);cursor:pointer;font-size:14px;padding:0 2px;transition:color .2s}
-.plot-del:hover{color:#EF4444}
+/* DOP bar */
+.dop-row{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#040D16;border:1px solid rgba(31,168,217,.08);border-radius:7px;margin-bottom:5px}
+.dop-l{font-size:8.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--M)}
+.dop-v{font-weight:700;font-size:11.5px;font-family:var(--mono)}
 
-/* ═══ SWATCHES ═══ */
-.swatches{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.swatch{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;transition:transform .15s,border-color .15s}
-.swatch:hover{transform:scale(1.25)}
-.swatch.on{border-color:#fff}
-
-/* ═══ ALL UNITS TABLE ═══ */
-.utbl{width:100%;border-collapse:collapse;font-size:12px}
-.utbl td{padding:5px 8px;border-bottom:1px solid rgba(31,168,217,.07)}
-.utbl td:first-child{color:var(--Dm);font-weight:600;width:72px;font-family:var(--mono)}
-.utbl td:last-child{color:var(--T);font-weight:600;text-align:right;font-family:var(--mono)}
-.utbl tr.on td{color:#4ADE80}
-
-/* ═══ TABLES ═══ */
-.gtbl{width:100%;border-collapse:collapse;font-size:12px}
-.gtbl th{padding:7px 10px;font-size:9px;letter-spacing:2px;font-weight:700;text-transform:uppercase;color:var(--B);border-bottom:1px solid rgba(31,168,217,.18);text-align:left;white-space:nowrap}
-.gtbl td{padding:7px 10px;border-bottom:1px solid rgba(31,168,217,.06);color:var(--T);font-weight:500}
-.gtbl tr:nth-child(even) td{background:rgba(31,168,217,.025)}
-.gtbl td.mono{font-family:var(--mono);font-size:11px}
-.gtbl td.hi{color:#4ADE80;font-weight:700}
-.gtbl td input{background:transparent;border:none;color:var(--T);font-family:var(--mono);font-size:11px;width:90px;outline:none}
-.gtbl td input.nm{color:#4ADE80;font-weight:700;width:60px}
-
-/* ═══ NOTIF ═══ */
-.notif{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#4ADE80;padding:7px 14px;border-radius:9px;font-size:12px;font-weight:600;margin-top:8px;display:none}
+/* Notif */
+.notif{padding:7px 12px;border-radius:8px;font-size:11.5px;font-weight:600;margin-top:8px;display:none}
 .notif.show{display:block}
+.notif.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#4ADE80}
+.notif.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#EF4444}
 
-/* ═══ DOP BAR ═══ */
-.dop-row{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;background:#040D16;border:1px solid rgba(31,168,217,.1);border-radius:8px;margin-bottom:6px}
-.dop-l{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--M)}
-.dop-v{font-weight:700;font-size:12px;font-family:var(--mono)}
+/* Measure popup custom */
+.meas-popup{background:rgba(4,13,22,.95)!important;border:1px solid rgba(6,182,212,.35)!important;border-radius:10px!important;padding:12px 14px!important;box-shadow:0 8px 28px rgba(0,0,0,.6)!important;color:var(--Cy)!important;font-family:var(--mono)!important;font-size:12px!important;font-weight:700!important}
+.meas-popup::before,.meas-popup::after{border-top-color:rgba(6,182,212,.35)!important}
 
-/* ═══ DUBAI COMPLIANCE ═══ */
-.dclass{border-left:3px solid;padding:16px 18px;border-radius:0 var(--r2) var(--r2) 0;background:var(--D2);margin-bottom:12px}
-.dclass-tag{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
-.dclass-acc{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--W);margin-bottom:6px}
-.dclass-info{font-size:12px;color:var(--M);line-height:1.65}
-.comp-box{padding:20px;border-radius:12px;text-align:center;margin-top:14px}
-.comp-box.pass{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.28)}
-.comp-box.fail{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.28)}
-.comp-name{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px}
+/* Leaflet overrides */
+.leaflet-container{background:#040D16;font-family:'Plus Jakarta Sans',sans-serif}
+.leaflet-control-zoom{border:1px solid rgba(31,168,217,.2)!important;border-radius:8px!important;overflow:hidden}
+.leaflet-control-zoom a{background:rgba(4,13,22,.9)!important;color:var(--T)!important;border-bottom:1px solid rgba(31,168,217,.15)!important;width:32px!important;height:32px!important;line-height:32px!important;font-size:16px!important}
+.leaflet-control-zoom a:hover{background:rgba(31,168,217,.12)!important;color:var(--Cy)!important}
+.leaflet-control-attribution{background:rgba(4,13,22,.7)!important;color:var(--Dm)!important;font-size:9px!important}
+.leaflet-control-attribution a{color:var(--Dm)!important}
+.leaflet-popup-content-wrapper{background:rgba(4,13,22,.96)!important;border:1px solid rgba(31,168,217,.25)!important;border-radius:12px!important;color:var(--T)!important;box-shadow:0 12px 36px rgba(0,0,0,.7)!important}
+.leaflet-popup-tip{background:rgba(4,13,22,.96)!important}
+.leaflet-popup-close-button{color:var(--M)!important}
+.leaflet-tooltip{background:rgba(4,13,22,.9)!important;border:1px solid rgba(31,168,217,.2)!important;color:var(--Cy)!important;font-family:var(--mono)!important;font-size:10.5px!important;font-weight:700!important;border-radius:6px!important;padding:4px 8px!important;box-shadow:0 4px 14px rgba(0,0,0,.5)!important}
 
-/* ═══ FOOTER ═══ */
-.footer{background:#03080F;border-top:1px solid rgba(31,168,217,.08);padding:40px 0 24px}
-.footer-inner{max-width:1280px;margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
-.footer-brand{display:flex;align-items:center;gap:10px}
-.footer-brand img{height:28px}
-.footer-bt{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--W)}
-.footer-bt b{color:var(--B)}
-.footer-links{display:flex;gap:20px;flex-wrap:wrap}
-.footer-links a{font-size:13px;color:var(--M);transition:color .2s}
-.footer-links a:hover{color:var(--T)}
-.footer-copy{font-size:11.5px;color:var(--Dm)}
-.footer-note{max-width:1280px;margin:16px auto 0;padding:16px 32px 0;border-top:1px solid rgba(255,255,255,.04);font-size:10.5px;color:var(--Dm);line-height:1.7}
+/* Dubai class */
+.d-cls{border-left:3px solid;padding:12px 14px;border-radius:0 var(--r2) var(--r2) 0;background:rgba(4,13,22,.5);margin-bottom:8px}
+.d-cls-tag{font-size:9.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px}
+.d-cls-acc{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--W);margin-bottom:4px}
+.d-cls-info{font-size:11px;color:var(--M);line-height:1.6}
 
-/* ═══ GRID HELPERS ═══ */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
-.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
-.split-l{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start}
-.split-m{display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start}
-.split-3{display:grid;grid-template-columns:280px 1fr 200px;gap:16px;align-items:start}
-.map-panel{display:grid;grid-template-columns:220px 1fr 210px;gap:14px;align-items:start}
+/* Grid helpers */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
 
-/* ═══ SCROLLBAR ═══ */
+/* Scroll */
 *{scrollbar-width:thin;scrollbar-color:var(--D4) transparent}
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-thumb{background:var(--D4);border-radius:4px}
-
-@media(max-width:1000px){.map-panel,.split-3,.split-m,.split-l{grid-template-columns:1fr}.g4{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr}}
-@media(max-width:680px){.g2,.g3,.g4{grid-template-columns:1fr}.tabs-bar{gap:4px}.g-tab{font-size:12px;padding:8px 12px}}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--D4);border-radius:2px}
 </style>
 </head>
 <body>
@@ -238,786 +221,909 @@ input,select,textarea,button{font-family:'Plus Jakarta Sans',sans-serif}
 
 <!-- NAV -->
 <nav class="nav">
-  <div class="nw">
-    <a class="logo" href="index.html">
-      <img src="assets/img/logo.png" alt="Sky TerraEye Logo">
-      <div class="logt"><b>SKY</b> TERRAEYE</div>
-    </a>
-    <div class="nl">
-      <a href="services.html">Services</a>
-      <a href="process.html">Process</a>
-      <a href="about.html">About</a>
-      <a href="contact.html">Contact</a>
-      <a class="eye-btn" href="eye.html">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        Eye
-      </a>
-      <a class="terra-btn" href="terra.html">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-        Terra
-      </a>
-      <a class="strata-btn" href="strata.html">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="4" rx="1"/><rect x="2" y="10" width="20" height="4" rx="1"/><rect x="2" y="17" width="20" height="4" rx="1"/></svg>
-        Strata
-      </a>
-      <a class="gauge-active" href="gauge.html">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        Gauge
-      </a>
-      <a class="cta" href="contact.html">Get a Quote</a>
-    </div>
+  <a class="logo" href="index.html">
+    <img src="assets/img/logo.png" alt="Sky TerraEye">
+    <div class="logt"><b>SKY</b> TERRAEYE</div>
+  </a>
+  <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:800;color:var(--Cy)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    GAUGE — Precision Measurement Platform
+  </div>
+  <div class="nl">
+    <a href="services.html">Services</a>
+    <a href="contact.html">Contact</a>
+    <a class="eye-btn" href="eye.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Eye</a>
+    <a class="terra-btn" href="terra.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Terra</a>
+    <a class="strata-btn" href="strata.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="4" rx="1"/><rect x="2" y="10" width="20" height="4" rx="1"/><rect x="2" y="17" width="20" height="4" rx="1"/></svg>Strata</a>
+    <a class="gauge-active" href="gauge.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Gauge</a>
+    <a class="cta" href="contact.html" style="margin-left:8px">Get a Quote</a>
   </div>
 </nav>
 
-<!-- HERO -->
-<div class="gh">
-  <div class="gh-bg"></div>
-  <div class="gh-grid"></div>
-  <div class="gh-glow"></div>
-  <div class="gh-inner">
-    <div class="gauge-badge"><span class="gauge-dot"></span>Sky TerraEye — Free Tool</div>
-    <h1>Gauge<br><span>Precision Measurement Suite</span></h1>
-    <p class="gh-sub">Professional geodetic calculators built for Dubai surveyors — area measurement, coordinate conversion, total station, GNSS/GPS processing, drone flight planning and Dubai Municipality compliance.</p>
-    <div class="gh-pills">
-      <span class="gh-pill">WGS84 · UTM Zone 40N</span>
-      <span class="gh-pill">Dubai Municipality Standards</span>
-      <span class="gh-pill">Total Station · GNSS · DGPS</span>
-      <span class="gh-pill">Drone GSD & Flight Planner</span>
-      <span class="gh-pill">All Area & Distance Units</span>
-    </div>
-    <div class="gh-stats">
-      <div class="gh-stat"><div class="gh-stat-n">7</div><div class="gh-stat-l">Tools in One</div></div>
-      <div class="gh-stat"><div class="gh-stat-n">20+</div><div class="gh-stat-l">Unit Conversions</div></div>
-      <div class="gh-stat"><div class="gh-stat-n">100%</div><div class="gh-stat-l">Free · No Login</div></div>
-      <div class="gh-stat"><div class="gh-stat-n">🇦🇪</div><div class="gh-stat-l">Dubai Calibrated</div></div>
-    </div>
-  </div>
-</div>
+<!-- APP -->
+<div id="app">
 
-<!-- MAIN -->
-<div class="main">
-<div class="wrap">
+  <!-- ════ LEFT SIDEBAR ════ -->
+  <div id="sidebar">
+    <!-- Tool tabs -->
+    <div class="sb-tabs" id="sb-tabs">
+      <button class="sb-tab on" onclick="sbTab('features',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Features</button>
+      <button class="sb-tab" onclick="sbTab('import',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Import</button>
+      <button class="sb-tab" onclick="sbTab('measure',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h6M22 12h-6M12 2v6M12 22v-6"/><rect x="9" y="9" width="6" height="6"/></svg>Measure</button>
+      <button class="sb-tab" onclick="sbTab('coord',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20"/></svg>Convert</button>
+      <button class="sb-tab" onclick="sbTab('drone',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="12" cy="12" r="3"/><path d="M7 5h10M5 7v10M19 7v10M7 19h10"/></svg>Drone</button>
+      <button class="sb-tab" onclick="sbTab('dubai',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Dubai</button>
+    </div>
 
-<!-- TABS -->
-<div class="tabs-bar" role="tablist">
-  <button class="g-tab on" onclick="gTab('map',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-    Map &amp; Area
-  </button>
-  <button class="g-tab" onclick="gTab('dist',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-    Distance Path
-  </button>
-  <button class="g-tab" onclick="gTab('coord',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20"/></svg>
-    Coordinates
-  </button>
-  <button class="g-tab" onclick="gTab('ts',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
-    Total Station
-  </button>
-  <button class="g-tab" onclick="gTab('gnss',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-    GNSS / GPS
-  </button>
-  <button class="g-tab" onclick="gTab('drone',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="12" cy="12" r="3"/><path d="M7 5h10M5 7v10M19 7v10M7 19h10"/></svg>
-    Drone Survey
-  </button>
-  <button class="g-tab" onclick="gTab('dubai',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    Dubai Standards
-  </button>
-</div>
+    <!-- Content panels -->
+    <div class="sb-content">
 
-<!-- ════════════ PANEL: MAP & AREA ════════════ -->
-<div class="g-panel on" id="p-map">
-<div class="map-panel">
-
-  <!-- Left -->
-  <div style="display:flex;flex-direction:column;gap:12px">
-    <div class="gc">
-      <div class="gc-title green">Plots</div>
-      <div id="g-plot-list"></div>
-      <button class="btn-o" style="width:100%;margin-top:6px" onclick="gAddPlot()">+ Add Plot</button>
-    </div>
-    <div class="gc" id="g-active-card">
-      <div class="gc-title green">Active Plot</div>
-      <div class="fg"><label>Name</label><input class="fi" id="g-pname" oninput="gRename(this.value)" placeholder="Plot A"></div>
-      <div class="fg"><label>Color</label><div class="swatches" id="g-swatches"></div></div>
-      <div class="fg"><label>Notes</label><textarea class="fta" id="g-notes" rows="2" oninput="gSaveNotes(this.value)" placeholder="Field notes..."></textarea></div>
-    </div>
-    <div class="gc">
-      <div class="gc-title">Add Point</div>
-      <div class="fg"><label>Latitude (°)</label><input class="fi" id="g-lat-in" placeholder="e.g. 25.2048" onkeydown="if(event.key==='Enter')gAddManual()"></div>
-      <div class="fg"><label>Longitude (°)</label><input class="fi" id="g-lon-in" placeholder="e.g. 55.2708" onkeydown="if(event.key==='Enter')gAddManual()"></div>
-      <button class="btn-g" style="width:100%" onclick="gAddManual()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg>
-        Add Point
-      </button>
-      <div class="notif" id="g-notif"></div>
-    </div>
-  </div>
-
-  <!-- Center -->
-  <div>
-    <div class="metrics">
-      <div class="metric"><div class="metric-l">Area</div><div class="metric-v" id="g-area-v">0</div><div class="metric-u" id="g-area-u">m²</div></div>
-      <div class="metric"><div class="metric-l">Perimeter</div><div class="metric-v" id="g-perim-v">0</div><div class="metric-u" id="g-perim-u">m</div></div>
-      <div class="metric"><div class="metric-l">Points</div><div class="metric-v" id="g-pts-v">0</div><div class="metric-u">vertices</div></div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn-o" onclick="document.getElementById('g-unit-drop').style.display=document.getElementById('g-unit-drop').style.display==='none'?'block':'none'">⚙ Units</button>
-        <button class="btn-r" onclick="gClear()">Clear</button>
-      </div>
-    </div>
-    <div id="g-unit-drop" style="display:none;background:var(--D2);border:1px solid rgba(31,168,217,.14);border-radius:12px;padding:14px;margin-bottom:12px">
-      <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#4ADE80;margin-bottom:8px">AREA</div>
-      <div class="upills" id="g-area-pills"></div>
-      <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#4ADE80;margin-top:8px;margin-bottom:8px">DISTANCE</div>
-      <div class="upills" id="g-dist-pills"></div>
-    </div>
-    <div class="map-wrap">
-      <canvas id="g-canvas" height="460"></canvas>
-      <div class="map-hint">Click → add &nbsp;·&nbsp; Drag → move &nbsp;·&nbsp; Dbl-click → remove</div>
-      <div class="map-compass">↑ N</div>
-    </div>
-  </div>
-
-  <!-- Right -->
-  <div style="display:flex;flex-direction:column;gap:12px">
-    <div class="gc">
-      <div class="gc-title">All Area Units</div>
-      <table class="utbl" id="g-all-area"></table>
-    </div>
-    <div class="gc">
-      <div class="gc-title">All Distance Units</div>
-      <table class="utbl" id="g-all-dist"></table>
-    </div>
-    <div class="gc" id="g-coord-panel">
-      <div class="gc-title">First Point</div>
-      <div id="g-first-coord" style="font-size:11px;color:var(--Dm)">Add points to view</div>
-    </div>
-    <div class="gc" id="g-total-panel" style="display:none">
-      <div class="gc-title green">All Plots Total</div>
-      <div id="g-total-v" style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#4ADE80">—</div>
-    </div>
-  </div>
-
-</div>
-</div><!-- /p-map -->
-
-<!-- ════════════ PANEL: DISTANCE PATH ════════════ -->
-<div class="g-panel" id="p-dist">
-<div class="split-m">
-  <div style="display:flex;flex-direction:column;gap:14px">
-    <div class="gc">
-      <div class="gc-title">Distance Unit</div>
-      <div class="upills" id="dp-upills"></div>
-    </div>
-    <div class="gc">
-      <div class="gc-title">Waypoints</div>
-      <div id="dp-list"></div>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn-o" style="flex:1" onclick="dpAdd()">+ Waypoint</button>
-        <button class="btn-g" style="flex:1" onclick="dpCalc()">Calculate →</button>
-      </div>
-    </div>
-  </div>
-  <div>
-    <div id="dp-result" style="display:none">
-      <div class="g2" style="margin-bottom:16px">
-        <div class="gc" style="border-color:rgba(34,197,94,.3)">
-          <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#4ADE80;margin-bottom:6px">TOTAL DISTANCE</div>
-          <div style="font-family:'Syne',sans-serif;font-size:30px;font-weight:800;color:#4ADE80" id="dp-tot-v">—</div>
-          <div style="font-size:12px;color:var(--M);margin-top:4px" id="dp-tot-u">m</div>
+      <!-- FEATURES panel -->
+      <div class="sb-panel on" id="panel-features">
+        <div class="sec-head">Map Features</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <button class="btn-o" style="flex:1;font-size:10px" onclick="zoomAll()">⊞ Zoom All</button>
+          <button class="btn-r" style="flex:1;font-size:10px" onclick="clearAll()">✕ Clear All</button>
+          <button class="btn-o" style="flex:1;font-size:10px" onclick="exportGeoJSON()">↓ GeoJSON</button>
         </div>
-        <div class="gc">
-          <div class="gc-title">All Units</div>
-          <table class="utbl" id="dp-all"></table>
+        <div id="feat-list"><div style="text-align:center;color:var(--Dm);padding:30px 10px;font-size:12px">No features yet.<br>Draw on the map or import data.</div></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(31,168,217,.1)">
+          <div id="feat-summary" style="font-size:10px;color:var(--M)">0 features · 0.00 m²</div>
         </div>
       </div>
-      <div class="gc">
-        <div class="gc-title">Segment Table</div>
-        <div style="overflow-x:auto"><table class="gtbl">
-          <thead><tr><th>#</th><th>Segment</th><th>Distance</th><th>Azimuth</th><th>Back Az.</th></tr></thead>
-          <tbody id="dp-segs"></tbody>
-        </table></div>
-      </div>
-    </div>
-    <div id="dp-empty" class="gc" style="text-align:center;padding:60px 20px;color:var(--Dm)">Add waypoints and click Calculate</div>
-  </div>
-</div>
-</div><!-- /p-dist -->
 
-<!-- ════════════ PANEL: COORDINATES ════════════ -->
-<div class="g-panel" id="p-coord">
-<div class="split-m">
-  <div class="gc">
-    <div class="gc-title">Input Format</div>
-    <div class="upills" style="margin-bottom:18px">
-      <button class="upill on" onclick="crdMode('dd',this)">Decimal Deg</button>
-      <button class="upill" onclick="crdMode('dms',this)">DMS</button>
-      <button class="upill" onclick="crdMode('utm',this)">UTM</button>
-    </div>
-    <div id="crd-dd">
-      <div class="fg"><label>Latitude (°)</label><input class="fi" id="c-dd-la" placeholder="e.g. 25.2048"></div>
-      <div class="fg"><label>Longitude (°)</label><input class="fi" id="c-dd-lo" placeholder="e.g. 55.2708"></div>
-    </div>
-    <div id="crd-dms" style="display:none">
-      <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--B);margin-bottom:7px">LATITUDE</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 46px;gap:5px;margin-bottom:12px">
-        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">DEG</label><input class="fi" id="c-d1" placeholder="°"></div>
-        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">MIN</label><input class="fi" id="c-m1" placeholder="'"></div>
-        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">SEC</label><input class="fi" id="c-s1" placeholder='"'></div>
-        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">DIR</label><select class="fs" id="c-r1"><option>N</option><option>S</option></select></div>
-      </div>
-      <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--B);margin-bottom:7px">LONGITUDE</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 46px;gap:5px">
-        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">DEG</label><input class="fi" id="c-d2" placeholder="°"></div>
-        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">MIN</label><input class="fi" id="c-m2" placeholder="'"></div>
-        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">SEC</label><input class="fi" id="c-s2" placeholder='"'></div>
-        <div><label style="font-size:9px;color:var(--Dm);display:block;margin-bottom:4px">DIR</label><select class="fs" id="c-r2"><option>E</option><option>W</option></select></div>
-      </div>
-    </div>
-    <div id="crd-utm" style="display:none">
-      <div style="display:grid;grid-template-columns:1fr 52px;gap:8px">
-        <div class="fg"><label>Zone</label><input class="fi" id="c-uz" placeholder="40"></div>
-        <div class="fg"><label>Hemi</label><select class="fs" id="c-uh"><option value="N">N</option><option value="S">S</option></select></div>
-      </div>
-      <div class="fg"><label>Easting (m)</label><input class="fi" id="c-ue" placeholder="e.g. 418240.000"></div>
-      <div class="fg"><label>Northing (m)</label><input class="fi" id="c-un" placeholder="e.g. 2792500.000"></div>
-    </div>
-    <div class="fg" style="margin-top:10px"><label>Height (m)</label><input class="fi" id="c-h" placeholder="0" value="0"></div>
-    <button class="btn-g" style="width:100%;margin-top:4px" onclick="crdConvert()">Convert All Formats →</button>
-  </div>
-  <div id="crd-res" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-content:start">
-    <div class="gc"><div class="gc-title green">Decimal Degrees</div>
-      <div class="rb hi"><div class="rb-l">LATITUDE</div><div class="rb-v" id="cr-la">—</div></div>
-      <div class="rb hi"><div class="rb-l">LONGITUDE</div><div class="rb-v" id="cr-lo">—</div></div>
-    </div>
-    <div class="gc"><div class="gc-title">DMS</div>
-      <div class="rb"><div class="rb-l">LATITUDE</div><div class="rb-v" id="cr-dms-la">—</div></div>
-      <div class="rb"><div class="rb-l">LONGITUDE</div><div class="rb-v" id="cr-dms-lo">—</div></div>
-    </div>
-    <div class="gc"><div class="gc-title">UTM Zone 40N</div>
-      <div class="rb blu"><div class="rb-l">ZONE / BAND</div><div class="rb-v" id="cr-uz">—</div></div>
-      <div class="rb"><div class="rb-l">EASTING</div><div class="rb-v" id="cr-ue">—</div></div>
-      <div class="rb"><div class="rb-l">NORTHING</div><div class="rb-v" id="cr-un">—</div></div>
-    </div>
-    <div class="gc"><div class="gc-title">ECEF (XYZ)</div>
-      <div class="rb"><div class="rb-l">X (m)</div><div class="rb-v" id="cr-x">—</div></div>
-      <div class="rb"><div class="rb-l">Y (m)</div><div class="rb-v" id="cr-y">—</div></div>
-      <div class="rb"><div class="rb-l">Z (m)</div><div class="rb-v" id="cr-z">—</div></div>
-    </div>
-    <div class="gc"><div class="gc-title">Degrees Decimal Minutes</div>
-      <div class="rb"><div class="rb-l">LATITUDE</div><div class="rb-v" id="cr-ddm-la">—</div></div>
-      <div class="rb"><div class="rb-l">LONGITUDE</div><div class="rb-v" id="cr-ddm-lo">—</div></div>
-    </div>
-    <div class="gc"><div class="gc-title">Hemisphere</div>
-      <div class="rb"><div class="rb-l">N / S</div><div class="rb-v" id="cr-ns">—</div></div>
-      <div class="rb"><div class="rb-l">E / W</div><div class="rb-v" id="cr-ew">—</div></div>
-    </div>
-  </div>
-</div>
-</div><!-- /p-coord -->
+      <!-- IMPORT panel -->
+      <div class="sb-panel" id="panel-import">
+        <!-- Import mode tabs -->
+        <div class="upills" id="imp-mode-pills">
+          <button class="upill on" onclick="impMode('ts',this)">Total Station</button>
+          <button class="upill" onclick="impMode('gnss',this)">GNSS / GPS</button>
+          <button class="upill" onclick="impMode('nmea',this)">NMEA</button>
+        </div>
 
-<!-- ════════════ PANEL: TOTAL STATION ════════════ -->
-<div class="g-panel" id="p-ts">
-<div class="g3" style="align-items:start;margin-bottom:16px">
-  <div class="gc">
-    <div class="gc-title">Station Setup</div>
-    <div class="fg"><label>Northing (m)</label><input class="fi" id="ts-n" placeholder="e.g. 2793450.000"></div>
-    <div class="fg"><label>Easting (m)</label><input class="fi" id="ts-e" placeholder="e.g. 419250.000"></div>
-    <div class="fg"><label>Elevation (m)</label><input class="fi" id="ts-z" placeholder="e.g. 8.500"></div>
-    <div class="fg"><label>Instrument Height HI (m)</label><input class="fi" id="ts-hi" value="1.500"></div>
-  </div>
-  <div class="gc">
-    <div class="gc-title">Backsight Orientation</div>
-    <div class="fg"><label>BS Point Northing (m)</label><input class="fi" id="ts-bn" placeholder="Known point N"></div>
-    <div class="fg"><label>BS Point Easting (m)</label><input class="fi" id="ts-be" placeholder="Known point E"></div>
-    <div class="fg"><label>Hz Circle Reading (°)</label><input class="fi" id="ts-bhz" value="0.0000"></div>
-    <button class="btn-p" style="width:100%;margin-top:4px" onclick="tsOri()">Compute Orientation →</button>
-    <div id="ts-ori-box" style="display:none;margin-top:10px">
-      <div class="rb hi"><div class="rb-l">ORIENTATION CORRECTION</div><div class="rb-v" id="ts-ori-v">—</div></div>
-    </div>
-  </div>
-  <div class="gc">
-    <div class="gc-title green">Station Summary</div>
-    <div class="rb"><div class="rb-l">STATION N / E</div><div class="rb-v" id="ts-sum-ne">—</div></div>
-    <div class="rb"><div class="rb-l">ELEVATION</div><div class="rb-v" id="ts-sum-z">—</div></div>
-    <div class="rb"><div class="rb-l">HI</div><div class="rb-v" id="ts-sum-hi">—</div></div>
-    <div class="rb"><div class="rb-l">ORIENTATION</div><div class="rb-v" id="ts-sum-ori">Not set</div></div>
-    <div style="display:flex;gap:8px;margin-top:12px">
-      <button class="btn-o" onclick="tsAddShot()">+ Shot</button>
-      <button class="btn-g" style="flex:1" onclick="tsCompute()">▶ Compute</button>
-      <button class="btn-o" onclick="tsExport()">↓ CSV</button>
-    </div>
-  </div>
-</div>
-<div class="gc">
-  <div class="gc-title">Radiation Shots — Zenith Angle Mode</div>
-  <div style="overflow-x:auto"><table class="gtbl" id="ts-tbl">
-    <thead><tr><th>Point</th><th>Hz Reading (°)</th><th>Zenith Angle (°)</th><th>Slope Dist (m)</th><th>Target Ht (m)</th><th>Northing</th><th>Easting</th><th>Elevation</th><th>HD (m)</th><th>Azimuth (°)</th><th></th></tr></thead>
-    <tbody id="ts-body"></tbody>
-  </table></div>
-  <div style="font-size:10px;color:var(--Dm);margin-top:10px">ZA=90° is horizontal · HD=SD×sin(ZA) · ΔZ=SD×cos(ZA)+HI−HT · WGS84 bearings</div>
-</div>
-</div><!-- /p-ts -->
+        <!-- Total Station Import -->
+        <div id="imp-ts">
+          <div class="sec-head">Total Station Setup</div>
+          <div class="g2" style="margin-bottom:8px">
+            <div class="fg"><label>Stn Northing (m)</label><input class="fi" id="ts-sn" placeholder="e.g. 2793450"></div>
+            <div class="fg"><label>Stn Easting (m)</label><input class="fi" id="ts-se" placeholder="e.g. 419250"></div>
+          </div>
+          <div class="g2" style="margin-bottom:8px">
+            <div class="fg"><label>Stn Elevation (m)</label><input class="fi" id="ts-sz" placeholder="e.g. 8.500"></div>
+            <div class="fg"><label>Instr. Height (m)</label><input class="fi" id="ts-hi" value="1.500"></div>
+          </div>
+          <div class="g2" style="margin-bottom:12px">
+            <div class="fg"><label>BS Northing (m)</label><input class="fi" id="ts-bn" placeholder="Optional"></div>
+            <div class="fg"><label>BS Easting (m)</label><input class="fi" id="ts-be" placeholder="Optional"></div>
+          </div>
+          <div class="fg" style="margin-bottom:12px"><label>Hz Circle to BS (°)</label><input class="fi" id="ts-bhz" value="0.0000" placeholder="0.0000"></div>
+          <button class="btn-c" style="width:100%;margin-bottom:12px;font-size:11px" onclick="tsSetupCompute()">▶ Set Station & Orientation</button>
+          <div id="ts-ori-box" style="display:none;margin-bottom:10px"><div class="rb hi"><div class="rb-l">ORIENTATION CORRECTION</div><div class="rb-v" id="ts-ori-v">—</div></div></div>
 
-<!-- ════════════ PANEL: GNSS / GPS ════════════ -->
-<div class="g-panel" id="p-gnss">
-<div class="upills" style="margin-bottom:16px">
-  <button class="upill on" onclick="gnMode('rtk',this)">RTK GNSS</button>
-  <button class="upill" onclick="gnMode('gps',this)">GPS / SBAS</button>
-  <button class="upill" onclick="gnMode('dgps',this)">DGPS / DGNSS</button>
-</div>
-<div class="split-m">
-  <div class="gc">
-    <div class="gc-title" id="gn-title">RTK GNSS Observation</div>
-    <div class="fg"><label>Latitude (°)</label><input class="fi" id="gn-la" placeholder="e.g. 25.204800"></div>
-    <div class="fg"><label>Longitude (°)</label><input class="fi" id="gn-lo" placeholder="e.g. 55.270800"></div>
-    <div class="fg"><label>Ellipsoidal Height (m)</label><input class="fi" id="gn-h" placeholder="e.g. 65.420"></div>
-    <div id="gn-rtk-extra">
-      <div class="fg"><label>Fix Type</label><select class="fs" id="gn-fix"><option>RTK Fixed</option><option>RTK Float</option><option>DGNSS</option><option>SBAS</option><option>Autonomous</option></select></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-        <div class="fg"><label>PDOP</label><input class="fi" id="gn-pd" placeholder="1.4"></div>
-        <div class="fg"><label>HDOP</label><input class="fi" id="gn-hd" placeholder="0.9"></div>
-        <div class="fg"><label>VDOP</label><input class="fi" id="gn-vd" placeholder="1.2"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="fg"><label>Satellites Used</label><input class="fi" id="gn-sv" placeholder="e.g. 18"></div>
-        <div class="fg"><label>Age of Corr. (s)</label><input class="fi" id="gn-age" placeholder="e.g. 0.5"></div>
-      </div>
-      <div class="fg"><label>Sigma / Precision (m)</label><input class="fi" id="gn-sig" placeholder="e.g. 0.010"></div>
-    </div>
-    <div id="gn-dgps-extra" style="display:none">
-      <div class="fg"><label>Base Station Latitude</label><input class="fi" id="gn-bsla" placeholder="e.g. 25.190000"></div>
-      <div class="fg"><label>Base Station Longitude</label><input class="fi" id="gn-bslo" placeholder="e.g. 55.260000"></div>
-      <div class="fg"><label>Correction Source</label><select class="fs" id="gn-corr"><option>NRTK</option><option>RTK Base</option><option>RTCM 3.x</option><option>SBAS</option><option>OMNISTAR</option></select></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-        <div class="fg"><label>PDOP</label><input class="fi" id="gn-pd2" placeholder="1.8"></div>
-        <div class="fg"><label>HDOP</label><input class="fi" id="gn-hd2" placeholder="1.1"></div>
-        <div class="fg"><label>VDOP</label><input class="fi" id="gn-vd2" placeholder="1.5"></div>
-      </div>
-    </div>
-    <button class="btn-g" style="width:100%;margin-top:8px" onclick="gnProcess()">▶ Process Observation</button>
-  </div>
-  <div>
-    <div id="gn-res" style="display:none">
-      <div class="g2" style="margin-bottom:14px">
-        <div class="gc" id="gn-fix-card">
-          <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px" id="gn-fix-lbl">FIX TYPE</div>
-          <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800" id="gn-fix-v">—</div>
-          <div style="font-size:11px;color:var(--M);margin-top:6px" id="gn-fix-acc">—</div>
-        </div>
-        <div class="gc">
-          <div class="rb hi"><div class="rb-l">H ACCURACY (est.)</div><div class="rb-v" id="gn-hacc">—</div></div>
-          <div class="rb"><div class="rb-l">V ACCURACY (est.)</div><div class="rb-v" id="gn-vacc">—</div></div>
-        </div>
-      </div>
-      <div class="gc" style="margin-bottom:14px">
-        <div class="gc-title green">Computed Coordinates</div>
-        <div class="g2">
-          <div class="rb hi"><div class="rb-l">LATITUDE (WGS84)</div><div class="rb-v" id="gn-out-la">—</div></div>
-          <div class="rb hi"><div class="rb-l">LONGITUDE (WGS84)</div><div class="rb-v" id="gn-out-lo">—</div></div>
-          <div class="rb"><div class="rb-l">UTM Z40N — EASTING</div><div class="rb-v" id="gn-out-e">—</div></div>
-          <div class="rb"><div class="rb-l">UTM Z40N — NORTHING</div><div class="rb-v" id="gn-out-n">—</div></div>
-          <div class="rb"><div class="rb-l">DMS LATITUDE</div><div class="rb-v" id="gn-dms-la">—</div></div>
-          <div class="rb"><div class="rb-l">DMS LONGITUDE</div><div class="rb-v" id="gn-dms-lo">—</div></div>
-        </div>
-        <div class="rb" style="margin-top:8px"><div class="rb-l">ELLIPSOIDAL HEIGHT</div><div class="rb-v" id="gn-out-h">—</div></div>
-      </div>
-      <div class="gc" id="gn-dop-card" style="display:none">
-        <div class="gc-title">DOP Quality Assessment</div>
-        <div class="dop-row"><span class="dop-l">PDOP — POSITION</span><span class="dop-v" id="gn-pdop-q">—</span></div>
-        <div class="dop-row"><span class="dop-l">HDOP — HORIZONTAL</span><span class="dop-v" id="gn-hdop-q">—</span></div>
-        <div class="dop-row"><span class="dop-l">VDOP — VERTICAL</span><span class="dop-v" id="gn-vdop-q">—</span></div>
-        <div class="dop-row" id="gn-sv-row" style="display:none"><span class="dop-l">SATELLITES USED</span><span class="dop-v" id="gn-sv-q">—</span></div>
-      </div>
-    </div>
-    <div id="gn-empty" class="gc" style="text-align:center;padding:60px 20px;color:var(--Dm)">Enter observation data and click Process</div>
-  </div>
-</div>
-</div><!-- /p-gnss -->
+          <div class="sec-head" style="margin-top:4px">Import Shots File</div>
+          <div class="drop-zone" id="ts-drop" onclick="document.getElementById('ts-file').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+            <p>Drop CSV / TXT or click to browse</p>
+            <div class="hint">Columns: POINT, HZ, ZA, SD, HT<br>or POINT, N, E, Z<br>or POINT, LAT, LON, ELEV</div>
+          </div>
+          <input type="file" id="ts-file" accept=".csv,.txt" style="display:none" onchange="tsLoadFile(this)">
+          <div class="notif" id="ts-notif"></div>
 
-<!-- ════════════ PANEL: DRONE SURVEY ════════════ -->
-<div class="g-panel" id="p-drone">
-<div class="split-m">
-  <div style="display:flex;flex-direction:column;gap:14px">
-    <div class="gc">
-      <div class="gc-title">Drone &amp; Camera</div>
-      <div class="fg"><label>Drone Model</label>
-        <select class="fs" id="dr-model" onchange="drPreset()">
-          <option value="p4r">DJI Phantom 4 RTK</option>
-          <option value="m300">DJI Matrice 300 RTK</option>
-          <option value="mv3">DJI Mavic 3 Enterprise</option>
-          <option value="wing">Wingtra WingtraOne</option>
-          <option value="custom">Custom / Manual</option>
-        </select>
-      </div>
-      <div class="g2">
-        <div class="fg"><label>Sensor W (mm)</label><input class="fi" id="dr-sw" value="35.9"></div>
-        <div class="fg"><label>Sensor H (mm)</label><input class="fi" id="dr-sh" value="24.0"></div>
-        <div class="fg"><label>Focal Length (mm)</label><input class="fi" id="dr-fl" value="35"></div>
-        <div class="fg"><label>Image W (px)</label><input class="fi" id="dr-iw" value="5472"></div>
-        <div class="fg"><label>Image H (px)</label><input class="fi" id="dr-ih" value="3648"></div>
-      </div>
-    </div>
-    <div class="gc">
-      <div class="gc-title">Flight Parameters</div>
-      <div class="fg"><label>Altitude AGL (m)</label><input class="fi" id="dr-alt" value="120"></div>
-      <div class="fg"><label>Flight Speed (m/s)</label><input class="fi" id="dr-spd" value="10"></div>
-      <div class="g2">
-        <div class="fg"><label>Forward Overlap (%)</label><input class="fi" id="dr-fo" value="80"></div>
-        <div class="fg"><label>Side Overlap (%)</label><input class="fi" id="dr-so" value="70"></div>
-      </div>
-      <div class="fg"><label>Survey Area (ha)</label><input class="fi" id="dr-area" value="10"></div>
-      <div class="fg"><label>Min. GCP Count</label><input class="fi" id="dr-gcp" value="5"></div>
-      <button class="btn-g" style="width:100%" onclick="drCompute()">▶ Compute Flight Plan</button>
-    </div>
-  </div>
-  <div>
-    <div id="dr-res" style="display:none">
-      <div class="g3" style="margin-bottom:14px">
-        <div class="gc" style="border-color:rgba(34,197,94,.3)">
-          <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#4ADE80;margin-bottom:6px">GSD</div>
-          <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#4ADE80" id="dr-gsd">—</div>
-          <div style="font-size:10px;color:var(--M)">cm/pixel</div>
-          <div style="font-size:10px;margin-top:6px;font-weight:700" id="dr-cls">—</div>
-        </div>
-        <div class="gc">
-          <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--M);margin-bottom:6px">TOTAL IMAGES</div>
-          <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--T)" id="dr-imgs">—</div>
-          <div style="font-size:10px;color:var(--M)" id="dr-lines">—</div>
-        </div>
-        <div class="gc">
-          <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--M);margin-bottom:6px">FLIGHT TIME</div>
-          <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--G)" id="dr-time">—</div>
-          <div style="font-size:10px;color:var(--M)">minutes (approx)</div>
-        </div>
-      </div>
-      <div class="g2">
-        <div class="gc">
-          <div class="gc-title">Footprint &amp; Spacing</div>
-          <div class="rb hi"><div class="rb-l">IMAGE FOOTPRINT (W)</div><div class="rb-v" id="dr-fw">—</div></div>
-          <div class="rb"><div class="rb-l">IMAGE FOOTPRINT (H)</div><div class="rb-v" id="dr-fh">—</div></div>
-          <div class="rb"><div class="rb-l">LINE SPACING</div><div class="rb-v" id="dr-ls">—</div></div>
-          <div class="rb"><div class="rb-l">IMAGE INTERVAL</div><div class="rb-v" id="dr-ii">—</div></div>
-          <div class="rb"><div class="rb-l">TOTAL FLIGHT DIST.</div><div class="rb-v" id="dr-fd">—</div></div>
-        </div>
-        <div class="gc">
-          <div class="gc-title">Quality &amp; Accuracy</div>
-          <div class="rb hi"><div class="rb-l">PT CLOUD DENSITY</div><div class="rb-v" id="dr-pcd">—</div></div>
-          <div class="rb"><div class="rb-l">GCP REQUIRED</div><div class="rb-v" id="dr-gcpr">—</div></div>
-          <div class="rb"><div class="rb-l">EXPECTED H ACCURACY</div><div class="rb-v" id="dr-ha">—</div></div>
-          <div class="rb"><div class="rb-l">EXPECTED V ACCURACY</div><div class="rb-v" id="dr-va">—</div></div>
-          <div style="background:#040D16;border-radius:10px;padding:12px 14px;margin-top:10px">
-            <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#4ADE80;margin-bottom:5px">DUBAI MUNICIPALITY COMPLIANCE</div>
-            <div style="font-size:12px;color:var(--M);line-height:1.7" id="dr-comp">—</div>
+          <div id="ts-data-wrap" style="display:none;margin-top:10px">
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+              <button class="btn-g" style="flex:1;font-size:11px" onclick="tsPlotAll()">📍 Plot on Map</button>
+              <button class="btn-o" style="flex:1;font-size:11px" onclick="tsExportCSV()">↓ CSV</button>
+            </div>
+            <div style="overflow-x:auto;max-height:240px;overflow-y:auto"><table class="g-tbl" id="ts-table"><thead><tr><th>Point</th><th>Northing</th><th>Easting</th><th>Elev</th></tr></thead><tbody id="ts-tbody"></tbody></table></div>
           </div>
         </div>
-      </div>
-    </div>
-    <div id="dr-empty" class="gc" style="text-align:center;padding:60px 20px;color:var(--Dm)">Configure parameters and click Compute</div>
-  </div>
-</div>
-</div><!-- /p-drone -->
 
-<!-- ════════════ PANEL: DUBAI STANDARDS ════════════ -->
-<div class="g-panel" id="p-dubai">
-  <div style="background:var(--D2);border:1px solid rgba(31,168,217,.2);border-radius:var(--r2);padding:22px;margin-bottom:20px;display:flex;gap:18px;align-items:center;flex-wrap:wrap">
-    <div style="font-size:36px">🇦🇪</div>
-    <div>
-      <div style="font-size:15px;font-weight:800;color:var(--W);letter-spacing:.5px">Dubai Municipality — Survey & Land Department</div>
-      <div style="font-size:12px;color:var(--M);margin-top:5px">Land Registration · GIS Centre · Spatial Data Infrastructure (SDI)</div>
-    </div>
-    <div style="margin-left:auto;text-align:right;font-family:var(--mono);font-size:11px;color:var(--Dm);line-height:1.8">
-      <div>Datum: WGS84 (ETRS89 compatible)</div>
-      <div>Projection: UTM Zone 40N</div>
-      <div>Geoid: EGM2008 / UAE National Geoid</div>
-    </div>
-  </div>
-  <div class="g2" style="margin-bottom:20px;align-items:start">
-    <div>
-      <div class="dclass" style="border-color:#1FA8D9">
-        <div class="dclass-tag" style="color:#1FA8D9">Class A — Cadastral</div>
-        <div class="dclass-acc">± 25 mm H &nbsp;/&nbsp; ± 50 mm V</div>
-        <div class="dclass-info">RTK GNSS, Total Station · Scale 1:250–1:500 · Boundary delimitation, subdivision, property registration with DLD</div>
-      </div>
-      <div class="dclass" style="border-color:#22C55E">
-        <div class="dclass-tag" style="color:#22C55E">Class B — Engineering 1:500</div>
-        <div class="dclass-acc">± 100 mm H / ± 150 mm V</div>
-        <div class="dclass-info">RTK GNSS, TS, Drone ≤3 cm GSD · Scale 1:500–1:1000 · Roads, utilities, infrastructure, cut/fill verification</div>
-      </div>
-      <div class="dclass" style="border-color:#F5BE18">
-        <div class="dclass-tag" style="color:#F5BE18">Class C — Topographic 1:1000</div>
-        <div class="dclass-acc">± 250 mm H / ± 350 mm V</div>
-        <div class="dclass-info">GNSS, TS, Drone ≤5 cm GSD · Scale 1:1000–1:2000 · Site planning, earthworks, topo mapping</div>
-      </div>
-      <div class="dclass" style="border-color:#8B5CF6">
-        <div class="dclass-tag" style="color:#8B5CF6">Class D — GIS / Urban</div>
-        <div class="dclass-acc">± 1.0 m H &nbsp;/&nbsp; ± 2.0 m V</div>
-        <div class="dclass-info">DGPS, Drone ≤10 cm GSD, Mobile Mapping · Scale 1:2000–1:5000 · Asset mapping, GIS layers</div>
-      </div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <div class="gc">
-        <div class="gc-title green">Compliance Checker</div>
-        <div class="fg"><label>Achieved H Accuracy (m)</label><input class="fi" id="dub-h" placeholder="e.g. 0.025"></div>
-        <div class="fg"><label>Achieved V Accuracy (m)</label><input class="fi" id="dub-v" placeholder="e.g. 0.050"></div>
-        <div class="fg"><label>Survey Method</label>
-          <select class="fs" id="dub-meth"><option>RTK GNSS</option><option>Static GNSS</option><option>Total Station</option><option>DGPS</option><option>Drone Photogrammetry</option><option>Mobile Mapping</option></select>
+        <!-- GNSS Import -->
+        <div id="imp-gnss" style="display:none">
+          <div class="sec-head">GNSS / GPS File Import</div>
+          <div class="drop-zone" id="gnss-drop" onclick="document.getElementById('gnss-file').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <p>Drop GNSS CSV / TXT</p>
+            <div class="hint">Columns: POINT, LAT, LON, H, FIX, PDOP, HDOP, VDOP, SATS<br>(all but POINT optional)</div>
+          </div>
+          <input type="file" id="gnss-file" accept=".csv,.txt" style="display:none" onchange="gnssLoadFile(this)">
+          <div class="notif" id="gnss-notif"></div>
+          <div id="gnss-data-wrap" style="display:none;margin-top:10px">
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+              <button class="btn-g" style="flex:1;font-size:11px" onclick="gnssPlotAll()">📍 Plot on Map</button>
+              <button class="btn-o" style="flex:1;font-size:11px" onclick="gnssExportCSV()">↓ CSV</button>
+            </div>
+            <div style="overflow-x:auto;max-height:220px;overflow-y:auto"><table class="g-tbl" id="gnss-table"><thead><tr><th>Point</th><th>Lat</th><th>Lon</th><th>H</th><th>Fix</th><th>PDOP</th></tr></thead><tbody id="gnss-tbody"></tbody></table></div>
+          </div>
         </div>
-        <button class="btn-g" style="width:100%;margin-top:4px" onclick="dubCheck()">▶ Check Compliance</button>
-        <div id="dub-res"></div>
-      </div>
-      <div class="gc">
-        <div class="gc-title">Required Deliverables (DM)</div>
-        <div style="display:flex;flex-direction:column;gap:7px;font-size:12px">
-          <div style="background:#040D16;border:1px solid rgba(31,168,217,.1);border-radius:8px;padding:9px 12px"><span style="color:var(--B);font-weight:700">DWG/DXF </span><span style="color:var(--M)">AutoCAD in DM template format, UTM Zone 40N, title block with north arrow, scale bar, DM seal.</span></div>
-          <div style="background:#040D16;border:1px solid rgba(31,168,217,.1);border-radius:8px;padding:9px 12px"><span style="color:var(--B);font-weight:700">RINEX Files </span><span style="color:var(--M)">Raw GNSS data. Min. 4-hr static sessions for control. Calibration certificates required.</span></div>
-          <div style="background:#040D16;border:1px solid rgba(31,168,217,.1);border-radius:8px;padding:9px 12px"><span style="color:var(--B);font-weight:700">Field Books </span><span style="color:var(--M)">Signed traverse & leveling sheets, closure calculations, angle/distance observations.</span></div>
-          <div style="background:#040D16;border:1px solid rgba(31,168,217,.1);border-radius:8px;padding:9px 12px"><span style="color:var(--B);font-weight:700">GCP Report </span><span style="color:var(--M)">Ground Control Point list, residuals, photo documentation.</span></div>
-          <div style="background:#040D16;border:1px solid rgba(31,168,217,.1);border-radius:8px;padding:9px 12px"><span style="color:var(--B);font-weight:700">PDF Report </span><span style="color:var(--M)">Methodology, equipment list, QA/QC summary, adjustment report, coordinate list.</span></div>
+
+        <!-- NMEA Import -->
+        <div id="imp-nmea" style="display:none">
+          <div class="sec-head">NMEA GGA Sentences</div>
+          <div class="fg"><label>Paste NMEA or upload file</label>
+            <textarea class="fi" id="nmea-text" rows="5" style="resize:none;font-size:11px;line-height:1.5" placeholder="$GNGGA,091550.00,2512.25800,N,05516.24800,E,4,20,0.9,65.4,M,-30.2,M,,0000*79&#10;$GPGGA,091551.00,2512.25810,N,05516.24810,E,4,18,1.1,65.5,M,..."></textarea>
+          </div>
+          <div style="display:flex;gap:6px">
+            <div class="drop-zone" style="flex:1;padding:10px" onclick="document.getElementById('nmea-file').click()">
+              <p style="font-size:11px">or upload .txt / .nmea</p>
+            </div>
+            <input type="file" id="nmea-file" accept=".txt,.nmea,.log" style="display:none" onchange="nmeaLoadFile(this)">
+          </div>
+          <button class="btn-c" style="width:100%;margin-top:8px;font-size:11px" onclick="nmeaParse()">▶ Parse & Plot NMEA</button>
+          <div class="notif" id="nmea-notif"></div>
+          <div id="nmea-data-wrap" style="display:none;margin-top:10px">
+            <div style="overflow-x:auto;max-height:200px;overflow-y:auto"><table class="g-tbl" id="nmea-table"><thead><tr><th>#</th><th>Lat</th><th>Lon</th><th>H</th><th>Fix</th><th>Sats</th></tr></thead><tbody id="nmea-tbody"></tbody></table></div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-</div><!-- /p-dubai -->
+      </div><!-- /panel-import -->
 
-</div><!-- /wrap -->
-</div><!-- /main -->
+      <!-- MEASURE panel -->
+      <div class="sb-panel" id="panel-measure">
+        <div class="sec-head">Measurement Results</div>
+        <div style="margin-bottom:10px">
+          <div class="fg"><label>Area Unit</label>
+            <div class="upills" id="m-area-pills"></div>
+          </div>
+          <div class="fg"><label>Distance Unit</label>
+            <div class="upills" id="m-dist-pills"></div>
+          </div>
+        </div>
+        <div id="meas-results">
+          <div class="rb hi"><div class="rb-l">ACTIVE MEASUREMENT</div><div class="rb-v" id="m-active">Draw on map to measure</div></div>
+        </div>
+        <div id="meas-all" style="display:none;margin-top:10px">
+          <div class="sec-head">All Area Units</div>
+          <table class="g-tbl" id="m-area-tbl"></table>
+          <div class="sec-head" style="margin-top:10px">All Distance Units</div>
+          <table class="g-tbl" id="m-dist-tbl"></table>
+        </div>
+      </div><!-- /panel-measure -->
 
-<!-- FOOTER -->
-<footer class="footer">
-  <div class="footer-inner">
-    <div class="footer-brand">
-      <img src="assets/img/logo.png" alt="Sky TerraEye">
-      <div class="footer-bt"><b>SKY</b> TERRAEYE &mdash; Gauge</div>
+      <!-- COORD CONVERT panel -->
+      <div class="sb-panel" id="panel-coord">
+        <div class="sec-head">Coordinate Converter</div>
+        <div style="margin-bottom:10px;font-size:11px;color:var(--M)">Click any point on the map to auto-fill, or enter manually.</div>
+        <div class="upills" id="crd-mode-pills">
+          <button class="upill on" onclick="crdMode('dd',this)">Decimal °</button>
+          <button class="upill" onclick="crdMode('dms',this)">DMS</button>
+          <button class="upill" onclick="crdMode('utm',this)">UTM</button>
+        </div>
+        <div id="crd-dd">
+          <div class="fg"><label>Latitude (°)</label><input class="fi" id="c-la" placeholder="25.2048"></div>
+          <div class="fg"><label>Longitude (°)</label><input class="fi" id="c-lo" placeholder="55.2708"></div>
+        </div>
+        <div id="crd-dms" style="display:none">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--B);margin-bottom:6px">LATITUDE</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 40px;gap:5px;margin-bottom:8px">
+            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">DEG</label><input class="fi" id="c-d1" placeholder="°"></div>
+            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">MIN</label><input class="fi" id="c-m1" placeholder="'"></div>
+            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">SEC</label><input class="fi" id="c-s1" placeholder='"'></div>
+            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">DIR</label><select class="fs" id="c-r1"><option>N</option><option>S</option></select></div>
+          </div>
+          <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--B);margin-bottom:6px">LONGITUDE</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 40px;gap:5px">
+            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">DEG</label><input class="fi" id="c-d2" placeholder="°"></div>
+            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">MIN</label><input class="fi" id="c-m2" placeholder="'"></div>
+            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">SEC</label><input class="fi" id="c-s2" placeholder='"'></div>
+            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">DIR</label><select class="fs" id="c-r2"><option>E</option><option>W</option></select></div>
+          </div>
+        </div>
+        <div id="crd-utm" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 44px;gap:6px">
+            <div class="fg"><label>Zone</label><input class="fi" id="c-uz" placeholder="40"></div>
+            <div class="fg"><label>Hemi</label><select class="fs" id="c-uh"><option value="N">N</option><option value="S">S</option></select></div>
+          </div>
+          <div class="fg"><label>Easting (m)</label><input class="fi" id="c-ue" placeholder="418240.000"></div>
+          <div class="fg"><label>Northing (m)</label><input class="fi" id="c-un" placeholder="2792500.000"></div>
+        </div>
+        <div class="fg" style="margin-top:6px"><label>Height (m)</label><input class="fi" id="c-h" placeholder="0" value="0"></div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn-c" style="flex:1;font-size:11px" onclick="crdConvert()">Convert →</button>
+          <button class="btn-g" style="flex:1;font-size:11px" onclick="crdGoToMap()">📍 Go to Map</button>
+        </div>
+        <div id="crd-res" style="display:none;margin-top:10px">
+          <div class="rb hi"><div class="rb-l">DECIMAL DEGREES</div><div class="rb-v" id="cr-dd">—</div></div>
+          <div class="rb"><div class="rb-l">DMS</div><div class="rb-v" id="cr-dms">—</div></div>
+          <div class="rb"><div class="rb-l">DDM</div><div class="rb-v" id="cr-ddm">—</div></div>
+          <div class="rb hi"><div class="rb-l">UTM Zone 40N</div><div class="rb-v" id="cr-utm">—</div></div>
+          <div class="rb"><div class="rb-l">ECEF XYZ</div><div class="rb-v" id="cr-ecef">—</div></div>
+        </div>
+      </div><!-- /panel-coord -->
+
+      <!-- DRONE panel -->
+      <div class="sb-panel" id="panel-drone">
+        <div class="sec-head">Drone Flight Planner</div>
+        <div class="fg"><label>Drone Model</label>
+          <select class="fs" id="dr-model" onchange="drPreset()">
+            <option value="p4r">DJI Phantom 4 RTK</option>
+            <option value="m300">DJI Matrice 300 RTK</option>
+            <option value="mv3">DJI Mavic 3 Enterprise</option>
+            <option value="wing">Wingtra WingtraOne</option>
+            <option value="c">Custom</option>
+          </select>
+        </div>
+        <div class="g2">
+          <div class="fg"><label>Sensor W (mm)</label><input class="fi" id="dr-sw" value="35.9"></div>
+          <div class="fg"><label>Sensor H (mm)</label><input class="fi" id="dr-sh" value="24.0"></div>
+          <div class="fg"><label>Focal (mm)</label><input class="fi" id="dr-fl" value="35"></div>
+          <div class="fg"><label>Img W (px)</label><input class="fi" id="dr-iw" value="5472"></div>
+          <div class="fg"><label>Img H (px)</label><input class="fi" id="dr-ih" value="3648"></div>
+          <div class="fg"><label>Altitude AGL (m)</label><input class="fi" id="dr-alt" value="120"></div>
+          <div class="fg"><label>Fwd Overlap %</label><input class="fi" id="dr-fo" value="80"></div>
+          <div class="fg"><label>Side Overlap %</label><input class="fi" id="dr-so" value="70"></div>
+          <div class="fg"><label>Area (ha)</label><input class="fi" id="dr-area" value="10"></div>
+          <div class="fg"><label>Speed (m/s)</label><input class="fi" id="dr-spd" value="10"></div>
+        </div>
+        <div class="fg"><label>Min GCP Count</label><input class="fi" id="dr-gcp" value="5"></div>
+        <button class="btn-c" style="width:100%" onclick="drCompute()">▶ Compute Flight Plan</button>
+        <div id="dr-res" style="display:none;margin-top:10px">
+          <div class="g3">
+            <div class="rb hi"><div class="rb-l">GSD (cm/px)</div><div class="rb-v" id="dr-gsd">—</div></div>
+            <div class="rb"><div class="rb-l">Images</div><div class="rb-v" id="dr-imgs">—</div></div>
+            <div class="rb"><div class="rb-l">Time (min)</div><div class="rb-v" id="dr-time">—</div></div>
+          </div>
+          <div class="rb"><div class="rb-l">Footprint W × H</div><div class="rb-v" id="dr-foot">—</div></div>
+          <div class="rb"><div class="rb-l">Line Spacing / Interval</div><div class="rb-v" id="dr-spacing">—</div></div>
+          <div class="rb"><div class="rb-l">H / V Accuracy (est.)</div><div class="rb-v" id="dr-acc">—</div></div>
+          <div class="rb"><div class="rb-l">GCP Required</div><div class="rb-v" id="dr-gcpr">—</div></div>
+          <div class="rb hi"><div class="rb-l">DM Compliance Class</div><div class="rb-v" id="dr-cls">—</div></div>
+        </div>
+      </div><!-- /panel-drone -->
+
+      <!-- DUBAI panel -->
+      <div class="sb-panel" id="panel-dubai">
+        <div style="font-size:22px;margin-bottom:8px">🇦🇪</div>
+        <div style="font-size:13px;font-weight:800;color:var(--W);margin-bottom:4px">Dubai Municipality — SLD</div>
+        <div style="font-size:10px;color:var(--M);margin-bottom:14px;font-family:var(--mono)">WGS84 · UTM Zone 40N · EGM2008</div>
+        <div class="d-cls" style="border-color:#1FA8D9"><div class="d-cls-tag" style="color:#1FA8D9">CLASS A — CADASTRAL</div><div class="d-cls-acc">±25mm H / ±50mm V</div><div class="d-cls-info">RTK GNSS, TS · 1:250–1:500 · Boundary, property registration</div></div>
+        <div class="d-cls" style="border-color:#22C55E"><div class="d-cls-tag" style="color:#22C55E">CLASS B — ENGINEERING</div><div class="d-cls-acc">±100mm H / ±150mm V</div><div class="d-cls-info">RTK, TS, Drone ≤3cm GSD · 1:500 · Roads, utilities</div></div>
+        <div class="d-cls" style="border-color:#F5BE18"><div class="d-cls-tag" style="color:#F5BE18">CLASS C — TOPOGRAPHIC</div><div class="d-cls-acc">±250mm H / ±350mm V</div><div class="d-cls-info">GNSS, Drone ≤5cm GSD · 1:1000 · Site planning</div></div>
+        <div class="d-cls" style="border-color:#A78BFA"><div class="d-cls-tag" style="color:#A78BFA">CLASS D — GIS / URBAN</div><div class="d-cls-acc">±1.0m H / ±2.0m V</div><div class="d-cls-info">DGPS, Drone ≤10cm GSD · 1:2000 · Asset mapping</div></div>
+        <div class="sec-head" style="margin-top:14px">Compliance Check</div>
+        <div class="g2">
+          <div class="fg"><label>H Accuracy (m)</label><input class="fi" id="dub-h" placeholder="0.025"></div>
+          <div class="fg"><label>V Accuracy (m)</label><input class="fi" id="dub-v" placeholder="0.050"></div>
+        </div>
+        <button class="btn-c" style="width:100%;font-size:11px" onclick="dubCheck()">▶ Check Compliance</button>
+        <div id="dub-res" style="margin-top:8px"></div>
+      </div><!-- /panel-dubai -->
+
+    </div><!-- /sb-content -->
+  </div><!-- /sidebar -->
+
+  <!-- ════ MAP ════ -->
+  <div id="map-area">
+
+    <!-- Toolbar -->
+    <div id="map-toolbar">
+      <button class="mt-btn on" id="tb-pan" onclick="setMode('pan',this)" title="Pan / Select">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M12 12v.01"/></svg>
+        Pan
+      </button>
+      <div class="mt-sep"></div>
+      <button class="mt-btn" id="tb-point" onclick="setMode('point',this)" title="Add Point">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="2"/></svg>
+        Point
+      </button>
+      <button class="mt-btn" id="tb-line" onclick="setMode('line',this)" title="Measure Distance">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        Distance
+      </button>
+      <button class="mt-btn" id="tb-polygon" onclick="setMode('polygon',this)" title="Draw Polygon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg>
+        Polygon
+      </button>
+      <button class="mt-btn" id="tb-rect" onclick="setMode('rect',this)" title="Draw Rectangle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        Rectangle
+      </button>
+      <button class="mt-btn" id="tb-circle" onclick="setMode('circle',this)" title="Draw Circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="9"/><line x1="12" y1="3" x2="12" y2="12"/></svg>
+        Circle
+      </button>
+      <div class="mt-sep"></div>
+      <button class="mt-btn" id="tb-scale" onclick="setMode('scale',this)" title="Scale / Ruler">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 20L20 4M8 4h12v12"/><line x1="8" y1="4" x2="8" y2="8"/><line x1="12" y1="4" x2="12" y2="7"/><line x1="16" y1="4" x2="16" y2="8"/></svg>
+        Ruler
+      </button>
+      <div class="mt-sep"></div>
+      <button class="mt-btn" onclick="undoLast()" title="Undo last point/feature">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+        Undo
+      </button>
+      <button class="mt-btn" onclick="finishDraw()" id="tb-finish" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+        Finish
+      </button>
     </div>
-    <div class="footer-links">
-      <a href="index.html">Home</a>
-      <a href="services.html">Services</a>
-      <a href="contact.html">Contact</a>
-      <a href="eye.html" style="color:#F5BE18">Eye</a>
-      <a href="terra.html" style="color:#4ADE80">Terra</a>
-      <a href="strata.html" style="color:#A78BFA">Strata</a>
+
+    <!-- Layer switcher -->
+    <div id="layer-ctrl">
+      <div style="font-size:8.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--M);padding:2px 8px 6px;text-align:center">LAYERS</div>
+      <button class="lc-btn on" id="lc-sat" onclick="setLayer('sat',this)">🛰 Satellite</button>
+      <button class="lc-btn" id="lc-hyb" onclick="setLayer('hyb',this)">🗺 Hybrid</button>
+      <button class="lc-btn" id="lc-osm" onclick="setLayer('osm',this)">🌍 Street</button>
+      <button class="lc-btn" id="lc-topo" onclick="setLayer('topo',this)">⛰ Terrain</button>
     </div>
-    <div class="footer-copy">© 2026 Sky TerraEye · Dubai, UAE</div>
+
+    <!-- Map -->
+    <div id="map"></div>
+
+    <!-- Coordinate bar -->
+    <div id="coord-bar">
+      <span>📍</span>
+      <span><span>Lat: </span><span id="cb-lat">—</span></span>
+      <span class="cb-sep">|</span>
+      <span><span>Lon: </span><span id="cb-lon">—</span></span>
+      <span class="cb-sep">|</span>
+      <span><span>UTM Z40N: </span><span id="cb-utm">—</span></span>
+      <span class="cb-sep">|</span>
+      <span id="cb-draw-info" style="color:var(--G)"></span>
+    </div>
+  </div><!-- /map-area -->
+
+  <!-- ════ RIGHT PANEL ════ -->
+  <div id="right-panel">
+    <div class="rp-head">
+      <div class="rp-title" id="rp-title">Feature Details</div>
+      <button class="rp-close" onclick="closeRP()">✕</button>
+    </div>
+    <div class="rp-body" id="rp-body"></div>
   </div>
-  <div class="footer-note">
-    Gauge is a free precision measurement utility by Sky TerraEye. All calculations use WGS84 ellipsoid, Haversine formula for geodesic distances, Shoelace theorem for polygon area, and Bowring Transverse Mercator series for UTM projection. Results are for reference and planning purposes only — not for legal boundary delimitation or official survey submission without field verification.
-  </div>
-</footer>
+
+</div><!-- /app -->
 
 <script>
 'use strict';
-/* ══════════════════════ MATH ENGINE ══════════════════════ */
+/* ══════════════════════════════════════════
+   MATH ENGINE
+══════════════════════════════════════════ */
 const PI=Math.PI,r2d=r=>r*180/PI,d2r=d=>d*PI/180;
 const WA=6378137,WF=1/298.257223563,We2=2*WF-WF**2,Wep2=We2/(1-We2);
-
 function hav(a,b){const R=6371000,dp=d2r(b[0]-a[0]),dl=d2r(b[1]-a[1]),x=Math.sin(dp/2)**2+Math.cos(d2r(a[0]))*Math.cos(d2r(b[0]))*Math.sin(dl/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
 function polyA(pts){if(pts.length<3)return 0;const o=pts[0],xy=pts.map(p=>[hav([o[0],o[1]],[o[0],p[1]])*(p[1]>=o[1]?1:-1),hav([o[0],o[1]],[p[0],o[1]])*(p[0]>=o[0]?1:-1)]);let a=0;xy.forEach((p,i)=>{const q=xy[(i+1)%xy.length];a+=p[0]*q[1]-q[0]*p[1];});return Math.abs(a)/2;}
-function perim(pts){let p=0;pts.forEach((pt,i)=>p+=hav(pt,pts[(i+1)%pts.length]));return p;}
-function azim(a,b){const dl=d2r(b[1]-a[1]),y=Math.sin(dl)*Math.cos(d2r(b[0])),x=Math.cos(d2r(a[0]))*Math.sin(d2r(b[0]))-Math.sin(d2r(a[0]))*Math.cos(d2r(b[0]))*Math.cos(dl);return(r2d(Math.atan2(y,x))+360)%360;}
+function perimPts(pts){let p=0;pts.forEach((pt,i)=>p+=hav(pt,pts[(i+1)%pts.length]));return p;}
+function azimuth(a,b){const dl=d2r(b[1]-a[1]),y=Math.sin(dl)*Math.cos(d2r(b[0])),x=Math.cos(d2r(a[0]))*Math.sin(d2r(b[0]))-Math.sin(d2r(a[0]))*Math.cos(d2r(b[0]))*Math.cos(dl);return(r2d(Math.atan2(y,x))+360)%360;}
 function toUTM(lat,lon){const p=d2r(lat),l=d2r(lon),z=Math.floor((lon+180)/6)+1,l0=d2r((z-1)*6-180+3),sp=Math.sin(p),cp=Math.cos(p),T=Math.tan(p)**2,C=Wep2*cp**2,A=cp*(l-l0),N=WA/Math.sqrt(1-We2*sp**2),M=WA*((1-We2/4-3*We2**2/64-5*We2**3/256)*p-(3*We2/8+3*We2**2/32+45*We2**3/1024)*Math.sin(2*p)+(15*We2**2/256+45*We2**3/1024)*Math.sin(4*p)-(35*We2**3/3072)*Math.sin(6*p));const E=0.9996*N*(A+(1-T+C)*A**3/6+(5-18*T+T**2+72*C-58*Wep2)*A**5/120)+500000;let Nv=0.9996*(M+N*Math.tan(p)*(A**2/2+(5-T+9*C+4*C**2)*A**4/24+(61-58*T+T**2+600*C-330*Wep2)*A**6/720));if(lat<0)Nv+=10000000;return{zone:z,band:'CDEFGHJKLMNPQRSTUVWXX'[Math.min(Math.max(Math.floor((lat+80)/8),0),20)],E:E.toFixed(3),N:Nv.toFixed(3)};}
-function utmToLL(zone,hemi,E,N){const e1=(1-Math.sqrt(1-We2))/(1+Math.sqrt(1-We2)),x=E-500000;let y=hemi==='S'?N-10000000:N;const l0=d2r((zone-1)*6-180+3),M=y/0.9996,mu=M/(WA*(1-We2/4-3*We2**2/64-5*We2**3/256)),p1=mu+(3*e1/2-27*e1**3/32)*Math.sin(2*mu)+(21*e1**2/16-55*e1**4/32)*Math.sin(4*mu)+(151*e1**3/96)*Math.sin(6*mu)+(1097*e1**4/512)*Math.sin(8*mu),N1=WA/Math.sqrt(1-We2*Math.sin(p1)**2),T1=Math.tan(p1)**2,C1=Wep2*Math.cos(p1)**2,R1=WA*(1-We2)/(1-We2*Math.sin(p1)**2)**1.5,D=x/(N1*0.9996),lat=p1-(N1*Math.tan(p1)/R1)*(D**2/2-(5+3*T1+10*C1-4*C1**2-9*Wep2)*D**4/24+(61+90*T1+298*C1+45*T1**2-252*Wep2-3*C1**2)*D**6/720),lon=l0+(D-(1+2*T1+C1)*D**3/6+(5-2*C1+28*T1-3*C1**2+8*Wep2+24*T1**2)*D**5/120)/Math.cos(p1);return{lat:r2d(lat),lon:r2d(lon)};}
-function toECEF(lat,lon,h){const p=d2r(lat),l=d2r(lon),N=WA/Math.sqrt(1-We2*Math.sin(p)**2),H=h||0;return{X:((N+H)*Math.cos(p)*Math.cos(l)).toFixed(3),Y:((N+H)*Math.cos(p)*Math.sin(l)).toFixed(3),Z:((N*(1-We2)+H)*Math.sin(p)).toFixed(3)};}
-function toDMS(dd,isLat){const dir=isLat?(dd>=0?'N':'S'):(dd>=0?'E':'W'),a=Math.abs(dd),d=Math.floor(a),mf=(a-d)*60,m=Math.floor(mf),s=((mf-m)*60).toFixed(4);return d+'° '+m+"' "+s+'" '+dir;}
-function toDDM(dd,isLat){const dir=isLat?(dd>=0?'N':'S'):(dd>=0?'E':'W'),a=Math.abs(dd),d=Math.floor(a);return d+'° '+((a-d)*60).toFixed(7)+"' "+dir;}
+function utmToLL(zone,hemi,E,N){const e1=(1-Math.sqrt(1-We2))/(1+Math.sqrt(1-We2)),x=E-500000;let y=hemi==='S'?N-10000000:N;const l0=d2r((zone-1)*6-180+3),M=y/0.9996,mu=M/(WA*(1-We2/4-3*We2**2/64-5*We2**3/256)),p1=mu+(3*e1/2-27*e1**3/32)*Math.sin(2*mu)+(21*e1**2/16-55*e1**4/32)*Math.sin(4*mu)+(151*e1**3/96)*Math.sin(6*mu)+(1097*e1**4/512)*Math.sin(8*mu),N1=WA/Math.sqrt(1-We2*Math.sin(p1)**2),T1=Math.tan(p1)**2,C1=Wep2*Math.cos(p1)**2,R1=WA*(1-We2)/(1-We2*Math.sin(p1)**2)**1.5,D=x/(N1*0.9996);return{lat:r2d(p1-(N1*Math.tan(p1)/R1)*(D**2/2-(5+3*T1+10*C1-4*C1**2-9*Wep2)*D**4/24+(61+90*T1+298*C1+45*T1**2-252*Wep2-3*C1**2)*D**6/720)),lon:r2d(l0+(D-(1+2*T1+C1)*D**3/6+(5-2*C1+28*T1-3*C1**2+8*Wep2+24*T1**2)*D**5/120)/Math.cos(p1))};}
+function toECEF(lat,lon,h){const p=d2r(lat),l=d2r(lon),N=WA/Math.sqrt(1-We2*Math.sin(p)**2),H=h||0;return`X:${((N+H)*Math.cos(p)*Math.cos(l)).toFixed(2)} Y:${((N+H)*Math.cos(p)*Math.sin(l)).toFixed(2)} Z:${((N*(1-We2)+H)*Math.sin(p)).toFixed(2)}`;}
+function toDMS(dd,isLat){const dir=isLat?(dd>=0?'N':'S'):(dd>=0?'E':'W'),a=Math.abs(dd),d=Math.floor(a),mf=(a-d)*60,m=Math.floor(mf),s=((mf-m)*60).toFixed(4);return `${d}° ${m}' ${s}" ${dir}`;}
+function toDDM(dd,isLat){const dir=isLat?(dd>=0?'N':'S'):(dd>=0?'E':'W'),a=Math.abs(dd),d=Math.floor(a);return `${d}° ${((a-d)*60).toFixed(7)}' ${dir}`;}
 function dmsToDD(d,m,s,dir){const a=+d+ +m/60+ +s/3600;return(dir==='S'||dir==='W')?-a:a;}
-const AU={'m²':1,'ha':1/10000,'a':1/100,'ac':1/4046.856,'km²':1/1e6,'ft²':10.7639,'yd²':1.19599,'Marla':1/25.293,'Kanal':1/505.857,'Guntha':1/101.171};
-const DU={'m':1,'km':1/1000,'ft':3.28084,'yd':1.09361,'in':39.3701,'cm':100,'mi':1/1609.34,'nmi':1/1852,'chain':1/20.1168,'link':1/0.201168};
+function nmeaToDD(raw,dir){const d=Math.floor(+raw/100),m=(+raw)%100;return(d+m/60)*(dir==='S'||dir==='W'?-1:1);}
+const AU={'m²':1,'ha':1/10000,'ac':1/4046.856,'ft²':10.7639,'yd²':1.19599,'a':1/100,'km²':1/1e6,'Marla':1/25.293,'Kanal':1/505.857};
+const DU={'m':1,'km':1/1000,'ft':3.28084,'yd':1.09361,'mi':1/1609.34,'nmi':1/1852,'chain':1/20.1168};
 const cvA=(m2,u)=>m2*(AU[u]||1),cvD=(m,u)=>m*(DU[u]||1);
-const dopQ=v=>v<1.5?{l:'IDEAL',c:'#22C55E'}:v<2?{l:'EXCELLENT',c:'#1FA8D9'}:v<3?{l:'GOOD',c:'#1FA8D9'}:v<5?{l:'MODERATE',c:'#F5BE18'}:v<10?{l:'FAIR',c:'#F59E0B'}:{l:'POOR',c:'#EF4444'};
-const COLORS=['#1FA8D9','#F5BE18','#EF4444','#22C55E','#8B5CF6','#EC4899','#06B6D4','#F97316','#84CC16'];
+const dopQ=v=>v<1.5?{l:'IDEAL',c:'#22C55E'}:v<2?{l:'EXCELLENT',c:'#22D3EE'}:v<3?{l:'GOOD',c:'#22D3EE'}:v<5?{l:'MODERATE',c:'#F5BE18'}:{l:'POOR',c:'#EF4444'};
+let aUnit='m²',dUnit='m';
 
-/* ══════════════════════ TABS ══════════════════════ */
-function gTab(id,el){document.querySelectorAll('.g-tab').forEach(t=>t.classList.remove('on'));document.querySelectorAll('.g-panel').forEach(p=>p.classList.remove('on'));el.classList.add('on');document.getElementById('p-'+id).classList.add('on');}
+/* ══════════════════════════════════════════
+   LEAFLET MAP SETUP
+══════════════════════════════════════════ */
+const DUBAI=[25.2048,55.2708];
+const map=L.map('map',{center:DUBAI,zoom:13,zoomControl:true,attributionControl:true});
 
-/* ══════════════════════ MAP & AREA ══════════════════════ */
-let plots=[{id:1,name:'Plot A',color:COLORS[0],points:[],notes:''}],activeId=1,plotCnt=1;
-let aU='m²',dU='m',drag=null;
-const cv=document.getElementById('g-canvas');
+// Tile layers
+const layers={
+  sat:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri, Maxar, Earthstar Geographics',maxZoom:21,maxNativeZoom:19}),
+  hyb:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:21,maxNativeZoom:19}),
+  labels:L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',{attribution:'© CartoDB',maxZoom:21,pane:'labels'}),
+  osm:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}),
+  topo:L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:'© OpenTopoMap',maxZoom:17}),
+};
+map.createPane('labels');map.getPane('labels').style.zIndex=450;map.getPane('labels').style.pointerEvents='none';
+layers.sat.addTo(map);
 
-function ap(){return plots.find(p=>p.id===activeId)||plots[0];}
-function initPills(){
-  ['g-area-pills','g-dist-pills','dp-upills'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const isA=id==='g-area-pills',isDU=id!=='g-area-pills',units=isA?Object.keys(AU):Object.keys(DU);el.innerHTML=units.map(u=>`<button class="upill${(isA?aU:dU)===u?' on':''}" onclick="${isA?'setAU':'setDU'}('${u}',this)">${u}</button>`).join('');});
+function setLayer(id,el){
+  document.querySelectorAll('.lc-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');
+  Object.values(layers).forEach(l=>map.removeLayer(l));
+  if(id==='sat'){layers.sat.addTo(map);}
+  else if(id==='hyb'){layers.sat.addTo(map);layers.labels.addTo(map);}
+  else if(id==='osm'){layers.osm.addTo(map);}
+  else if(id==='topo'){layers.topo.addTo(map);}
 }
-function setAU(u,el){aU=u;document.querySelectorAll('#g-area-pills .upill,#dp-upills .upill').forEach(p=>p.classList.remove('on'));document.querySelectorAll(`[onclick="setAU('${u}',this)"]`).forEach(p=>p.classList.add('on'));redraw();metrics();}
-function setDU(u,el){dU=u;document.querySelectorAll('#g-dist-pills .upill,#dp-upills .upill').forEach(p=>p.classList.remove('on'));document.querySelectorAll(`[onclick="setDU('${u}',this)"]`).forEach(p=>p.classList.add('on'));redraw();metrics();}
 
-function renderPlots(){
-  const el=document.getElementById('g-plot-list');if(!el)return;
-  el.innerHTML=plots.map(p=>`<div class="plot-item${p.id===activeId?' on':''}" onclick="selPlot(${p.id})"><div class="plot-dot" style="background:${p.color}"></div><div class="plot-name">${p.name}</div><button class="plot-del" onclick="event.stopPropagation();delPlot(${p.id})">✕</button></div>`).join('');
-  const a=ap();if(!a)return;
-  const ni=document.getElementById('g-pname'),nt=document.getElementById('g-notes');if(ni)ni.value=a.name;if(nt)nt.value=a.notes||'';
-  const sw=document.getElementById('g-swatches');if(sw)sw.innerHTML=COLORS.map(c=>`<div class="swatch${c===a.color?' on':''}" style="background:${c}" onclick="setColor('${c}')"></div>`).join('');
-  if(plots.length>1){document.getElementById('g-total-panel').style.display='block';const tot=plots.reduce((s,p)=>s+polyA(p.points),0);document.getElementById('g-total-v').textContent=cvA(tot,aU).toFixed(4)+' '+aU;}
+// Scale bar
+L.control.scale({imperial:true,metric:true,position:'bottomright'}).addTo(map);
+
+// Coordinate display on hover
+map.on('mousemove',e=>{
+  const {lat,lng}=e.latlng;
+  document.getElementById('cb-lat').textContent=lat.toFixed(7);
+  document.getElementById('cb-lon').textContent=lng.toFixed(7);
+  const u=toUTM(lat,lng);
+  document.getElementById('cb-utm').textContent=`Z${u.zone}${u.band} E:${u.E} N:${u.N}`;
+});
+
+/* ══════════════════════════════════════════
+   FEATURE MANAGEMENT
+══════════════════════════════════════════ */
+let features=[],featCounter=0,selectedFeat=null;
+const FCOLORS=['#22D3EE','#F5BE18','#EF4444','#4ADE80','#A78BFA','#EC4899','#FB923C','#1FA8D9','#84CC16'];
+
+function addFeature(type,layer,name,meta){
+  const id=++featCounter,color=FCOLORS[(id-1)%FCOLORS.length];
+  features.push({id,type,layer,name:name||`${type} ${id}`,color,meta:meta||{}});
+  // color the layer
+  if(layer.setStyle){layer.setStyle({color,fillColor:color,fillOpacity:.12,weight:2.5});}
+  renderFeatList();
+  return id;
 }
-function selPlot(id){activeId=id;renderPlots();redraw();metrics();}
-function gAddPlot(){plotCnt++;const p={id:plotCnt,name:'Plot '+String.fromCharCode(64+plotCnt),color:COLORS[(plotCnt-1)%COLORS.length],points:[],notes:''};plots.push(p);activeId=p.id;renderPlots();redraw();}
-function delPlot(id){if(plots.length===1)return;plots=plots.filter(p=>p.id!==id);activeId=plots[0].id;renderPlots();redraw();metrics();}
-function gRename(v){const a=ap();if(a){a.name=v;renderPlots();}}
-function gSaveNotes(v){const a=ap();if(a)a.notes=v;}
-function setColor(c){const a=ap();if(a){a.color=c;renderPlots();redraw();}}
-function gClear(){const a=ap();if(a){a.points=[];redraw();metrics();}}
+function removeFeature(id){const f=features.find(x=>x.id===id);if(f){map.removeLayer(f.layer);}features=features.filter(x=>x.id!==id);if(selectedFeat===id){selectedFeat=null;document.getElementById('right-panel').classList.remove('show');}renderFeatList();}
+function clearAll(){features.forEach(f=>map.removeLayer(f.layer));features=[];selectedFeat=null;document.getElementById('right-panel').classList.remove('show');renderFeatList();clearDrawState();}
+function zoomAll(){if(!features.length)return;const grp=L.featureGroup(features.map(f=>f.layer));map.fitBounds(grp.getBounds(),{padding:[40,40]});}
 
-/* Canvas */
-function bounds(){const all=plots.flatMap(p=>p.points);if(!all.length)return{minLa:25.14,maxLa:25.29,minLo:55.17,maxLo:55.39};const las=all.map(p=>p[0]),los=all.map(p=>p[1]);let[a,b,c,d]=[Math.min(...las),Math.max(...las),Math.min(...los),Math.max(...los)];const dl=b-a||.005,do_=d-c||.005;return{minLa:a-dl*.22,maxLa:b+dl*.22,minLo:c-do_*.22,maxLo:d+do_*.22};}
-function xf(){const W=cv.width,H=cv.height,p=50,b=bounds();const toC=([la,lo])=>[(lo-b.minLo)/(b.maxLo-b.minLo)*(W-2*p)+p,(1-(la-b.minLa)/(b.maxLa-b.minLa))*(H-2*p)+p];const toLL=(x,y)=>[b.minLa+(1-(y-p)/(H-2*p))*(b.maxLa-b.minLa),b.minLo+(x-p)/(W-2*p)*(b.maxLo-b.minLo)];return{toC,toLL,...b};}
-function redraw(){
-  if(!cv)return;
-  const W=cv.clientWidth||800;cv.width=W;cv.height=Math.round(W*.6);
-  const ctx=cv.getContext('2d'),H=cv.height,t=xf();
-  ctx.fillStyle='#030C14';ctx.fillRect(0,0,W,H);
-  for(let i=0;i<=6;i++){const la=t.minLa+i*(t.maxLa-t.minLa)/6,lo=t.minLo+i*(t.maxLo-t.minLo)/6;const[,yg]=t.toC([la,t.minLo]);const[xg,]=t.toC([t.minLa,lo]);ctx.strokeStyle='rgba(31,168,217,.09)';ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(48,yg);ctx.lineTo(W-8,yg);ctx.stroke();ctx.beginPath();ctx.moveTo(xg,6);ctx.lineTo(xg,H-20);ctx.stroke();ctx.fillStyle='rgba(90,131,158,.45)';ctx.font='8px monospace';ctx.textAlign='right';ctx.fillText(la.toFixed(4)+'°',44,yg+3);ctx.textAlign='center';ctx.fillText(lo.toFixed(4)+'°',xg,H-5);}
-  for(const plot of plots){const pts=plot.points,act=plot.id===activeId,col=plot.color;if(!pts.length)continue;
-    if(pts.length>=3){ctx.beginPath();const[x0,y0]=t.toC(pts[0]);ctx.moveTo(x0,y0);pts.slice(1).forEach(p=>{const[x,y]=t.toC(p);ctx.lineTo(x,y);});ctx.closePath();ctx.fillStyle=col+'28';ctx.fill();}
-    if(pts.length>=2){ctx.strokeStyle=col;ctx.lineWidth=act?2.5:1.5;ctx.setLineDash(act?[]:[5,3]);ctx.beginPath();const[ex,ey]=t.toC(pts[0]);ctx.moveTo(ex,ey);pts.slice(1).forEach(p=>{const[x,y]=t.toC(p);ctx.lineTo(x,y);});if(pts.length>=3)ctx.closePath();ctx.stroke();ctx.setLineDash([]);
-      for(let i=0;i<pts.length;i++){const j=(i+1)%pts.length;if(i===pts.length-1&&pts.length<3)break;const d=cvD(hav(pts[i],pts[j]),dU),lb=d.toFixed(dU==='m'?2:3)+' '+dU;const[x1,y1]=t.toC(pts[i]),[x2,y2]=t.toC(pts[j]),mx=(x1+x2)/2,my=(y1+y2)/2;ctx.font='9px monospace';const tw=ctx.measureText(lb).width;ctx.fillStyle='rgba(4,13,22,.88)';ctx.fillRect(mx-tw/2-3,my-10,tw+6,13);ctx.fillStyle=col;ctx.textAlign='center';ctx.fillText(lb,mx,my);}}
-    pts.forEach(([la,lo],i)=>{const[x,y]=t.toC([la,lo]);ctx.beginPath();ctx.arc(x,y,act?7:5,0,2*PI);ctx.fillStyle=act?col:'#fff';ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.fill();ctx.stroke();ctx.fillStyle=col;ctx.font='bold 9px monospace';ctx.textAlign='left';ctx.fillText(plot.name.slice(0,2).toUpperCase()+(i+1),x+9,y-4);});
-    if(pts.length>=3){const ar=cvA(polyA(pts),aU),lb=ar.toFixed(4)+' '+aU,cxv=pts.reduce((s,p)=>s+t.toC(p)[0],0)/pts.length,cyv=pts.reduce((s,p)=>s+t.toC(p)[1],0)/pts.length;ctx.font='bold 11px monospace';const tw=ctx.measureText(lb).width;ctx.fillStyle='rgba(4,13,22,.92)';ctx.fillRect(cxv-tw/2-5,cyv-11,tw+10,16);ctx.fillStyle=col;ctx.textAlign='center';ctx.fillText(lb,cxv,cyv+2);}
+function renderFeatList(){
+  const el=document.getElementById('feat-list');
+  if(!features.length){el.innerHTML='<div style="text-align:center;color:var(--Dm);padding:24px 8px;font-size:11px">No features. Draw on map or import data.</div>';document.getElementById('feat-summary').textContent='0 features';return;}
+  el.innerHTML=features.map(f=>`
+    <div class="feat-item${f.id===selectedFeat?' sel':''}" onclick="selectFeat(${f.id})">
+      <div class="feat-dot" style="background:${f.color}"></div>
+      <div><div class="feat-name">${f.name}</div><div class="feat-sub">${f.type}${f.meta.area?` · ${cvA(f.meta.area,aUnit).toFixed(3)} ${aUnit}`:''}${f.meta.dist?` · ${cvD(f.meta.dist,dUnit).toFixed(2)} ${dUnit}`:''}</div></div>
+      <button class="feat-del" onclick="event.stopPropagation();removeFeature(${f.id})">✕</button>
+    </div>`).join('');
+  const totA=features.reduce((s,f)=>s+(f.meta.area||0),0);
+  document.getElementById('feat-summary').textContent=`${features.length} feature${features.length!==1?'s':''} · Total area: ${cvA(totA,aUnit).toFixed(3)} ${aUnit}`;
+}
+
+function selectFeat(id){
+  selectedFeat=id;const f=features.find(x=>x.id===id);if(!f)return;
+  renderFeatList();
+  document.getElementById('right-panel').classList.add('show');
+  document.getElementById('rp-title').textContent=f.name;
+  const utm=f.meta.lat?toUTM(f.meta.lat,f.meta.lng):null;
+  let html=`<div class="rb hi"><div class="rb-l">FEATURE NAME</div><div class="rb-v">${f.name}</div></div>
+    <div class="rb"><div class="rb-l">TYPE</div><div class="rb-v">${f.type}</div></div>`;
+  if(f.meta.lat){html+=`<div class="rb hi"><div class="rb-l">LATITUDE</div><div class="rb-v">${toDMS(f.meta.lat,true)}</div></div><div class="rb hi"><div class="rb-l">LONGITUDE</div><div class="rb-v">${toDMS(f.meta.lng,false)}</div></div><div class="rb"><div class="rb-l">DD</div><div class="rb-v">${f.meta.lat.toFixed(8)}, ${f.meta.lng.toFixed(8)}</div></div>${utm?`<div class="rb"><div class="rb-l">UTM Z${utm.zone}${utm.band}</div><div class="rb-v">E: ${utm.E} N: ${utm.N}</div></div>`:''}${f.meta.elev!==undefined?`<div class="rb"><div class="rb-l">ELEVATION</div><div class="rb-v">${f.meta.elev} m</div></div>`:''}${f.meta.fix?`<div class="rb"><div class="rb-l">FIX TYPE</div><div class="rb-v">${f.meta.fix}</div></div>`:''}${f.meta.pdop?`<div class="rb"><div class="rb-l">PDOP / HDOP / VDOP</div><div class="rb-v">${f.meta.pdop}/${f.meta.hdop||'—'}/${f.meta.vdop||'—'}</div></div>`:''}${f.meta.note?`<div class="rb"><div class="rb-l">SOURCE</div><div class="rb-v">${f.meta.note}</div></div>`:''}`;
   }
-  if(!plots.some(p=>p.points.length)){ctx.fillStyle='rgba(90,131,158,.35)';ctx.font='13px monospace';ctx.textAlign='center';ctx.fillText('Click to add survey points to active plot',W/2,H/2);ctx.fillText('Centred on Dubai, UAE — UTM Zone 40N',W/2,H/2+22);}
+  if(f.meta.area){
+    html+=`<div class="rb hi"><div class="rb-l">AREA</div><div class="rb-v">${cvA(f.meta.area,aUnit).toFixed(5)} ${aUnit}</div></div>`;
+    html+=`<div class="rb"><div class="rb-l">ALL AREA UNITS</div><div class="rb-v">${Object.keys(AU).map(u=>`${u}: ${cvA(f.meta.area,u).toFixed(4)}`).join(' · ')}</div></div>`;
+    if(f.meta.perim)html+=`<div class="rb"><div class="rb-l">PERIMETER</div><div class="rb-v">${cvD(f.meta.perim,dUnit).toFixed(3)} ${dUnit}</div></div>`;
+    if(f.meta.pts)html+=`<div class="rb"><div class="rb-l">VERTICES</div><div class="rb-v">${f.meta.pts}</div></div>`;
+  }
+  if(f.meta.dist){
+    html+=`<div class="rb hi"><div class="rb-l">DISTANCE</div><div class="rb-v">${cvD(f.meta.dist,dUnit).toFixed(3)} ${dUnit}</div></div>`;
+    html+=`<div class="rb"><div class="rb-l">ALL DISTANCE UNITS</div><div class="rb-v">${Object.keys(DU).map(u=>`${u}: ${cvD(f.meta.dist,u).toFixed(3)}`).join(' · ')}</div></div>`;
+    if(f.meta.azimuth)html+=`<div class="rb"><div class="rb-l">AZIMUTH / BACK AZ.</div><div class="rb-v">${f.meta.azimuth.toFixed(4)}° / ${((f.meta.azimuth+180)%360).toFixed(4)}°</div></div>`;
+    if(f.meta.segs)html+=`<div class="rb"><div class="rb-l">SEGMENTS</div><div class="rb-v">${f.meta.segs}</div></div>`;
+  }
+  if(f.meta.radius)html+=`<div class="rb hi"><div class="rb-l">RADIUS</div><div class="rb-v">${cvD(f.meta.radius,dUnit).toFixed(3)} ${dUnit}</div></div><div class="rb"><div class="rb-l">AREA (circle)</div><div class="rb-v">${cvA(Math.PI*f.meta.radius**2,aUnit).toFixed(4)} ${aUnit}</div></div>`;
+  html+=`<div style="margin-top:12px;display:flex;gap:6px">
+    <button class="btn-c" style="flex:1;font-size:11px" onclick="map.setView([${f.meta.lat||f.meta.center?.[0]||DUBAI[0]},${f.meta.lng||f.meta.center?.[1]||DUBAI[1]}],17)">🎯 Zoom To</button>
+    <button class="btn-r" style="flex:1;font-size:11px" onclick="removeFeature(${f.id})">✕ Delete</button>
+  </div>`;
+  document.getElementById('rp-body').innerHTML=html;
+  // zoom to feature
+  try{map.fitBounds(f.layer.getBounds?f.layer.getBounds():L.latLng(f.meta.lat,f.meta.lng).toBounds(200),{padding:[40,40],maxZoom:18});}catch(e){}
 }
-function metrics(){
-  const a=ap();if(!a)return;
-  const ar=polyA(a.points),pe=perim(a.points);
-  function sv(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
-  sv('g-area-v',cvA(ar,aU).toFixed(ar>10000?2:4));sv('g-area-u',aU);sv('g-perim-v',cvD(pe,dU).toFixed(2));sv('g-perim-u',dU);sv('g-pts-v',a.points.length);
-  const at=document.getElementById('g-all-area');if(at)at.innerHTML=Object.keys(AU).map(u=>`<tr class="${u===aU?'on':''}"><td>${u}</td><td>${cvA(ar,u).toFixed(['ha','ac','km²'].includes(u)?6:2)}</td></tr>`).join('');
-  const dt=document.getElementById('g-all-dist');if(dt)dt.innerHTML=Object.keys(DU).map(u=>`<tr class="${u===dU?'on':''}"><td>${u}</td><td>${cvD(pe,u).toFixed(u==='m'||u==='ft'?2:4)}</td></tr>`).join('');
-  const fc=document.getElementById('g-first-coord');if(fc){if(a.points[0]){const u=toUTM(a.points[0][0],a.points[0][1]);fc.innerHTML=`<div class="rb hi" style="margin-bottom:6px"><div class="rb-l">LATITUDE</div><div class="rb-v">${toDMS(a.points[0][0],true)}</div></div><div class="rb hi"><div class="rb-l">LONGITUDE</div><div class="rb-v">${toDMS(a.points[0][1],false)}</div></div><div class="rb" style="margin-top:6px"><div class="rb-l">UTM Z${u.zone}${u.band}</div><div class="rb-v">E:${u.E} N:${u.N}</div></div>`;}else fc.innerHTML='<span style="font-size:11px;color:var(--Dm)">Add points to view</span>';}
-  renderPlots();
-}
-function hit(e){const r=cv.getBoundingClientRect(),sx=cv.width/r.width,sy=cv.height/r.height,cx=(e.clientX-r.left)*sx,cy=(e.clientY-r.top)*sy,t=xf();for(const plot of plots)for(let i=0;i<plot.points.length;i++){const[px,py]=t.toC(plot.points[i]);if(Math.hypot(cx-px,cy-py)<13)return{pid:plot.id,idx:i,cx,cy,t};}return{pid:null,idx:-1,cx,cy,t};}
-if(cv){
-  cv.addEventListener('click',e=>{if(drag)return;const h=hit(e);if(h.idx===-1){const a=ap();if(a){a.points.push(h.t.toLL(h.cx,h.cy));redraw();metrics();}}});
-  cv.addEventListener('dblclick',e=>{const h=hit(e);if(h.idx>=0&&h.pid===activeId){const p=plots.find(pl=>pl.id===h.pid);if(p){p.points.splice(h.idx,1);redraw();metrics();}}});
-  cv.addEventListener('mousedown',e=>{const h=hit(e);if(h.idx>=0)drag=h;});
-  cv.addEventListener('mousemove',e=>{if(!drag)return;const r=cv.getBoundingClientRect(),sx=cv.width/r.width,sy=cv.height/r.height,cx=(e.clientX-r.left)*sx,cy=(e.clientY-r.top)*sy,t=xf(),ll=t.toLL(cx,cy);const p=plots.find(pl=>pl.id===drag.pid);if(p&&drag.idx<p.points.length){p.points[drag.idx]=ll;redraw();metrics();}});
-  cv.addEventListener('mouseup',()=>{drag=null;});
-  cv.addEventListener('mouseleave',()=>{drag=null;});
-}
-function gAddManual(){const la=parseFloat(document.getElementById('g-lat-in').value),lo=parseFloat(document.getElementById('g-lon-in').value);if(isNaN(la)||isNaN(lo)){gNotif('⚠ Invalid coordinates');return;}const a=ap();if(a){a.points.push([la,lo]);document.getElementById('g-lat-in').value='';document.getElementById('g-lon-in').value='';redraw();metrics();gNotif('✓ Point added to '+a.name);}}
-function gNotif(msg){const n=document.getElementById('g-notif');if(n){n.textContent=msg;n.classList.add('show');setTimeout(()=>n.classList.remove('show'),2200);}}
+function closeRP(){document.getElementById('right-panel').classList.remove('show');selectedFeat=null;renderFeatList();}
 
-/* ══════════════════════ DISTANCE PATH ══════════════════════ */
-let wps=[{id:1,la:'',lo:''},{id:2,la:'',lo:''}],wpCnt=2;
-function dpRender(){const el=document.getElementById('dp-list');if(!el)return;el.innerHTML=wps.map((w,i)=>`<div style="background:#040D16;border:1px solid rgba(31,168,217,.12);border-radius:10px;padding:10px 12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--B)">WP ${i+1}</span>${wps.length>2?`<button onclick="dpDel(${w.id})" style="background:none;border:none;color:rgba(239,68,68,.5);cursor:pointer;font-size:13px">✕</button>`:''}</div><input class="fi" style="margin-bottom:5px" placeholder="Latitude" value="${w.la}" oninput="dpUp(${w.id},'la',this.value)"><input class="fi" placeholder="Longitude" value="${w.lo}" oninput="dpUp(${w.id},'lo',this.value)"></div>`).join('');}
-function dpAdd(){wpCnt++;wps.push({id:wpCnt,la:'',lo:''});dpRender();}
-function dpDel(id){if(wps.length<=2)return;wps=wps.filter(w=>w.id!==id);dpRender();}
-function dpUp(id,f,v){const w=wps.find(x=>x.id===id);if(w)w[f]=v;}
-function dpCalc(){
-  const pts=wps.map(w=>[parseFloat(w.la),parseFloat(w.lo)]).filter(p=>!isNaN(p[0])&&!isNaN(p[1]));
-  if(pts.length<2){alert('Enter at least 2 valid waypoints');return;}
-  let tot=0;const segs=[];for(let i=0;i<pts.length-1;i++){const d=hav(pts[i],pts[i+1]),az=azim(pts[i],pts[i+1]);segs.push({d,az,baz:(az+180)%360,f:i+1,t:i+2});tot+=d;}
-  document.getElementById('dp-tot-v').textContent=cvD(tot,dU).toFixed(3);
-  document.getElementById('dp-tot-u').textContent=dU;
-  document.getElementById('dp-all').innerHTML=Object.keys(DU).map(u=>`<tr class="${u===dU?'on':''}"><td>${u}</td><td>${cvD(tot,u).toFixed(u==='m'||u==='ft'?2:4)}</td></tr>`).join('');
-  document.getElementById('dp-segs').innerHTML=segs.map(s=>`<tr><td>${s.f}→${s.t}</td><td class="hi">${cvD(s.d,dU).toFixed(3)} ${dU}</td><td class="mono">${s.az.toFixed(4)}°</td><td class="mono">${s.baz.toFixed(4)}°</td></tr>`).join('');
-  document.getElementById('dp-result').style.display='grid';document.getElementById('dp-empty').style.display='none';
+/* ══════════════════════════════════════════
+   DRAWING ENGINE
+══════════════════════════════════════════ */
+let drawMode='pan',drawPts=[],drawTemp=[],drawRect1=null,drawCircCenter=null;
+const mapEl=document.getElementById('map');
+
+function setMode(m,el){
+  document.querySelectorAll('.mt-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');drawMode=m;clearDrawState();
+  const isCross=['point','line','polygon','rect','circle','scale'].includes(m);
+  mapEl.classList.toggle('draw-cursor',isCross);
+  map.dragging[isCross?'disable':'enable']();
+  document.getElementById('tb-finish').style.display=['line','polygon'].includes(m)?'inline-flex':'none';
+  if(m==='pan'){map.dragging.enable();}
+  const hints={pan:'',point:'Click map to place a point',line:'Click to add waypoints · Double-click or Finish to end',polygon:'Click to add vertices · Double-click or Finish to close · Shift+click to undo vertex',rect:'Click first corner, then opposite corner',circle:'Click centre, then edge',scale:'Click two points to measure scale distance'};
+  document.getElementById('cb-draw-info').textContent=hints[m]||'';
 }
 
-/* ══════════════════════ COORDINATES ══════════════════════ */
-let cM='dd';
-function crdMode(m,el){cM=m;document.querySelectorAll('#p-coord .upill').forEach(p=>p.classList.remove('on'));el.classList.add('on');['crd-dd','crd-dms','crd-utm'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('crd-'+m).style.display='block';}
+function clearDrawState(){
+  drawPts=[];drawRect1=null;drawCircCenter=null;
+  drawTemp.forEach(l=>map.removeLayer(l));drawTemp=[];
+}
+
+map.on('click',e=>{
+  if(drawMode==='pan')return;
+  const {lat,lng}=e.latlng;
+  if(drawMode==='point'){placePoint(lat,lng);setMode('point',document.getElementById('tb-point'));}
+  else if(drawMode==='line'||drawMode==='scale'){addLinePt(lat,lng);}
+  else if(drawMode==='polygon'){addPolyPt(lat,lng);}
+  else if(drawMode==='rect'){addRectPt(lat,lng);}
+  else if(drawMode==='circle'){addCircPt(lat,lng);}
+});
+
+map.on('dblclick',e=>{
+  e.originalEvent.preventDefault();
+  if(drawMode==='line'||drawMode==='scale')finishDraw();
+  else if(drawMode==='polygon')finishDraw();
+});
+
+// Live preview
+map.on('mousemove',e=>{
+  if(!drawPts.length||!['line','polygon','scale'].includes(drawMode))return;
+  drawTemp.filter(l=>l._isPreview).forEach(l=>map.removeLayer(l));
+  drawTemp=drawTemp.filter(l=>!l._isPreview);
+  const {lat,lng}=e.latlng;
+  const last=drawPts[drawPts.length-1];
+  const prev=L.polyline([[last[0],last[1]],[lat,lng]],{color:'rgba(34,211,238,.5)',dashArray:'6,4',weight:2});
+  prev._isPreview=true;prev.addTo(map);drawTemp.push(prev);
+  // live distance
+  let totalD=0;for(let i=0;i<drawPts.length-1;i++)totalD+=hav(drawPts[i],[drawPts[i+1][0],drawPts[i+1][1]]);
+  totalD+=hav(last,[lat,lng]);
+  document.getElementById('cb-draw-info').textContent=`${drawMode==='polygon'?'Polygon':'Line'} · ${drawPts.length} pts · ${cvD(totalD,dUnit).toFixed(2)} ${dUnit}`;
+});
+
+function placePoint(lat,lng){
+  const m=L.circleMarker([lat,lng],{radius:7,color:'#22D3EE',fillColor:'#22D3EE',fillOpacity:.8,weight:2});
+  m.bindTooltip(`${lat.toFixed(6)}, ${lng.toFixed(6)}`,{permanent:false});
+  m.addTo(map);
+  const u=toUTM(lat,lng);
+  const id=addFeature('Point',m,`Point ${featCounter+1}`,{lat,lng,note:'Manual point'});
+  m.on('click',()=>selectFeat(id));
+}
+
+function addLinePt(lat,lng){
+  drawPts.push([lat,lng]);
+  const dot=L.circleMarker([lat,lng],{radius:5,color:'#22D3EE',fillColor:'#22D3EE',fillOpacity:1,weight:1.5});dot.addTo(map);drawTemp.push(dot);
+  if(drawPts.length>=2){
+    const line=L.polyline(drawPts.map(p=>[p[0],p[1]]),{color:'#22D3EE',weight:2.5,dashArray:drawMode==='scale'?'8,4':null});line.addTo(map);drawTemp.push(line);}
+}
+
+function addPolyPt(lat,lng){
+  drawPts.push([lat,lng]);
+  const dot=L.circleMarker([lat,lng],{radius:5,color:'#4ADE80',fillColor:'#4ADE80',fillOpacity:1,weight:1.5});dot.addTo(map);drawTemp.push(dot);
+  if(drawPts.length>=3){const pl=L.polygon(drawPts.map(p=>[p[0],p[1]]),{color:'#4ADE80',fillColor:'#4ADE80',fillOpacity:.1,weight:2});pl.addTo(map);drawTemp.push(pl);}
+}
+
+function addRectPt(lat,lng){
+  if(!drawRect1){drawRect1=[lat,lng];const dot=L.circleMarker([lat,lng],{radius:5,color:'#F5BE18',fillColor:'#F5BE18',fillOpacity:1,weight:1.5});dot.addTo(map);drawTemp.push(dot);}
+  else{
+    const r=L.rectangle([[drawRect1[0],drawRect1[1]],[lat,lng]],{color:'#F5BE18',fillColor:'#F5BE18',fillOpacity:.1,weight:2.5});r.addTo(map);
+    const bnd=r.getBounds(),pts=[[bnd.getNorth(),bnd.getWest()],[bnd.getNorth(),bnd.getEast()],[bnd.getSouth(),bnd.getEast()],[bnd.getSouth(),bnd.getWest()]];
+    const area=polyA(pts),perim=perimPts(pts);
+    const id=addFeature('Rectangle',r,`Rectangle ${featCounter+1}`,{area,perim,pts:4,center:[bnd.getCenter().lat,bnd.getCenter().lng]});
+    r.on('click',()=>selectFeat(id));clearDrawState();setMode('pan',document.getElementById('tb-pan'));
+    sbTab('features',document.querySelector('[onclick="sbTab(\'features\',this)"]'));selectFeat(id);
+  }
+}
+
+function addCircPt(lat,lng){
+  if(!drawCircCenter){drawCircCenter=[lat,lng];const dot=L.circleMarker([lat,lng],{radius:6,color:'#A78BFA',fillColor:'#A78BFA',fillOpacity:1,weight:1.5});dot.addTo(map);drawTemp.push(dot);}
+  else{
+    const radius=hav([drawCircCenter[0],drawCircCenter[1]],[lat,lng]);
+    const c=L.circle([drawCircCenter[0],drawCircCenter[1]],{radius,color:'#A78BFA',fillColor:'#A78BFA',fillOpacity:.1,weight:2.5});c.addTo(map);
+    c.bindTooltip(`r = ${cvD(radius,dUnit).toFixed(2)} ${dUnit}`);
+    const id=addFeature('Circle',c,`Circle ${featCounter+1}`,{lat:drawCircCenter[0],lng:drawCircCenter[1],radius,center:drawCircCenter});
+    c.on('click',()=>selectFeat(id));clearDrawState();setMode('pan',document.getElementById('tb-pan'));
+    sbTab('features',document.querySelector('[onclick="sbTab(\'features\',this)"]'));selectFeat(id);
+  }
+}
+
+function finishDraw(){
+  if(drawMode==='line'&&drawPts.length>=2){
+    const layer=L.polyline(drawPts.map(p=>[p[0],p[1]]),{color:'#22D3EE',weight:2.5});layer.addTo(map);
+    let dist=0;for(let i=0;i<drawPts.length-1;i++)dist+=hav(drawPts[i],drawPts[i+1]);
+    const az=drawPts.length===2?azimuth(drawPts[0],drawPts[1]):0;
+    const segs=drawPts.length-1;
+    layer.bindTooltip(`${cvD(dist,dUnit).toFixed(2)} ${dUnit}`);
+    const id=addFeature('Polyline',layer,`Line ${featCounter+1}`,{dist,azimuth:az,segs,lat:drawPts[0][0],lng:drawPts[0][1]});
+    layer.on('click',()=>selectFeat(id));
+    // measure panel
+    updateMeasure(null,dist);
+  }else if(drawMode==='scale'&&drawPts.length===2){
+    const layer=L.polyline(drawPts.map(p=>[p[0],p[1]]),{color:'rgba(245,190,24,.8)',weight:3,dashArray:'8,4'});layer.addTo(map);
+    const dist=hav(drawPts[0],drawPts[1]);
+    layer.bindTooltip(`Scale: ${cvD(dist,dUnit).toFixed(3)} ${dUnit}`);
+    addFeature('Scale',layer,`Ruler ${featCounter+1}`,{dist,lat:drawPts[0][0],lng:drawPts[0][1]});
+    updateMeasure(null,dist);
+  }else if(drawMode==='polygon'&&drawPts.length>=3){
+    const layer=L.polygon(drawPts.map(p=>[p[0],p[1]]),{color:'#4ADE80',fillColor:'#4ADE80',fillOpacity:.12,weight:2.5});layer.addTo(map);
+    const area=polyA(drawPts),perim=perimPts(drawPts);
+    layer.bindTooltip(`${cvA(area,aUnit).toFixed(3)} ${aUnit}`);
+    const id=addFeature('Polygon',layer,`Polygon ${featCounter+1}`,{area,perim,pts:drawPts.length});
+    layer.on('click',()=>selectFeat(id));
+    updateMeasure(area,perim);
+  }
+  clearDrawState();setMode('pan',document.getElementById('tb-pan'));
+  sbTab('features',document.querySelector('[onclick="sbTab(\'features\',this)"]'));
+}
+
+function undoLast(){
+  if(['line','polygon'].includes(drawMode)&&drawPts.length){drawPts.pop();drawTemp.forEach(l=>map.removeLayer(l));drawTemp=[];if(drawPts.length>=2)addLinePt=()=>{};/* re-draw remaining */
+    drawPts.forEach((pt,i)=>{const dot=L.circleMarker([pt[0],pt[1]],{radius:5,color:'#22D3EE',fillColor:'#22D3EE',fillOpacity:1,weight:1.5});dot.addTo(map);drawTemp.push(dot);});
+    if(drawPts.length>=2){const cl=drawMode==='polygon'?'#4ADE80':'#22D3EE';const layer=L.polyline(drawPts.map(p=>[p[0],p[1]]),{color:cl,weight:2,dashArray:'5,3'});layer.addTo(map);drawTemp.push(layer);}
+  }else if(features.length){removeFeature(features[features.length-1].id);}
+}
+
+function updateMeasure(area,dist){
+  sbTab('measure',document.querySelector('[onclick="sbTab(\'measure\',this)"]'));
+  document.getElementById('m-active').textContent=area?`Area: ${cvA(area,aUnit).toFixed(4)} ${aUnit} · Perim: ${cvD(dist,dUnit).toFixed(2)} ${dUnit}`:`Distance: ${cvD(dist,dUnit).toFixed(4)} ${dUnit}`;
+  document.getElementById('meas-all').style.display='block';
+  if(area){document.getElementById('m-area-tbl').innerHTML=Object.keys(AU).map(u=>`<tr><td style="color:var(--Dm)">${u}</td><td style="text-align:right;font-family:var(--mono);color:${u===aUnit?'var(--Cy)':'var(--T)'}">${cvA(area,u).toFixed(5)}</td></tr>`).join('');}
+  if(dist){document.getElementById('m-dist-tbl').innerHTML=Object.keys(DU).map(u=>`<tr><td style="color:var(--Dm)">${u}</td><td style="text-align:right;font-family:var(--mono);color:${u===dUnit?'var(--Cy)':'var(--T)'}">${cvD(dist,u).toFixed(4)}</td></tr>`).join('');}
+}
+
+/* ══════════════════════════════════════════
+   SIDEBAR TABS
+══════════════════════════════════════════ */
+function sbTab(id,el){
+  document.querySelectorAll('.sb-tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.sb-panel').forEach(p=>p.classList.remove('on'));
+  if(el)el.classList.add('on');
+  const panel=document.getElementById('panel-'+id);if(panel)panel.classList.add('on');
+}
+
+/* ══════════════════════════════════════════
+   COORDINATE CONVERTER
+══════════════════════════════════════════ */
+let crdM='dd';
+function crdMode(m,el){crdM=m;document.querySelectorAll('#crd-mode-pills .upill').forEach(p=>p.classList.remove('on'));el.classList.add('on');['crd-dd','crd-dms','crd-utm'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('crd-'+m).style.display='block';}
 function crdConvert(){
   let lat,lon;
-  if(cM==='dd'){lat=parseFloat(document.getElementById('c-dd-la').value);lon=parseFloat(document.getElementById('c-dd-lo').value);}
-  else if(cM==='dms'){lat=dmsToDD(document.getElementById('c-d1').value,document.getElementById('c-m1').value,document.getElementById('c-s1').value,document.getElementById('c-r1').value);lon=dmsToDD(document.getElementById('c-d2').value,document.getElementById('c-m2').value,document.getElementById('c-s2').value,document.getElementById('c-r2').value);}
+  if(crdM==='dd'){lat=parseFloat(document.getElementById('c-la').value);lon=parseFloat(document.getElementById('c-lo').value);}
+  else if(crdM==='dms'){lat=dmsToDD(document.getElementById('c-d1').value,document.getElementById('c-m1').value,document.getElementById('c-s1').value,document.getElementById('c-r1').value);lon=dmsToDD(document.getElementById('c-d2').value,document.getElementById('c-m2').value,document.getElementById('c-s2').value,document.getElementById('c-r2').value);}
   else{const r=utmToLL(+document.getElementById('c-uz').value,document.getElementById('c-uh').value,+document.getElementById('c-ue').value,+document.getElementById('c-un').value);lat=r.lat;lon=r.lon;}
-  if(isNaN(lat)||isNaN(lon)){alert('Invalid coordinates');return;}
-  const h=parseFloat(document.getElementById('c-h').value)||0,utm=toUTM(lat,lon),ecef=toECEF(lat,lon,h);
-  function sv(id,v){document.getElementById(id).textContent=v;}
-  sv('cr-la',lat.toFixed(10)+'°');sv('cr-lo',lon.toFixed(10)+'°');
-  sv('cr-dms-la',toDMS(lat,true));sv('cr-dms-lo',toDMS(lon,false));
-  sv('cr-ddm-la',toDDM(lat,true));sv('cr-ddm-lo',toDDM(lon,false));
-  sv('cr-uz',utm.zone+utm.band);sv('cr-ue',utm.E+' m');sv('cr-un',utm.N+' m');
-  sv('cr-x',ecef.X+' m');sv('cr-y',ecef.Y+' m');sv('cr-z',ecef.Z+' m');
-  sv('cr-ns',lat>=0?'NORTHERN HEMISPHERE':'SOUTHERN HEMISPHERE');
-  sv('cr-ew',lon>=0?'EASTERN HEMISPHERE':'WESTERN HEMISPHERE');
+  if(isNaN(lat)||isNaN(lon))return;
+  const h=parseFloat(document.getElementById('c-h').value)||0,utm=toUTM(lat,lon);
+  document.getElementById('crd-res').style.display='block';
+  document.getElementById('cr-dd').textContent=`${lat.toFixed(10)}°, ${lon.toFixed(10)}°`;
+  document.getElementById('cr-dms').textContent=`${toDMS(lat,true)}  ${toDMS(lon,false)}`;
+  document.getElementById('cr-ddm').textContent=`${toDDM(lat,true)}  ${toDDM(lon,false)}`;
+  document.getElementById('cr-utm').textContent=`Zone ${utm.zone}${utm.band}  E: ${utm.E}  N: ${utm.N}`;
+  document.getElementById('cr-ecef').textContent=toECEF(lat,lon,h);
+}
+function crdGoToMap(){
+  let lat,lon;
+  if(crdM==='dd'){lat=parseFloat(document.getElementById('c-la').value);lon=parseFloat(document.getElementById('c-lo').value);}
+  else{const el=document.getElementById('cr-dd').textContent;const m=el.match(/([-\d.]+).*,([-\d.]+)/);if(m){lat=+m[1];lon=+m[2];}}
+  if(!isNaN(lat)&&!isNaN(lon)){map.setView([lat,lon],17);L.circleMarker([lat,lon],{radius:8,color:'#22D3EE',fillColor:'#22D3EE',fillOpacity:.9,weight:2}).addTo(map).bindTooltip(`${lat.toFixed(6)}, ${lon.toFixed(6)}`).openTooltip();}
+}
+// Auto-fill on map click when coord panel is active
+map.on('click',e=>{
+  if(drawMode!=='pan')return;
+  const {lat,lng}=e.latlng;
+  if(document.getElementById('panel-coord').classList.contains('on')){
+    document.getElementById('c-la').value=lat.toFixed(8);
+    document.getElementById('c-lo').value=lng.toFixed(8);
+    if(crdM==='dd')crdConvert();
+  }
+});
+
+/* ══════════════════════════════════════════
+   TOTAL STATION
+══════════════════════════════════════════ */
+let tsOri=0,tsData=[];
+
+function tsSetupCompute(){
+  const sn=+document.getElementById('ts-sn').value,se=+document.getElementById('ts-se').value,sz=+document.getElementById('ts-sz').value||0;
+  const bn=+document.getElementById('ts-bn').value,be=+document.getElementById('ts-be').value,hz=+document.getElementById('ts-bhz').value||0;
+  if(!isNaN(sn)&&!isNaN(se)&&!isNaN(bn)&&!isNaN(be)){const gb=(r2d(Math.atan2(be-se,bn-sn))+360)%360;tsOri=(gb-hz+360)%360;document.getElementById('ts-ori-box').style.display='block';document.getElementById('ts-ori-v').textContent=tsOri.toFixed(6)+'°';}
+  // Plot station on map if valid lat/lon possible (skip if local grid)
+  tsNotif(`✓ Station set — Orientation: ${tsOri.toFixed(4)}°`,'ok');
 }
 
-/* ══════════════════════ TOTAL STATION ══════════════════════ */
-let shots=[{id:1,nm:'P1',hz:'',va:'90.0000',sd:'',ht:'1.500',N:'',E:'',Z:'',HD:'',AZ:''}],sCnt=1,tsOriV=null;
-function tsRender(){
-  const tb=document.getElementById('ts-body');if(!tb)return;
-  tb.innerHTML=shots.map(s=>`<tr><td><input class="nm" value="${s.nm}" oninput="tsUp(${s.id},'nm',this.value)"></td>${['hz','va','sd','ht'].map(f=>`<td><input value="${s[f]}" placeholder="${f==='va'?'90.0000':f==='ht'?'1.500':'—'}" oninput="tsUp(${s.id},'${f}',this.value)" style="width:82px"></td>`).join('')}<td class="hi">${s.N||'—'}</td><td class="hi">${s.E||'—'}</td><td class="hi">${s.Z||'—'}</td><td class="mono">${s.HD||'—'}</td><td class="mono">${s.AZ||'—'}</td><td><button onclick="tsDel(${s.id})" style="background:none;border:none;color:rgba(239,68,68,.4);cursor:pointer;font-size:14px">✕</button></td></tr>`).join('');
-  document.getElementById('ts-sum-ne').textContent=document.getElementById('ts-n').value&&document.getElementById('ts-e').value?document.getElementById('ts-n').value+' / '+document.getElementById('ts-e').value:'—';
-  document.getElementById('ts-sum-z').textContent=document.getElementById('ts-z').value?document.getElementById('ts-z').value+' m':'—';
-  document.getElementById('ts-sum-hi').textContent=(parseFloat(document.getElementById('ts-hi').value)||1.5).toFixed(3)+' m';
-  document.getElementById('ts-sum-ori').textContent=tsOriV!==null?tsOriV.toFixed(6)+'°':'Not set';
-}
-function tsUp(id,f,v){const s=shots.find(x=>x.id===id);if(s)s[f]=v;}
-function tsAddShot(){sCnt++;shots.push({id:sCnt,nm:'P'+sCnt,hz:'',va:'90.0000',sd:'',ht:'1.500',N:'',E:'',Z:'',HD:'',AZ:''});tsRender();}
-function tsDel(id){shots=shots.filter(s=>s.id!==id);tsRender();}
-function tsOri(){
-  const sn=parseFloat(document.getElementById('ts-n').value),se=parseFloat(document.getElementById('ts-e').value),bn=parseFloat(document.getElementById('ts-bn').value),be=parseFloat(document.getElementById('ts-be').value),hz=parseFloat(document.getElementById('ts-bhz').value)||0;
-  if([sn,se,bn,be].some(isNaN)){alert('Enter station and BS coordinates');return;}
-  const gb=(r2d(Math.atan2(be-se,bn-sn))+360)%360;tsOriV=(gb-hz+360)%360;
-  document.getElementById('ts-ori-v').textContent=tsOriV.toFixed(6)+'°';document.getElementById('ts-ori-box').style.display='block';tsRender();
-}
-function tsCompute(){
-  const sn=parseFloat(document.getElementById('ts-n').value)||0,se=parseFloat(document.getElementById('ts-e').value)||0,sz=parseFloat(document.getElementById('ts-z').value)||0,hi=parseFloat(document.getElementById('ts-hi').value)||1.5,ori=tsOriV||0;
-  shots.forEach(s=>{const hz=parseFloat(s.hz),va=parseFloat(s.va),sd=parseFloat(s.sd),ht=parseFloat(s.ht)||1.5;if([hz,va,sd].some(isNaN)){s.N=s.E=s.Z=s.HD=s.AZ='?';return;}const az=(hz+ori+360)%360,azR=d2r(az),vaR=d2r(va),hd=sd*Math.sin(vaR),dz=sd*Math.cos(vaR)+hi-ht;s.N=(sn+hd*Math.cos(azR)).toFixed(4);s.E=(se+hd*Math.sin(azR)).toFixed(4);s.Z=(sz+dz).toFixed(4);s.HD=hd.toFixed(4);s.AZ=az.toFixed(4);});tsRender();
-}
-function tsExport(){const rows=[['Name','Hz°','ZA°','SD m','HT m','Northing','Easting','Elevation','HD m','Azimuth°'],...shots.map(s=>[s.nm,s.hz,s.va,s.sd,s.ht,s.N,s.E,s.Z,s.HD,s.AZ])].map(r=>r.join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows],{type:'text/csv'}));a.download='ts_shots.csv';a.click();}
-
-/* ══════════════════════ GNSS / GPS ══════════════════════ */
-let gnM='rtk';
-const fixC={'RTK Fixed':'#22C55E','RTK Float':'#1FA8D9','DGNSS':'#F5BE18','SBAS':'#F5BE18','Autonomous':'#EF4444'};
-const fixA={'RTK Fixed':'Accuracy: 1–3 cm H · 2–4 cm V','RTK Float':'Accuracy: 10–30 cm','DGNSS':'Accuracy: 0.3–1.5 m','SBAS':'Accuracy: 0.5–3 m','Autonomous':'Accuracy: 3–15 m'};
-function gnMode(m,el){gnM=m;document.querySelectorAll('#p-gnss .upill').forEach(p=>p.classList.remove('on'));el.classList.add('on');document.getElementById('gn-title').textContent=m==='rtk'?'RTK GNSS Observation':m==='gps'?'GPS Observation':'DGPS / DGNSS Observation';document.getElementById('gn-rtk-extra').style.display=m==='dgps'?'none':'block';document.getElementById('gn-dgps-extra').style.display=m==='dgps'?'block':'none';}
-function gnProcess(){
-  const lat=parseFloat(document.getElementById('gn-la').value),lon=parseFloat(document.getElementById('gn-lo').value),h=parseFloat(document.getElementById('gn-h').value)||0;
-  if(isNaN(lat)||isNaN(lon)){alert('Enter valid coordinates');return;}
-  const utm=toUTM(lat,lon),fix=document.getElementById('gn-fix').value;
-  const pd=parseFloat(document.getElementById('gn-pd').value)||1.5,hd=parseFloat(document.getElementById('gn-hd').value)||1.0,vd=parseFloat(document.getElementById('gn-vd').value)||1.5,sig=parseFloat(document.getElementById('gn-sig').value)||0.01;
-  const fc=document.getElementById('gn-fix-card');if(fc)fc.style.borderColor=fixC[fix]||'var(--B)';
-  document.getElementById('gn-fix-lbl').style.color=fixC[fix];document.getElementById('gn-fix-v').textContent=fix;document.getElementById('gn-fix-v').style.color=fixC[fix];document.getElementById('gn-fix-acc').textContent=fixA[fix];
-  document.getElementById('gn-hacc').textContent='± '+(hd*sig*1000).toFixed(3)+' m';document.getElementById('gn-vacc').textContent='± '+(vd*sig*1500).toFixed(3)+' m';
-  document.getElementById('gn-out-la').textContent=toDMS(lat,true);document.getElementById('gn-out-lo').textContent=toDMS(lon,false);
-  document.getElementById('gn-out-e').textContent=utm.E+' m';document.getElementById('gn-out-n').textContent=utm.N+' m';
-  document.getElementById('gn-dms-la').textContent=lat.toFixed(8)+'°';document.getElementById('gn-dms-lo').textContent=lon.toFixed(8)+'°';
-  document.getElementById('gn-out-h').textContent=h.toFixed(3)+' m';
-  document.getElementById('gn-dop-card').style.display='block';
-  [['gn-pdop-q',pd],['gn-hdop-q',hd],['gn-vdop-q',vd]].forEach(([id,v])=>{const q=dopQ(v);document.getElementById(id).textContent=v.toFixed(2)+' — '+q.l;document.getElementById(id).style.color=q.c;});
-  const sv=document.getElementById('gn-sv').value;if(sv){document.getElementById('gn-sv-row').style.display='flex';document.getElementById('gn-sv-q').textContent=sv+' SVs';}
-  document.getElementById('gn-res').style.display='block';document.getElementById('gn-empty').style.display='none';
+function tsLoadFile(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();reader.onload=e=>{
+    Papa.parse(e.target.result,{header:true,skipEmptyLines:true,complete:res=>{tsProcess(res.data);}});
+  };reader.readAsText(file);
 }
 
-/* ══════════════════════ DRONE ══════════════════════ */
-const drP={p4r:[35.9,24.0,35,5472,3648],m300:[35.9,24.1,35,5472,3648],mv3:[35.9,24.0,35,5280,3956],wing:[35.9,24.0,50,8688,5792],custom:[35.9,24.0,35,5472,3648]};
+function tsProcess(rows){
+  const sn=+document.getElementById('ts-sn').value||0,se=+document.getElementById('ts-se').value||0,sz=+document.getElementById('ts-sz').value||0;
+  const hi=+document.getElementById('ts-hi').value||1.5;
+  tsData=rows.map((row,i)=>{
+    const keys=Object.keys(row).map(k=>k.trim().toUpperCase());
+    const g=k=>{const ki=keys.find(x=>x===k||x.startsWith(k));return ki?row[Object.keys(row)[keys.indexOf(ki)]]:'';}
+    const name=g('POINT')||g('NAME')||g('ID')||g('PT')||`P${i+1}`;
+    // Check if already computed XYZ
+    const N=parseFloat(g('NORTHING')||g('N')||g('Y')||'');
+    const E=parseFloat(g('EASTING')||g('E')||g('X')||'');
+    const Z=parseFloat(g('ELEVATION')||g('ELEV')||g('Z')||g('H')||'');
+    const LAT=parseFloat(g('LAT')||g('LATITUDE')||'');
+    const LON=parseFloat(g('LON')||g('LONGITUDE')||g('LONG')||'');
+    if(!isNaN(LAT)&&!isNaN(LON))return{name,N:LAT.toFixed(8),E:LON.toFixed(8),Z:isNaN(Z)?'—':Z.toFixed(4),isLatLon:true,lat:LAT,lon:LON,elev:Z};
+    if(!isNaN(N)&&!isNaN(E))return{name,N:N.toFixed(4),E:E.toFixed(4),Z:isNaN(Z)?'—':Z.toFixed(4),localGrid:true};
+    // Observation data
+    const hz=parseFloat(g('HZ')||g('HORIZONTAL')||g('HA')||'');
+    const va=parseFloat(g('VA')||g('ZA')||g('ZENITH')||g('VERT')||'');
+    const sd=parseFloat(g('SD')||g('SLOPE')||g('DISTANCE')||g('DIST')||'');
+    const ht=parseFloat(g('HT')||g('TARGET')||g('PRISM')||'1.5')||1.5;
+    if(!isNaN(hz)&&!isNaN(va)&&!isNaN(sd)){
+      const az=(hz+tsOri+360)%360,azR=d2r(az),vaR=d2r(va);
+      const hd=sd*Math.sin(vaR),dz=sd*Math.cos(vaR)+hi-ht;
+      const Nv=sn+hd*Math.cos(azR),Ev=se+hd*Math.sin(azR),Zv=sz+dz;
+      return{name,N:Nv.toFixed(4),E:Ev.toFixed(4),Z:Zv.toFixed(4),localGrid:true};
+    }
+    return{name,N:'?',E:'?',Z:'?'};
+  });
+  renderTSTable();
+  tsNotif(`✓ ${tsData.length} points loaded`,'ok');
+  document.getElementById('ts-data-wrap').style.display='block';
+}
+
+function renderTSTable(){
+  document.getElementById('ts-tbody').innerHTML=tsData.map(r=>`<tr><td class="mono">${r.name}</td><td class="mono" style="font-size:10px">${r.N}</td><td class="mono" style="font-size:10px">${r.E}</td><td class="mono" style="font-size:10px">${r.Z}</td></tr>`).join('');
+}
+
+function tsPlotAll(){
+  tsData.forEach(pt=>{
+    let lat,lon;
+    if(pt.isLatLon){lat=pt.lat;lon=pt.lon;}
+    else{const sn=+document.getElementById('ts-sn').value,se=+document.getElementById('ts-se').value;if(pt.localGrid&&!isNaN(sn)){const dN=parseFloat(pt.N)-sn,dE=parseFloat(pt.E)-se;lat=DUBAI[0]+dN/111320;lon=DUBAI[1]+dE/(111320*Math.cos(d2r(DUBAI[0])));}}
+    if(!lat||!lon)return;
+    const color='#F5BE18';
+    const mk=L.circleMarker([lat,lon],{radius:7,color,fillColor:color,fillOpacity:.85,weight:2});
+    mk.addTo(map);mk.bindTooltip(`<b>${pt.name}</b><br>${parseFloat(pt.N).toFixed(4)}, ${parseFloat(pt.E).toFixed(4)}${pt.Z&&pt.Z!=='—'?`<br>Z: ${pt.Z}`:''}`);
+    const id=addFeature('TS Point',mk,pt.name,{lat,lng:lon,elev:parseFloat(pt.Z)||undefined,note:'Total Station'});
+    mk.on('click',()=>selectFeat(id));
+  });
+  const pts=tsData.filter(p=>p.lat||+p.N);if(pts.length)map.setView([DUBAI[0],DUBAI[1]],13);
+  tsNotif(`✓ ${tsData.length} points plotted on map`,'ok');
+}
+
+function tsExportCSV(){if(!tsData.length)return;const rows=[['POINT','NORTHING','EASTING','ELEVATION'],...tsData.map(r=>[r.name,r.N,r.E,r.Z])].map(r=>r.join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows],{type:'text/csv'}));a.download='ts_points.csv';a.click();}
+function tsNotif(msg,type){const n=document.getElementById('ts-notif');n.textContent=msg;n.className=`notif show ${type}`;setTimeout(()=>n.classList.remove('show'),3000);}
+
+// Drag & drop for TS
+const tsDrop=document.getElementById('ts-drop');
+tsDrop.addEventListener('dragover',e=>{e.preventDefault();tsDrop.classList.add('over');});
+tsDrop.addEventListener('dragleave',()=>tsDrop.classList.remove('over'));
+tsDrop.addEventListener('drop',e=>{e.preventDefault();tsDrop.classList.remove('over');const file=e.dataTransfer.files[0];if(file){const r=new FileReader();r.onload=ev=>{Papa.parse(ev.target.result,{header:true,skipEmptyLines:true,complete:res=>{tsProcess(res.data);}});};r.readAsText(file);}});
+
+/* ══════════════════════════════════════════
+   GNSS DATA
+══════════════════════════════════════════ */
+let gnssData=[];
+
+function gnssLoadFile(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();reader.onload=e=>{Papa.parse(e.target.result,{header:true,skipEmptyLines:true,complete:res=>{gnssProcess(res.data);}});};reader.readAsText(file);
+}
+
+function gnssProcess(rows){
+  gnssData=rows.map((row,i)=>{
+    const keys=Object.keys(row).map(k=>k.trim().toUpperCase());
+    const g=k=>{const ki=keys.find(x=>x.includes(k));return ki?row[Object.keys(row)[keys.indexOf(ki)]]:'';}
+    const name=g('POINT')||g('NAME')||g('ID')||`G${i+1}`;
+    const lat=parseFloat(g('LAT')||g('LATITUDE')||'');
+    const lon=parseFloat(g('LON')||g('LONG')||g('LONGITUDE')||'');
+    const h=parseFloat(g('H')||g('HEIGHT')||g('ELEV')||g('ALT')||'');
+    const fix=g('FIX')||g('QUALITY')||g('TYPE')||'';
+    const pdop=parseFloat(g('PDOP')||'');
+    const hdop=parseFloat(g('HDOP')||'');
+    const vdop=parseFloat(g('VDOP')||'');
+    const sats=g('SATS')||g('SATELLITES')||'';
+    return{name,lat,lon,h:isNaN(h)?'—':h.toFixed(4),fix,pdop:isNaN(pdop)?'—':pdop.toFixed(2),hdop:isNaN(hdop)?'—':hdop.toFixed(2),vdop:isNaN(vdop)?'—':vdop.toFixed(2),sats};
+  }).filter(r=>!isNaN(r.lat)&&!isNaN(r.lon));
+  renderGNSSTable();
+  gnssNotif(`✓ ${gnssData.length} GNSS points loaded`,'ok');
+  document.getElementById('gnss-data-wrap').style.display='block';
+}
+
+function renderGNSSTable(){
+  const tbody=document.getElementById('gnss-tbody');
+  tbody.innerHTML=gnssData.map(r=>{
+    const fix=r.fix||'';const qc=fix.includes('Fixed')?'ok':fix.includes('Float')?'warn':'';
+    return `<tr><td class="mono">${r.name}</td><td class="mono" style="font-size:10px">${r.lat.toFixed(6)}</td><td class="mono" style="font-size:10px">${r.lon.toFixed(6)}</td><td class="mono" style="font-size:10px">${r.h}</td><td class="${qc}" style="font-size:10px">${fix||'—'}</td><td class="mono" style="font-size:10px">${r.pdop}</td></tr>`;
+  }).join('');
+}
+
+function gnssPlotAll(){
+  const fixColors={'RTK Fixed':'#4ADE80','RTK Float':'#22D3EE','DGNSS':'#F5BE18','SBAS':'#F5BE18','Autonomous':'#EF4444'};
+  gnssData.forEach(pt=>{
+    const color=fixColors[pt.fix]||'#22D3EE';
+    const mk=L.circleMarker([pt.lat,pt.lon],{radius:7,color,fillColor:color,fillOpacity:.85,weight:2});
+    mk.addTo(map);
+    mk.bindTooltip(`<b>${pt.name}</b><br>H: ${pt.h} m<br>Fix: ${pt.fix||'—'}<br>PDOP: ${pt.pdop}`);
+    const id=addFeature('GNSS Point',mk,pt.name,{lat:pt.lat,lng:pt.lon,elev:parseFloat(pt.h)||undefined,fix:pt.fix,pdop:pt.pdop,hdop:pt.hdop,vdop:pt.vdop,note:'GNSS Import'});
+    mk.on('click',()=>selectFeat(id));
+  });
+  if(gnssData.length)map.fitBounds(L.featureGroup(gnssData.map(p=>L.circleMarker([p.lat,p.lon]))).getBounds(),{padding:[60,60]});
+  gnssNotif(`✓ ${gnssData.length} GNSS points plotted`,'ok');
+}
+
+function gnssExportCSV(){if(!gnssData.length)return;const rows=[['POINT','LAT','LON','H','FIX','PDOP','HDOP','VDOP','SATS'],...gnssData.map(r=>[r.name,r.lat.toFixed(8),r.lon.toFixed(8),r.h,r.fix,r.pdop,r.hdop,r.vdop,r.sats])].map(r=>r.join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows],{type:'text/csv'}));a.download='gnss_points.csv';a.click();}
+function gnssNotif(msg,type){const n=document.getElementById('gnss-notif');n.textContent=msg;n.className=`notif show ${type}`;setTimeout(()=>n.classList.remove('show'),3000);}
+
+// Drag & drop GNSS
+const gnssDrop=document.getElementById('gnss-drop');
+gnssDrop.addEventListener('dragover',e=>{e.preventDefault();gnssDrop.classList.add('over');});
+gnssDrop.addEventListener('dragleave',()=>gnssDrop.classList.remove('over'));
+gnssDrop.addEventListener('drop',e=>{e.preventDefault();gnssDrop.classList.remove('over');const file=e.dataTransfer.files[0];if(file){const r=new FileReader();r.onload=ev=>{Papa.parse(ev.target.result,{header:true,skipEmptyLines:true,complete:res=>{gnssProcess(res.data);}});};r.readAsText(file);}});
+
+/* ══════════════════════════════════════════
+   NMEA PARSING
+══════════════════════════════════════════ */
+function nmeaLoadFile(input){const file=input.files[0];if(!file)return;const r=new FileReader();r.onload=e=>{document.getElementById('nmea-text').value=e.target.result.slice(0,5000);nmeaParse();};r.readAsText(file);}
+function nmeaParse(){
+  const text=document.getElementById('nmea-text').value;
+  const lines=text.split(/\r?\n/).filter(l=>l.trim().match(/\$(GN|GP|GL)GGA/));
+  if(!lines.length){document.getElementById('nmea-notif').textContent='⚠ No valid GGA sentences found';document.getElementById('nmea-notif').className='notif show err';return;}
+  const parsed=lines.map((line,i)=>{
+    const parts=line.split(',');if(parts.length<10)return null;
+    try{
+      const lat=nmeaToDD(parts[2],parts[3]),lon=nmeaToDD(parts[4],parts[5]);
+      const fix=['Invalid','GPS','DGPS','PPS','RTK Fixed','RTK Float','Est','Manual','Sim'][parseInt(parts[6])]||parts[6];
+      const sats=parts[7],hdop=parts[8],alt=parseFloat(parts[9]);
+      return{name:`NMEA-${String(i+1).padStart(3,'0')}`,lat,lon,h:alt.toFixed(3),fix,sats,hdop};
+    }catch(e){return null;}
+  }).filter(Boolean);
+  document.getElementById('nmea-tbody').innerHTML=parsed.map((r,i)=>`<tr><td class="mono">${i+1}</td><td class="mono" style="font-size:10px">${r.lat.toFixed(6)}</td><td class="mono" style="font-size:10px">${r.lon.toFixed(6)}</td><td class="mono" style="font-size:10px">${r.h}</td><td style="font-size:10px;${r.fix.includes('RTK')?'color:#4ADE80':r.fix==='DGPS'?'color:#F5BE18':'color:var(--M)'}">${r.fix}</td><td class="mono" style="font-size:10px">${r.sats}</td></tr>`).join('');
+  document.getElementById('nmea-notif').textContent=`✓ ${parsed.length} GGA sentences parsed`;document.getElementById('nmea-notif').className='notif show ok';
+  document.getElementById('nmea-data-wrap').style.display='block';
+  // Plot parsed points
+  const fixColors={'GPS':'#1FA8D9','DGPS':'#F5BE18','RTK Fixed':'#4ADE80','RTK Float':'#22D3EE','Est':'#A78BFA'};
+  parsed.forEach(pt=>{
+    const color=fixColors[pt.fix]||'#22D3EE';
+    const mk=L.circleMarker([pt.lat,pt.lon],{radius:6,color,fillColor:color,fillOpacity:.8,weight:2});
+    mk.addTo(map);mk.bindTooltip(`<b>${pt.name}</b><br>H: ${pt.h} m<br>Fix: ${pt.fix}<br>Sats: ${pt.sats}`);
+    const id=addFeature('NMEA Point',mk,pt.name,{lat:pt.lat,lng:pt.lon,elev:parseFloat(pt.h),fix:pt.fix,note:'NMEA GGA'});
+    mk.on('click',()=>selectFeat(id));
+  });
+  if(parsed.length)map.fitBounds(L.featureGroup(parsed.map(p=>L.circleMarker([p.lat,p.lon]))).getBounds(),{padding:[60,60]});
+  sbTab('features',document.querySelector('[onclick="sbTab(\'features\',this)"]'));
+}
+
+/* ══════════════════════════════════════════
+   IMPORT MODE SWITCHER
+══════════════════════════════════════════ */
+function impMode(m,el){document.querySelectorAll('#imp-mode-pills .upill').forEach(p=>p.classList.remove('on'));el.classList.add('on');['ts','gnss','nmea'].forEach(id=>document.getElementById('imp-'+id).style.display='none');document.getElementById('imp-'+m).style.display='block';}
+
+/* ══════════════════════════════════════════
+   DRONE CALCULATOR
+══════════════════════════════════════════ */
+const drP={p4r:[35.9,24.0,35,5472,3648],m300:[35.9,24.1,35,5472,3648],mv3:[35.9,24.0,35,5280,3956],wing:[35.9,24.0,50,8688,5792],c:[35.9,24.0,35,5472,3648]};
 function drPreset(){const v=document.getElementById('dr-model').value,p=drP[v]||drP.p4r;['dr-sw','dr-sh','dr-fl','dr-iw','dr-ih'].forEach((id,i)=>document.getElementById(id).value=p[i]);}
 function drCompute(){
-  const alt=parseFloat(document.getElementById('dr-alt').value),fl=parseFloat(document.getElementById('dr-fl').value),iw=parseFloat(document.getElementById('dr-iw').value),ih=parseFloat(document.getElementById('dr-ih').value),sw=parseFloat(document.getElementById('dr-sw').value),sh=parseFloat(document.getElementById('dr-sh').value),fo=parseFloat(document.getElementById('dr-fo').value)/100,so=parseFloat(document.getElementById('dr-so').value)/100,area=parseFloat(document.getElementById('dr-area').value),spd=parseFloat(document.getElementById('dr-spd').value)||10,gcp=parseInt(document.getElementById('dr-gcp').value)||5;
-  if([alt,fl,iw,ih,sw,sh].some(isNaN)){alert('Fill in all camera fields');return;}
-  const gsd=(alt*sw/iw/fl)*100,fw=iw*gsd/100,fh=ih*gsd/100,ls=fw*(1-so),is_=fh*(1-fo),aM2=area*1e4,side=Math.sqrt(aM2),len=aM2/side,nl=Math.ceil(side/ls)+1,ni=Math.ceil(len/is_)+1,total=nl*ni,flen=nl*len,ftime=flen/spd/60,gcpN=Math.max(gcp,Math.ceil(area/5)),pcd=Math.round(5/(gsd**2)*1000);
-  const cls=gsd<=2?{l:'✓ Class A Cadastral (±25mm)',c:'#22C55E'}:gsd<=5?{l:'✓ Class B Topo 1:500 (±100mm)',c:'#1FA8D9'}:gsd<=10?{l:'✓ Class C Topo 1:1000 (±250mm)',c:'#F5BE18'}:{l:'○ Class D GIS (±1m)',c:'#EF4444'};
-  document.getElementById('dr-gsd').textContent=gsd.toFixed(2);document.getElementById('dr-cls').textContent=cls.l;document.getElementById('dr-cls').style.color=cls.c;
-  document.getElementById('dr-imgs').textContent=total;document.getElementById('dr-lines').textContent=nl+' lines × '+ni+' imgs';
-  document.getElementById('dr-time').textContent=ftime.toFixed(1);
-  document.getElementById('dr-fw').textContent=fw.toFixed(2)+' m';document.getElementById('dr-fh').textContent=fh.toFixed(2)+' m';document.getElementById('dr-ls').textContent=ls.toFixed(2)+' m';document.getElementById('dr-ii').textContent=is_.toFixed(2)+' m';document.getElementById('dr-fd').textContent=(flen/1000).toFixed(2)+' km';
-  document.getElementById('dr-pcd').textContent='~'+pcd+' pts/m²';document.getElementById('dr-gcpr').textContent='≥ '+gcpN+' GCPs';document.getElementById('dr-ha').textContent='± '+(gsd*1.5/100).toFixed(3)+' m';document.getElementById('dr-va').textContent='± '+(gsd*3/100).toFixed(3)+' m';
-  document.getElementById('dr-comp').innerHTML='<span style="color:'+cls.c+'">'+cls.l+'</span><br>GCP spacing: ~'+Math.round(Math.sqrt(aM2/gcpN))+' m average';
-  document.getElementById('dr-res').style.display='block';document.getElementById('dr-empty').style.display='none';
+  const alt=+document.getElementById('dr-alt').value,fl=+document.getElementById('dr-fl').value,iw=+document.getElementById('dr-iw').value,ih=+document.getElementById('dr-ih').value,sw=+document.getElementById('dr-sw').value,sh=+document.getElementById('dr-sh').value,fo=+document.getElementById('dr-fo').value/100,so=+document.getElementById('dr-so').value/100,area=+document.getElementById('dr-area').value,spd=+document.getElementById('dr-spd').value||10,gcp=+document.getElementById('dr-gcp').value||5;
+  const gsd=(alt*sw/iw/fl)*100,fw=iw*gsd/100,fh=ih*gsd/100,ls=fw*(1-so),is_=fh*(1-fo),aM=area*1e4,side=Math.sqrt(aM),len=aM/side,nl=Math.ceil(side/ls)+1,ni=Math.ceil(len/is_)+1,tot=nl*ni,flen=nl*len,ftime=flen/spd/60,gcpN=Math.max(gcp,Math.ceil(area/5)),pcd=Math.round(5/(gsd**2)*1000);
+  const cls=gsd<=2?'A — Cadastral (±25mm)':gsd<=5?'B — Engineering (±100mm)':gsd<=10?'C — Topographic (±250mm)':'D — GIS (±1m)';
+  const clsc=gsd<=2?'#4ADE80':gsd<=5?'#22D3EE':gsd<=10?'#F5BE18':'#EF4444';
+  document.getElementById('dr-gsd').textContent=gsd.toFixed(2);document.getElementById('dr-imgs').textContent=tot;document.getElementById('dr-time').textContent=ftime.toFixed(1);
+  document.getElementById('dr-foot').textContent=`${fw.toFixed(2)} m × ${fh.toFixed(2)} m`;document.getElementById('dr-spacing').textContent=`${ls.toFixed(2)} m  /  ${is_.toFixed(2)} m`;
+  document.getElementById('dr-acc').textContent=`±${(gsd*1.5/100).toFixed(3)} m  /  ±${(gsd*3/100).toFixed(3)} m`;document.getElementById('dr-gcpr').textContent=`≥ ${gcpN} GCPs`;
+  document.getElementById('dr-cls').textContent=`Class ${cls}`;document.getElementById('dr-cls').style.color=clsc;
+  document.getElementById('dr-res').style.display='block';
 }
 
-/* ══════════════════════ DUBAI STANDARDS ══════════════════════ */
+/* ══════════════════════════════════════════
+   DUBAI COMPLIANCE
+══════════════════════════════════════════ */
 function dubCheck(){
-  const h=parseFloat(document.getElementById('dub-h').value),v=parseFloat(document.getElementById('dub-v').value),meth=document.getElementById('dub-meth').value;
-  if(isNaN(h)||isNaN(v)){alert('Enter H and V accuracy values');return;}
-  const cls=h<=.025&&v<=.05?{n:'CLASS A — CADASTRAL',c:'#1FA8D9'}:h<=.1&&v<=.15?{n:'CLASS B — ENGINEERING',c:'#22C55E'}:h<=.25&&v<=.35?{n:'CLASS C — TOPOGRAPHIC',c:'#F5BE18'}:h<=1&&v<=2?{n:'CLASS D — GIS / URBAN',c:'#8B5CF6'}:null;
-  const el=document.getElementById('dub-res');
-  if(cls){el.innerHTML=`<div class="comp-box pass"><div class="comp-name" style="color:${cls.c}">${cls.n}</div><div style="font-size:14px;font-weight:700;color:#22C55E;margin-bottom:8px">✓ COMPLIANT</div><div style="font-size:12px;color:var(--M)">H: ± ${(h*1000).toFixed(1)} mm · V: ± ${(v*1000).toFixed(1)} mm · ${meth}</div><div style="font-size:11px;color:var(--M);margin-top:8px">Suitable for submission to Dubai Municipality Land Registration Department.</div></div>`;}
-  else{el.innerHTML=`<div class="comp-box fail"><div class="comp-name" style="color:#EF4444">NON-COMPLIANT</div><div style="font-size:14px;font-weight:700;color:#EF4444;margin-bottom:8px">✕ DOES NOT MEET ANY CLASS</div><div style="font-size:12px;color:var(--M)">H: ± ${(h*1000).toFixed(1)} mm · V: ± ${(v*1000).toFixed(1)} mm</div><div style="font-size:11px;color:#EF4444;margin-top:8px">Review survey methodology, instrument calibration, and observation procedures.</div></div>`;}
+  const h=parseFloat(document.getElementById('dub-h').value),v=parseFloat(document.getElementById('dub-v').value);
+  if(isNaN(h)||isNaN(v))return;
+  const cls=h<=.025&&v<=.05?{n:'CLASS A — CADASTRAL',c:'#1FA8D9',p:true}:h<=.1&&v<=.15?{n:'CLASS B — ENGINEERING',c:'#4ADE80',p:true}:h<=.25&&v<=.35?{n:'CLASS C — TOPOGRAPHIC',c:'#F5BE18',p:true}:h<=1&&v<=2?{n:'CLASS D — GIS',c:'#A78BFA',p:true}:{n:'NON-COMPLIANT',c:'#EF4444',p:false};
+  document.getElementById('dub-res').innerHTML=`<div style="background:${cls.p?'rgba(34,197,94,.07)':'rgba(239,68,68,.07)'};border:1px solid ${cls.p?'rgba(34,197,94,.25)':'rgba(239,68,68,.25)'};border-radius:10px;padding:12px;text-align:center;margin-top:6px"><div style="font-size:11px;font-weight:800;color:${cls.c};letter-spacing:1px">${cls.n}</div><div style="font-size:12px;color:${cls.p?'#4ADE80':'#EF4444'};font-weight:700;margin-top:4px">${cls.p?'✓ COMPLIANT':'✕ NON-COMPLIANT'}</div><div style="font-size:10px;color:var(--M);margin-top:5px">H: ±${(h*1000).toFixed(1)}mm · V: ±${(v*1000).toFixed(1)}mm</div></div>`;
 }
 
-/* ══════════════════════ INIT ══════════════════════ */
-initPills();renderPlots();dpRender();tsRender();redraw();metrics();
-window.addEventListener('resize',()=>redraw());
+/* ══════════════════════════════════════════
+   UNIT PILLS INIT
+══════════════════════════════════════════ */
+function initUnitPills(){
+  const ap=document.getElementById('m-area-pills'),dp=document.getElementById('m-dist-pills');
+  if(ap)ap.innerHTML=Object.keys(AU).map(u=>`<button class="upill${u===aUnit?' on':''}" onclick="aUnit='${u}';document.querySelectorAll('#m-area-pills .upill').forEach(p=>p.classList.remove('on'));this.classList.add('on')">${u}</button>`).join('');
+  if(dp)dp.innerHTML=Object.keys(DU).map(u=>`<button class="upill${u===dUnit?' on':''}" onclick="dUnit='${u}';document.querySelectorAll('#m-dist-pills .upill').forEach(p=>p.classList.remove('on'));this.classList.add('on')">${u}</button>`).join('');
+}
+
+/* ══════════════════════════════════════════
+   EXPORT GEOJSON
+══════════════════════════════════════════ */
+function exportGeoJSON(){
+  if(!features.length)return;
+  const geojson={type:'FeatureCollection',features:features.map(f=>{
+    let geom=null;
+    try{if(f.layer.toGeoJSON)geom=f.layer.toGeoJSON().geometry;}catch(e){}
+    return{type:'Feature',properties:{name:f.name,type:f.type,...f.meta},geometry:geom};
+  })};
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(geojson,null,2)],{type:'application/json'}));a.download='gauge_features.geojson';a.click();
+}
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+initUnitPills();
+// Map click to convert coords panel
 </script>
 </body>
 </html>
