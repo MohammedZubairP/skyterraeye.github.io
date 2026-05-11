@@ -3,1127 +3,694 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gauge — Precision Measurement Platform | Sky TerraEye Dubai</title>
-<meta name="description" content="Professional satellite map measurement tool for Dubai surveyors. Draw polygons, measure distances, import Total Station and GNSS data, coordinate conversion and Dubai Municipality compliance.">
+<title>Gauge - Land Surveyor Platform | Sky TerraEye Dubai</title>
 <link rel="icon" href="assets/img/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
-<!-- Leaflet -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<!-- PapaParse CSV -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-
 <style>
-/* ══════════════ ROOT ══════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --B:#1FA8D9;--B2:#1482AA;--Bdim:rgba(31,168,217,.12);--Bl:rgba(31,168,217,.2);
-  --G:#F5BE18;--Gr:#22C55E;--Cy:#22D3EE;
-  --D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;
-  --T:#D0E8F5;--M:#5A839E;--Dm:#243D52;--W:#fff;
-  --r:10px;--r2:16px;--e:.25s cubic-bezier(.4,0,.2,1);
-  --mono:'IBM Plex Mono',monospace;
-  --sb:280px;
-}
-html,body{height:100%;overflow:hidden}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--T);font-size:14px}
+:root{--B:#1FA8D9;--B2:#1482AA;--Bdim:rgba(31,168,217,.12);--Bl:rgba(31,168,217,.2);--G:#F5BE18;--Gr:#22C55E;--Cy:#22D3EE;--Pu:#A78BFA;--D:#071220;--D2:#0A1929;--D3:#0F2236;--D4:#162A40;--T:#D0E8F5;--M:#5A839E;--Dm:#243D52;--W:#fff;--r:8px;--r2:14px;--e:.22s ease;--mono:'IBM Plex Mono',monospace}
+html,body{height:100%;overflow:hidden;font-family:'Plus Jakarta Sans',sans-serif;background:var(--D);color:var(--T);font-size:13px}
 a{color:inherit;text-decoration:none}
-input,select,textarea,button{font-family:inherit}
-img{display:block;max-width:100%}
-
-/* ══════════════ UAE + NAV ══════════════ */
+input,select,textarea,button{font-family:inherit;font-size:12px}
 .uae{height:4px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
-.nav{background:rgba(4,13,22,.97);backdrop-filter:blur(24px);border-bottom:1px solid rgba(31,168,217,.1);height:60px;display:flex;align-items:center;padding:0 24px;gap:16px;justify-content:space-between;flex-shrink:0}
-.logo{display:flex;align-items:center;gap:10px}
-.logo img{height:26px}
-.logt{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--W)}
-.logt b{color:var(--B)}
-.nl{display:flex;align-items:center;gap:3px}
-.nl a{font-size:13px;font-weight:600;color:var(--M);padding:6px 11px;border-radius:var(--r);transition:var(--e)}
+.nav{background:rgba(4,13,22,.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(31,168,217,.1);height:54px;display:flex;align-items:center;padding:0 18px;justify-content:space-between;flex-shrink:0;z-index:500;position:relative}
+.logo{display:flex;align-items:center;gap:9px}.logo img{height:24px}
+.logt{font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--W)}.logt b{color:var(--B)}
+.nav-ct{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--Cy)}.nav-ct svg{width:14px;height:14px}
+.nl{display:flex;align-items:center;gap:2px}
+.nl a{font-size:12px;font-weight:600;color:var(--M);padding:5px 10px;border-radius:var(--r);transition:var(--e)}
 .nl a:hover{color:var(--W);background:rgba(255,255,255,.06)}
-.nl .cta{background:var(--B);color:#fff;font-weight:700}
-.nl .cta:hover{background:var(--B2)}
-.eye-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(245,190,24,.1);border:1.5px solid rgba(245,190,24,.35);color:var(--G);font-size:13px;font-weight:700;padding:6px 13px;border-radius:999px;margin-left:6px;transition:var(--e)}
-.eye-btn:hover{background:rgba(245,190,24,.2);transform:translateY(-1px)}
-.eye-btn svg,.terra-btn svg,.strata-btn svg,.gauge-active svg{width:13px;height:13px}
-.terra-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,.1);border:1.5px solid rgba(34,197,94,.28);color:#4ADE80;font-size:13px;font-weight:700;padding:6px 13px;border-radius:999px;margin-left:3px;transition:var(--e)}
-.terra-btn:hover{background:rgba(34,197,94,.2);transform:translateY(-1px)}
-.strata-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(167,139,250,.1);border:1.5px solid rgba(167,139,250,.32);color:#A78BFA;font-size:13px;font-weight:700;padding:6px 13px;border-radius:999px;margin-left:3px;transition:var(--e)}
-.strata-btn:hover{background:rgba(167,139,250,.2);transform:translateY(-1px)}
-.gauge-active{display:inline-flex;align-items:center;gap:6px;background:rgba(6,182,212,.15);border:1.5px solid rgba(6,182,212,.55);color:var(--Cy);font-size:13px;font-weight:700;padding:6px 13px;border-radius:999px;margin-left:3px;box-shadow:0 0 14px rgba(6,182,212,.15)}
-
-/* ══════════════ APP LAYOUT ══════════════ */
-#app{display:flex;height:calc(100vh - 64px);overflow:hidden}
-
-/* ══════════════ LEFT SIDEBAR ══════════════ */
-#sidebar{width:var(--sb);min-width:var(--sb);background:var(--D2);border-right:1px solid var(--Bl);display:flex;flex-direction:column;overflow:hidden;z-index:200}
-#sidebar.collapsed{width:48px;min-width:48px}
-.sb-tabs{display:flex;flex-direction:column;padding:6px;gap:2px;border-bottom:1px solid var(--Bl);background:var(--D)}
-.sb-tab{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--M);font-size:12px;font-weight:600;transition:var(--e);white-space:nowrap;overflow:hidden;border:none;background:none;width:100%;text-align:left}
-.sb-tab svg{width:16px;height:16px;flex-shrink:0}
-.sb-tab:hover{background:rgba(31,168,217,.07);color:var(--T)}
-.sb-tab.on{background:rgba(34,197,94,.08);color:var(--Cy);border:1px solid rgba(6,182,212,.2)}
-.sb-content{flex:1;overflow-y:auto;overflow-x:hidden}
-.sb-content::-webkit-scrollbar{width:4px}
-.sb-content::-webkit-scrollbar-thumb{background:var(--D4);border-radius:2px}
-.sb-panel{display:none;padding:14px}
-.sb-panel.on{display:block}
-.sb-toggle{position:absolute;left:calc(var(--sb) - 0px);top:50%;transform:translateY(-50%);z-index:300;width:20px;height:40px;background:var(--D2);border:1px solid var(--Bl);border-left:none;border-radius:0 8px 8px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--M);transition:var(--e)}
-
-/* ══════════════ MAP AREA ══════════════ */
+.nl .cta{background:var(--B);color:#fff;font-weight:700}.nl .cta:hover{background:var(--B2)}
+.pbt{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;margin-left:3px;transition:var(--e)}.pbt svg{width:12px;height:12px}
+.eye-btn{background:rgba(245,190,24,.1);border:1.5px solid rgba(245,190,24,.3);color:var(--G)}.eye-btn:hover{background:rgba(245,190,24,.2);transform:translateY(-1px)}
+.terra-btn{background:rgba(34,197,94,.1);border:1.5px solid rgba(34,197,94,.25);color:#4ADE80}.terra-btn:hover{background:rgba(34,197,94,.2);transform:translateY(-1px)}
+.strata-btn{background:rgba(167,139,250,.1);border:1.5px solid rgba(167,139,250,.28);color:var(--Pu)}.strata-btn:hover{background:rgba(167,139,250,.18);transform:translateY(-1px)}
+.gauge-a{background:rgba(6,182,212,.14);border:1.5px solid rgba(6,182,212,.5);color:var(--Cy);box-shadow:0 0 12px rgba(6,182,212,.12)}
+.kb-btn{background:rgba(31,168,217,.1);border:1px solid rgba(31,168,217,.2);color:var(--B);font-size:11px;padding:4px 10px;border-radius:var(--r);cursor:pointer;margin-left:6px}
+#app{display:flex;height:calc(100vh - 58px);overflow:hidden}
+#sb{width:285px;min-width:285px;background:var(--D2);border-right:1px solid var(--Bl);display:flex;flex-direction:column;overflow:hidden;transition:width .25s,min-width .25s;z-index:300}
+#sb.hide{width:0;min-width:0}
+.sbn{padding:7px;border-bottom:1px solid var(--Bl);display:grid;grid-template-columns:repeat(5,1fr);gap:3px;background:rgba(4,13,22,.5);flex-shrink:0}
+.sbn2{padding:5px 7px 7px;border-bottom:1px solid var(--Bl);display:grid;grid-template-columns:repeat(4,1fr);gap:3px;background:rgba(4,13,22,.5);flex-shrink:0}
+.t{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 3px;border-radius:7px;cursor:pointer;color:var(--M);border:none;background:none;transition:var(--e);font-size:8.5px;font-weight:700;letter-spacing:.4px;white-space:nowrap}
+.t svg{width:15px;height:15px}.t:hover{background:rgba(6,182,212,.07);color:var(--T)}.t.on{background:rgba(6,182,212,.12);color:var(--Cy);border:1px solid rgba(6,182,212,.2)}
+.sbb{flex:1;overflow-y:auto;overflow-x:hidden}.sbb::-webkit-scrollbar{width:3px}.sbb::-webkit-scrollbar-thumb{background:var(--D4)}
+.pnl{display:none;padding:12px}.pnl.on{display:block}
+.sh{font-size:9px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--Cy);margin-bottom:9px;display:flex;align-items:center;gap:5px}
+.sh::before{content:'';width:8px;height:2px;background:var(--Cy);border-radius:1px;flex-shrink:0}
+.fg{margin-bottom:8px}
+.fg label,.lbl{display:block;font-size:8.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--M);margin-bottom:4px}
+.fi,.fs,.fta{width:100%;background:#040D16;border:1px solid rgba(31,168,217,.16);color:var(--T);padding:7px 10px;border-radius:7px;outline:none;transition:border-color .2s;box-sizing:border-box}
+.fi:focus,.fs:focus,.fta:focus{border-color:var(--Cy)}.fi::placeholder,.fta::placeholder{color:var(--Dm)}
+.fs{appearance:none;cursor:pointer}.fta{resize:vertical;line-height:1.5}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:6px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+.bp{background:var(--B);color:#fff;border:none;padding:8px 14px;border-radius:7px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:var(--e)}.bp:hover{background:var(--B2);transform:translateY(-1px)}
+.bc{background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.22);color:var(--Cy);padding:7px 13px;border-radius:7px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:var(--e)}.bc:hover{background:rgba(6,182,212,.18)}
+.bg{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.22);color:#4ADE80;padding:7px 13px;border-radius:7px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:var(--e)}.bg:hover{background:rgba(34,197,94,.18)}
+.bo{background:transparent;border:1px solid rgba(31,168,217,.2);color:var(--B);padding:6px 11px;border-radius:7px;font-weight:700;cursor:pointer;transition:var(--e)}.bo:hover{background:var(--Bdim)}
+.br{background:transparent;border:1px solid rgba(239,68,68,.2);color:#EF4444;padding:6px 10px;border-radius:7px;cursor:pointer;transition:var(--e)}.br:hover{background:rgba(239,68,68,.1)}
+.bw{width:100%}
+.rb{background:rgba(4,13,22,.7);border:1px solid rgba(31,168,217,.1);border-radius:7px;padding:8px 11px;margin-bottom:5px}
+.rb.hi{border-color:rgba(6,182,212,.3);background:rgba(6,182,212,.06)}.rb.ok{border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06)}
+.rb.wn{border-color:rgba(245,190,24,.3);background:rgba(245,190,24,.06)}.rb.er{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.06)}
+.rl{font-size:8px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--M);margin-bottom:3px}
+.rv{font-family:var(--mono);font-size:11px;color:var(--T);word-break:break-all}
+.rb.hi .rv{color:var(--Cy);font-weight:700}.rb.ok .rv{color:#4ADE80;font-weight:700}
+.fii{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:7px;background:rgba(4,13,22,.6);border:1px solid rgba(31,168,217,.08);cursor:pointer;margin-bottom:4px;transition:var(--e)}
+.fii:hover,.fii.sel{border-color:rgba(6,182,212,.28);background:rgba(6,182,212,.05)}
+.fid{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.fin{flex:1;font-size:12px;font-weight:600;color:var(--T);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fis{font-size:9.5px;color:var(--M);margin-top:1px}
+.fdl{background:none;border:none;color:rgba(239,68,68,.35);cursor:pointer;font-size:13px;padding:0 3px;flex-shrink:0}.fdl:hover{color:#EF4444}
+.ups{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px}
+.up{background:transparent;border:1px solid rgba(31,168,217,.14);color:var(--M);padding:3px 8px;border-radius:999px;font-size:10.5px;font-weight:600;cursor:pointer;transition:var(--e)}
+.up:hover{border-color:var(--Cy);color:var(--T)}.up.on{background:rgba(6,182,212,.1);border-color:var(--Cy);color:var(--Cy)}
+.dz{border:1.5px dashed rgba(31,168,217,.22);border-radius:9px;padding:14px;text-align:center;cursor:pointer;transition:var(--e);background:rgba(4,13,22,.4)}
+.dz:hover,.dz.ov{border-color:var(--Cy);background:rgba(6,182,212,.05)}
+.dz svg{width:22px;height:22px;color:var(--Dm);margin:0 auto 5px}.dz p{font-size:11px;color:var(--M)}.dz small{font-size:9.5px;color:var(--Dm);display:block;margin-top:3px}
+.notif{padding:6px 10px;border-radius:7px;font-size:11px;font-weight:600;margin-top:6px;display:none}.notif.show{display:block}
+.notif.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.22);color:#4ADE80}
+.notif.er{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.22);color:#EF4444}
+.gt{width:100%;border-collapse:collapse;font-size:10.5px}
+.gt th{padding:5px 7px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--Cy);border-bottom:1px solid rgba(31,168,217,.14);text-align:left;font-weight:700;white-space:nowrap}
+.gt td{padding:4px 7px;border-bottom:1px solid rgba(31,168,217,.05);color:var(--T)}
+.gt tr:hover td{background:rgba(6,182,212,.03)}.gt td.mn{font-family:var(--mono);font-size:10px}
+.gt td.ok{color:#4ADE80;font-weight:700}.gt td.wn{color:var(--G);font-weight:700}.gt td.er{color:#EF4444;font-weight:700}
+.gt td input{background:transparent;border:none;color:var(--T);font-family:var(--mono);font-size:10px;width:72px;outline:none}
+.gt td input.nm{color:var(--Cy);font-weight:700;width:50px}
+.dc{border-left:3px solid;padding:10px 12px;border-radius:0 10px 10px 0;background:rgba(4,13,22,.5);margin-bottom:7px}
+.dct{font-size:8.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:4px}
+.dca{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--W);margin-bottom:3px}.dci{font-size:10.5px;color:var(--M);line-height:1.55}
 #map-area{flex:1;position:relative;overflow:hidden}
 #map{width:100%;height:100%}
-
-/* Map Toolbar */
-#map-toolbar{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;gap:4px;background:rgba(4,13,22,.92);backdrop-filter:blur(16px);border:1px solid rgba(31,168,217,.2);border-radius:12px;padding:6px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
-.mt-btn{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:none;background:transparent;color:var(--M);font-size:11.5px;font-weight:700;cursor:pointer;transition:var(--e);white-space:nowrap;letter-spacing:.3px}
-.mt-btn svg{width:14px;height:14px;flex-shrink:0}
-.mt-btn:hover{background:rgba(31,168,217,.1);color:var(--T)}
-.mt-btn.on{background:rgba(6,182,212,.15);color:var(--Cy);border:1px solid rgba(6,182,212,.3)}
-.mt-sep{width:1px;background:rgba(31,168,217,.15);margin:4px 2px}
-
-/* Layer control */
-#layer-ctrl{position:absolute;top:10px;right:10px;z-index:1000;background:rgba(4,13,22,.92);backdrop-filter:blur(16px);border:1px solid rgba(31,168,217,.2);border-radius:10px;padding:6px;display:flex;flex-direction:column;gap:4px}
-.lc-btn{padding:6px 12px;border-radius:6px;border:none;background:transparent;color:var(--M);font-size:11px;font-weight:700;cursor:pointer;transition:var(--e);text-align:left;white-space:nowrap}
-.lc-btn:hover{background:rgba(31,168,217,.08);color:var(--T)}
-.lc-btn.on{background:rgba(31,168,217,.14);color:var(--B)}
-
-/* Coord bar */
-#coord-bar{position:absolute;bottom:0;left:0;right:0;z-index:1000;background:rgba(4,13,22,.88);backdrop-filter:blur(10px);border-top:1px solid rgba(31,168,217,.12);padding:6px 14px;display:flex;align-items:center;gap:16px;font-family:var(--mono);font-size:11px;color:var(--M);pointer-events:none}
-#coord-bar span{color:var(--Cy)}
-.cb-sep{color:rgba(31,168,217,.2)}
-
-/* Draw preview */
-.draw-cursor{cursor:crosshair!important}
-.draw-cursor * {cursor:crosshair!important}
-
-/* ══════════════ RIGHT PANEL ══════════════ */
-#right-panel{width:340px;min-width:340px;background:var(--D2);border-left:1px solid var(--Bl);display:none;flex-direction:column;overflow:hidden;z-index:200}
-#right-panel.show{display:flex}
-.rp-head{padding:14px;border-bottom:1px solid var(--Bl);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.rp-title{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--Cy)}
-.rp-close{background:none;border:none;color:var(--M);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:4px}
-.rp-close:hover{color:var(--T);background:rgba(255,255,255,.06)}
-.rp-body{flex:1;overflow-y:auto;padding:14px}
-.rp-body::-webkit-scrollbar{width:4px}
-.rp-body::-webkit-scrollbar-thumb{background:var(--D4)}
-
-/* ══════════════ SHARED UI ══════════════ */
-.sec-head{font-size:9.5px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--Cy);margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.sec-head::before{content:'';width:10px;height:2px;background:var(--Cy);border-radius:1px;flex-shrink:0}
-.card{background:rgba(4,13,22,.6);border:1px solid rgba(31,168,217,.12);border-radius:10px;padding:14px;margin-bottom:10px}
-.fi{width:100%;background:#040D16;border:1px solid rgba(31,168,217,.18);color:var(--T);padding:8px 10px;border-radius:8px;font-size:12px;outline:none;box-sizing:border-box;transition:border-color .2s}
-.fi:focus{border-color:var(--Cy)}
-.fi::placeholder{color:var(--Dm)}
-.fs{width:100%;background:#040D16;border:1px solid rgba(31,168,217,.18);color:var(--T);padding:8px 10px;border-radius:8px;font-size:12px;outline:none;appearance:none}
-.fg{margin-bottom:10px}
-.fg label{display:block;font-size:9px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--M);margin-bottom:4px}
-.btn-p{background:var(--B);color:#fff;border:none;padding:9px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:var(--e)}
-.btn-p:hover{background:var(--B2);transform:translateY(-1px)}
-.btn-g{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#4ADE80;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:var(--e)}
-.btn-g:hover{background:rgba(34,197,94,.18)}
-.btn-c{background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);color:var(--Cy);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:var(--e)}
-.btn-c:hover{background:rgba(6,182,212,.18)}
-.btn-o{background:transparent;border:1px solid rgba(31,168,217,.25);color:var(--B);padding:7px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;transition:var(--e)}
-.btn-o:hover{background:var(--Bdim)}
-.btn-r{background:transparent;border:1px solid rgba(239,68,68,.22);color:#EF4444;padding:7px 12px;border-radius:8px;font-size:11px;cursor:pointer;transition:var(--e)}
-.btn-r:hover{background:rgba(239,68,68,.1)}
-.rb{background:#040D16;border:1px solid rgba(31,168,217,.12);border-radius:8px;padding:9px 12px;margin-bottom:6px}
-.rb.hi{border-color:rgba(6,182,212,.35);background:rgba(6,182,212,.06)}
-.rb.ok{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.06)}
-.rb.warn{border-color:rgba(245,190,24,.35);background:rgba(245,190,24,.06)}
-.rb-l{font-size:8.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--M);margin-bottom:3px}
-.rb-v{font-family:var(--mono);font-size:12px;color:var(--T);font-weight:400;word-break:break-all}
-.rb.hi .rb-v{color:var(--Cy);font-weight:700}
-.rb.ok .rb-v{color:#4ADE80;font-weight:700}
-
-/* Feature list */
-.feat-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#040D16;border:1px solid rgba(31,168,217,.1);cursor:pointer;margin-bottom:5px;transition:var(--e)}
-.feat-item:hover{border-color:rgba(6,182,212,.3);background:rgba(6,182,212,.04)}
-.feat-item.sel{border-color:var(--Cy);background:rgba(6,182,212,.08)}
-.feat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.feat-name{flex:1;font-size:12px;font-weight:600;color:var(--T);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.feat-sub{font-size:10px;color:var(--M);margin-top:1px}
-.feat-del{background:none;border:none;color:rgba(239,68,68,.4);cursor:pointer;font-size:14px;padding:0 2px;flex-shrink:0}
-.feat-del:hover{color:#EF4444}
-
-/* Unit pills */
-.upills{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
-.upill{background:transparent;border:1px solid rgba(31,168,217,.15);color:var(--M);padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;cursor:pointer;transition:var(--e)}
-.upill:hover{border-color:var(--Cy);color:var(--T)}
-.upill.on{background:rgba(6,182,212,.12);border-color:var(--Cy);color:var(--Cy)}
-
-/* File drop zone */
-.drop-zone{border:2px dashed rgba(31,168,217,.25);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:var(--e);background:rgba(4,13,22,.4)}
-.drop-zone:hover,.drop-zone.over{border-color:var(--Cy);background:rgba(6,182,212,.06)}
-.drop-zone svg{width:28px;height:28px;color:var(--Dm);margin:0 auto 8px}
-.drop-zone p{font-size:12px;color:var(--M);line-height:1.6}
-.drop-zone .hint{font-size:10px;color:var(--Dm);margin-top:6px}
-
-/* Table */
-.g-tbl{width:100%;border-collapse:collapse;font-size:11px}
-.g-tbl th{padding:6px 8px;font-size:8.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--Cy);border-bottom:1px solid rgba(31,168,217,.15);text-align:left;font-weight:700;white-space:nowrap}
-.g-tbl td{padding:5px 8px;border-bottom:1px solid rgba(31,168,217,.05);color:var(--T);font-weight:500}
-.g-tbl tr:hover td{background:rgba(6,182,212,.03)}
-.g-tbl td.mono{font-family:var(--mono);font-size:10px}
-.g-tbl td.ok{color:#4ADE80;font-weight:700}
-.g-tbl td.warn{color:var(--G);font-weight:700}
-.g-tbl td.bad{color:#EF4444;font-weight:700}
-
-/* DOP bar */
-.dop-row{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#040D16;border:1px solid rgba(31,168,217,.08);border-radius:7px;margin-bottom:5px}
-.dop-l{font-size:8.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--M)}
-.dop-v{font-weight:700;font-size:11.5px;font-family:var(--mono)}
-
-/* Notif */
-.notif{padding:7px 12px;border-radius:8px;font-size:11.5px;font-weight:600;margin-top:8px;display:none}
-.notif.show{display:block}
-.notif.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#4ADE80}
-.notif.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#EF4444}
-
-/* Measure popup custom */
-.meas-popup{background:rgba(4,13,22,.95)!important;border:1px solid rgba(6,182,212,.35)!important;border-radius:10px!important;padding:12px 14px!important;box-shadow:0 8px 28px rgba(0,0,0,.6)!important;color:var(--Cy)!important;font-family:var(--mono)!important;font-size:12px!important;font-weight:700!important}
-.meas-popup::before,.meas-popup::after{border-top-color:rgba(6,182,212,.35)!important}
-
-/* Leaflet overrides */
+#toolbar{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;gap:3px;background:rgba(4,13,22,.94);backdrop-filter:blur(16px);border:1px solid rgba(31,168,217,.18);border-radius:11px;padding:5px;box-shadow:0 6px 24px rgba(0,0,0,.6)}
+.tb{display:flex;align-items:center;gap:5px;padding:6px 11px;border-radius:7px;border:none;background:transparent;color:var(--M);font-size:11px;font-weight:700;cursor:pointer;transition:var(--e);white-space:nowrap}
+.tb svg{width:13px;height:13px;flex-shrink:0}.tb:hover{background:rgba(31,168,217,.09);color:var(--T)}
+.tb.on{background:rgba(6,182,212,.14);color:var(--Cy);border:1px solid rgba(6,182,212,.25)}
+.tb.hot{background:rgba(245,190,24,.12);color:var(--G);border:1px solid rgba(245,190,24,.22)}
+.ts{width:1px;background:rgba(31,168,217,.14);margin:3px 1px}
+#hint{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);z-index:1000;background:rgba(4,13,22,.9);border:1px solid rgba(31,168,217,.15);border-radius:7px;padding:4px 13px;font-size:9.5px;color:var(--M);pointer-events:none;white-space:nowrap;font-family:var(--mono);display:none}
+#hint.show{display:block}
+#cbar{position:absolute;bottom:0;left:0;right:0;z-index:1000;background:rgba(4,13,22,.9);border-top:1px solid rgba(31,168,217,.1);padding:5px 14px;display:flex;gap:14px;align-items:center;font-family:var(--mono);font-size:10.5px;color:var(--M);pointer-events:none}
+#cbar span{color:var(--Cy)}.cs{color:rgba(31,168,217,.2)!important}
+#lc{position:absolute;top:10px;right:10px;z-index:1000;background:rgba(4,13,22,.94);backdrop-filter:blur(16px);border:1px solid rgba(31,168,217,.18);border-radius:10px;padding:5px}
+.lcb{display:block;width:100%;padding:5px 11px;border-radius:6px;border:none;background:transparent;color:var(--M);font-size:10.5px;font-weight:700;cursor:pointer;transition:var(--e);text-align:left}
+.lcb:hover{background:rgba(31,168,217,.07);color:var(--T)}.lcb.on{background:rgba(31,168,217,.13);color:var(--B)}
+#ctx{position:fixed;z-index:9999;background:rgba(4,13,22,.97);border:1px solid rgba(31,168,217,.22);border-radius:9px;padding:5px;min-width:155px;box-shadow:0 10px 32px rgba(0,0,0,.7);display:none}
+.ci{padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;color:var(--M);display:flex;align-items:center;gap:7px;transition:var(--e)}
+.ci:hover{background:rgba(6,182,212,.08);color:var(--T)}.ci svg{width:12px;height:12px;flex-shrink:0;color:var(--Cy)}
+.ci.red:hover{background:rgba(239,68,68,.08);color:#EF4444}.csep{height:1px;background:rgba(31,168,217,.1);margin:3px 0}
+#rp{width:300px;min-width:300px;background:var(--D2);border-left:1px solid var(--Bl);display:none;flex-direction:column;overflow:hidden;z-index:200}
+#rp.show{display:flex}
+.rph{padding:11px 14px;border-bottom:1px solid var(--Bl);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.rpt{font-size:9.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--Cy)}
+.rpx{background:none;border:none;color:var(--M);cursor:pointer;font-size:17px;line-height:1;padding:1px 5px;border-radius:4px}.rpx:hover{color:var(--T)}
+.rpb{flex:1;overflow-y:auto;padding:12px}.rpb::-webkit-scrollbar{width:3px}
+#kbm{position:fixed;inset:0;z-index:9000;background:rgba(4,13,22,.92);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center}
+#kbm.show{display:flex}
+.kbbox{background:var(--D2);border:1px solid rgba(31,168,217,.2);border-radius:14px;padding:22px;width:440px;max-height:80vh;overflow-y:auto}
+.kbrow{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(31,168,217,.07)}
+.kbact{font-size:11.5px;color:var(--M)}.kbkeys{display:flex;gap:3px}
+kbd{background:rgba(31,168,217,.1);border:1px solid rgba(31,168,217,.25);color:var(--Cy);padding:1px 5px;border-radius:4px;font-size:9px;font-family:var(--mono)}
 .leaflet-container{background:#040D16;font-family:'Plus Jakarta Sans',sans-serif}
-.leaflet-control-zoom{border:1px solid rgba(31,168,217,.2)!important;border-radius:8px!important;overflow:hidden}
-.leaflet-control-zoom a{background:rgba(4,13,22,.9)!important;color:var(--T)!important;border-bottom:1px solid rgba(31,168,217,.15)!important;width:32px!important;height:32px!important;line-height:32px!important;font-size:16px!important}
-.leaflet-control-zoom a:hover{background:rgba(31,168,217,.12)!important;color:var(--Cy)!important}
-.leaflet-control-attribution{background:rgba(4,13,22,.7)!important;color:var(--Dm)!important;font-size:9px!important}
-.leaflet-control-attribution a{color:var(--Dm)!important}
-.leaflet-popup-content-wrapper{background:rgba(4,13,22,.96)!important;border:1px solid rgba(31,168,217,.25)!important;border-radius:12px!important;color:var(--T)!important;box-shadow:0 12px 36px rgba(0,0,0,.7)!important}
-.leaflet-popup-tip{background:rgba(4,13,22,.96)!important}
-.leaflet-popup-close-button{color:var(--M)!important}
-.leaflet-tooltip{background:rgba(4,13,22,.9)!important;border:1px solid rgba(31,168,217,.2)!important;color:var(--Cy)!important;font-family:var(--mono)!important;font-size:10.5px!important;font-weight:700!important;border-radius:6px!important;padding:4px 8px!important;box-shadow:0 4px 14px rgba(0,0,0,.5)!important}
-
-/* Dubai class */
-.d-cls{border-left:3px solid;padding:12px 14px;border-radius:0 var(--r2) var(--r2) 0;background:rgba(4,13,22,.5);margin-bottom:8px}
-.d-cls-tag{font-size:9.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px}
-.d-cls-acc{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--W);margin-bottom:4px}
-.d-cls-info{font-size:11px;color:var(--M);line-height:1.6}
-
-/* Grid helpers */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
-
-/* Scroll */
+.leaflet-control-zoom{border:1px solid rgba(31,168,217,.18)!important;border-radius:7px!important;overflow:hidden}
+.leaflet-control-zoom a{background:rgba(4,13,22,.92)!important;color:var(--T)!important;border-bottom:1px solid rgba(31,168,217,.1)!important;width:30px!important;height:30px!important;line-height:30px!important}
+.leaflet-control-zoom a:hover{background:rgba(31,168,217,.1)!important;color:var(--Cy)!important}
+.leaflet-control-attribution{background:rgba(4,13,22,.7)!important;color:var(--Dm)!important;font-size:8.5px!important}
+.leaflet-popup-content-wrapper{background:rgba(4,13,22,.96)!important;border:1px solid rgba(31,168,217,.22)!important;border-radius:10px!important;color:var(--T)!important;box-shadow:0 10px 30px rgba(0,0,0,.7)!important}
+.leaflet-popup-tip{background:rgba(4,13,22,.96)!important}.leaflet-popup-close-button{color:var(--M)!important}
+.leaflet-tooltip{background:rgba(4,13,22,.93)!important;border:1px solid rgba(31,168,217,.18)!important;color:var(--Cy)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:700!important;border-radius:5px!important;padding:3px 7px!important}
+.dcursor,.dcursor *{cursor:crosshair!important}
 *{scrollbar-width:thin;scrollbar-color:var(--D4) transparent}
-::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-thumb{background:var(--D4);border-radius:2px}
+::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:var(--D4);border-radius:2px}
 </style>
 </head>
 <body>
-
 <div class="uae"></div>
-
-<!-- NAV -->
 <nav class="nav">
-  <a class="logo" href="index.html">
-    <img src="assets/img/logo.png" alt="Sky TerraEye">
-    <div class="logt"><b>SKY</b> TERRAEYE</div>
-  </a>
-  <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:800;color:var(--Cy)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-    GAUGE — Precision Measurement Platform
+  <a class="logo" href="index.html"><img src="assets/img/logo.png" alt=""><div class="logt"><b>SKY</b> TERRAEYE</div></a>
+  <div class="nav-ct">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    GAUGE &mdash; Smart Surveying Tools for Field &amp; Office
   </div>
   <div class="nl">
     <a href="services.html">Services</a>
     <a href="contact.html">Contact</a>
-    <a class="eye-btn" href="eye.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Eye</a>
-    <a class="terra-btn" href="terra.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Terra</a>
-    <a class="strata-btn" href="strata.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="4" rx="1"/><rect x="2" y="10" width="20" height="4" rx="1"/><rect x="2" y="17" width="20" height="4" rx="1"/></svg>Strata</a>
-    <a class="gauge-active" href="gauge.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Gauge</a>
-    <a class="cta" href="contact.html" style="margin-left:8px">Get a Quote</a>
+    <a class="pbt eye-btn" href="eye.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Eye</a>
+    <a class="pbt terra-btn" href="terra.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Terra</a>
+    <a class="pbt strata-btn" href="strata.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="4" rx="1"/><rect x="2" y="10" width="20" height="4" rx="1"/><rect x="2" y="17" width="20" height="4" rx="1"/></svg>Strata</a>
+    <a class="pbt gauge-a" href="gauge.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Gauge</a>
+    <button class="kb-btn" onclick="document.getElementById('kbm').classList.add('show')">&#8984; Keys</button>
+    <a class="cta" style="padding:6px 12px;border-radius:7px;margin-left:8px" href="contact.html">Get a Quote</a>
   </div>
 </nav>
-
-<!-- APP -->
 <div id="app">
+<div id="sb">
+  <div class="sbn">
+    <button class="t on" onclick="sT('feat',this)" title="Map Features [F]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="2.5"/></svg>FEATURES</button>
+    <button class="t" onclick="sT('imp',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>IMPORT</button>
+    <button class="t" onclick="sT('meas',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20L20 4M8 4h12v12"/></svg>MEASURE</button>
+    <button class="t" onclick="sT('crd',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20"/></svg>CONVERT</button>
+    <button class="t" onclick="sT('lev',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="6" x2="22" y2="6"/><line x1="2" y1="18" x2="22" y2="18"/></svg>LEVELING</button>
+  </div>
+  <div class="sbn2">
+    <button class="t" onclick="sT('sk',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="12" cy="19" r="2"/><path d="M7 5h10M6.5 7 12 17.5M17.5 7 12 17.5"/></svg>STAKEOUT</button>
+    <button class="t" onclick="sT('gf',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>GNSS FCST</button>
+    <button class="t" onclick="sT('lx',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>LANDXML</button>
+    <button class="t" onclick="sT('dub',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>DUBAI STD</button>
+  </div>
+  <div class="sbb">
 
-  <!-- ════ LEFT SIDEBAR ════ -->
-  <div id="sidebar">
-    <!-- Tool tabs -->
-    <div class="sb-tabs" id="sb-tabs">
-      <button class="sb-tab on" onclick="sbTab('features',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Features</button>
-      <button class="sb-tab" onclick="sbTab('import',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Import</button>
-      <button class="sb-tab" onclick="sbTab('measure',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h6M22 12h-6M12 2v6M12 22v-6"/><rect x="9" y="9" width="6" height="6"/></svg>Measure</button>
-      <button class="sb-tab" onclick="sbTab('coord',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20"/></svg>Convert</button>
-      <button class="sb-tab" onclick="sbTab('drone',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="12" cy="12" r="3"/><path d="M7 5h10M5 7v10M19 7v10M7 19h10"/></svg>Drone</button>
-      <button class="sb-tab" onclick="sbTab('dubai',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Dubai</button>
+    <!-- FEATURES -->
+    <div class="pnl on" id="pnl-feat">
+      <div style="display:flex;gap:5px;margin-bottom:9px">
+        <button class="bo" style="flex:1;font-size:10px" onclick="zA()">Zoom All</button>
+        <button class="bo" style="flex:1;font-size:10px" onclick="expGJ()">GeoJSON</button>
+        <button class="br" style="flex:1;font-size:10px" onclick="clrAll()">Clear All</button>
+      </div>
+      <div id="feat-list"><div style="text-align:center;color:var(--Dm);padding:22px 6px;font-size:11px">Draw on map or import data.</div></div>
+      <div style="margin-top:7px;padding-top:7px;border-top:1px solid rgba(31,168,217,.08);font-size:9.5px;color:var(--M)" id="feat-sum">0 features</div>
     </div>
-
-    <!-- Content panels -->
-    <div class="sb-content">
-
-      <!-- FEATURES panel -->
-      <div class="sb-panel on" id="panel-features">
-        <div class="sec-head">Map Features</div>
-        <div style="display:flex;gap:6px;margin-bottom:10px">
-          <button class="btn-o" style="flex:1;font-size:10px" onclick="zoomAll()">⊞ Zoom All</button>
-          <button class="btn-r" style="flex:1;font-size:10px" onclick="clearAll()">✕ Clear All</button>
-          <button class="btn-o" style="flex:1;font-size:10px" onclick="exportGeoJSON()">↓ GeoJSON</button>
+    <!-- IMPORT -->
+    <div class="pnl" id="pnl-imp">
+      <div class="ups" id="imp-pills">
+        <button class="up on" onclick="impT('ts',this)">Total Station</button>
+        <button class="up" onclick="impT('gnss',this)">GNSS/GPS</button>
+        <button class="up" onclick="impT('nmea',this)">NMEA</button>
+      </div>
+      <div id="it-ts">
+        <div class="sh">Station Setup</div>
+        <div class="g2">
+          <div class="fg"><label>Stn Northing (m)</label><input class="fi" id="ts-sn" placeholder="2793450"></div>
+          <div class="fg"><label>Stn Easting (m)</label><input class="fi" id="ts-se" placeholder="419250"></div>
+          <div class="fg"><label>Stn Elevation (m)</label><input class="fi" id="ts-sz" placeholder="8.500"></div>
+          <div class="fg"><label>Inst. Height HI (m)</label><input class="fi" id="ts-hi" value="1.500"></div>
+          <div class="fg"><label>BS Northing (m)</label><input class="fi" id="ts-bn" placeholder="optional"></div>
+          <div class="fg"><label>BS Easting (m)</label><input class="fi" id="ts-be" placeholder="optional"></div>
         </div>
-        <div id="feat-list"><div style="text-align:center;color:var(--Dm);padding:30px 10px;font-size:12px">No features yet.<br>Draw on the map or import data.</div></div>
-        <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(31,168,217,.1)">
-          <div id="feat-summary" style="font-size:10px;color:var(--M)">0 features · 0.00 m²</div>
+        <div class="fg"><label>Hz Circle to BS (deg)</label><input class="fi" id="ts-bhz" value="0.0000"></div>
+        <button class="bc bw" onclick="tsSetup()" style="margin-bottom:9px">Set Station &amp; Orientation</button>
+        <div id="ts-ori" style="display:none"><div class="rb hi"><div class="rl">ORIENTATION CORRECTION</div><div class="rv" id="ts-ov">---</div></div></div>
+        <div class="sh" style="margin-top:10px">Import Shots File</div>
+        <div class="dz" id="ts-dz" onclick="document.getElementById('ts-f').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="12 18 12 12"/><polyline points="9 15 12 12 15 15"/></svg>
+          <p>Drop CSV/TXT or click</p>
+          <small>POINT,HZ,ZA,SD,HT | POINT,N,E,Z | POINT,LAT,LON,ELEV</small>
+        </div>
+        <input type="file" id="ts-f" accept=".csv,.txt" style="display:none" onchange="tsLoad(this)">
+        <div class="notif" id="ts-n"></div>
+        <div id="ts-wrap" style="display:none;margin-top:8px">
+          <div style="display:flex;gap:5px;margin-bottom:7px">
+            <button class="bg" style="flex:1;font-size:10px" onclick="tsPlot()">&#128205; Plot Map</button>
+            <button class="bo" style="flex:1;font-size:10px" onclick="tsCSV()">&#8595; CSV</button>
+          </div>
+          <div style="overflow-x:auto;max-height:200px;overflow-y:auto"><table class="gt"><thead><tr><th>Point</th><th>N/Lat</th><th>E/Lon</th><th>Z</th></tr></thead><tbody id="ts-tb"></tbody></table></div>
         </div>
       </div>
-
-      <!-- IMPORT panel -->
-      <div class="sb-panel" id="panel-import">
-        <!-- Import mode tabs -->
-        <div class="upills" id="imp-mode-pills">
-          <button class="upill on" onclick="impMode('ts',this)">Total Station</button>
-          <button class="upill" onclick="impMode('gnss',this)">GNSS / GPS</button>
-          <button class="upill" onclick="impMode('nmea',this)">NMEA</button>
+      <div id="it-gnss" style="display:none">
+        <div class="sh">GNSS / GPS Import</div>
+        <div class="dz" id="gn-dz" onclick="document.getElementById('gn-f').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <p>Drop GNSS CSV/TXT or click</p>
+          <small>POINT,LAT,LON,H,FIX,PDOP,HDOP,VDOP,SATS</small>
         </div>
-
-        <!-- Total Station Import -->
-        <div id="imp-ts">
-          <div class="sec-head">Total Station Setup</div>
-          <div class="g2" style="margin-bottom:8px">
-            <div class="fg"><label>Stn Northing (m)</label><input class="fi" id="ts-sn" placeholder="e.g. 2793450"></div>
-            <div class="fg"><label>Stn Easting (m)</label><input class="fi" id="ts-se" placeholder="e.g. 419250"></div>
+        <input type="file" id="gn-f" accept=".csv,.txt" style="display:none" onchange="gnLoad(this)">
+        <div class="notif" id="gn-n"></div>
+        <div id="gn-wrap" style="display:none;margin-top:8px">
+          <div style="display:flex;gap:5px;margin-bottom:7px">
+            <button class="bg" style="flex:1;font-size:10px" onclick="gnPlot()">&#128205; Plot Map</button>
+            <button class="bo" style="flex:1;font-size:10px" onclick="gnCSV()">&#8595; CSV</button>
           </div>
-          <div class="g2" style="margin-bottom:8px">
-            <div class="fg"><label>Stn Elevation (m)</label><input class="fi" id="ts-sz" placeholder="e.g. 8.500"></div>
-            <div class="fg"><label>Instr. Height (m)</label><input class="fi" id="ts-hi" value="1.500"></div>
-          </div>
-          <div class="g2" style="margin-bottom:12px">
-            <div class="fg"><label>BS Northing (m)</label><input class="fi" id="ts-bn" placeholder="Optional"></div>
-            <div class="fg"><label>BS Easting (m)</label><input class="fi" id="ts-be" placeholder="Optional"></div>
-          </div>
-          <div class="fg" style="margin-bottom:12px"><label>Hz Circle to BS (°)</label><input class="fi" id="ts-bhz" value="0.0000" placeholder="0.0000"></div>
-          <button class="btn-c" style="width:100%;margin-bottom:12px;font-size:11px" onclick="tsSetupCompute()">▶ Set Station & Orientation</button>
-          <div id="ts-ori-box" style="display:none;margin-bottom:10px"><div class="rb hi"><div class="rb-l">ORIENTATION CORRECTION</div><div class="rb-v" id="ts-ori-v">—</div></div></div>
-
-          <div class="sec-head" style="margin-top:4px">Import Shots File</div>
-          <div class="drop-zone" id="ts-drop" onclick="document.getElementById('ts-file').click()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
-            <p>Drop CSV / TXT or click to browse</p>
-            <div class="hint">Columns: POINT, HZ, ZA, SD, HT<br>or POINT, N, E, Z<br>or POINT, LAT, LON, ELEV</div>
-          </div>
-          <input type="file" id="ts-file" accept=".csv,.txt" style="display:none" onchange="tsLoadFile(this)">
-          <div class="notif" id="ts-notif"></div>
-
-          <div id="ts-data-wrap" style="display:none;margin-top:10px">
-            <div style="display:flex;gap:6px;margin-bottom:8px">
-              <button class="btn-g" style="flex:1;font-size:11px" onclick="tsPlotAll()">📍 Plot on Map</button>
-              <button class="btn-o" style="flex:1;font-size:11px" onclick="tsExportCSV()">↓ CSV</button>
-            </div>
-            <div style="overflow-x:auto;max-height:240px;overflow-y:auto"><table class="g-tbl" id="ts-table"><thead><tr><th>Point</th><th>Northing</th><th>Easting</th><th>Elev</th></tr></thead><tbody id="ts-tbody"></tbody></table></div>
-          </div>
+          <div style="overflow-x:auto;max-height:200px;overflow-y:auto"><table class="gt"><thead><tr><th>Point</th><th>Lat</th><th>Lon</th><th>H</th><th>Fix</th><th>PDOP</th></tr></thead><tbody id="gn-tb"></tbody></table></div>
         </div>
-
-        <!-- GNSS Import -->
-        <div id="imp-gnss" style="display:none">
-          <div class="sec-head">GNSS / GPS File Import</div>
-          <div class="drop-zone" id="gnss-drop" onclick="document.getElementById('gnss-file').click()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            <p>Drop GNSS CSV / TXT</p>
-            <div class="hint">Columns: POINT, LAT, LON, H, FIX, PDOP, HDOP, VDOP, SATS<br>(all but POINT optional)</div>
-          </div>
-          <input type="file" id="gnss-file" accept=".csv,.txt" style="display:none" onchange="gnssLoadFile(this)">
-          <div class="notif" id="gnss-notif"></div>
-          <div id="gnss-data-wrap" style="display:none;margin-top:10px">
-            <div style="display:flex;gap:6px;margin-bottom:8px">
-              <button class="btn-g" style="flex:1;font-size:11px" onclick="gnssPlotAll()">📍 Plot on Map</button>
-              <button class="btn-o" style="flex:1;font-size:11px" onclick="gnssExportCSV()">↓ CSV</button>
-            </div>
-            <div style="overflow-x:auto;max-height:220px;overflow-y:auto"><table class="g-tbl" id="gnss-table"><thead><tr><th>Point</th><th>Lat</th><th>Lon</th><th>H</th><th>Fix</th><th>PDOP</th></tr></thead><tbody id="gnss-tbody"></tbody></table></div>
-          </div>
+      </div>
+      <div id="it-nmea" style="display:none">
+        <div class="sh">NMEA GGA Parser</div>
+        <div class="fg"><label>Paste NMEA sentences</label><textarea class="fta" id="nmea-txt" rows="4" placeholder="$GNGGA,091550.00,2512.25800,N,05516.24800,E,4,20,0.9,65.4,M,-30.2,M,,0000*79"></textarea></div>
+        <div class="dz" style="padding:9px;margin-bottom:7px" onclick="document.getElementById('nmea-f').click()"><p>or upload .nmea/.txt/.log</p></div>
+        <input type="file" id="nmea-f" accept=".txt,.nmea,.log" style="display:none" onchange="nmeaFile(this)">
+        <button class="bc bw" onclick="nmeaParse()">Parse &amp; Plot NMEA</button>
+        <div class="notif" id="nmea-n"></div>
+        <div id="nmea-wrap" style="display:none;margin-top:7px;max-height:160px;overflow-y:auto"><table class="gt"><thead><tr><th>#</th><th>Lat</th><th>Lon</th><th>H</th><th>Fix</th><th>Sats</th></tr></thead><tbody id="nmea-tb"></tbody></table></div>
+      </div>
+    </div>
+    <!-- MEASURE -->
+    <div class="pnl" id="pnl-meas">
+      <div class="sh">Active Measurement</div>
+      <div class="rb hi"><div class="rl">RESULT</div><div class="rv" id="m-res">Draw on map to measure</div></div>
+      <div class="fg"><label>Area Unit</label><div class="ups" id="a-pills"></div></div>
+      <div class="fg"><label>Distance Unit</label><div class="ups" id="d-pills"></div></div>
+      <div id="m-all" style="display:none">
+        <div class="sh" style="margin-top:4px">All Area Units</div><table class="gt" id="m-atbl"></table>
+        <div class="sh" style="margin-top:8px">All Distance Units</div><table class="gt" id="m-dtbl"></table>
+      </div>
+    </div>
+    <!-- COORDINATES -->
+    <div class="pnl" id="pnl-crd">
+      <div class="sh">Coordinate Converter</div>
+      <div style="font-size:10.5px;color:var(--M);margin-bottom:8px">&#128161; Click map (pan mode) to auto-fill.</div>
+      <div class="ups" id="crd-pills">
+        <button class="up on" onclick="cM2('dd',this)">Decimal</button>
+        <button class="up" onclick="cM2('dms',this)">DMS</button>
+        <button class="up" onclick="cM2('utm',this)">UTM</button>
+      </div>
+      <div id="c-dd">
+        <div class="fg"><label>Latitude (deg)</label><input class="fi" id="c-la" placeholder="25.2048"></div>
+        <div class="fg"><label>Longitude (deg)</label><input class="fi" id="c-lo" placeholder="55.2708"></div>
+      </div>
+      <div id="c-dms" style="display:none">
+        <div style="font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--B);margin-bottom:5px">LATITUDE</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 38px;gap:4px;margin-bottom:8px">
+          <div><div class="lbl">D</div><input class="fi" id="c-d1" placeholder="deg"></div>
+          <div><div class="lbl">M</div><input class="fi" id="c-m1" placeholder="min"></div>
+          <div><div class="lbl">S</div><input class="fi" id="c-s1" placeholder="sec"></div>
+          <div><div class="lbl">Dir</div><select class="fs" id="c-r1"><option>N</option><option>S</option></select></div>
         </div>
-
-        <!-- NMEA Import -->
-        <div id="imp-nmea" style="display:none">
-          <div class="sec-head">NMEA GGA Sentences</div>
-          <div class="fg"><label>Paste NMEA or upload file</label>
-            <textarea class="fi" id="nmea-text" rows="5" style="resize:none;font-size:11px;line-height:1.5" placeholder="$GNGGA,091550.00,2512.25800,N,05516.24800,E,4,20,0.9,65.4,M,-30.2,M,,0000*79&#10;$GPGGA,091551.00,2512.25810,N,05516.24810,E,4,18,1.1,65.5,M,..."></textarea>
-          </div>
-          <div style="display:flex;gap:6px">
-            <div class="drop-zone" style="flex:1;padding:10px" onclick="document.getElementById('nmea-file').click()">
-              <p style="font-size:11px">or upload .txt / .nmea</p>
-            </div>
-            <input type="file" id="nmea-file" accept=".txt,.nmea,.log" style="display:none" onchange="nmeaLoadFile(this)">
-          </div>
-          <button class="btn-c" style="width:100%;margin-top:8px;font-size:11px" onclick="nmeaParse()">▶ Parse & Plot NMEA</button>
-          <div class="notif" id="nmea-notif"></div>
-          <div id="nmea-data-wrap" style="display:none;margin-top:10px">
-            <div style="overflow-x:auto;max-height:200px;overflow-y:auto"><table class="g-tbl" id="nmea-table"><thead><tr><th>#</th><th>Lat</th><th>Lon</th><th>H</th><th>Fix</th><th>Sats</th></tr></thead><tbody id="nmea-tbody"></tbody></table></div>
-          </div>
+        <div style="font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--B);margin-bottom:5px">LONGITUDE</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 38px;gap:4px">
+          <div><div class="lbl">D</div><input class="fi" id="c-d2" placeholder="deg"></div>
+          <div><div class="lbl">M</div><input class="fi" id="c-m2" placeholder="min"></div>
+          <div><div class="lbl">S</div><input class="fi" id="c-s2" placeholder="sec"></div>
+          <div><div class="lbl">Dir</div><select class="fs" id="c-r2"><option>E</option><option>W</option></select></div>
         </div>
-      </div><!-- /panel-import -->
-
-      <!-- MEASURE panel -->
-      <div class="sb-panel" id="panel-measure">
-        <div class="sec-head">Measurement Results</div>
-        <div style="margin-bottom:10px">
-          <div class="fg"><label>Area Unit</label>
-            <div class="upills" id="m-area-pills"></div>
-          </div>
-          <div class="fg"><label>Distance Unit</label>
-            <div class="upills" id="m-dist-pills"></div>
-          </div>
+      </div>
+      <div id="c-utm" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 42px;gap:6px">
+          <div class="fg"><label>Zone</label><input class="fi" id="c-uz" placeholder="40"></div>
+          <div class="fg"><label>Hemi</label><select class="fs" id="c-uh"><option value="N">N</option><option value="S">S</option></select></div>
         </div>
-        <div id="meas-results">
-          <div class="rb hi"><div class="rb-l">ACTIVE MEASUREMENT</div><div class="rb-v" id="m-active">Draw on map to measure</div></div>
-        </div>
-        <div id="meas-all" style="display:none;margin-top:10px">
-          <div class="sec-head">All Area Units</div>
-          <table class="g-tbl" id="m-area-tbl"></table>
-          <div class="sec-head" style="margin-top:10px">All Distance Units</div>
-          <table class="g-tbl" id="m-dist-tbl"></table>
-        </div>
-      </div><!-- /panel-measure -->
-
-      <!-- COORD CONVERT panel -->
-      <div class="sb-panel" id="panel-coord">
-        <div class="sec-head">Coordinate Converter</div>
-        <div style="margin-bottom:10px;font-size:11px;color:var(--M)">Click any point on the map to auto-fill, or enter manually.</div>
-        <div class="upills" id="crd-mode-pills">
-          <button class="upill on" onclick="crdMode('dd',this)">Decimal °</button>
-          <button class="upill" onclick="crdMode('dms',this)">DMS</button>
-          <button class="upill" onclick="crdMode('utm',this)">UTM</button>
-        </div>
-        <div id="crd-dd">
-          <div class="fg"><label>Latitude (°)</label><input class="fi" id="c-la" placeholder="25.2048"></div>
-          <div class="fg"><label>Longitude (°)</label><input class="fi" id="c-lo" placeholder="55.2708"></div>
-        </div>
-        <div id="crd-dms" style="display:none">
-          <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--B);margin-bottom:6px">LATITUDE</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 40px;gap:5px;margin-bottom:8px">
-            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">DEG</label><input class="fi" id="c-d1" placeholder="°"></div>
-            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">MIN</label><input class="fi" id="c-m1" placeholder="'"></div>
-            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">SEC</label><input class="fi" id="c-s1" placeholder='"'></div>
-            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">DIR</label><select class="fs" id="c-r1"><option>N</option><option>S</option></select></div>
-          </div>
-          <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--B);margin-bottom:6px">LONGITUDE</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 40px;gap:5px">
-            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">DEG</label><input class="fi" id="c-d2" placeholder="°"></div>
-            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">MIN</label><input class="fi" id="c-m2" placeholder="'"></div>
-            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">SEC</label><input class="fi" id="c-s2" placeholder='"'></div>
-            <div><label style="font-size:8px;color:var(--Dm);display:block;margin-bottom:3px">DIR</label><select class="fs" id="c-r2"><option>E</option><option>W</option></select></div>
-          </div>
-        </div>
-        <div id="crd-utm" style="display:none">
-          <div style="display:grid;grid-template-columns:1fr 44px;gap:6px">
-            <div class="fg"><label>Zone</label><input class="fi" id="c-uz" placeholder="40"></div>
-            <div class="fg"><label>Hemi</label><select class="fs" id="c-uh"><option value="N">N</option><option value="S">S</option></select></div>
-          </div>
-          <div class="fg"><label>Easting (m)</label><input class="fi" id="c-ue" placeholder="418240.000"></div>
-          <div class="fg"><label>Northing (m)</label><input class="fi" id="c-un" placeholder="2792500.000"></div>
-        </div>
-        <div class="fg" style="margin-top:6px"><label>Height (m)</label><input class="fi" id="c-h" placeholder="0" value="0"></div>
-        <div style="display:flex;gap:6px;margin-top:6px">
-          <button class="btn-c" style="flex:1;font-size:11px" onclick="crdConvert()">Convert →</button>
-          <button class="btn-g" style="flex:1;font-size:11px" onclick="crdGoToMap()">📍 Go to Map</button>
-        </div>
-        <div id="crd-res" style="display:none;margin-top:10px">
-          <div class="rb hi"><div class="rb-l">DECIMAL DEGREES</div><div class="rb-v" id="cr-dd">—</div></div>
-          <div class="rb"><div class="rb-l">DMS</div><div class="rb-v" id="cr-dms">—</div></div>
-          <div class="rb"><div class="rb-l">DDM</div><div class="rb-v" id="cr-ddm">—</div></div>
-          <div class="rb hi"><div class="rb-l">UTM Zone 40N</div><div class="rb-v" id="cr-utm">—</div></div>
-          <div class="rb"><div class="rb-l">ECEF XYZ</div><div class="rb-v" id="cr-ecef">—</div></div>
-        </div>
-      </div><!-- /panel-coord -->
-
-      <!-- DRONE panel -->
-      <div class="sb-panel" id="panel-drone">
-        <div class="sec-head">Drone Flight Planner</div>
-        <div class="fg"><label>Drone Model</label>
-          <select class="fs" id="dr-model" onchange="drPreset()">
-            <option value="p4r">DJI Phantom 4 RTK</option>
-            <option value="m300">DJI Matrice 300 RTK</option>
-            <option value="mv3">DJI Mavic 3 Enterprise</option>
-            <option value="wing">Wingtra WingtraOne</option>
-            <option value="c">Custom</option>
-          </select>
-        </div>
+        <div class="fg"><label>Easting (m)</label><input class="fi" id="c-ue" placeholder="418240.000"></div>
+        <div class="fg"><label>Northing (m)</label><input class="fi" id="c-un" placeholder="2792500.000"></div>
+      </div>
+      <div class="fg" style="margin-top:6px"><label>Height (m)</label><input class="fi" id="c-h" value="0"></div>
+      <div style="display:flex;gap:5px;margin-top:6px">
+        <button class="bc" style="flex:1;font-size:11px" onclick="cConv()">Convert</button>
+        <button class="bg" style="flex:1;font-size:11px" onclick="cGo()">&#128205; Map</button>
+      </div>
+      <div id="c-res" style="display:none;margin-top:9px">
+        <div class="rb hi"><div class="rl">DECIMAL DEGREES</div><div class="rv" id="cr-dd">---</div></div>
+        <div class="rb"><div class="rl">DMS</div><div class="rv" id="cr-dms">---</div></div>
+        <div class="rb"><div class="rl">DDM</div><div class="rv" id="cr-ddm">---</div></div>
+        <div class="rb hi"><div class="rl">UTM ZONE 40N</div><div class="rv" id="cr-utm">---</div></div>
+        <div class="rb"><div class="rl">ECEF XYZ</div><div class="rv" id="cr-ecef">---</div></div>
+        <div class="rb"><div class="rl">HEMISPHERE</div><div class="rv" id="cr-hemi">---</div></div>
+      </div>
+    </div>
+    <!-- LEVELING -->
+    <div class="pnl" id="pnl-lev">
+      <div class="sh">Differential Leveling &mdash; H.I. Method</div>
+      <div class="g2" style="margin-bottom:8px">
+        <div class="fg"><label>Start BM Elev (m)</label><input class="fi" id="lv-bm" value="100.000"></div>
+        <div class="fg"><label>Closing BM Elev (m)</label><input class="fi" id="lv-cl" placeholder="Closure check"></div>
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:9px">
+        <button class="bg" onclick="lvAdd()" style="flex:1;font-size:10px">+ Row</button>
+        <button class="bc" onclick="lvCompute()" style="flex:1;font-size:10px">Compute</button>
+        <button class="bo" onclick="lvCSV()" style="flex:1;font-size:10px">CSV</button>
+        <button class="br" onclick="lvRows=[];lvRend()" style="font-size:10px">Clear</button>
+      </div>
+      <div id="lv-closure" style="display:none;margin-bottom:8px"></div>
+      <div style="overflow-x:auto;max-height:260px;overflow-y:auto">
+        <table class="gt" id="lv-tbl">
+          <thead><tr><th>Station</th><th>BS</th><th>IS</th><th>FS</th><th>HI</th><th>Elevation</th><th>Note</th><th></th></tr></thead>
+          <tbody id="lv-tb"></tbody>
+        </table>
+      </div>
+      <div style="font-size:9px;color:var(--Dm);margin-top:6px;line-height:1.7">HI = Prev + BS &nbsp;&#183;&nbsp; Elev = HI &minus; FS</div>
+      <div id="lv-sum" style="margin-top:8px;display:none">
         <div class="g2">
-          <div class="fg"><label>Sensor W (mm)</label><input class="fi" id="dr-sw" value="35.9"></div>
-          <div class="fg"><label>Sensor H (mm)</label><input class="fi" id="dr-sh" value="24.0"></div>
-          <div class="fg"><label>Focal (mm)</label><input class="fi" id="dr-fl" value="35"></div>
-          <div class="fg"><label>Img W (px)</label><input class="fi" id="dr-iw" value="5472"></div>
-          <div class="fg"><label>Img H (px)</label><input class="fi" id="dr-ih" value="3648"></div>
-          <div class="fg"><label>Altitude AGL (m)</label><input class="fi" id="dr-alt" value="120"></div>
-          <div class="fg"><label>Fwd Overlap %</label><input class="fi" id="dr-fo" value="80"></div>
-          <div class="fg"><label>Side Overlap %</label><input class="fi" id="dr-so" value="70"></div>
-          <div class="fg"><label>Area (ha)</label><input class="fi" id="dr-area" value="10"></div>
-          <div class="fg"><label>Speed (m/s)</label><input class="fi" id="dr-spd" value="10"></div>
+          <div class="rb"><div class="rl">Sum BS</div><div class="rv" id="lv-sbs">---</div></div>
+          <div class="rb"><div class="rl">Sum FS</div><div class="rv" id="lv-sfs">---</div></div>
         </div>
-        <div class="fg"><label>Min GCP Count</label><input class="fi" id="dr-gcp" value="5"></div>
-        <button class="btn-c" style="width:100%" onclick="drCompute()">▶ Compute Flight Plan</button>
-        <div id="dr-res" style="display:none;margin-top:10px">
-          <div class="g3">
-            <div class="rb hi"><div class="rb-l">GSD (cm/px)</div><div class="rb-v" id="dr-gsd">—</div></div>
-            <div class="rb"><div class="rb-l">Images</div><div class="rb-v" id="dr-imgs">—</div></div>
-            <div class="rb"><div class="rb-l">Time (min)</div><div class="rb-v" id="dr-time">—</div></div>
-          </div>
-          <div class="rb"><div class="rb-l">Footprint W × H</div><div class="rb-v" id="dr-foot">—</div></div>
-          <div class="rb"><div class="rb-l">Line Spacing / Interval</div><div class="rb-v" id="dr-spacing">—</div></div>
-          <div class="rb"><div class="rb-l">H / V Accuracy (est.)</div><div class="rb-v" id="dr-acc">—</div></div>
-          <div class="rb"><div class="rb-l">GCP Required</div><div class="rb-v" id="dr-gcpr">—</div></div>
-          <div class="rb hi"><div class="rb-l">DM Compliance Class</div><div class="rb-v" id="dr-cls">—</div></div>
-        </div>
-      </div><!-- /panel-drone -->
-
-      <!-- DUBAI panel -->
-      <div class="sb-panel" id="panel-dubai">
-        <div style="font-size:22px;margin-bottom:8px">🇦🇪</div>
-        <div style="font-size:13px;font-weight:800;color:var(--W);margin-bottom:4px">Dubai Municipality — SLD</div>
-        <div style="font-size:10px;color:var(--M);margin-bottom:14px;font-family:var(--mono)">WGS84 · UTM Zone 40N · EGM2008</div>
-        <div class="d-cls" style="border-color:#1FA8D9"><div class="d-cls-tag" style="color:#1FA8D9">CLASS A — CADASTRAL</div><div class="d-cls-acc">±25mm H / ±50mm V</div><div class="d-cls-info">RTK GNSS, TS · 1:250–1:500 · Boundary, property registration</div></div>
-        <div class="d-cls" style="border-color:#22C55E"><div class="d-cls-tag" style="color:#22C55E">CLASS B — ENGINEERING</div><div class="d-cls-acc">±100mm H / ±150mm V</div><div class="d-cls-info">RTK, TS, Drone ≤3cm GSD · 1:500 · Roads, utilities</div></div>
-        <div class="d-cls" style="border-color:#F5BE18"><div class="d-cls-tag" style="color:#F5BE18">CLASS C — TOPOGRAPHIC</div><div class="d-cls-acc">±250mm H / ±350mm V</div><div class="d-cls-info">GNSS, Drone ≤5cm GSD · 1:1000 · Site planning</div></div>
-        <div class="d-cls" style="border-color:#A78BFA"><div class="d-cls-tag" style="color:#A78BFA">CLASS D — GIS / URBAN</div><div class="d-cls-acc">±1.0m H / ±2.0m V</div><div class="d-cls-info">DGPS, Drone ≤10cm GSD · 1:2000 · Asset mapping</div></div>
-        <div class="sec-head" style="margin-top:14px">Compliance Check</div>
+      </div>
+    </div>
+    <!-- STAKEOUT -->
+    <div class="pnl" id="pnl-sk">
+      <div class="ups" id="sk-pills">
+        <button class="up on" onclick="skT('so',this)">Stakeout</button>
+        <button class="up" onclick="skT('inv',this)">Inverse</button>
+        <button class="up" onclick="skT('hc',this)">H-Curve</button>
+        <button class="up" onclick="skT('vc',this)">V-Curve</button>
+      </div>
+      <div id="sk-so">
+        <div class="sh">Point Stakeout</div>
         <div class="g2">
-          <div class="fg"><label>H Accuracy (m)</label><input class="fi" id="dub-h" placeholder="0.025"></div>
-          <div class="fg"><label>V Accuracy (m)</label><input class="fi" id="dub-v" placeholder="0.050"></div>
+          <div class="fg"><label>Known Lat (deg)</label><input class="fi" id="so-la" placeholder="25.2048"></div>
+          <div class="fg"><label>Known Lon (deg)</label><input class="fi" id="so-lo" placeholder="55.2708"></div>
+          <div class="fg"><label>Azimuth (deg)</label><input class="fi" id="so-az" placeholder="45.0000"></div>
+          <div class="fg"><label>Dist (m)</label><input class="fi" id="so-d" placeholder="100.000"></div>
         </div>
-        <button class="btn-c" style="width:100%;font-size:11px" onclick="dubCheck()">▶ Check Compliance</button>
-        <div id="dub-res" style="margin-top:8px"></div>
-      </div><!-- /panel-dubai -->
-
-    </div><!-- /sb-content -->
-  </div><!-- /sidebar -->
-
-  <!-- ════ MAP ════ -->
-  <div id="map-area">
-
-    <!-- Toolbar -->
-    <div id="map-toolbar">
-      <button class="mt-btn on" id="tb-pan" onclick="setMode('pan',this)" title="Pan / Select">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M12 12v.01"/></svg>
-        Pan
-      </button>
-      <div class="mt-sep"></div>
-      <button class="mt-btn" id="tb-point" onclick="setMode('point',this)" title="Add Point">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="2"/></svg>
-        Point
-      </button>
-      <button class="mt-btn" id="tb-line" onclick="setMode('line',this)" title="Measure Distance">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        Distance
-      </button>
-      <button class="mt-btn" id="tb-polygon" onclick="setMode('polygon',this)" title="Draw Polygon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg>
-        Polygon
-      </button>
-      <button class="mt-btn" id="tb-rect" onclick="setMode('rect',this)" title="Draw Rectangle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-        Rectangle
-      </button>
-      <button class="mt-btn" id="tb-circle" onclick="setMode('circle',this)" title="Draw Circle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="9"/><line x1="12" y1="3" x2="12" y2="12"/></svg>
-        Circle
-      </button>
-      <div class="mt-sep"></div>
-      <button class="mt-btn" id="tb-scale" onclick="setMode('scale',this)" title="Scale / Ruler">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 20L20 4M8 4h12v12"/><line x1="8" y1="4" x2="8" y2="8"/><line x1="12" y1="4" x2="12" y2="7"/><line x1="16" y1="4" x2="16" y2="8"/></svg>
-        Ruler
-      </button>
-      <div class="mt-sep"></div>
-      <button class="mt-btn" onclick="undoLast()" title="Undo last point/feature">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
-        Undo
-      </button>
-      <button class="mt-btn" onclick="finishDraw()" id="tb-finish" style="display:none">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
-        Finish
-      </button>
+        <button class="bc bw" onclick="soComp()">Compute Stakeout Point</button>
+        <div id="so-res" style="display:none;margin-top:8px">
+          <div class="rb hi"><div class="rl">LATITUDE</div><div class="rv" id="so-la2">---</div></div>
+          <div class="rb hi"><div class="rl">LONGITUDE</div><div class="rv" id="so-lo2">---</div></div>
+          <div class="rb"><div class="rl">DMS</div><div class="rv" id="so-dms">---</div></div>
+          <div class="rb"><div class="rl">UTM ZONE 40N</div><div class="rv" id="so-utm">---</div></div>
+          <button class="bg bw" onclick="soPlot()" style="margin-top:6px;font-size:11px">&#128205; Plot on Map</button>
+        </div>
+      </div>
+      <div id="sk-inv" style="display:none">
+        <div class="sh">Two-Point Inverse</div>
+        <div class="g2">
+          <div class="fg"><label>P1 Lat</label><input class="fi" id="iv-la1" placeholder="25.2040"></div>
+          <div class="fg"><label>P1 Lon</label><input class="fi" id="iv-lo1" placeholder="55.2700"></div>
+          <div class="fg"><label>P2 Lat</label><input class="fi" id="iv-la2" placeholder="25.2060"></div>
+          <div class="fg"><label>P2 Lon</label><input class="fi" id="iv-lo2" placeholder="55.2720"></div>
+        </div>
+        <button class="bc bw" onclick="ivComp()">Compute Inverse</button>
+        <div id="iv-res" style="display:none;margin-top:8px">
+          <div class="rb hi"><div class="rl">GEODESIC DISTANCE</div><div class="rv" id="iv-d">---</div></div>
+          <div class="g2">
+            <div class="rb"><div class="rl">FWD AZIMUTH</div><div class="rv" id="iv-faz">---</div></div>
+            <div class="rb"><div class="rl">BACK AZIMUTH</div><div class="rv" id="iv-baz">---</div></div>
+          </div>
+          <div class="rb"><div class="rl">QUADRANT BEARING</div><div class="rv" id="iv-qb">---</div></div>
+          <table class="gt" id="iv-tbl" style="margin-top:7px"></table>
+        </div>
+      </div>
+      <div id="sk-hc" style="display:none">
+        <div class="sh">Horizontal Simple Curve</div>
+        <div style="font-size:10.5px;color:var(--M);margin-bottom:8px">Enter R + one of Delta, T, or L</div>
+        <div class="fg"><label>Radius R (m)</label><input class="fi" id="hc-r" placeholder="200"></div>
+        <div class="fg"><label>Central Angle Delta (deg)</label><input class="fi" id="hc-d" placeholder="45"></div>
+        <div class="fg"><label>Tangent T (m)</label><input class="fi" id="hc-t" placeholder="83.91"></div>
+        <div class="fg"><label>Arc Length L (m)</label><input class="fi" id="hc-l" placeholder="157.08"></div>
+        <button class="bc bw" onclick="hcComp()">Compute Curve Elements</button>
+        <div id="hc-res" style="display:none;margin-top:8px">
+          <div class="g2">
+            <div class="rb hi"><div class="rl">RADIUS (R)</div><div class="rv" id="hc-R">---</div></div>
+            <div class="rb hi"><div class="rl">CENTRAL ANGLE</div><div class="rv" id="hc-D">---</div></div>
+            <div class="rb"><div class="rl">TANGENT (T)</div><div class="rv" id="hc-T">---</div></div>
+            <div class="rb"><div class="rl">ARC LENGTH (L)</div><div class="rv" id="hc-L">---</div></div>
+            <div class="rb"><div class="rl">EXTERNAL (E)</div><div class="rv" id="hc-E">---</div></div>
+            <div class="rb"><div class="rl">MID ORDINATE (M)</div><div class="rv" id="hc-M">---</div></div>
+            <div class="rb"><div class="rl">LONG CHORD (LC)</div><div class="rv" id="hc-LC">---</div></div>
+            <div class="rb"><div class="rl">DEGREE OF CURVE</div><div class="rv" id="hc-DC">---</div></div>
+          </div>
+        </div>
+      </div>
+      <div id="sk-vc" style="display:none">
+        <div class="sh">Parabolic Vertical Curve</div>
+        <div class="g2">
+          <div class="fg"><label>Grade G1 (%)</label><input class="fi" id="vc-g1" placeholder="+3.5"></div>
+          <div class="fg"><label>Grade G2 (%)</label><input class="fi" id="vc-g2" placeholder="-2.0"></div>
+        </div>
+        <div class="fg"><label>Curve Length L (m)</label><input class="fi" id="vc-l" placeholder="200"></div>
+        <div class="g2">
+          <div class="fg"><label>PVI Station (m)</label><input class="fi" id="vc-s" placeholder="1000.000"></div>
+          <div class="fg"><label>PVI Elevation (m)</label><input class="fi" id="vc-e" placeholder="125.000"></div>
+        </div>
+        <button class="bc bw" onclick="vcComp()">Compute Vertical Curve</button>
+        <div id="vc-res" style="display:none;margin-top:8px">
+          <div class="g2">
+            <div class="rb hi"><div class="rl">BVC Station</div><div class="rv" id="vc-bs">---</div></div>
+            <div class="rb hi"><div class="rl">BVC Elevation</div><div class="rv" id="vc-be">---</div></div>
+            <div class="rb"><div class="rl">EVC Station</div><div class="rv" id="vc-es">---</div></div>
+            <div class="rb"><div class="rl">EVC Elevation</div><div class="rv" id="vc-ee">---</div></div>
+            <div class="rb"><div class="rl">K-Value</div><div class="rv" id="vc-k">---</div></div>
+            <div class="rb"><div class="rl">Rate r (%/m)</div><div class="rv" id="vc-r">---</div></div>
+          </div>
+          <div class="rb ok" id="vc-hlb" style="display:none"><div class="rl" id="vc-hll">HIGH POINT</div><div class="rv" id="vc-hl">---</div></div>
+          <div style="overflow-y:auto;max-height:150px;margin-top:6px"><table class="gt"><thead><tr><th>Station</th><th>Elev (m)</th><th>Grade (%)</th></tr></thead><tbody id="vc-tb"></tbody></table></div>
+        </div>
+      </div>
     </div>
-
-    <!-- Layer switcher -->
-    <div id="layer-ctrl">
-      <div style="font-size:8.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--M);padding:2px 8px 6px;text-align:center">LAYERS</div>
-      <button class="lc-btn on" id="lc-sat" onclick="setLayer('sat',this)">🛰 Satellite</button>
-      <button class="lc-btn" id="lc-hyb" onclick="setLayer('hyb',this)">🗺 Hybrid</button>
-      <button class="lc-btn" id="lc-osm" onclick="setLayer('osm',this)">🌍 Street</button>
-      <button class="lc-btn" id="lc-topo" onclick="setLayer('topo',this)">⛰ Terrain</button>
+    <!-- GNSS FORECAST -->
+    <div class="pnl" id="pnl-gf">
+      <div class="sh">GNSS Session Forecast</div>
+      <div class="g2">
+        <div class="fg"><label>Latitude (deg)</label><input class="fi" id="gf-la" placeholder="25.2048"></div>
+        <div class="fg"><label>Longitude (deg)</label><input class="fi" id="gf-lo" placeholder="55.2708"></div>
+      </div>
+      <div class="fg"><label>Date</label><input class="fi" id="gf-dt" type="date" style="color-scheme:dark"></div>
+      <div class="fg"><label>Elev. Cutoff (deg)</label><input class="fi" id="gf-ca" value="10"></div>
+      <div style="font-size:9.5px;color:var(--M);margin-bottom:8px"><span style="color:#22D3EE">GPS</span> + <span style="color:#A78BFA">GLONASS</span> + <span style="color:#4ADE80">Galileo</span> + <span style="color:#F5BE18">BeiDou</span></div>
+      <button class="bc bw" onclick="gfRun()">Generate 24-Hour Forecast</button>
+      <div id="gf-res" style="display:none;margin-top:10px">
+        <div class="g2" style="margin-bottom:9px">
+          <div class="rb ok"><div class="rl">BEST WINDOW</div><div class="rv" id="gf-best">---</div></div>
+          <div class="rb wn"><div class="rl">AVOID WINDOW</div><div class="rv" id="gf-worst">---</div></div>
+        </div>
+        <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--Cy);margin-bottom:6px">24-HOUR PDOP &mdash; <span id="gf-dtlbl"></span></div>
+        <canvas id="gf-cv" height="90" style="width:100%;border-radius:6px;background:#040D16;display:block;margin-bottom:7px"></canvas>
+        <div style="display:flex;gap:10px;font-size:9px;color:var(--M);margin-bottom:8px">
+          <span><span style="color:#4ADE80">&#9646;</span> &lt;2 Excellent</span>
+          <span><span style="color:#22D3EE">&#9646;</span> 2&ndash;3 Good</span>
+          <span><span style="color:#F5BE18">&#9646;</span> 3&ndash;5 Fair</span>
+          <span><span style="color:#EF4444">&#9646;</span> &gt;5 Poor</span>
+        </div>
+        <div style="overflow-y:auto;max-height:200px"><table class="gt"><thead><tr><th>Hour</th><th>PDOP</th><th>Quality</th><th>GPS</th><th>GLO</th><th>GAL</th><th>BDS</th><th>SVs</th></tr></thead><tbody id="gf-tb"></tbody></table></div>
+      </div>
     </div>
-
-    <!-- Map -->
-    <div id="map"></div>
-
-    <!-- Coordinate bar -->
-    <div id="coord-bar">
-      <span>📍</span>
-      <span><span>Lat: </span><span id="cb-lat">—</span></span>
-      <span class="cb-sep">|</span>
-      <span><span>Lon: </span><span id="cb-lon">—</span></span>
-      <span class="cb-sep">|</span>
-      <span><span>UTM Z40N: </span><span id="cb-utm">—</span></span>
-      <span class="cb-sep">|</span>
-      <span id="cb-draw-info" style="color:var(--G)"></span>
+    <!-- LANDXML -->
+    <div class="pnl" id="pnl-lx">
+      <div class="sh">LandXML Point Query</div>
+      <div style="display:flex;gap:5px;margin-bottom:8px">
+        <button class="bo" style="flex:1;font-size:10px" onclick="document.getElementById('lx-txt').value=LX_SAMPLE;lxParse()">Load Sample</button>
+        <button class="bo" style="flex:1;font-size:10px" onclick="document.getElementById('lx-f').click()">Upload XML</button>
+      </div>
+      <input type="file" id="lx-f" accept=".xml,.landxml" style="display:none" onchange="lxFile(this)">
+      <div class="fg"><label>Paste LandXML</label><textarea class="fta" id="lx-txt" rows="5" placeholder="Paste XML or upload above"></textarea></div>
+      <button class="bc bw" onclick="lxParse()">Parse &amp; Query</button>
+      <div class="notif" id="lx-n"></div>
+      <div id="lx-res" style="display:none;margin-top:9px">
+        <div class="ups" id="lx-pills">
+          <button class="up on" onclick="lxTab('pts',this)">CgPoints (<span id="lx-ptc">0</span>)</button>
+          <button class="up" onclick="lxTab('al',this)">Alignments (<span id="lx-alc">0</span>)</button>
+        </div>
+        <div id="lx-pts">
+          <div style="display:flex;gap:5px;margin-bottom:7px">
+            <input class="fi" id="lx-q" placeholder="Search name/code/desc..." oninput="lxFilter()">
+            <button class="bg" style="font-size:10px;flex-shrink:0" onclick="lxPlot()">Plot</button>
+            <button class="bo" style="font-size:10px;flex-shrink:0" onclick="lxCSV()">CSV</button>
+          </div>
+          <div style="overflow:auto;max-height:220px"><table class="gt"><thead><tr><th>Name</th><th>Code</th><th>N</th><th>E</th><th>Elev</th></tr></thead><tbody id="lx-tb"></tbody></table></div>
+        </div>
+        <div id="lx-al" style="display:none"><div style="overflow:auto;max-height:260px"><table class="gt"><thead><tr><th>Alignment</th><th>Length</th><th>Type</th><th>Detail</th></tr></thead><tbody id="lx-altb"></tbody></table></div></div>
+      </div>
     </div>
-  </div><!-- /map-area -->
-
-  <!-- ════ RIGHT PANEL ════ -->
-  <div id="right-panel">
-    <div class="rp-head">
-      <div class="rp-title" id="rp-title">Feature Details</div>
-      <button class="rp-close" onclick="closeRP()">✕</button>
+    <!-- DUBAI -->
+    <div class="pnl" id="pnl-dub">
+      <div style="font-size:24px;margin-bottom:6px">&#127462;&#127466;</div>
+      <div style="font-size:13px;font-weight:800;color:var(--W);margin-bottom:2px">Dubai Municipality &mdash; SLD</div>
+      <div style="font-family:var(--mono);font-size:9.5px;color:var(--Dm);margin-bottom:12px">WGS84 &middot; UTM Zone 40N &middot; EGM2008</div>
+      <div class="dc" style="border-color:#1FA8D9"><div class="dct" style="color:#1FA8D9">CLASS A &mdash; CADASTRAL</div><div class="dca">&plusmn;25mm H / &plusmn;50mm V</div><div class="dci">RTK GNSS, TS &middot; 1:250&ndash;1:500 &middot; Boundary, DLD registration</div></div>
+      <div class="dc" style="border-color:#22C55E"><div class="dct" style="color:#22C55E">CLASS B &mdash; ENGINEERING</div><div class="dca">&plusmn;100mm H / &plusmn;150mm V</div><div class="dci">RTK, TS, Drone &le;3cm GSD &middot; 1:500 &middot; Roads, utilities</div></div>
+      <div class="dc" style="border-color:#F5BE18"><div class="dct" style="color:#F5BE18">CLASS C &mdash; TOPOGRAPHIC</div><div class="dca">&plusmn;250mm H / &plusmn;350mm V</div><div class="dci">GNSS, Drone &le;5cm GSD &middot; 1:1000 &middot; Site planning</div></div>
+      <div class="dc" style="border-color:#A78BFA"><div class="dct" style="color:#A78BFA">CLASS D &mdash; GIS / URBAN</div><div class="dca">&plusmn;1.0m H / &plusmn;2.0m V</div><div class="dci">DGPS, Drone &le;10cm GSD &middot; 1:2000 &middot; Asset mapping</div></div>
+      <div class="sh" style="margin-top:12px">Compliance Check</div>
+      <div class="g2">
+        <div class="fg"><label>H Accuracy (m)</label><input class="fi" id="dub-h" placeholder="0.025"></div>
+        <div class="fg"><label>V Accuracy (m)</label><input class="fi" id="dub-v" placeholder="0.050"></div>
+      </div>
+      <div class="fg"><label>Method</label><select class="fs" id="dub-m"><option>RTK GNSS</option><option>Static GNSS</option><option>Total Station</option><option>DGPS</option><option>Drone</option><option>Mobile Mapping</option></select></div>
+      <button class="bc bw" onclick="dubChk()">Check Compliance</button>
+      <div id="dub-r" style="margin-top:8px"></div>
     </div>
-    <div class="rp-body" id="rp-body"></div>
   </div>
+</div>
 
-</div><!-- /app -->
+<!-- MAP -->
+<div id="map-area">
+  <div id="toolbar">
+    <button class="tb on" id="tb-pan" onclick="sM('pan',this)" title="Pan [V]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3"/></svg>Pan</button>
+    <div class="ts"></div>
+    <button class="tb" id="tb-pt" onclick="sM('pt',this)" title="Point [P]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="2"/></svg>Point</button>
+    <button class="tb" id="tb-ln" onclick="sM('ln',this)" title="Distance [L]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>Distance</button>
+    <button class="tb" id="tb-pg" onclick="sM('pg',this)" title="Polygon [G]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg>Polygon</button>
+    <button class="tb" id="tb-rx" onclick="sM('rx',this)" title="Rectangle [R]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>Rectangle</button>
+    <button class="tb" id="tb-ci" onclick="sM('ci',this)" title="Circle [C]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="3" x2="12" y2="12"/></svg>Circle</button>
+    <button class="tb" id="tb-sc" onclick="sM('sc',this)" title="Ruler [M]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20L20 4"/><line x1="8" y1="4" x2="20" y2="4"/><line x1="20" y1="4" x2="20" y2="16"/></svg>Ruler</button>
+    <div class="ts"></div>
+    <button class="tb" onclick="undo()" title="Undo [Ctrl+Z]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>Undo</button>
+    <button class="tb hot" id="tb-fin" onclick="finD()" style="display:none" title="Finish [Enter]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Finish</button>
+    <button class="tb" onclick="document.getElementById('sb').classList.toggle('hide')" title="Toggle Sidebar [S]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  </div>
+  <div id="lc">
+    <div style="font-size:7.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--M);padding:1px 7px 5px;text-align:center">LAYER</div>
+    <button class="lcb on" id="lc-sat" onclick="setLyr('sat',this)">&#128752; Satellite</button>
+    <button class="lcb" id="lc-hyb" onclick="setLyr('hyb',this)">&#128506; Hybrid</button>
+    <button class="lcb" id="lc-osm" onclick="setLyr('osm',this)">&#127758; Street</button>
+    <button class="lcb" id="lc-topo" onclick="setLyr('topo',this)">&#9968; Terrain</button>
+  </div>
+  <div id="map"></div>
+  <div id="hint"></div>
+  <div id="cbar">
+    <span>&#128205;</span>
+    <span>Lat: <span id="cb-la">---</span></span><span class="cs">|</span>
+    <span>Lon: <span id="cb-lo">---</span></span><span class="cs">|</span>
+    <span>UTM Z40N: <span id="cb-utm">---</span></span><span class="cs">|</span>
+    <span id="cb-di" style="color:var(--G)"></span>
+  </div>
+</div>
+<!-- RIGHT PANEL -->
+<div id="rp">
+  <div class="rph"><div class="rpt" id="rpt">Feature Details</div><button class="rpx" onclick="closeRP()">&#215;</button></div>
+  <div class="rpb" id="rpb"></div>
+</div>
+</div>
+<!-- CONTEXT MENU -->
+<div id="ctx">
+  <div class="ci" onclick="ctxA('fin')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Finish Shape [Enter]</div>
+  <div class="ci" onclick="ctxA('undo')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>Undo Last Point</div>
+  <div class="csep"></div>
+  <div class="ci" onclick="ctxA('copy')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Coordinates</div>
+  <div class="ci" onclick="ctxA('stakeout')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="12" cy="19" r="2"/></svg>Use in Stakeout</div>
+  <div class="ci" onclick="ctxA('convert')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/></svg>Convert Coordinates</div>
+  <div class="csep"></div>
+  <div class="ci red" onclick="ctxA('cancel')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Cancel Draw [Esc]</div>
+</div>
+<!-- KEYBOARD MODAL -->
+<div id="kbm" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="kbbox">
+    <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--W);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
+      &#9000; Keyboard Shortcuts
+      <button onclick="document.getElementById('kbm').classList.remove('show')" style="background:none;border:none;color:var(--M);font-size:20px;cursor:pointer">&#215;</button>
+    </div>
+    <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--Cy);margin-bottom:6px">DRAW MODES</div>
+    <div class="kbrow"><span class="kbact">Pan / Select mode</span><div class="kbkeys"><kbd>V</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Place Point</span><div class="kbkeys"><kbd>P</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Distance / Line</span><div class="kbkeys"><kbd>L</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Draw Polygon</span><div class="kbkeys"><kbd>G</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Draw Rectangle</span><div class="kbkeys"><kbd>R</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Draw Circle</span><div class="kbkeys"><kbd>C</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Ruler / Scale</span><div class="kbkeys"><kbd>M</kbd></div></div>
+    <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--Cy);margin:12px 0 6px">ACTIONS</div>
+    <div class="kbrow"><span class="kbact">Finish polygon or line</span><div class="kbkeys"><kbd>Enter</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Cancel &mdash; return to Pan</span><div class="kbkeys"><kbd>Esc</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Undo last vertex</span><div class="kbkeys"><kbd>Backspace</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Undo last feature</span><div class="kbkeys"><kbd>Ctrl</kbd> + <kbd>Z</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Zoom to all features</span><div class="kbkeys"><kbd>Ctrl</kbd> + <kbd>A</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Export GeoJSON</span><div class="kbkeys"><kbd>Ctrl</kbd> + <kbd>E</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Toggle sidebar</span><div class="kbkeys"><kbd>S</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Temporary pan (hold)</span><div class="kbkeys"><kbd>Space</kbd></div></div>
+    <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--Cy);margin:12px 0 6px">MOUSE</div>
+    <div class="kbrow"><span class="kbact">Add vertex</span><div class="kbkeys"><kbd>Left Click</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Finish shape</span><div class="kbkeys"><kbd>Double Click</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Context menu</span><div class="kbkeys"><kbd>Right Click</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Pan map (any mode)</span><div class="kbkeys"><kbd>Middle Drag</kbd></div></div>
+    <div class="kbrow"><span class="kbact">Zoom</span><div class="kbkeys"><kbd>Scroll</kbd></div></div>
+  </div>
+</div>
 
 <script>
 'use strict';
-/* ══════════════════════════════════════════
-   MATH ENGINE
-══════════════════════════════════════════ */
 const PI=Math.PI,r2d=r=>r*180/PI,d2r=d=>d*PI/180;
 const WA=6378137,WF=1/298.257223563,We2=2*WF-WF**2,Wep2=We2/(1-We2);
-function hav(a,b){const R=6371000,dp=d2r(b[0]-a[0]),dl=d2r(b[1]-a[1]),x=Math.sin(dp/2)**2+Math.cos(d2r(a[0]))*Math.cos(d2r(b[0]))*Math.sin(dl/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
-function polyA(pts){if(pts.length<3)return 0;const o=pts[0],xy=pts.map(p=>[hav([o[0],o[1]],[o[0],p[1]])*(p[1]>=o[1]?1:-1),hav([o[0],o[1]],[p[0],o[1]])*(p[0]>=o[0]?1:-1)]);let a=0;xy.forEach((p,i)=>{const q=xy[(i+1)%xy.length];a+=p[0]*q[1]-q[0]*p[1];});return Math.abs(a)/2;}
-function perimPts(pts){let p=0;pts.forEach((pt,i)=>p+=hav(pt,pts[(i+1)%pts.length]));return p;}
-function azimuth(a,b){const dl=d2r(b[1]-a[1]),y=Math.sin(dl)*Math.cos(d2r(b[0])),x=Math.cos(d2r(a[0]))*Math.sin(d2r(b[0]))-Math.sin(d2r(a[0]))*Math.cos(d2r(b[0]))*Math.cos(dl);return(r2d(Math.atan2(y,x))+360)%360;}
-function toUTM(lat,lon){const p=d2r(lat),l=d2r(lon),z=Math.floor((lon+180)/6)+1,l0=d2r((z-1)*6-180+3),sp=Math.sin(p),cp=Math.cos(p),T=Math.tan(p)**2,C=Wep2*cp**2,A=cp*(l-l0),N=WA/Math.sqrt(1-We2*sp**2),M=WA*((1-We2/4-3*We2**2/64-5*We2**3/256)*p-(3*We2/8+3*We2**2/32+45*We2**3/1024)*Math.sin(2*p)+(15*We2**2/256+45*We2**3/1024)*Math.sin(4*p)-(35*We2**3/3072)*Math.sin(6*p));const E=0.9996*N*(A+(1-T+C)*A**3/6+(5-18*T+T**2+72*C-58*Wep2)*A**5/120)+500000;let Nv=0.9996*(M+N*Math.tan(p)*(A**2/2+(5-T+9*C+4*C**2)*A**4/24+(61-58*T+T**2+600*C-330*Wep2)*A**6/720));if(lat<0)Nv+=10000000;return{zone:z,band:'CDEFGHJKLMNPQRSTUVWXX'[Math.min(Math.max(Math.floor((lat+80)/8),0),20)],E:E.toFixed(3),N:Nv.toFixed(3)};}
-function utmToLL(zone,hemi,E,N){const e1=(1-Math.sqrt(1-We2))/(1+Math.sqrt(1-We2)),x=E-500000;let y=hemi==='S'?N-10000000:N;const l0=d2r((zone-1)*6-180+3),M=y/0.9996,mu=M/(WA*(1-We2/4-3*We2**2/64-5*We2**3/256)),p1=mu+(3*e1/2-27*e1**3/32)*Math.sin(2*mu)+(21*e1**2/16-55*e1**4/32)*Math.sin(4*mu)+(151*e1**3/96)*Math.sin(6*mu)+(1097*e1**4/512)*Math.sin(8*mu),N1=WA/Math.sqrt(1-We2*Math.sin(p1)**2),T1=Math.tan(p1)**2,C1=Wep2*Math.cos(p1)**2,R1=WA*(1-We2)/(1-We2*Math.sin(p1)**2)**1.5,D=x/(N1*0.9996);return{lat:r2d(p1-(N1*Math.tan(p1)/R1)*(D**2/2-(5+3*T1+10*C1-4*C1**2-9*Wep2)*D**4/24+(61+90*T1+298*C1+45*T1**2-252*Wep2-3*C1**2)*D**6/720)),lon:r2d(l0+(D-(1+2*T1+C1)*D**3/6+(5-2*C1+28*T1-3*C1**2+8*Wep2+24*T1**2)*D**5/120)/Math.cos(p1))};}
-function toECEF(lat,lon,h){const p=d2r(lat),l=d2r(lon),N=WA/Math.sqrt(1-We2*Math.sin(p)**2),H=h||0;return`X:${((N+H)*Math.cos(p)*Math.cos(l)).toFixed(2)} Y:${((N+H)*Math.cos(p)*Math.sin(l)).toFixed(2)} Z:${((N*(1-We2)+H)*Math.sin(p)).toFixed(2)}`;}
-function toDMS(dd,isLat){const dir=isLat?(dd>=0?'N':'S'):(dd>=0?'E':'W'),a=Math.abs(dd),d=Math.floor(a),mf=(a-d)*60,m=Math.floor(mf),s=((mf-m)*60).toFixed(4);return `${d}° ${m}' ${s}" ${dir}`;}
-function toDDM(dd,isLat){const dir=isLat?(dd>=0?'N':'S'):(dd>=0?'E':'W'),a=Math.abs(dd),d=Math.floor(a);return `${d}° ${((a-d)*60).toFixed(7)}' ${dir}`;}
-function dmsToDD(d,m,s,dir){const a=+d+ +m/60+ +s/3600;return(dir==='S'||dir==='W')?-a:a;}
-function nmeaToDD(raw,dir){const d=Math.floor(+raw/100),m=(+raw)%100;return(d+m/60)*(dir==='S'||dir==='W'?-1:1);}
-const AU={'m²':1,'ha':1/10000,'ac':1/4046.856,'ft²':10.7639,'yd²':1.19599,'a':1/100,'km²':1/1e6,'Marla':1/25.293,'Kanal':1/505.857};
+const hav=([a,b],[c,d])=>{const R=6371000,dp=d2r(c-a),dl=d2r(d-b),x=Math.sin(dp/2)**2+Math.cos(d2r(a))*Math.cos(d2r(c))*Math.sin(dl/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));};
+const pA=pts=>{if(pts.length<3)return 0;const o=pts[0],xy=pts.map(p=>[hav([o[0],o[1]],[o[0],p[1]])*(p[1]>=o[1]?1:-1),hav([o[0],o[1]],[p[0],o[1]])*(p[0]>=o[0]?1:-1)]);let a=0;xy.forEach((p,i)=>{const q=xy[(i+1)%xy.length];a+=p[0]*q[1]-q[0]*p[1];});return Math.abs(a)/2;};
+const pD=pts=>{let d=0;pts.forEach((p,i)=>d+=hav(p,pts[(i+1)%pts.length]));return d;};
+const azFn=([a,b],[c,d])=>{const dl=d2r(d-b),y=Math.sin(dl)*Math.cos(d2r(c)),x=Math.cos(d2r(a))*Math.sin(d2r(c))-Math.sin(d2r(a))*Math.cos(d2r(c))*Math.cos(dl);return(r2d(Math.atan2(y,x))+360)%360;};
+const destFn=([la,lo],azD,dist)=>{const R=6371000,d=dist/R,b=d2r(azD),p=d2r(la),l=d2r(lo),p2=Math.asin(Math.sin(p)*Math.cos(d)+Math.cos(p)*Math.sin(d)*Math.cos(b)),l2=l+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(p),Math.cos(d)-Math.sin(p)*Math.sin(p2));return[r2d(p2),r2d(l2)];};
+const toUTM=(la,lo)=>{const p=d2r(la),l=d2r(lo),z=Math.floor((lo+180)/6)+1,l0=d2r((z-1)*6-180+3),sp=Math.sin(p),cp=Math.cos(p),T=Math.tan(p)**2,C=Wep2*cp**2,A=cp*(l-l0),N=WA/Math.sqrt(1-We2*sp**2),M=WA*((1-We2/4-3*We2**2/64-5*We2**3/256)*p-(3*We2/8+3*We2**2/32+45*We2**3/1024)*Math.sin(2*p)+(15*We2**2/256+45*We2**3/1024)*Math.sin(4*p)-(35*We2**3/3072)*Math.sin(6*p));const E=0.9996*N*(A+(1-T+C)*A**3/6+(5-18*T+T**2+72*C-58*Wep2)*A**5/120)+500000;let Nv=0.9996*(M+N*Math.tan(p)*(A**2/2+(5-T+9*C+4*C**2)*A**4/24+(61-58*T+T**2+600*C-330*Wep2)*A**6/720));if(la<0)Nv+=10000000;return{z,b:'CDEFGHJKLMNPQRSTUVWXX'[Math.min(Math.max(Math.floor((la+80)/8),0),20)],E:E.toFixed(3),N:Nv.toFixed(3)};};
+const utmLL=(z,h,E,N)=>{const e1=(1-Math.sqrt(1-We2))/(1+Math.sqrt(1-We2)),x=E-500000;let y=h==='S'?N-10000000:N;const l0=d2r((z-1)*6-180+3),M=y/0.9996,mu=M/(WA*(1-We2/4-3*We2**2/64-5*We2**3/256)),p1=mu+(3*e1/2-27*e1**3/32)*Math.sin(2*mu)+(21*e1**2/16-55*e1**4/32)*Math.sin(4*mu)+(151*e1**3/96)*Math.sin(6*mu)+(1097*e1**4/512)*Math.sin(8*mu),N1=WA/Math.sqrt(1-We2*Math.sin(p1)**2),T1=Math.tan(p1)**2,C1=Wep2*Math.cos(p1)**2,R1=WA*(1-We2)/(1-We2*Math.sin(p1)**2)**1.5,D=x/(N1*0.9996);return{la:r2d(p1-(N1*Math.tan(p1)/R1)*(D**2/2-(5+3*T1+10*C1-4*C1**2-9*Wep2)*D**4/24+(61+90*T1+298*C1+45*T1**2-252*Wep2-3*C1**2)*D**6/720)),lo:r2d(l0+(D-(1+2*T1+C1)*D**3/6+(5-2*C1+28*T1-3*C1**2+8*Wep2+24*T1**2)*D**5/120)/Math.cos(p1))};};
+const toECEF=(la,lo,h)=>{const p=d2r(la),l=d2r(lo),N=WA/Math.sqrt(1-We2*Math.sin(p)**2),H=h||0;return'X:'+((N+H)*Math.cos(p)*Math.cos(l)).toFixed(2)+' Y:'+((N+H)*Math.cos(p)*Math.sin(l)).toFixed(2)+' Z:'+((N*(1-We2)+H)*Math.sin(p)).toFixed(2);};
+const toDMS=(dd,isLat)=>{const dir=isLat?(dd>=0?'N':'S'):(dd>=0?'E':'W'),a=Math.abs(dd),d=Math.floor(a),mf=(a-d)*60,m=Math.floor(mf),s=((mf-m)*60).toFixed(4);return d+'\u00b0 '+m+"' "+s+'" '+dir;};
+const toDDM=(dd,isLat)=>{const dir=isLat?(dd>=0?'N':'S'):(dd>=0?'E':'W'),a=Math.abs(dd),d=Math.floor(a);return d+'\u00b0 '+((a-d)*60).toFixed(7)+"' "+dir;};
+const dmsDD=(d,m,s,dir)=>{const a=+d+ +m/60+ +s/3600;return(dir==='S'||dir==='W')?-a:a;};
+const nDD=(raw,dir)=>{const d=Math.floor(+raw/100),m=(+raw)%100;return(d+m/60)*(dir==='S'||dir==='W'?-1:1);};
+const qBrng=azV=>{const b=azV<=90?azV:azV<=180?180-azV:azV<=270?azV-180:360-azV,q=azV<=90?'NE':azV<=180?'SE':azV<=270?'SW':'NW';return q[0]+' '+b.toFixed(4)+'\u00b0 '+q[1];};
+const dopQ=v=>v<1.5?{l:'IDEAL',c:'#4ADE80'}:v<2?{l:'EXCELLENT',c:'#22D3EE'}:v<3?{l:'GOOD',c:'#22D3EE'}:v<5?{l:'MODERATE',c:'#F5BE18'}:{l:'POOR',c:'#EF4444'};
+const AU={'m\u00b2':1,'ha':1/10000,'ac':1/4046.856,'ft\u00b2':10.7639,'yd\u00b2':1.19599,'a':1/100,'km\u00b2':1/1e6,'Marla':1/25.293,'Kanal':1/505.857};
 const DU={'m':1,'km':1/1000,'ft':3.28084,'yd':1.09361,'mi':1/1609.34,'nmi':1/1852,'chain':1/20.1168};
 const cvA=(m2,u)=>m2*(AU[u]||1),cvD=(m,u)=>m*(DU[u]||1);
-const dopQ=v=>v<1.5?{l:'IDEAL',c:'#22C55E'}:v<2?{l:'EXCELLENT',c:'#22D3EE'}:v<3?{l:'GOOD',c:'#22D3EE'}:v<5?{l:'MODERATE',c:'#F5BE18'}:{l:'POOR',c:'#EF4444'};
-let aUnit='m²',dUnit='m';
-
-/* ══════════════════════════════════════════
-   LEAFLET MAP SETUP
-══════════════════════════════════════════ */
+let aU='m\u00b2',dU='m';
 const DUBAI=[25.2048,55.2708];
-const map=L.map('map',{center:DUBAI,zoom:13,zoomControl:true,attributionControl:true});
-
-// Tile layers
-const layers={
-  sat:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri, Maxar, Earthstar Geographics',maxZoom:21,maxNativeZoom:19}),
-  hyb:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:21,maxNativeZoom:19}),
-  labels:L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',{attribution:'© CartoDB',maxZoom:21,pane:'labels'}),
-  osm:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}),
-  topo:L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:'© OpenTopoMap',maxZoom:17}),
-};
+const COLS=['#22D3EE','#F5BE18','#EF4444','#4ADE80','#A78BFA','#EC4899','#FB923C','#1FA8D9'];
+const map=L.map('map',{center:DUBAI,zoom:13});
+const lyrs={sat:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'\u00a9 Esri',maxZoom:21,maxNativeZoom:19}),sat_l:L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',{maxZoom:21,pane:'labels'}),osm:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'\u00a9 OSM',maxZoom:19}),topo:L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:'\u00a9 OpenTopoMap',maxZoom:17})};
 map.createPane('labels');map.getPane('labels').style.zIndex=450;map.getPane('labels').style.pointerEvents='none';
-layers.sat.addTo(map);
-
-function setLayer(id,el){
-  document.querySelectorAll('.lc-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');
-  Object.values(layers).forEach(l=>map.removeLayer(l));
-  if(id==='sat'){layers.sat.addTo(map);}
-  else if(id==='hyb'){layers.sat.addTo(map);layers.labels.addTo(map);}
-  else if(id==='osm'){layers.osm.addTo(map);}
-  else if(id==='topo'){layers.topo.addTo(map);}
-}
-
-// Scale bar
-L.control.scale({imperial:true,metric:true,position:'bottomright'}).addTo(map);
-
-// Coordinate display on hover
-map.on('mousemove',e=>{
-  const {lat,lng}=e.latlng;
-  document.getElementById('cb-lat').textContent=lat.toFixed(7);
-  document.getElementById('cb-lon').textContent=lng.toFixed(7);
-  const u=toUTM(lat,lng);
-  document.getElementById('cb-utm').textContent=`Z${u.zone}${u.band} E:${u.E} N:${u.N}`;
+lyrs.sat.addTo(map);L.control.scale({imperial:true,metric:true,position:'bottomright'}).addTo(map);
+function setLyr(id,el){document.querySelectorAll('.lcb').forEach(b=>b.classList.remove('on'));el.classList.add('on');Object.values(lyrs).forEach(l=>map.removeLayer(l));if(id==='sat')lyrs.sat.addTo(map);else if(id==='hyb'){lyrs.sat.addTo(map);lyrs.sat_l.addTo(map);}else if(id==='osm')lyrs.osm.addTo(map);else lyrs.topo.addTo(map);}
+map.on('mousemove',e=>{const{lat,lng}=e.latlng;document.getElementById('cb-la').textContent=lat.toFixed(7);document.getElementById('cb-lo').textContent=lng.toFixed(7);const u=toUTM(lat,lng);document.getElementById('cb-utm').textContent='Z'+u.z+u.b+' E:'+u.E+' N:'+u.N;});
+let feats=[],fCnt=0,selFeat=null;
+function addF(type,layer,name,meta){const id=++fCnt,c=COLS[(id-1)%COLS.length];if(layer.setStyle)layer.setStyle({color:c,fillColor:c,fillOpacity:.12,weight:2.5});feats.push({id,type,layer,name:name||type+' '+id,c,meta:meta||{}});rendFL();return id;}
+function delF(id){const f=feats.find(x=>x.id===id);if(f)map.removeLayer(f.layer);feats=feats.filter(x=>x.id!==id);if(selFeat===id){selFeat=null;document.getElementById('rp').classList.remove('show');}rendFL();}
+function clrAll(){feats.forEach(f=>map.removeLayer(f.layer));feats=[];selFeat=null;document.getElementById('rp').classList.remove('show');rendFL();clrD();}
+function zA(){if(!feats.length)return;try{map.fitBounds(L.featureGroup(feats.map(f=>f.layer)).getBounds(),{padding:[50,50]});}catch(e){}}
+function rendFL(){const el=document.getElementById('feat-list');if(!feats.length){el.innerHTML='<div style="text-align:center;color:var(--Dm);padding:20px 6px;font-size:11px">No features. Draw on map or import data.</div>';document.getElementById('feat-sum').textContent='0 features';return;}el.innerHTML=feats.map(f=>'<div class="fii'+(f.id===selFeat?' sel':'')+'" onclick="selF('+f.id+')"><div class="fid" style="background:'+f.c+'"></div><div><div class="fin">'+f.name+'</div><div class="fis">'+f.type+(f.meta.area?' \u00b7 '+cvA(f.meta.area,aU).toFixed(3)+' '+aU:'')+(f.meta.dist?' \u00b7 '+cvD(f.meta.dist,dU).toFixed(2)+' '+dU:'')+'</div></div><button class="fdl" onclick="event.stopPropagation();delF('+f.id+')">\u00d7</button></div>').join('');const tA=feats.reduce((s,f)=>s+(f.meta.area||0),0);document.getElementById('feat-sum').textContent=feats.length+' feature'+(feats.length!==1?'s':'')+' \u00b7 Area: '+cvA(tA,aU).toFixed(3)+' '+aU;}
+function selF(id){selFeat=id;const f=feats.find(x=>x.id===id);if(!f)return;rendFL();document.getElementById('rp').classList.add('show');document.getElementById('rpt').textContent=f.name;const u=f.meta.lat!=null?toUTM(f.meta.lat,f.meta.lng):null;let h='<div class="rb hi"><div class="rl">NAME</div><div class="rv">'+f.name+'</div></div><div class="rb"><div class="rl">TYPE</div><div class="rv">'+f.type+'</div></div>';if(f.meta.lat!=null){h+='<div class="rb hi"><div class="rl">LATITUDE</div><div class="rv">'+toDMS(f.meta.lat,true)+'</div></div><div class="rb hi"><div class="rl">LONGITUDE</div><div class="rv">'+toDMS(f.meta.lng,false)+'</div></div><div class="rb"><div class="rl">DECIMAL DEGREES</div><div class="rv">'+f.meta.lat.toFixed(8)+', '+f.meta.lng.toFixed(8)+'</div></div>'+(u?'<div class="rb"><div class="rl">UTM Z'+u.z+u.b+'</div><div class="rv">E: '+u.E+' N: '+u.N+'</div></div>':'')+(f.meta.elev!=null?'<div class="rb"><div class="rl">ELEVATION</div><div class="rv">'+f.meta.elev+' m</div></div>':'')+(f.meta.fix?'<div class="rb"><div class="rl">FIX TYPE</div><div class="rv">'+f.meta.fix+'</div></div>':'')+(f.meta.pdop?'<div class="rb"><div class="rl">PDOP/HDOP/VDOP</div><div class="rv">'+f.meta.pdop+'/'+(f.meta.hdop||'--')+'/'+(f.meta.vdop||'--')+'</div></div>':'')+(f.meta.src?'<div class="rb"><div class="rl">SOURCE</div><div class="rv">'+f.meta.src+'</div></div>':'');}if(f.meta.area!=null){h+='<div class="rb hi"><div class="rl">AREA</div><div class="rv">'+cvA(f.meta.area,aU).toFixed(5)+' '+aU+'</div></div>';h+='<div class="rb"><div class="rl">ALL AREA UNITS</div><div class="rv" style="line-height:1.9">'+Object.keys(AU).map(u=>'<b style="color:var(--Cy)">'+u+'</b>: '+cvA(f.meta.area,u).toFixed(4)).join('  ')+'</div></div>';if(f.meta.perim)h+='<div class="rb"><div class="rl">PERIMETER</div><div class="rv">'+cvD(f.meta.perim,dU).toFixed(3)+' '+dU+'</div></div>';}if(f.meta.dist!=null){h+='<div class="rb hi"><div class="rl">DISTANCE</div><div class="rv">'+cvD(f.meta.dist,dU).toFixed(4)+' '+dU+'</div></div>';h+='<div class="rb"><div class="rl">ALL DISTANCE UNITS</div><div class="rv" style="line-height:1.9">'+Object.keys(DU).map(u=>'<b style="color:var(--Cy)">'+u+'</b>: '+cvD(f.meta.dist,u).toFixed(3)).join('  ')+'</div></div>';if(f.meta.azimuth!=null)h+='<div class="rb"><div class="rl">AZIMUTH / BACK</div><div class="rv">'+f.meta.azimuth.toFixed(4)+'\u00b0 / '+((f.meta.azimuth+180)%360).toFixed(4)+'\u00b0</div></div><div class="rb"><div class="rl">QUADRANT BEARING</div><div class="rv">'+qBrng(f.meta.azimuth)+'</div></div>';}if(f.meta.radius!=null)h+='<div class="rb hi"><div class="rl">RADIUS</div><div class="rv">'+cvD(f.meta.radius,dU).toFixed(4)+' '+dU+'</div></div><div class="rb"><div class="rl">CIRCLE AREA</div><div class="rv">'+cvA(Math.PI*f.meta.radius**2,aU).toFixed(4)+' '+aU+'</div></div>';h+='<div style="display:flex;gap:5px;margin-top:10px"><button class="bc" style="flex:1;font-size:10px" onclick="zF('+id+')">&#127919; Zoom</button><button class="br" style="flex:1;font-size:10px" onclick="delF('+id+')">&#215; Delete</button></div>';document.getElementById('rpb').innerHTML=h;try{map.fitBounds(f.layer.getBounds?f.layer.getBounds():L.latLng(f.meta.lat,f.meta.lng).toBounds(200),{padding:[60,60],maxZoom:18});}catch(e){}}
+function zF(id){const f=feats.find(x=>x.id===id);if(f)try{map.fitBounds(f.layer.getBounds?f.layer.getBounds():L.latLng(f.meta.lat,f.meta.lng).toBounds(200),{padding:[60,60],maxZoom:18});}catch(e){}}
+function closeRP(){document.getElementById('rp').classList.remove('show');selFeat=null;rendFL();}
+function expGJ(){if(!feats.length)return;const gj={type:'FeatureCollection',features:feats.map(f=>{let g=null;try{if(f.layer.toGeoJSON)g=f.layer.toGeoJSON().geometry;}catch(e){}return{type:'Feature',properties:{name:f.name,type:f.type,...f.meta},geometry:g};})};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(gj,null,2)],{type:'application/json'}));a.download='gauge_export.geojson';a.click();}
+let mode='pan',dPts=[],dTmp=[],dR1=null,dCC=null,lastLL=null,pSave=false;
+const HINTS={pan:'Click feature to inspect  |  Right-click for context menu',pt:'Click map to place point  [Esc] to cancel',ln:'Click to add points  |  [Enter] or double-click to finish  |  [Backspace] undo',pg:'Click to add vertices  |  [Enter] or double-click to close  |  [Backspace] undo',rx:'Click first corner, then opposite corner',ci:'Click centre point, then edge',sc:'Click two points to measure ruler distance'};
+function setHint(m){const el=document.getElementById('hint');el.textContent=HINTS[m]||'';el.classList.toggle('show',!!(HINTS[m]));}
+function sM(m,el){document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));if(el)el.classList.add('on');mode=m;clrD();document.getElementById('map-area').classList.toggle('dcursor',m!=='pan');map.dragging[m==='pan'?'enable':'disable']();document.getElementById('tb-fin').style.display=['ln','pg','sc'].includes(m)?'inline-flex':'none';setHint(m);}
+function clrD(){dPts=[];dR1=null;dCC=null;dTmp.forEach(l=>map.removeLayer(l));dTmp=[];}
+function aT(l){l.addTo(map);dTmp.push(l);return l;}
+map.on('click',e=>{if(mode==='pan')return;const{lat,lng}=e.latlng;
+  if(mode==='pt'){const mk=L.circleMarker([lat,lng],{radius:7,color:'#22D3EE',fillColor:'#22D3EE',fillOpacity:.85,weight:2});mk.addTo(map);mk.bindTooltip(lat.toFixed(6)+', '+lng.toFixed(6));const id=addF('Point',mk,null,{lat,lng});mk.on('click',()=>selF(id));sM('pt',document.getElementById('tb-pt'));}
+  else if(mode==='ln'||mode==='sc'){dPts.push([lat,lng]);aT(L.circleMarker([lat,lng],{radius:5,color:mode==='sc'?'#F5BE18':'#22D3EE',fillColor:mode==='sc'?'#F5BE18':'#22D3EE',fillOpacity:1,weight:1.5}));if(dPts.length>=2)aT(L.polyline(dPts,{color:mode==='sc'?'rgba(245,190,24,.5)':'rgba(34,211,238,.5)',weight:2,dashArray:'4,3'}));}
+  else if(mode==='pg'){dPts.push([lat,lng]);aT(L.circleMarker([lat,lng],{radius:5,color:'#4ADE80',fillColor:'#4ADE80',fillOpacity:1,weight:1.5}));if(dPts.length>=3)aT(L.polygon(dPts,{color:'rgba(74,222,128,.5)',fillColor:'#4ADE80',fillOpacity:.08,weight:2}));}
+  else if(mode==='rx'){if(!dR1){dR1=[lat,lng];aT(L.circleMarker([lat,lng],{radius:5,color:'#F5BE18',fillColor:'#F5BE18',fillOpacity:1,weight:1.5}));}else{const r=L.rectangle([[dR1[0],dR1[1]],[lat,lng]],{color:'#F5BE18',fillColor:'#F5BE18',fillOpacity:.12,weight:2.5});r.addTo(map);const b=r.getBounds(),pts=[[b.getNorth(),b.getWest()],[b.getNorth(),b.getEast()],[b.getSouth(),b.getEast()],[b.getSouth(),b.getWest()]];const id=addF('Rectangle',r,null,{area:pA(pts),perim:pD(pts),pts:4});r.on('click',()=>selF(id));clrD();sM('pan',document.getElementById('tb-pan'));selF(id);}}
+  else if(mode==='ci'){if(!dCC){dCC=[lat,lng];aT(L.circleMarker([lat,lng],{radius:7,color:'#A78BFA',fillColor:'#A78BFA',fillOpacity:1,weight:1.5}));}else{const rad=hav([dCC[0],dCC[1]],[lat,lng]);const c=L.circle([dCC[0],dCC[1]],{radius:rad,color:'#A78BFA',fillColor:'#A78BFA',fillOpacity:.1,weight:2.5});c.addTo(map);c.bindTooltip('r = '+cvD(rad,dU).toFixed(2)+' '+dU);const id=addF('Circle',c,null,{lat:dCC[0],lng:dCC[1],radius:rad});c.on('click',()=>selF(id));clrD();sM('pan',document.getElementById('tb-pan'));selF(id);}}
 });
-
-/* ══════════════════════════════════════════
-   FEATURE MANAGEMENT
-══════════════════════════════════════════ */
-let features=[],featCounter=0,selectedFeat=null;
-const FCOLORS=['#22D3EE','#F5BE18','#EF4444','#4ADE80','#A78BFA','#EC4899','#FB923C','#1FA8D9','#84CC16'];
-
-function addFeature(type,layer,name,meta){
-  const id=++featCounter,color=FCOLORS[(id-1)%FCOLORS.length];
-  features.push({id,type,layer,name:name||`${type} ${id}`,color,meta:meta||{}});
-  // color the layer
-  if(layer.setStyle){layer.setStyle({color,fillColor:color,fillOpacity:.12,weight:2.5});}
-  renderFeatList();
-  return id;
-}
-function removeFeature(id){const f=features.find(x=>x.id===id);if(f){map.removeLayer(f.layer);}features=features.filter(x=>x.id!==id);if(selectedFeat===id){selectedFeat=null;document.getElementById('right-panel').classList.remove('show');}renderFeatList();}
-function clearAll(){features.forEach(f=>map.removeLayer(f.layer));features=[];selectedFeat=null;document.getElementById('right-panel').classList.remove('show');renderFeatList();clearDrawState();}
-function zoomAll(){if(!features.length)return;const grp=L.featureGroup(features.map(f=>f.layer));map.fitBounds(grp.getBounds(),{padding:[40,40]});}
-
-function renderFeatList(){
-  const el=document.getElementById('feat-list');
-  if(!features.length){el.innerHTML='<div style="text-align:center;color:var(--Dm);padding:24px 8px;font-size:11px">No features. Draw on map or import data.</div>';document.getElementById('feat-summary').textContent='0 features';return;}
-  el.innerHTML=features.map(f=>`
-    <div class="feat-item${f.id===selectedFeat?' sel':''}" onclick="selectFeat(${f.id})">
-      <div class="feat-dot" style="background:${f.color}"></div>
-      <div><div class="feat-name">${f.name}</div><div class="feat-sub">${f.type}${f.meta.area?` · ${cvA(f.meta.area,aUnit).toFixed(3)} ${aUnit}`:''}${f.meta.dist?` · ${cvD(f.meta.dist,dUnit).toFixed(2)} ${dUnit}`:''}</div></div>
-      <button class="feat-del" onclick="event.stopPropagation();removeFeature(${f.id})">✕</button>
-    </div>`).join('');
-  const totA=features.reduce((s,f)=>s+(f.meta.area||0),0);
-  document.getElementById('feat-summary').textContent=`${features.length} feature${features.length!==1?'s':''} · Total area: ${cvA(totA,aUnit).toFixed(3)} ${aUnit}`;
-}
-
-function selectFeat(id){
-  selectedFeat=id;const f=features.find(x=>x.id===id);if(!f)return;
-  renderFeatList();
-  document.getElementById('right-panel').classList.add('show');
-  document.getElementById('rp-title').textContent=f.name;
-  const utm=f.meta.lat?toUTM(f.meta.lat,f.meta.lng):null;
-  let html=`<div class="rb hi"><div class="rb-l">FEATURE NAME</div><div class="rb-v">${f.name}</div></div>
-    <div class="rb"><div class="rb-l">TYPE</div><div class="rb-v">${f.type}</div></div>`;
-  if(f.meta.lat){html+=`<div class="rb hi"><div class="rb-l">LATITUDE</div><div class="rb-v">${toDMS(f.meta.lat,true)}</div></div><div class="rb hi"><div class="rb-l">LONGITUDE</div><div class="rb-v">${toDMS(f.meta.lng,false)}</div></div><div class="rb"><div class="rb-l">DD</div><div class="rb-v">${f.meta.lat.toFixed(8)}, ${f.meta.lng.toFixed(8)}</div></div>${utm?`<div class="rb"><div class="rb-l">UTM Z${utm.zone}${utm.band}</div><div class="rb-v">E: ${utm.E} N: ${utm.N}</div></div>`:''}${f.meta.elev!==undefined?`<div class="rb"><div class="rb-l">ELEVATION</div><div class="rb-v">${f.meta.elev} m</div></div>`:''}${f.meta.fix?`<div class="rb"><div class="rb-l">FIX TYPE</div><div class="rb-v">${f.meta.fix}</div></div>`:''}${f.meta.pdop?`<div class="rb"><div class="rb-l">PDOP / HDOP / VDOP</div><div class="rb-v">${f.meta.pdop}/${f.meta.hdop||'—'}/${f.meta.vdop||'—'}</div></div>`:''}${f.meta.note?`<div class="rb"><div class="rb-l">SOURCE</div><div class="rb-v">${f.meta.note}</div></div>`:''}`;
-  }
-  if(f.meta.area){
-    html+=`<div class="rb hi"><div class="rb-l">AREA</div><div class="rb-v">${cvA(f.meta.area,aUnit).toFixed(5)} ${aUnit}</div></div>`;
-    html+=`<div class="rb"><div class="rb-l">ALL AREA UNITS</div><div class="rb-v">${Object.keys(AU).map(u=>`${u}: ${cvA(f.meta.area,u).toFixed(4)}`).join(' · ')}</div></div>`;
-    if(f.meta.perim)html+=`<div class="rb"><div class="rb-l">PERIMETER</div><div class="rb-v">${cvD(f.meta.perim,dUnit).toFixed(3)} ${dUnit}</div></div>`;
-    if(f.meta.pts)html+=`<div class="rb"><div class="rb-l">VERTICES</div><div class="rb-v">${f.meta.pts}</div></div>`;
-  }
-  if(f.meta.dist){
-    html+=`<div class="rb hi"><div class="rb-l">DISTANCE</div><div class="rb-v">${cvD(f.meta.dist,dUnit).toFixed(3)} ${dUnit}</div></div>`;
-    html+=`<div class="rb"><div class="rb-l">ALL DISTANCE UNITS</div><div class="rb-v">${Object.keys(DU).map(u=>`${u}: ${cvD(f.meta.dist,u).toFixed(3)}`).join(' · ')}</div></div>`;
-    if(f.meta.azimuth)html+=`<div class="rb"><div class="rb-l">AZIMUTH / BACK AZ.</div><div class="rb-v">${f.meta.azimuth.toFixed(4)}° / ${((f.meta.azimuth+180)%360).toFixed(4)}°</div></div>`;
-    if(f.meta.segs)html+=`<div class="rb"><div class="rb-l">SEGMENTS</div><div class="rb-v">${f.meta.segs}</div></div>`;
-  }
-  if(f.meta.radius)html+=`<div class="rb hi"><div class="rb-l">RADIUS</div><div class="rb-v">${cvD(f.meta.radius,dUnit).toFixed(3)} ${dUnit}</div></div><div class="rb"><div class="rb-l">AREA (circle)</div><div class="rb-v">${cvA(Math.PI*f.meta.radius**2,aUnit).toFixed(4)} ${aUnit}</div></div>`;
-  html+=`<div style="margin-top:12px;display:flex;gap:6px">
-    <button class="btn-c" style="flex:1;font-size:11px" onclick="map.setView([${f.meta.lat||f.meta.center?.[0]||DUBAI[0]},${f.meta.lng||f.meta.center?.[1]||DUBAI[1]}],17)">🎯 Zoom To</button>
-    <button class="btn-r" style="flex:1;font-size:11px" onclick="removeFeature(${f.id})">✕ Delete</button>
-  </div>`;
-  document.getElementById('rp-body').innerHTML=html;
-  // zoom to feature
-  try{map.fitBounds(f.layer.getBounds?f.layer.getBounds():L.latLng(f.meta.lat,f.meta.lng).toBounds(200),{padding:[40,40],maxZoom:18});}catch(e){}
-}
-function closeRP(){document.getElementById('right-panel').classList.remove('show');selectedFeat=null;renderFeatList();}
-
-/* ══════════════════════════════════════════
-   DRAWING ENGINE
-══════════════════════════════════════════ */
-let drawMode='pan',drawPts=[],drawTemp=[],drawRect1=null,drawCircCenter=null;
-const mapEl=document.getElementById('map');
-
-function setMode(m,el){
-  document.querySelectorAll('.mt-btn').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');drawMode=m;clearDrawState();
-  const isCross=['point','line','polygon','rect','circle','scale'].includes(m);
-  mapEl.classList.toggle('draw-cursor',isCross);
-  map.dragging[isCross?'disable':'enable']();
-  document.getElementById('tb-finish').style.display=['line','polygon'].includes(m)?'inline-flex':'none';
-  if(m==='pan'){map.dragging.enable();}
-  const hints={pan:'',point:'Click map to place a point',line:'Click to add waypoints · Double-click or Finish to end',polygon:'Click to add vertices · Double-click or Finish to close · Shift+click to undo vertex',rect:'Click first corner, then opposite corner',circle:'Click centre, then edge',scale:'Click two points to measure scale distance'};
-  document.getElementById('cb-draw-info').textContent=hints[m]||'';
-}
-
-function clearDrawState(){
-  drawPts=[];drawRect1=null;drawCircCenter=null;
-  drawTemp.forEach(l=>map.removeLayer(l));drawTemp=[];
-}
-
-map.on('click',e=>{
-  if(drawMode==='pan')return;
-  const {lat,lng}=e.latlng;
-  if(drawMode==='point'){placePoint(lat,lng);setMode('point',document.getElementById('tb-point'));}
-  else if(drawMode==='line'||drawMode==='scale'){addLinePt(lat,lng);}
-  else if(drawMode==='polygon'){addPolyPt(lat,lng);}
-  else if(drawMode==='rect'){addRectPt(lat,lng);}
-  else if(drawMode==='circle'){addCircPt(lat,lng);}
-});
-
-map.on('dblclick',e=>{
-  e.originalEvent.preventDefault();
-  if(drawMode==='line'||drawMode==='scale')finishDraw();
-  else if(drawMode==='polygon')finishDraw();
-});
-
-// Live preview
-map.on('mousemove',e=>{
-  if(!drawPts.length||!['line','polygon','scale'].includes(drawMode))return;
-  drawTemp.filter(l=>l._isPreview).forEach(l=>map.removeLayer(l));
-  drawTemp=drawTemp.filter(l=>!l._isPreview);
-  const {lat,lng}=e.latlng;
-  const last=drawPts[drawPts.length-1];
-  const prev=L.polyline([[last[0],last[1]],[lat,lng]],{color:'rgba(34,211,238,.5)',dashArray:'6,4',weight:2});
-  prev._isPreview=true;prev.addTo(map);drawTemp.push(prev);
-  // live distance
-  let totalD=0;for(let i=0;i<drawPts.length-1;i++)totalD+=hav(drawPts[i],[drawPts[i+1][0],drawPts[i+1][1]]);
-  totalD+=hav(last,[lat,lng]);
-  document.getElementById('cb-draw-info').textContent=`${drawMode==='polygon'?'Polygon':'Line'} · ${drawPts.length} pts · ${cvD(totalD,dUnit).toFixed(2)} ${dUnit}`;
-});
-
-function placePoint(lat,lng){
-  const m=L.circleMarker([lat,lng],{radius:7,color:'#22D3EE',fillColor:'#22D3EE',fillOpacity:.8,weight:2});
-  m.bindTooltip(`${lat.toFixed(6)}, ${lng.toFixed(6)}`,{permanent:false});
-  m.addTo(map);
-  const u=toUTM(lat,lng);
-  const id=addFeature('Point',m,`Point ${featCounter+1}`,{lat,lng,note:'Manual point'});
-  m.on('click',()=>selectFeat(id));
-}
-
-function addLinePt(lat,lng){
-  drawPts.push([lat,lng]);
-  const dot=L.circleMarker([lat,lng],{radius:5,color:'#22D3EE',fillColor:'#22D3EE',fillOpacity:1,weight:1.5});dot.addTo(map);drawTemp.push(dot);
-  if(drawPts.length>=2){
-    const line=L.polyline(drawPts.map(p=>[p[0],p[1]]),{color:'#22D3EE',weight:2.5,dashArray:drawMode==='scale'?'8,4':null});line.addTo(map);drawTemp.push(line);}
-}
-
-function addPolyPt(lat,lng){
-  drawPts.push([lat,lng]);
-  const dot=L.circleMarker([lat,lng],{radius:5,color:'#4ADE80',fillColor:'#4ADE80',fillOpacity:1,weight:1.5});dot.addTo(map);drawTemp.push(dot);
-  if(drawPts.length>=3){const pl=L.polygon(drawPts.map(p=>[p[0],p[1]]),{color:'#4ADE80',fillColor:'#4ADE80',fillOpacity:.1,weight:2});pl.addTo(map);drawTemp.push(pl);}
-}
-
-function addRectPt(lat,lng){
-  if(!drawRect1){drawRect1=[lat,lng];const dot=L.circleMarker([lat,lng],{radius:5,color:'#F5BE18',fillColor:'#F5BE18',fillOpacity:1,weight:1.5});dot.addTo(map);drawTemp.push(dot);}
-  else{
-    const r=L.rectangle([[drawRect1[0],drawRect1[1]],[lat,lng]],{color:'#F5BE18',fillColor:'#F5BE18',fillOpacity:.1,weight:2.5});r.addTo(map);
-    const bnd=r.getBounds(),pts=[[bnd.getNorth(),bnd.getWest()],[bnd.getNorth(),bnd.getEast()],[bnd.getSouth(),bnd.getEast()],[bnd.getSouth(),bnd.getWest()]];
-    const area=polyA(pts),perim=perimPts(pts);
-    const id=addFeature('Rectangle',r,`Rectangle ${featCounter+1}`,{area,perim,pts:4,center:[bnd.getCenter().lat,bnd.getCenter().lng]});
-    r.on('click',()=>selectFeat(id));clearDrawState();setMode('pan',document.getElementById('tb-pan'));
-    sbTab('features',document.querySelector('[onclick="sbTab(\'features\',this)"]'));selectFeat(id);
-  }
-}
-
-function addCircPt(lat,lng){
-  if(!drawCircCenter){drawCircCenter=[lat,lng];const dot=L.circleMarker([lat,lng],{radius:6,color:'#A78BFA',fillColor:'#A78BFA',fillOpacity:1,weight:1.5});dot.addTo(map);drawTemp.push(dot);}
-  else{
-    const radius=hav([drawCircCenter[0],drawCircCenter[1]],[lat,lng]);
-    const c=L.circle([drawCircCenter[0],drawCircCenter[1]],{radius,color:'#A78BFA',fillColor:'#A78BFA',fillOpacity:.1,weight:2.5});c.addTo(map);
-    c.bindTooltip(`r = ${cvD(radius,dUnit).toFixed(2)} ${dUnit}`);
-    const id=addFeature('Circle',c,`Circle ${featCounter+1}`,{lat:drawCircCenter[0],lng:drawCircCenter[1],radius,center:drawCircCenter});
-    c.on('click',()=>selectFeat(id));clearDrawState();setMode('pan',document.getElementById('tb-pan'));
-    sbTab('features',document.querySelector('[onclick="sbTab(\'features\',this)"]'));selectFeat(id);
-  }
-}
-
-function finishDraw(){
-  if(drawMode==='line'&&drawPts.length>=2){
-    const layer=L.polyline(drawPts.map(p=>[p[0],p[1]]),{color:'#22D3EE',weight:2.5});layer.addTo(map);
-    let dist=0;for(let i=0;i<drawPts.length-1;i++)dist+=hav(drawPts[i],drawPts[i+1]);
-    const az=drawPts.length===2?azimuth(drawPts[0],drawPts[1]):0;
-    const segs=drawPts.length-1;
-    layer.bindTooltip(`${cvD(dist,dUnit).toFixed(2)} ${dUnit}`);
-    const id=addFeature('Polyline',layer,`Line ${featCounter+1}`,{dist,azimuth:az,segs,lat:drawPts[0][0],lng:drawPts[0][1]});
-    layer.on('click',()=>selectFeat(id));
-    // measure panel
-    updateMeasure(null,dist);
-  }else if(drawMode==='scale'&&drawPts.length===2){
-    const layer=L.polyline(drawPts.map(p=>[p[0],p[1]]),{color:'rgba(245,190,24,.8)',weight:3,dashArray:'8,4'});layer.addTo(map);
-    const dist=hav(drawPts[0],drawPts[1]);
-    layer.bindTooltip(`Scale: ${cvD(dist,dUnit).toFixed(3)} ${dUnit}`);
-    addFeature('Scale',layer,`Ruler ${featCounter+1}`,{dist,lat:drawPts[0][0],lng:drawPts[0][1]});
-    updateMeasure(null,dist);
-  }else if(drawMode==='polygon'&&drawPts.length>=3){
-    const layer=L.polygon(drawPts.map(p=>[p[0],p[1]]),{color:'#4ADE80',fillColor:'#4ADE80',fillOpacity:.12,weight:2.5});layer.addTo(map);
-    const area=polyA(drawPts),perim=perimPts(drawPts);
-    layer.bindTooltip(`${cvA(area,aUnit).toFixed(3)} ${aUnit}`);
-    const id=addFeature('Polygon',layer,`Polygon ${featCounter+1}`,{area,perim,pts:drawPts.length});
-    layer.on('click',()=>selectFeat(id));
-    updateMeasure(area,perim);
-  }
-  clearDrawState();setMode('pan',document.getElementById('tb-pan'));
-  sbTab('features',document.querySelector('[onclick="sbTab(\'features\',this)"]'));
-}
-
-function undoLast(){
-  if(['line','polygon'].includes(drawMode)&&drawPts.length){drawPts.pop();drawTemp.forEach(l=>map.removeLayer(l));drawTemp=[];if(drawPts.length>=2)addLinePt=()=>{};/* re-draw remaining */
-    drawPts.forEach((pt,i)=>{const dot=L.circleMarker([pt[0],pt[1]],{radius:5,color:'#22D3EE',fillColor:'#22D3EE',fillOpacity:1,weight:1.5});dot.addTo(map);drawTemp.push(dot);});
-    if(drawPts.length>=2){const cl=drawMode==='polygon'?'#4ADE80':'#22D3EE';const layer=L.polyline(drawPts.map(p=>[p[0],p[1]]),{color:cl,weight:2,dashArray:'5,3'});layer.addTo(map);drawTemp.push(layer);}
-  }else if(features.length){removeFeature(features[features.length-1].id);}
-}
-
-function updateMeasure(area,dist){
-  sbTab('measure',document.querySelector('[onclick="sbTab(\'measure\',this)"]'));
-  document.getElementById('m-active').textContent=area?`Area: ${cvA(area,aUnit).toFixed(4)} ${aUnit} · Perim: ${cvD(dist,dUnit).toFixed(2)} ${dUnit}`:`Distance: ${cvD(dist,dUnit).toFixed(4)} ${dUnit}`;
-  document.getElementById('meas-all').style.display='block';
-  if(area){document.getElementById('m-area-tbl').innerHTML=Object.keys(AU).map(u=>`<tr><td style="color:var(--Dm)">${u}</td><td style="text-align:right;font-family:var(--mono);color:${u===aUnit?'var(--Cy)':'var(--T)'}">${cvA(area,u).toFixed(5)}</td></tr>`).join('');}
-  if(dist){document.getElementById('m-dist-tbl').innerHTML=Object.keys(DU).map(u=>`<tr><td style="color:var(--Dm)">${u}</td><td style="text-align:right;font-family:var(--mono);color:${u===dUnit?'var(--Cy)':'var(--T)'}">${cvD(dist,u).toFixed(4)}</td></tr>`).join('');}
-}
-
-/* ══════════════════════════════════════════
-   SIDEBAR TABS
-══════════════════════════════════════════ */
-function sbTab(id,el){
-  document.querySelectorAll('.sb-tab').forEach(t=>t.classList.remove('on'));
-  document.querySelectorAll('.sb-panel').forEach(p=>p.classList.remove('on'));
-  if(el)el.classList.add('on');
-  const panel=document.getElementById('panel-'+id);if(panel)panel.classList.add('on');
-}
-
-/* ══════════════════════════════════════════
-   COORDINATE CONVERTER
-══════════════════════════════════════════ */
-let crdM='dd';
-function crdMode(m,el){crdM=m;document.querySelectorAll('#crd-mode-pills .upill').forEach(p=>p.classList.remove('on'));el.classList.add('on');['crd-dd','crd-dms','crd-utm'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('crd-'+m).style.display='block';}
-function crdConvert(){
-  let lat,lon;
-  if(crdM==='dd'){lat=parseFloat(document.getElementById('c-la').value);lon=parseFloat(document.getElementById('c-lo').value);}
-  else if(crdM==='dms'){lat=dmsToDD(document.getElementById('c-d1').value,document.getElementById('c-m1').value,document.getElementById('c-s1').value,document.getElementById('c-r1').value);lon=dmsToDD(document.getElementById('c-d2').value,document.getElementById('c-m2').value,document.getElementById('c-s2').value,document.getElementById('c-r2').value);}
-  else{const r=utmToLL(+document.getElementById('c-uz').value,document.getElementById('c-uh').value,+document.getElementById('c-ue').value,+document.getElementById('c-un').value);lat=r.lat;lon=r.lon;}
-  if(isNaN(lat)||isNaN(lon))return;
-  const h=parseFloat(document.getElementById('c-h').value)||0,utm=toUTM(lat,lon);
-  document.getElementById('crd-res').style.display='block';
-  document.getElementById('cr-dd').textContent=`${lat.toFixed(10)}°, ${lon.toFixed(10)}°`;
-  document.getElementById('cr-dms').textContent=`${toDMS(lat,true)}  ${toDMS(lon,false)}`;
-  document.getElementById('cr-ddm').textContent=`${toDDM(lat,true)}  ${toDDM(lon,false)}`;
-  document.getElementById('cr-utm').textContent=`Zone ${utm.zone}${utm.band}  E: ${utm.E}  N: ${utm.N}`;
-  document.getElementById('cr-ecef').textContent=toECEF(lat,lon,h);
-}
-function crdGoToMap(){
-  let lat,lon;
-  if(crdM==='dd'){lat=parseFloat(document.getElementById('c-la').value);lon=parseFloat(document.getElementById('c-lo').value);}
-  else{const el=document.getElementById('cr-dd').textContent;const m=el.match(/([-\d.]+).*,([-\d.]+)/);if(m){lat=+m[1];lon=+m[2];}}
-  if(!isNaN(lat)&&!isNaN(lon)){map.setView([lat,lon],17);L.circleMarker([lat,lon],{radius:8,color:'#22D3EE',fillColor:'#22D3EE',fillOpacity:.9,weight:2}).addTo(map).bindTooltip(`${lat.toFixed(6)}, ${lon.toFixed(6)}`).openTooltip();}
-}
-// Auto-fill on map click when coord panel is active
-map.on('click',e=>{
-  if(drawMode!=='pan')return;
-  const {lat,lng}=e.latlng;
-  if(document.getElementById('panel-coord').classList.contains('on')){
-    document.getElementById('c-la').value=lat.toFixed(8);
-    document.getElementById('c-lo').value=lng.toFixed(8);
-    if(crdM==='dd')crdConvert();
-  }
-});
-
-/* ══════════════════════════════════════════
-   TOTAL STATION
-══════════════════════════════════════════ */
+map.on('dblclick',e=>{e.originalEvent.preventDefault();if(['ln','pg','sc'].includes(mode))finD();});
+map.on('mousemove',e=>{if(!dPts.length||!['ln','pg','sc'].includes(mode))return;dTmp.filter(l=>l._p).forEach(l=>map.removeLayer(l));dTmp=dTmp.filter(l=>!l._p);const{lat,lng}=e.latlng,last=dPts[dPts.length-1];const prev=L.polyline([[last[0],last[1]],[lat,lng]],{color:'rgba(34,211,238,.4)',dashArray:'4,3',weight:2});prev._p=true;prev.addTo(map);dTmp.push(prev);let tot=0;for(let i=0;i<dPts.length-1;i++)tot+=hav(dPts[i],dPts[i+1]);tot+=hav(last,[lat,lng]);document.getElementById('cb-di').textContent=(mode==='pg'?'Polygon':'Line')+': '+dPts.length+' pts \u00b7 '+cvD(tot,dU).toFixed(2)+' '+dU;});
+map.on('contextmenu',e=>{e.originalEvent.preventDefault();lastLL=[e.latlng.lat,e.latlng.lng];const ctx=document.getElementById('ctx');ctx.style.display='block';ctx.style.left=e.originalEvent.clientX+'px';ctx.style.top=e.originalEvent.clientY+'px';});
+document.addEventListener('click',e=>{if(!e.target.closest('#ctx'))document.getElementById('ctx').style.display='none';});
+function ctxA(a){document.getElementById('ctx').style.display='none';if(a==='fin')finD();else if(a==='undo')undo();else if(a==='cancel')sM('pan',document.getElementById('tb-pan'));else if(a==='copy'&&lastLL)navigator.clipboard&&navigator.clipboard.writeText(lastLL[0].toFixed(8)+', '+lastLL[1].toFixed(8));else if(a==='stakeout'&&lastLL){document.getElementById('so-la').value=lastLL[0].toFixed(8);document.getElementById('so-lo').value=lastLL[1].toFixed(8);sT('sk');skT('so');}else if(a==='convert'&&lastLL){document.getElementById('c-la').value=lastLL[0].toFixed(8);document.getElementById('c-lo').value=lastLL[1].toFixed(8);sT('crd');cConv();}}
+function finD(){if(mode==='ln'&&dPts.length>=2){const ly=L.polyline(dPts,{color:'#22D3EE',weight:2.5});ly.addTo(map);let d=0;for(let i=0;i<dPts.length-1;i++)d+=hav(dPts[i],dPts[i+1]);ly.bindTooltip(cvD(d,dU).toFixed(2)+' '+dU);const azV=azFn(dPts[0],dPts[dPts.length-1]);const id=addF('Polyline',ly,null,{dist:d,azimuth:azV,lat:dPts[0][0],lng:dPts[0][1]});ly.on('click',()=>selF(id));updM(null,d);}else if(mode==='sc'&&dPts.length===2){const ly=L.polyline(dPts,{color:'rgba(245,190,24,.7)',weight:3,dashArray:'8,4'});ly.addTo(map);const d=hav(dPts[0],dPts[1]);ly.bindTooltip(cvD(d,dU).toFixed(3)+' '+dU);addF('Scale',ly,'Ruler '+(fCnt+1),{dist:d,lat:dPts[0][0],lng:dPts[0][1]});updM(null,d);}else if(mode==='pg'&&dPts.length>=3){const ly=L.polygon(dPts,{color:'#4ADE80',fillColor:'#4ADE80',fillOpacity:.12,weight:2.5});ly.addTo(map);const area=pA(dPts),per=pD(dPts);ly.bindTooltip(cvA(area,aU).toFixed(3)+' '+aU);const id=addF('Polygon',ly,null,{area,perim:per,pts:dPts.length});ly.on('click',()=>selF(id));updM(area,per);}clrD();sM('pan',document.getElementById('tb-pan'));sT('feat');}
+function undo(){if(['ln','pg','sc'].includes(mode)&&dPts.length){dPts.pop();clrD();dPts.forEach(p=>aT(L.circleMarker([p[0],p[1]],{radius:5,color:mode==='pg'?'#4ADE80':'#22D3EE',fillColor:mode==='pg'?'#4ADE80':'#22D3EE',fillOpacity:1,weight:1.5})));if(dPts.length>=2)aT(L.polyline(dPts,{color:'rgba(34,211,238,.4)',weight:2,dashArray:'4,2'}));if(mode==='pg'&&dPts.length>=3)aT(L.polygon(dPts,{color:'rgba(74,222,128,.4)',fillOpacity:.06,weight:2}));}else if(feats.length)delF(feats[feats.length-1].id);}
+function updM(area,dist){sT('meas');document.getElementById('m-res').textContent=area?'Area: '+cvA(area,aU).toFixed(4)+' '+aU+' \u00b7 Perim: '+cvD(dist,dU).toFixed(2)+' '+dU:'Distance: '+cvD(dist,dU).toFixed(4)+' '+dU;document.getElementById('m-all').style.display='block';if(area)document.getElementById('m-atbl').innerHTML=Object.keys(AU).map(u=>'<tr><td style="color:var(--Dm)">'+u+'</td><td class="mn" style="text-align:right;'+(u===aU?'color:var(--Cy)':'')+'">'+cvA(area,u).toFixed(5)+'</td></tr>').join('');if(dist)document.getElementById('m-dtbl').innerHTML=Object.keys(DU).map(u=>'<tr><td style="color:var(--Dm)">'+u+'</td><td class="mn" style="text-align:right;'+(u===dU?'color:var(--Cy)':'')+'">'+cvD(dist,u).toFixed(4)+'</td></tr>').join('');}
+document.addEventListener('keydown',e=>{const tag=e.target.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;const tb=id=>document.getElementById('tb-'+id);if(e.key==='Escape')sM('pan',tb('pan'));else if(e.key==='Enter'){e.preventDefault();finD();}else if(e.key==='Backspace'||e.key==='Delete'){e.preventDefault();undo();}else if(!e.ctrlKey&&!e.metaKey){const k=e.key.toLowerCase();if(k==='p')sM('pt',tb('pt'));else if(k==='l')sM('ln',tb('ln'));else if(k==='g')sM('pg',tb('pg'));else if(k==='r')sM('rx',tb('rx'));else if(k==='c')sM('ci',tb('ci'));else if(k==='m')sM('sc',tb('sc'));else if(k==='v')sM('pan',tb('pan'));else if(k==='s')document.getElementById('sb').classList.toggle('hide');else if(e.key===' '){e.preventDefault();if(mode!=='pan'){pSave=mode;map.dragging.enable();document.getElementById('map-area').classList.remove('dcursor');}}}if(e.ctrlKey&&e.key==='z'){e.preventDefault();undo();}if(e.ctrlKey&&e.key==='a'){e.preventDefault();zA();}if(e.ctrlKey&&e.key==='e'){e.preventDefault();expGJ();}});
+document.addEventListener('keyup',e=>{if(e.key===' '&&pSave){const m=pSave;pSave=false;map.dragging.disable();document.getElementById('map-area').classList.add('dcursor');mode=m;}});
+function sT(id,el){document.querySelectorAll('.t').forEach(t=>t.classList.remove('on'));document.querySelectorAll('.pnl').forEach(p=>p.classList.remove('on'));if(el)el.classList.add('on');else{const b=document.querySelector('.t[onclick*=\"\'+id+\"\']');if(b)b.classList.add('on');}const p=document.getElementById('pnl-'+id);if(p)p.classList.add('on');}
+let crdMode2='dd';
+function cM2(m,el){crdMode2=m;document.querySelectorAll('#crd-pills .up').forEach(p=>p.classList.remove('on'));el.classList.add('on');['c-dd','c-dms','c-utm'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('c-'+m).style.display='block';}
+function cConv(){let la,lo;if(crdMode2==='dd'){la=+document.getElementById('c-la').value;lo=+document.getElementById('c-lo').value;}else if(crdMode2==='dms'){la=dmsDD(document.getElementById('c-d1').value,document.getElementById('c-m1').value,document.getElementById('c-s1').value,document.getElementById('c-r1').value);lo=dmsDD(document.getElementById('c-d2').value,document.getElementById('c-m2').value,document.getElementById('c-s2').value,document.getElementById('c-r2').value);}else{const r=utmLL(+document.getElementById('c-uz').value,document.getElementById('c-uh').value,+document.getElementById('c-ue').value,+document.getElementById('c-un').value);la=r.la;lo=r.lo;}if(isNaN(la)||isNaN(lo))return;const h=+document.getElementById('c-h').value||0,utm=toUTM(la,lo);document.getElementById('c-res').style.display='block';document.getElementById('cr-dd').textContent=la.toFixed(10)+'\u00b0,  '+lo.toFixed(10)+'\u00b0';document.getElementById('cr-dms').textContent=toDMS(la,true)+'   '+toDMS(lo,false);document.getElementById('cr-ddm').textContent=toDDM(la,true)+'   '+toDDM(lo,false);document.getElementById('cr-utm').textContent='Zone '+utm.z+utm.b+'  E: '+utm.E+'  N: '+utm.N;document.getElementById('cr-ecef').textContent=toECEF(la,lo,h);document.getElementById('cr-hemi').textContent=(la>=0?'NORTHERN':'SOUTHERN')+' / '+(lo>=0?'EASTERN':'WESTERN');}
+function cGo(){let la,lo;try{if(crdMode2==='dd'){la=+document.getElementById('c-la').value;lo=+document.getElementById('c-lo').value;}else{const t=document.getElementById('cr-dd').textContent.match(/([-\d.]+)/g);if(t){la=+t[0];lo=+t[1];}}}catch(e){}if(!isNaN(la)&&!isNaN(lo)){map.setView([la,lo],17);L.circleMarker([la,lo],{radius:8,color:'#22D3EE',fillColor:'#22D3EE',fillOpacity:.9,weight:2}).addTo(map).bindTooltip(la.toFixed(6)+', '+lo.toFixed(6)).openTooltip();}}
+map.on('click',e=>{if(mode!=='pan')return;const{lat,lng}=e.latlng;if(document.getElementById('pnl-crd').classList.contains('on')){document.getElementById('c-la').value=lat.toFixed(8);document.getElementById('c-lo').value=lng.toFixed(8);if(crdMode2==='dd')cConv();}});
 let tsOri=0,tsData=[];
-
-function tsSetupCompute(){
-  const sn=+document.getElementById('ts-sn').value,se=+document.getElementById('ts-se').value,sz=+document.getElementById('ts-sz').value||0;
-  const bn=+document.getElementById('ts-bn').value,be=+document.getElementById('ts-be').value,hz=+document.getElementById('ts-bhz').value||0;
-  if(!isNaN(sn)&&!isNaN(se)&&!isNaN(bn)&&!isNaN(be)){const gb=(r2d(Math.atan2(be-se,bn-sn))+360)%360;tsOri=(gb-hz+360)%360;document.getElementById('ts-ori-box').style.display='block';document.getElementById('ts-ori-v').textContent=tsOri.toFixed(6)+'°';}
-  // Plot station on map if valid lat/lon possible (skip if local grid)
-  tsNotif(`✓ Station set — Orientation: ${tsOri.toFixed(4)}°`,'ok');
-}
-
-function tsLoadFile(input){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();reader.onload=e=>{
-    Papa.parse(e.target.result,{header:true,skipEmptyLines:true,complete:res=>{tsProcess(res.data);}});
-  };reader.readAsText(file);
-}
-
-function tsProcess(rows){
-  const sn=+document.getElementById('ts-sn').value||0,se=+document.getElementById('ts-se').value||0,sz=+document.getElementById('ts-sz').value||0;
-  const hi=+document.getElementById('ts-hi').value||1.5;
-  tsData=rows.map((row,i)=>{
-    const keys=Object.keys(row).map(k=>k.trim().toUpperCase());
-    const g=k=>{const ki=keys.find(x=>x===k||x.startsWith(k));return ki?row[Object.keys(row)[keys.indexOf(ki)]]:'';}
-    const name=g('POINT')||g('NAME')||g('ID')||g('PT')||`P${i+1}`;
-    // Check if already computed XYZ
-    const N=parseFloat(g('NORTHING')||g('N')||g('Y')||'');
-    const E=parseFloat(g('EASTING')||g('E')||g('X')||'');
-    const Z=parseFloat(g('ELEVATION')||g('ELEV')||g('Z')||g('H')||'');
-    const LAT=parseFloat(g('LAT')||g('LATITUDE')||'');
-    const LON=parseFloat(g('LON')||g('LONGITUDE')||g('LONG')||'');
-    if(!isNaN(LAT)&&!isNaN(LON))return{name,N:LAT.toFixed(8),E:LON.toFixed(8),Z:isNaN(Z)?'—':Z.toFixed(4),isLatLon:true,lat:LAT,lon:LON,elev:Z};
-    if(!isNaN(N)&&!isNaN(E))return{name,N:N.toFixed(4),E:E.toFixed(4),Z:isNaN(Z)?'—':Z.toFixed(4),localGrid:true};
-    // Observation data
-    const hz=parseFloat(g('HZ')||g('HORIZONTAL')||g('HA')||'');
-    const va=parseFloat(g('VA')||g('ZA')||g('ZENITH')||g('VERT')||'');
-    const sd=parseFloat(g('SD')||g('SLOPE')||g('DISTANCE')||g('DIST')||'');
-    const ht=parseFloat(g('HT')||g('TARGET')||g('PRISM')||'1.5')||1.5;
-    if(!isNaN(hz)&&!isNaN(va)&&!isNaN(sd)){
-      const az=(hz+tsOri+360)%360,azR=d2r(az),vaR=d2r(va);
-      const hd=sd*Math.sin(vaR),dz=sd*Math.cos(vaR)+hi-ht;
-      const Nv=sn+hd*Math.cos(azR),Ev=se+hd*Math.sin(azR),Zv=sz+dz;
-      return{name,N:Nv.toFixed(4),E:Ev.toFixed(4),Z:Zv.toFixed(4),localGrid:true};
-    }
-    return{name,N:'?',E:'?',Z:'?'};
-  });
-  renderTSTable();
-  tsNotif(`✓ ${tsData.length} points loaded`,'ok');
-  document.getElementById('ts-data-wrap').style.display='block';
-}
-
-function renderTSTable(){
-  document.getElementById('ts-tbody').innerHTML=tsData.map(r=>`<tr><td class="mono">${r.name}</td><td class="mono" style="font-size:10px">${r.N}</td><td class="mono" style="font-size:10px">${r.E}</td><td class="mono" style="font-size:10px">${r.Z}</td></tr>`).join('');
-}
-
-function tsPlotAll(){
-  tsData.forEach(pt=>{
-    let lat,lon;
-    if(pt.isLatLon){lat=pt.lat;lon=pt.lon;}
-    else{const sn=+document.getElementById('ts-sn').value,se=+document.getElementById('ts-se').value;if(pt.localGrid&&!isNaN(sn)){const dN=parseFloat(pt.N)-sn,dE=parseFloat(pt.E)-se;lat=DUBAI[0]+dN/111320;lon=DUBAI[1]+dE/(111320*Math.cos(d2r(DUBAI[0])));}}
-    if(!lat||!lon)return;
-    const color='#F5BE18';
-    const mk=L.circleMarker([lat,lon],{radius:7,color,fillColor:color,fillOpacity:.85,weight:2});
-    mk.addTo(map);mk.bindTooltip(`<b>${pt.name}</b><br>${parseFloat(pt.N).toFixed(4)}, ${parseFloat(pt.E).toFixed(4)}${pt.Z&&pt.Z!=='—'?`<br>Z: ${pt.Z}`:''}`);
-    const id=addFeature('TS Point',mk,pt.name,{lat,lng:lon,elev:parseFloat(pt.Z)||undefined,note:'Total Station'});
-    mk.on('click',()=>selectFeat(id));
-  });
-  const pts=tsData.filter(p=>p.lat||+p.N);if(pts.length)map.setView([DUBAI[0],DUBAI[1]],13);
-  tsNotif(`✓ ${tsData.length} points plotted on map`,'ok');
-}
-
-function tsExportCSV(){if(!tsData.length)return;const rows=[['POINT','NORTHING','EASTING','ELEVATION'],...tsData.map(r=>[r.name,r.N,r.E,r.Z])].map(r=>r.join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows],{type:'text/csv'}));a.download='ts_points.csv';a.click();}
-function tsNotif(msg,type){const n=document.getElementById('ts-notif');n.textContent=msg;n.className=`notif show ${type}`;setTimeout(()=>n.classList.remove('show'),3000);}
-
-// Drag & drop for TS
-const tsDrop=document.getElementById('ts-drop');
-tsDrop.addEventListener('dragover',e=>{e.preventDefault();tsDrop.classList.add('over');});
-tsDrop.addEventListener('dragleave',()=>tsDrop.classList.remove('over'));
-tsDrop.addEventListener('drop',e=>{e.preventDefault();tsDrop.classList.remove('over');const file=e.dataTransfer.files[0];if(file){const r=new FileReader();r.onload=ev=>{Papa.parse(ev.target.result,{header:true,skipEmptyLines:true,complete:res=>{tsProcess(res.data);}});};r.readAsText(file);}});
-
-/* ══════════════════════════════════════════
-   GNSS DATA
-══════════════════════════════════════════ */
-let gnssData=[];
-
-function gnssLoadFile(input){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();reader.onload=e=>{Papa.parse(e.target.result,{header:true,skipEmptyLines:true,complete:res=>{gnssProcess(res.data);}});};reader.readAsText(file);
-}
-
-function gnssProcess(rows){
-  gnssData=rows.map((row,i)=>{
-    const keys=Object.keys(row).map(k=>k.trim().toUpperCase());
-    const g=k=>{const ki=keys.find(x=>x.includes(k));return ki?row[Object.keys(row)[keys.indexOf(ki)]]:'';}
-    const name=g('POINT')||g('NAME')||g('ID')||`G${i+1}`;
-    const lat=parseFloat(g('LAT')||g('LATITUDE')||'');
-    const lon=parseFloat(g('LON')||g('LONG')||g('LONGITUDE')||'');
-    const h=parseFloat(g('H')||g('HEIGHT')||g('ELEV')||g('ALT')||'');
-    const fix=g('FIX')||g('QUALITY')||g('TYPE')||'';
-    const pdop=parseFloat(g('PDOP')||'');
-    const hdop=parseFloat(g('HDOP')||'');
-    const vdop=parseFloat(g('VDOP')||'');
-    const sats=g('SATS')||g('SATELLITES')||'';
-    return{name,lat,lon,h:isNaN(h)?'—':h.toFixed(4),fix,pdop:isNaN(pdop)?'—':pdop.toFixed(2),hdop:isNaN(hdop)?'—':hdop.toFixed(2),vdop:isNaN(vdop)?'—':vdop.toFixed(2),sats};
-  }).filter(r=>!isNaN(r.lat)&&!isNaN(r.lon));
-  renderGNSSTable();
-  gnssNotif(`✓ ${gnssData.length} GNSS points loaded`,'ok');
-  document.getElementById('gnss-data-wrap').style.display='block';
-}
-
-function renderGNSSTable(){
-  const tbody=document.getElementById('gnss-tbody');
-  tbody.innerHTML=gnssData.map(r=>{
-    const fix=r.fix||'';const qc=fix.includes('Fixed')?'ok':fix.includes('Float')?'warn':'';
-    return `<tr><td class="mono">${r.name}</td><td class="mono" style="font-size:10px">${r.lat.toFixed(6)}</td><td class="mono" style="font-size:10px">${r.lon.toFixed(6)}</td><td class="mono" style="font-size:10px">${r.h}</td><td class="${qc}" style="font-size:10px">${fix||'—'}</td><td class="mono" style="font-size:10px">${r.pdop}</td></tr>`;
-  }).join('');
-}
-
-function gnssPlotAll(){
-  const fixColors={'RTK Fixed':'#4ADE80','RTK Float':'#22D3EE','DGNSS':'#F5BE18','SBAS':'#F5BE18','Autonomous':'#EF4444'};
-  gnssData.forEach(pt=>{
-    const color=fixColors[pt.fix]||'#22D3EE';
-    const mk=L.circleMarker([pt.lat,pt.lon],{radius:7,color,fillColor:color,fillOpacity:.85,weight:2});
-    mk.addTo(map);
-    mk.bindTooltip(`<b>${pt.name}</b><br>H: ${pt.h} m<br>Fix: ${pt.fix||'—'}<br>PDOP: ${pt.pdop}`);
-    const id=addFeature('GNSS Point',mk,pt.name,{lat:pt.lat,lng:pt.lon,elev:parseFloat(pt.h)||undefined,fix:pt.fix,pdop:pt.pdop,hdop:pt.hdop,vdop:pt.vdop,note:'GNSS Import'});
-    mk.on('click',()=>selectFeat(id));
-  });
-  if(gnssData.length)map.fitBounds(L.featureGroup(gnssData.map(p=>L.circleMarker([p.lat,p.lon]))).getBounds(),{padding:[60,60]});
-  gnssNotif(`✓ ${gnssData.length} GNSS points plotted`,'ok');
-}
-
-function gnssExportCSV(){if(!gnssData.length)return;const rows=[['POINT','LAT','LON','H','FIX','PDOP','HDOP','VDOP','SATS'],...gnssData.map(r=>[r.name,r.lat.toFixed(8),r.lon.toFixed(8),r.h,r.fix,r.pdop,r.hdop,r.vdop,r.sats])].map(r=>r.join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows],{type:'text/csv'}));a.download='gnss_points.csv';a.click();}
-function gnssNotif(msg,type){const n=document.getElementById('gnss-notif');n.textContent=msg;n.className=`notif show ${type}`;setTimeout(()=>n.classList.remove('show'),3000);}
-
-// Drag & drop GNSS
-const gnssDrop=document.getElementById('gnss-drop');
-gnssDrop.addEventListener('dragover',e=>{e.preventDefault();gnssDrop.classList.add('over');});
-gnssDrop.addEventListener('dragleave',()=>gnssDrop.classList.remove('over'));
-gnssDrop.addEventListener('drop',e=>{e.preventDefault();gnssDrop.classList.remove('over');const file=e.dataTransfer.files[0];if(file){const r=new FileReader();r.onload=ev=>{Papa.parse(ev.target.result,{header:true,skipEmptyLines:true,complete:res=>{gnssProcess(res.data);}});};r.readAsText(file);}});
-
-/* ══════════════════════════════════════════
-   NMEA PARSING
-══════════════════════════════════════════ */
-function nmeaLoadFile(input){const file=input.files[0];if(!file)return;const r=new FileReader();r.onload=e=>{document.getElementById('nmea-text').value=e.target.result.slice(0,5000);nmeaParse();};r.readAsText(file);}
-function nmeaParse(){
-  const text=document.getElementById('nmea-text').value;
-  const lines=text.split(/\r?\n/).filter(l=>l.trim().match(/\$(GN|GP|GL)GGA/));
-  if(!lines.length){document.getElementById('nmea-notif').textContent='⚠ No valid GGA sentences found';document.getElementById('nmea-notif').className='notif show err';return;}
-  const parsed=lines.map((line,i)=>{
-    const parts=line.split(',');if(parts.length<10)return null;
-    try{
-      const lat=nmeaToDD(parts[2],parts[3]),lon=nmeaToDD(parts[4],parts[5]);
-      const fix=['Invalid','GPS','DGPS','PPS','RTK Fixed','RTK Float','Est','Manual','Sim'][parseInt(parts[6])]||parts[6];
-      const sats=parts[7],hdop=parts[8],alt=parseFloat(parts[9]);
-      return{name:`NMEA-${String(i+1).padStart(3,'0')}`,lat,lon,h:alt.toFixed(3),fix,sats,hdop};
-    }catch(e){return null;}
-  }).filter(Boolean);
-  document.getElementById('nmea-tbody').innerHTML=parsed.map((r,i)=>`<tr><td class="mono">${i+1}</td><td class="mono" style="font-size:10px">${r.lat.toFixed(6)}</td><td class="mono" style="font-size:10px">${r.lon.toFixed(6)}</td><td class="mono" style="font-size:10px">${r.h}</td><td style="font-size:10px;${r.fix.includes('RTK')?'color:#4ADE80':r.fix==='DGPS'?'color:#F5BE18':'color:var(--M)'}">${r.fix}</td><td class="mono" style="font-size:10px">${r.sats}</td></tr>`).join('');
-  document.getElementById('nmea-notif').textContent=`✓ ${parsed.length} GGA sentences parsed`;document.getElementById('nmea-notif').className='notif show ok';
-  document.getElementById('nmea-data-wrap').style.display='block';
-  // Plot parsed points
-  const fixColors={'GPS':'#1FA8D9','DGPS':'#F5BE18','RTK Fixed':'#4ADE80','RTK Float':'#22D3EE','Est':'#A78BFA'};
-  parsed.forEach(pt=>{
-    const color=fixColors[pt.fix]||'#22D3EE';
-    const mk=L.circleMarker([pt.lat,pt.lon],{radius:6,color,fillColor:color,fillOpacity:.8,weight:2});
-    mk.addTo(map);mk.bindTooltip(`<b>${pt.name}</b><br>H: ${pt.h} m<br>Fix: ${pt.fix}<br>Sats: ${pt.sats}`);
-    const id=addFeature('NMEA Point',mk,pt.name,{lat:pt.lat,lng:pt.lon,elev:parseFloat(pt.h),fix:pt.fix,note:'NMEA GGA'});
-    mk.on('click',()=>selectFeat(id));
-  });
-  if(parsed.length)map.fitBounds(L.featureGroup(parsed.map(p=>L.circleMarker([p.lat,p.lon]))).getBounds(),{padding:[60,60]});
-  sbTab('features',document.querySelector('[onclick="sbTab(\'features\',this)"]'));
-}
-
-/* ══════════════════════════════════════════
-   IMPORT MODE SWITCHER
-══════════════════════════════════════════ */
-function impMode(m,el){document.querySelectorAll('#imp-mode-pills .upill').forEach(p=>p.classList.remove('on'));el.classList.add('on');['ts','gnss','nmea'].forEach(id=>document.getElementById('imp-'+id).style.display='none');document.getElementById('imp-'+m).style.display='block';}
-
-/* ══════════════════════════════════════════
-   DRONE CALCULATOR
-══════════════════════════════════════════ */
-const drP={p4r:[35.9,24.0,35,5472,3648],m300:[35.9,24.1,35,5472,3648],mv3:[35.9,24.0,35,5280,3956],wing:[35.9,24.0,50,8688,5792],c:[35.9,24.0,35,5472,3648]};
-function drPreset(){const v=document.getElementById('dr-model').value,p=drP[v]||drP.p4r;['dr-sw','dr-sh','dr-fl','dr-iw','dr-ih'].forEach((id,i)=>document.getElementById(id).value=p[i]);}
-function drCompute(){
-  const alt=+document.getElementById('dr-alt').value,fl=+document.getElementById('dr-fl').value,iw=+document.getElementById('dr-iw').value,ih=+document.getElementById('dr-ih').value,sw=+document.getElementById('dr-sw').value,sh=+document.getElementById('dr-sh').value,fo=+document.getElementById('dr-fo').value/100,so=+document.getElementById('dr-so').value/100,area=+document.getElementById('dr-area').value,spd=+document.getElementById('dr-spd').value||10,gcp=+document.getElementById('dr-gcp').value||5;
-  const gsd=(alt*sw/iw/fl)*100,fw=iw*gsd/100,fh=ih*gsd/100,ls=fw*(1-so),is_=fh*(1-fo),aM=area*1e4,side=Math.sqrt(aM),len=aM/side,nl=Math.ceil(side/ls)+1,ni=Math.ceil(len/is_)+1,tot=nl*ni,flen=nl*len,ftime=flen/spd/60,gcpN=Math.max(gcp,Math.ceil(area/5)),pcd=Math.round(5/(gsd**2)*1000);
-  const cls=gsd<=2?'A — Cadastral (±25mm)':gsd<=5?'B — Engineering (±100mm)':gsd<=10?'C — Topographic (±250mm)':'D — GIS (±1m)';
-  const clsc=gsd<=2?'#4ADE80':gsd<=5?'#22D3EE':gsd<=10?'#F5BE18':'#EF4444';
-  document.getElementById('dr-gsd').textContent=gsd.toFixed(2);document.getElementById('dr-imgs').textContent=tot;document.getElementById('dr-time').textContent=ftime.toFixed(1);
-  document.getElementById('dr-foot').textContent=`${fw.toFixed(2)} m × ${fh.toFixed(2)} m`;document.getElementById('dr-spacing').textContent=`${ls.toFixed(2)} m  /  ${is_.toFixed(2)} m`;
-  document.getElementById('dr-acc').textContent=`±${(gsd*1.5/100).toFixed(3)} m  /  ±${(gsd*3/100).toFixed(3)} m`;document.getElementById('dr-gcpr').textContent=`≥ ${gcpN} GCPs`;
-  document.getElementById('dr-cls').textContent=`Class ${cls}`;document.getElementById('dr-cls').style.color=clsc;
-  document.getElementById('dr-res').style.display='block';
-}
-
-/* ══════════════════════════════════════════
-   DUBAI COMPLIANCE
-══════════════════════════════════════════ */
-function dubCheck(){
-  const h=parseFloat(document.getElementById('dub-h').value),v=parseFloat(document.getElementById('dub-v').value);
-  if(isNaN(h)||isNaN(v))return;
-  const cls=h<=.025&&v<=.05?{n:'CLASS A — CADASTRAL',c:'#1FA8D9',p:true}:h<=.1&&v<=.15?{n:'CLASS B — ENGINEERING',c:'#4ADE80',p:true}:h<=.25&&v<=.35?{n:'CLASS C — TOPOGRAPHIC',c:'#F5BE18',p:true}:h<=1&&v<=2?{n:'CLASS D — GIS',c:'#A78BFA',p:true}:{n:'NON-COMPLIANT',c:'#EF4444',p:false};
-  document.getElementById('dub-res').innerHTML=`<div style="background:${cls.p?'rgba(34,197,94,.07)':'rgba(239,68,68,.07)'};border:1px solid ${cls.p?'rgba(34,197,94,.25)':'rgba(239,68,68,.25)'};border-radius:10px;padding:12px;text-align:center;margin-top:6px"><div style="font-size:11px;font-weight:800;color:${cls.c};letter-spacing:1px">${cls.n}</div><div style="font-size:12px;color:${cls.p?'#4ADE80':'#EF4444'};font-weight:700;margin-top:4px">${cls.p?'✓ COMPLIANT':'✕ NON-COMPLIANT'}</div><div style="font-size:10px;color:var(--M);margin-top:5px">H: ±${(h*1000).toFixed(1)}mm · V: ±${(v*1000).toFixed(1)}mm</div></div>`;
-}
-
-/* ══════════════════════════════════════════
-   UNIT PILLS INIT
-══════════════════════════════════════════ */
-function initUnitPills(){
-  const ap=document.getElementById('m-area-pills'),dp=document.getElementById('m-dist-pills');
-  if(ap)ap.innerHTML=Object.keys(AU).map(u=>`<button class="upill${u===aUnit?' on':''}" onclick="aUnit='${u}';document.querySelectorAll('#m-area-pills .upill').forEach(p=>p.classList.remove('on'));this.classList.add('on')">${u}</button>`).join('');
-  if(dp)dp.innerHTML=Object.keys(DU).map(u=>`<button class="upill${u===dUnit?' on':''}" onclick="dUnit='${u}';document.querySelectorAll('#m-dist-pills .upill').forEach(p=>p.classList.remove('on'));this.classList.add('on')">${u}</button>`).join('');
-}
-
-/* ══════════════════════════════════════════
-   EXPORT GEOJSON
-══════════════════════════════════════════ */
-function exportGeoJSON(){
-  if(!features.length)return;
-  const geojson={type:'FeatureCollection',features:features.map(f=>{
-    let geom=null;
-    try{if(f.layer.toGeoJSON)geom=f.layer.toGeoJSON().geometry;}catch(e){}
-    return{type:'Feature',properties:{name:f.name,type:f.type,...f.meta},geometry:geom};
-  })};
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(geojson,null,2)],{type:'application/json'}));a.download='gauge_features.geojson';a.click();
-}
-
-/* ══════════════════════════════════════════
-   INIT
-══════════════════════════════════════════ */
-initUnitPills();
-// Map click to convert coords panel
+function tsSetup(){const sn=+document.getElementById('ts-sn').value,se=+document.getElementById('ts-se').value,bn=+document.getElementById('ts-bn').value,be=+document.getElementById('ts-be').value,hz=+document.getElementById('ts-bhz').value||0;if(!isNaN(sn)&&!isNaN(se)&&!isNaN(bn)&&!isNaN(be)){const gb=(r2d(Math.atan2(be-se,bn-sn))+360)%360;tsOri=(gb-hz+360)%360;document.getElementById('ts-ori').style.display='block';document.getElementById('ts-ov').textContent=tsOri.toFixed(6)+'\u00b0';}tsN2('Station set \u00b7 Ori: '+tsOri.toFixed(4)+'\u00b0','ok');}
+function tsLoad(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>Papa.parse(e.target.result,{header:true,skipEmptyLines:true,complete:res=>tsProc(res.data)});r.readAsText(f);}
+function tsProc(rows){const sn=+document.getElementById('ts-sn').value||0,se=+document.getElementById('ts-se').value||0,sz=+document.getElementById('ts-sz').value||0,hi=+document.getElementById('ts-hi').value||1.5;tsData=rows.map((row,i)=>{const k=Object.keys(row).map(x=>x.trim().toUpperCase()),g=kk=>{const ki=k.find(x=>x.includes(kk));return ki?row[Object.keys(row)[k.indexOf(ki)]]:''};const nm=g('POINT')||g('NAME')||g('ID')||g('PT')||'P'+(i+1);const la=parseFloat(g('LAT')||g('LATITUDE')||''),lo=parseFloat(g('LON')||g('LONG')||g('LONGITUDE')||'');const N=parseFloat(g('NORTHING')||g('N')||g('Y')||''),E=parseFloat(g('EASTING')||g('E')||g('X')||''),Z=parseFloat(g('ELEVATION')||g('ELEV')||g('Z')||g('H')||'');if(!isNaN(la)&&!isNaN(lo))return{nm,N:la.toFixed(8),E:lo.toFixed(8),Z:isNaN(Z)?'---':Z.toFixed(4),ll:[la,lo]};if(!isNaN(N)&&!isNaN(E))return{nm,N:N.toFixed(4),E:E.toFixed(4),Z:isNaN(Z)?'---':Z.toFixed(4),local:true};const hz=parseFloat(g('HZ')||g('HA')||''),va=parseFloat(g('VA')||g('ZA')||g('ZENITH')||''),sd=parseFloat(g('SD')||g('SLOPE')||g('DIST')||''),ht=parseFloat(g('HT')||g('TARGET')||'1.5')||1.5;if(!isNaN(hz)&&!isNaN(va)&&!isNaN(sd)){const azV=(hz+tsOri+360)%360,azR=d2r(azV),vaR=d2r(va),hd=sd*Math.sin(vaR),dz=sd*Math.cos(vaR)+hi-ht;return{nm,N:(sn+hd*Math.cos(azR)).toFixed(4),E:(se+hd*Math.sin(azR)).toFixed(4),Z:(sz+dz).toFixed(4),local:true};}return{nm,N:'?',E:'?',Z:'?'};});document.getElementById('ts-tb').innerHTML=tsData.map(r=>'<tr><td class="mn">'+r.nm+'</td><td class="mn" style="font-size:9.5px">'+r.N+'</td><td class="mn" style="font-size:9.5px">'+r.E+'</td><td class="mn" style="font-size:9.5px">'+r.Z+'</td></tr>').join('');tsN2(tsData.length+' points loaded','ok');document.getElementById('ts-wrap').style.display='block';}
+function tsPlot(){const sn=+document.getElementById('ts-sn').value,se=+document.getElementById('ts-se').value;tsData.forEach(pt=>{let la,lo;if(pt.ll){[la,lo]=pt.ll;}else if(pt.local&&!isNaN(sn)){la=DUBAI[0]+(+pt.N-sn)/111320;lo=DUBAI[1]+(+pt.E-se)/(111320*Math.cos(d2r(DUBAI[0])));}if(!la)return;const mk=L.circleMarker([la,lo],{radius:7,color:'#F5BE18',fillColor:'#F5BE18',fillOpacity:.85,weight:2});mk.addTo(map);mk.bindTooltip('<b>'+pt.nm+'</b><br>Z: '+pt.Z);const id=addF('TS Point',mk,pt.nm,{lat:la,lng:lo,elev:parseFloat(pt.Z)||undefined,src:'Total Station'});mk.on('click',()=>selF(id));});tsN2('Plotted on map','ok');}
+function tsCSV(){if(!tsData.length)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([['POINT,NORTHING,EASTING,ELEVATION',...tsData.map(r=>r.nm+','+r.N+','+r.E+','+r.Z)].join('\n')],{type:'text/csv'}));a.download='ts_points.csv';a.click();}
+function tsN2(msg,t){const n=document.getElementById('ts-n');n.textContent=msg;n.className='notif show '+t;setTimeout(()=>n.classList.remove('show'),3000);}
+const tsDz=document.getElementById('ts-dz');tsDz.addEventListener('dragover',e=>{e.preventDefault();tsDz.classList.add('ov');});tsDz.addEventListener('dragleave',()=>tsDz.classList.remove('ov'));tsDz.addEventListener('drop',e=>{e.preventDefault();tsDz.classList.remove('ov');const f=e.dataTransfer.files[0];if(f){const r=new FileReader();r.onload=ev=>Papa.parse(ev.target.result,{header:true,skipEmptyLines:true,complete:res=>tsProc(res.data)});r.readAsText(f);}});
+let gnData=[];
+function gnLoad(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>Papa.parse(e.target.result,{header:true,skipEmptyLines:true,complete:res=>gnProc(res.data)});r.readAsText(f);}
+function gnProc(rows){gnData=rows.map((row,i)=>{const k=Object.keys(row).map(x=>x.trim().toUpperCase()),g=kk=>{const ki=k.find(x=>x.includes(kk));return ki?row[Object.keys(row)[k.indexOf(ki)]]:''};const nm=g('POINT')||g('NAME')||g('ID')||'G'+(i+1),la=parseFloat(g('LAT')||g('LATITUDE')||''),lo=parseFloat(g('LON')||g('LONG')||'');if(isNaN(la)||isNaN(lo))return null;const h=parseFloat(g('H')||g('HEIGHT')||g('ELEV')||''),fix=g('FIX')||g('QUALITY')||'',pd=parseFloat(g('PDOP')||''),hd=parseFloat(g('HDOP')||''),vd=parseFloat(g('VDOP')||''),sv=g('SATS')||'';return{nm,la,lo,h:isNaN(h)?'---':h.toFixed(4),fix,pd:isNaN(pd)?'---':pd.toFixed(2),hd:isNaN(hd)?'---':hd.toFixed(2),vd:isNaN(vd)?'---':vd.toFixed(2),sv};}).filter(Boolean);document.getElementById('gn-tb').innerHTML=gnData.map(r=>'<tr><td class="mn">'+r.nm+'</td><td class="mn" style="font-size:9.5px">'+r.la.toFixed(6)+'</td><td class="mn" style="font-size:9.5px">'+r.lo.toFixed(6)+'</td><td class="mn" style="font-size:9.5px">'+r.h+'</td><td class="'+(r.fix.includes('Fixed')?'ok':r.fix.includes('Float')?'wn':'')+'" style="font-size:9.5px">'+(r.fix||'---')+'</td><td class="mn" style="font-size:9.5px">'+r.pd+'</td></tr>').join('');gnN2(gnData.length+' points loaded','ok');document.getElementById('gn-wrap').style.display='block';}
+function gnPlot(){const fc={'RTK Fixed':'#4ADE80','RTK Float':'#22D3EE','DGNSS':'#F5BE18','SBAS':'#F5BE18','Autonomous':'#EF4444'};gnData.forEach(pt=>{const c=fc[pt.fix]||'#22D3EE';const mk=L.circleMarker([pt.la,pt.lo],{radius:7,color:c,fillColor:c,fillOpacity:.85,weight:2});mk.addTo(map);mk.bindTooltip('<b>'+pt.nm+'</b><br>H: '+pt.h+' m<br>Fix: '+(pt.fix||'---')+'<br>PDOP: '+pt.pd);const id=addF('GNSS',mk,pt.nm,{lat:pt.la,lng:pt.lo,elev:parseFloat(pt.h)||undefined,fix:pt.fix,pdop:pt.pd,hdop:pt.hd,vdop:pt.vd,src:'GNSS Import'});mk.on('click',()=>selF(id));});if(gnData.length)map.fitBounds(L.featureGroup(gnData.map(p=>L.circleMarker([p.la,p.lo]))).getBounds(),{padding:[60,60]});gnN2('Plotted','ok');}
+function gnCSV(){if(!gnData.length)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([['POINT,LAT,LON,H,FIX,PDOP,HDOP,VDOP,SATS',...gnData.map(r=>r.nm+','+r.la.toFixed(8)+','+r.lo.toFixed(8)+','+r.h+','+r.fix+','+r.pd+','+r.hd+','+r.vd+','+r.sv)].join('\n')],{type:'text/csv'}));a.download='gnss_points.csv';a.click();}
+function gnN2(msg,t){const n=document.getElementById('gn-n');n.textContent=msg;n.className='notif show '+t;setTimeout(()=>n.classList.remove('show'),3000);}
+const gnDz=document.getElementById('gn-dz');gnDz.addEventListener('dragover',e=>{e.preventDefault();gnDz.classList.add('ov');});gnDz.addEventListener('dragleave',()=>gnDz.classList.remove('ov'));gnDz.addEventListener('drop',e=>{e.preventDefault();gnDz.classList.remove('ov');const f=e.dataTransfer.files[0];if(f){const r=new FileReader();r.onload=ev=>Papa.parse(ev.target.result,{header:true,skipEmptyLines:true,complete:res=>gnProc(res.data)});r.readAsText(f);}});
+function nmeaFile(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{document.getElementById('nmea-txt').value=e.target.result.slice(0,8000);nmeaParse();};r.readAsText(f);}
+function nmeaParse(){const txt=document.getElementById('nmea-txt').value,lines=txt.split(/\r?\n/).filter(l=>l.match(/\$(GN|GP|GL|GB)GGA/));const n=document.getElementById('nmea-n');if(!lines.length){n.textContent='No GGA sentences found';n.className='notif show er';return;}const parsed=lines.map((ln,i)=>{const p=ln.split(',');if(p.length<10)return null;try{const la=nDD(p[2],p[3]),lo=nDD(p[4],p[5]),fix=['Invalid','GPS','DGPS','PPS','RTK Fixed','RTK Float','Est','Manual','Sim'][parseInt(p[6])]||p[6],sv=p[7],alt=parseFloat(p[9]);return{nm:'NMEA-'+String(i+1).padStart(3,'0'),la,lo,h:alt.toFixed(3),fix,sv};}catch(e){return null;}}).filter(Boolean);document.getElementById('nmea-tb').innerHTML=parsed.map((r,i)=>'<tr><td class="mn">'+(i+1)+'</td><td class="mn" style="font-size:9.5px">'+r.la.toFixed(6)+'</td><td class="mn" style="font-size:9.5px">'+r.lo.toFixed(6)+'</td><td class="mn" style="font-size:9.5px">'+r.h+'</td><td style="font-size:9.5px;'+(r.fix.includes('RTK')?'color:#4ADE80':r.fix==='DGPS'?'color:#F5BE18':'color:var(--M)')+'">'+r.fix+'</td><td class="mn" style="font-size:9.5px">'+r.sv+'</td></tr>').join('');n.textContent=parsed.length+' GGA parsed and plotted';n.className='notif show ok';document.getElementById('nmea-wrap').style.display='block';const fc={'GPS':'#1FA8D9','DGPS':'#F5BE18','RTK Fixed':'#4ADE80','RTK Float':'#22D3EE'};parsed.forEach(pt=>{const c=fc[pt.fix]||'#22D3EE';const mk=L.circleMarker([pt.la,pt.lo],{radius:6,color:c,fillColor:c,fillOpacity:.8,weight:2});mk.addTo(map);mk.bindTooltip('<b>'+pt.nm+'</b><br>H:'+pt.h+'m Fix:'+pt.fix+' SVs:'+pt.sv);const id=addF('NMEA',mk,pt.nm,{lat:pt.la,lng:pt.lo,elev:parseFloat(pt.h),fix:pt.fix,src:'NMEA GGA'});mk.on('click',()=>selF(id));});if(parsed.length)map.fitBounds(L.featureGroup(parsed.map(p=>L.circleMarker([p.la,p.lo]))).getBounds(),{padding:[60,60]});}
+function impT(m,el){document.querySelectorAll('#imp-pills .up').forEach(p=>p.classList.remove('on'));el.classList.add('on');['ts','gnss','nmea'].forEach(id=>document.getElementById('it-'+id).style.display='none');document.getElementById('it-'+m).style.display='block';}
+let lvRows=[{id:1,lab:'BM-1',bs:'1.523',is:'',fs:'',note:'Start BM'},{id:2,lab:'TP-1',bs:'2.108',is:'',fs:'0.945',note:''},{id:3,lab:'TP-2',bs:'1.654',is:'0.410',fs:'1.302',note:'IS shot'},{id:4,lab:'BM-2',bs:'',is:'',fs:'0.812',note:'Closing'}],lvCnt=4;
+function lvRend(){const tb=document.getElementById('lv-tb');if(!tb)return;tb.innerHTML=lvRows.map(r=>'<tr><td><input value="'+r.lab+'" oninput="lvUp('+r.id+',\'lab\',this.value)" class="nm" style="width:50px;background:transparent;border:none;color:var(--Cy);font-weight:700;outline:none;font-family:monospace;font-size:10px"></td>'+['bs','is','fs'].map(f=>'<td><input value="'+(r[f]||'')+'" oninput="lvUp('+r.id+',\''+f+'\',this.value)" style="background:transparent;border:none;color:'+(f==='bs'?'#4ADE80':f==='fs'?'#FCA5A5':'var(--M)')+';font-family:monospace;font-size:10px;width:48px;outline:none"></td>').join('')+'<td class="mn" id="lv-hi-'+r.id+'" style="color:#7DD3FC">---</td><td class="mn ok" id="lv-el-'+r.id+'">---</td><td><input value="'+(r.note||'')+'" oninput="lvUp('+r.id+',\'note\',this.value)" style="background:transparent;border:none;color:var(--Dm);font-size:10px;width:55px;outline:none"></td><td><button onclick="lvRows=lvRows.filter(x=>x.id!=='+r.id+');lvRend()" style="background:none;border:none;color:rgba(239,68,68,.35);cursor:pointer;font-size:12px">\u00d7</button></td></tr>').join('');}
+function lvUp(id,f,v){const r=lvRows.find(x=>x.id===id);if(r)r[f]=v;}
+function lvAdd(){lvCnt++;lvRows.push({id:lvCnt,lab:'PT-'+lvCnt,bs:'',is:'',fs:'',note:''});lvRend();}
+function lvCompute(){let curHI=0,curElev=parseFloat(document.getElementById('lv-bm').value)||100,sumBS=0,sumFS=0;lvRows.forEach((row,i)=>{const bs=parseFloat(row.bs),fs=parseFloat(row.fs),is_=parseFloat(row.is);if(i===0){if(!isNaN(bs)){curHI=curElev+bs;sumBS+=bs;}const h=document.getElementById('lv-hi-'+row.id),e=document.getElementById('lv-el-'+row.id);if(h)h.textContent=isNaN(bs)?'---':curHI.toFixed(4);if(e)e.textContent=curElev.toFixed(4);}else{if(!isNaN(fs)){curElev=curHI-fs;sumFS+=fs;}if(!isNaN(bs)){curHI=curElev+bs;sumBS+=bs;}const h=document.getElementById('lv-hi-'+row.id),e=document.getElementById('lv-el-'+row.id);if(h)h.textContent=(isNaN(bs)&&isNaN(fs))?'---':curHI.toFixed(4);if(e)e.textContent=isNaN(fs)?'---':curElev.toFixed(4);}if(!isNaN(is_)){const e=document.getElementById('lv-el-'+row.id);if(e)e.textContent=(curHI-is_).toFixed(4)+' (IS)';}});const sb=document.getElementById('lv-sbs'),sf=document.getElementById('lv-sfs');if(sb)sb.textContent=sumBS.toFixed(4)+' m';if(sf)sf.textContent=sumFS.toFixed(4)+' m';document.getElementById('lv-sum').style.display='block';const cl=parseFloat(document.getElementById('lv-cl').value);if(!isNaN(cl)){const err=curElev-cl;const d=document.getElementById('lv-closure');d.style.display='block';d.innerHTML='<div class="rb '+(Math.abs(err)<0.005?'ok':'wn')+'"><div class="rl">CLOSURE ERROR</div><div class="rv">'+err.toFixed(4)+' m  '+(Math.abs(err)<0.005?'\u2713 OK':'\u26a0 CHECK')+'</div></div>';}}
+function lvCSV(){const rows=[['STATION','BS','IS','FS','HI','ELEVATION','NOTE'],...lvRows.map(r=>[r.lab,r.bs,r.is,r.fs,(document.getElementById('lv-hi-'+r.id)||{}).textContent||'',(document.getElementById('lv-el-'+r.id)||{}).textContent||'',r.note])].map(r=>r.join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows],{type:'text/csv'}));a.download='leveling.csv';a.click();}
+function skT(id,el){document.querySelectorAll('#sk-pills .up').forEach(p=>p.classList.remove('on'));if(el)el.classList.add('on');['so','inv','hc','vc'].forEach(x=>document.getElementById('sk-'+x).style.display='none');document.getElementById('sk-'+id).style.display='block';}
+let soRes=null;
+function soComp(){const la=+document.getElementById('so-la').value,lo=+document.getElementById('so-lo').value,azV=+document.getElementById('so-az').value,d=+document.getElementById('so-d').value;if([la,lo,azV,d].some(isNaN))return;const[la2,lo2]=destFn([la,lo],azV,d);soRes=[la2,lo2];const utm=toUTM(la2,lo2);document.getElementById('so-la2').textContent=la2.toFixed(10)+'\u00b0';document.getElementById('so-lo2').textContent=lo2.toFixed(10)+'\u00b0';document.getElementById('so-dms').textContent=toDMS(la2,true)+'  '+toDMS(lo2,false);document.getElementById('so-utm').textContent='Z'+utm.z+utm.b+'  E:'+utm.E+'  N:'+utm.N;document.getElementById('so-res').style.display='block';}
+function soPlot(){if(!soRes)return;const mk=L.circleMarker(soRes,{radius:8,color:'#4ADE80',fillColor:'#4ADE80',fillOpacity:.9,weight:2});mk.addTo(map);mk.bindTooltip('Stakeout Point');const id=addF('Stakeout',mk,'Stakeout Point',{lat:soRes[0],lng:soRes[1],src:'Stakeout'});mk.on('click',()=>selF(id));map.setView(soRes,17);}
+function ivComp(){const la1=+document.getElementById('iv-la1').value,lo1=+document.getElementById('iv-lo1').value,la2=+document.getElementById('iv-la2').value,lo2=+document.getElementById('iv-lo2').value;if([la1,lo1,la2,lo2].some(isNaN))return;const d=hav([la1,lo1],[la2,lo2]),azV=azFn([la1,lo1],[la2,lo2]),baz=(azV+180)%360;document.getElementById('iv-d').textContent=d.toFixed(4)+' m';document.getElementById('iv-faz').textContent=azV.toFixed(6)+'\u00b0';document.getElementById('iv-baz').textContent=baz.toFixed(6)+'\u00b0';document.getElementById('iv-qb').textContent=qBrng(azV);document.getElementById('iv-tbl').innerHTML=Object.keys(DU).map(u=>'<tr><td style="color:var(--Dm)">'+u+'</td><td class="mn" style="text-align:right">'+cvD(d,u).toFixed(4)+'</td></tr>').join('');document.getElementById('iv-res').style.display='block';}
+function hcComp(){let R=+document.getElementById('hc-r').value||null,D=+document.getElementById('hc-d').value||null,T=+document.getElementById('hc-t').value||null,L=+document.getElementById('hc-l').value||null;if(R&&D){const dr=d2r(D);T=R*Math.tan(dr/2);L=R*dr;}else if(R&&T){const dr=2*Math.atan(T/R);D=r2d(dr);L=R*dr;}else if(R&&L){const dr=L/R;D=r2d(dr);T=R*Math.tan(dr/2);}else return;const dr=d2r(D),E=R*(1/Math.cos(dr/2)-1),M=R*(1-Math.cos(dr/2)),LC=2*R*Math.sin(dr/2),DC=5729.578/R;[['hc-R',R.toFixed(4)+' m'],['hc-D',D.toFixed(6)+'\u00b0'],['hc-T',T.toFixed(4)+' m'],['hc-L',L.toFixed(4)+' m'],['hc-E',E.toFixed(4)+' m'],['hc-M',M.toFixed(4)+' m'],['hc-LC',LC.toFixed(4)+' m'],['hc-DC',DC.toFixed(4)+'\u00b0']].forEach(([id,v])=>document.getElementById(id).textContent=v);document.getElementById('hc-res').style.display='block';}
+function vcComp(){const g1=+document.getElementById('vc-g1').value/100,g2=+document.getElementById('vc-g2').value/100,L=+document.getElementById('vc-l').value,pvSta=+document.getElementById('vc-s').value,pvEl=+document.getElementById('vc-e').value;if([g1,g2,L,pvSta,pvEl].some(isNaN))return;const r=(g2-g1)/L,bvSta=pvSta-L/2,bvEl=pvEl-g1*L/2,evSta=pvSta+L/2,evEl=pvEl+g2*L/2,g1p=+document.getElementById('vc-g1').value,g2p=+document.getElementById('vc-g2').value,K=Math.abs(L/(g2p-g1p));document.getElementById('vc-bs').textContent=bvSta.toFixed(3)+' m';document.getElementById('vc-be').textContent=bvEl.toFixed(4)+' m';document.getElementById('vc-es').textContent=evSta.toFixed(3)+' m';document.getElementById('vc-ee').textContent=evEl.toFixed(4)+' m';document.getElementById('vc-k').textContent=K.toFixed(3)+' m/%';document.getElementById('vc-r').textContent=(r*100).toFixed(6)+'%/m';if((g1>0&&g2<0)||(g1<0&&g2>0)){const x=-g1/r;if(x>=0&&x<=L){document.getElementById('vc-hlb').style.display='block';document.getElementById('vc-hll').textContent=(g1>0?'HIGH':'LOW')+' POINT STA / ELEV';document.getElementById('vc-hl').textContent=(bvSta+x).toFixed(3)+' m  /  '+(bvEl+g1*x+0.5*r*x*x).toFixed(4)+' m';}}else document.getElementById('vc-hlb').style.display='none';document.getElementById('vc-tb').innerHTML=Array.from({length:13},(_,i)=>{const x=(i/12)*L;return{sta:bvSta+x,el:bvEl+g1*x+0.5*r*x*x,gr:((g1+r*x)*100).toFixed(4)};}).map(s=>'<tr><td class="mn">'+s.sta.toFixed(3)+'</td><td class="mn" style="color:var(--Cy)">'+s.el.toFixed(4)+'</td><td class="mn" style="'+(+s.gr>0?'color:#4ADE80':'color:#FCA5A5')+'">'+(+s.gr>0?'+':'')+s.gr+'%</td></tr>').join('');document.getElementById('vc-res').style.display='block';}
+function gfRun(){const la=+document.getElementById('gf-la').value||25.2,dt=document.getElementById('gf-dt').value||new Date().toISOString().slice(0,10);document.getElementById('gf-dtlbl').textContent=dt;const hrs=Array.from({length:24},(_,h)=>{const vis=(Math.sin((h-6)*PI/12)*0.3+0.7)*(1-Math.abs(la)/90*0.25),rnd=s=>Math.abs(Math.sin(s*137.5+h*53.7+la))%1;const gps=Math.round(5+4*vis+rnd(1)*2),glo=Math.round(3+3*vis+rnd(2)*2),gal=Math.round(3+3*vis+rnd(3)*2),bds=Math.round(4+4*vis+rnd(4)*2),tot=gps+glo+gal+bds,pdop=Math.max(1.0,5.5-tot*0.18+(1-(Math.sin((h+3)*PI/10)*0.5+0.5))*0.7);const dq=dopQ(pdop);return{h,gps,glo,gal,bds,tot,pdop:+pdop.toFixed(2),q:dq.l,qc:dq.c};});const best=hrs.reduce((a,b)=>a.pdop<b.pdop?a:b),worst=hrs.reduce((a,b)=>a.pdop>b.pdop?a:b);document.getElementById('gf-best').textContent=String(best.h).padStart(2,'0')+':00 \u2013 '+String((best.h+2)%24).padStart(2,'0')+':00  PDOP:'+best.pdop+'  '+best.tot+' SVs';document.getElementById('gf-worst').textContent=String(worst.h).padStart(2,'0')+':00  PDOP:'+worst.pdop;const cv=document.getElementById('gf-cv'),ctx=cv.getContext('2d');const dpr=window.devicePixelRatio||1;cv.width=(cv.clientWidth||260)*dpr;cv.height=90*dpr;ctx.scale(dpr,dpr);const W=cv.clientWidth||260,H=90,maxP=6,pad=18;ctx.fillStyle='#040D16';ctx.fillRect(0,0,W,H);const bw=(W-4)/24-1;hrs.forEach((hr,i)=>{const bH=(Math.min(hr.pdop,maxP)/maxP)*(H-pad-6),x=2+i*(bw+1),y=pad+(H-pad-6)-bH;ctx.fillStyle=hr.qc+'cc';ctx.fillRect(x,y,bw,bH);if(i%6===0){ctx.fillStyle='rgba(90,131,158,.6)';ctx.font='7px monospace';ctx.textAlign='center';ctx.fillText(String(i).padStart(2,'0')+'h',x+bw/2,H-1);}});ctx.fillStyle='rgba(90,131,158,.5)';ctx.font='7px monospace';ctx.textAlign='right';[1,2,3,5].forEach(v=>{const y=pad+(H-pad-6)*(1-v/maxP);ctx.fillText(v,14,y+3);});document.getElementById('gf-tb').innerHTML=hrs.map(h=>'<tr><td class="mn">'+String(h.h).padStart(2,'0')+':00</td><td class="mn" style="color:'+h.qc+';font-weight:700">'+h.pdop+'</td><td style="font-size:9px;color:'+h.qc+'">'+h.q+'</td><td class="mn" style="color:#93C5FD">'+h.gps+'</td><td class="mn" style="color:#C4B5FD">'+h.glo+'</td><td class="mn" style="color:#6EE7B7">'+h.gal+'</td><td class="mn" style="color:#FDE68A">'+h.bds+'</td><td class="mn" style="color:var(--Cy);font-weight:700">'+h.tot+'</td></tr>').join('');document.getElementById('gf-res').style.display='block';}
+const LX_SAMPLE='<?xml version="1.0" encoding="UTF-8"?><LandXML version="1.2" xmlns="http://www.landxml.org/schema/LandXML-1.2"><CgPoints><CgPoint name="BM-100" desc="Benchmark" code="BM">5000.000 5000.000 45.250</CgPoint><CgPoint name="TP-1" desc="Turn Point" code="TP">5152.432 5047.876 46.120</CgPoint><CgPoint name="NE-COR" desc="NE Corner" code="PROP">5325.100 5110.500 48.010</CgPoint><CgPoint name="SW-COR" desc="SW Corner" code="PROP">5200.000 5000.000 46.750</CgPoint></CgPoints><Alignments><Alignment name="CL-MAIN" desc="Main Road" length="423.5" staStart="0"><CoordGeom><Line length="200.0" dir="0.0"/><Curve length="157.08" radius="200" rot="ccw"/><Line length="66.42" dir="90.0"/></CoordGeom></Alignment></Alignments></LandXML>';
+let lxPts=[],lxAls=[];
+function lxFile(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{document.getElementById('lx-txt').value=e.target.result;lxParse();};r.readAsText(f);}
+function lxParse(){try{const doc=new DOMParser().parseFromString(document.getElementById('lx-txt').value,'application/xml');if(doc.querySelector('parsererror'))throw new Error('Invalid XML');lxPts=[...doc.querySelectorAll('CgPoint,cgPoint')].map(el=>{const p=el.textContent.trim().split(/[\s,]+/);return{nm:el.getAttribute('name')||el.getAttribute('id')||'',desc:el.getAttribute('desc')||'',code:el.getAttribute('code')||'',N:p[0]||'',E:p[1]||'',Z:p[2]||''};});lxAls=[...doc.querySelectorAll('Alignment')].map(el=>({nm:el.getAttribute('name')||'',len:el.getAttribute('length')||'',elems:[...el.querySelectorAll('Line,Curve,Spiral')].map(e=>({t:e.tagName,len:e.getAttribute('length')||'',rad:e.getAttribute('radius')||'',dir:e.getAttribute('dir')||'',rot:e.getAttribute('rot')||''}))}));document.getElementById('lx-ptc').textContent=lxPts.length;document.getElementById('lx-alc').textContent=lxAls.length;lxRend();document.getElementById('lx-res').style.display='block';const n=document.getElementById('lx-n');n.textContent=lxPts.length+' points, '+lxAls.length+' alignments';n.className='notif show ok';}catch(e){const n=document.getElementById('lx-n');n.textContent='Error: '+e.message;n.className='notif show er';}}
+function lxRend(){const q=(document.getElementById('lx-q').value||'').toLowerCase();const fl=lxPts.filter(p=>!q||[p.nm,p.desc,p.code].some(v=>v.toLowerCase().includes(q)));document.getElementById('lx-tb').innerHTML=fl.map(p=>'<tr><td class="mn" style="color:var(--Cy)">'+p.nm+'</td><td style="font-size:9.5px;color:var(--M)">'+p.code+'</td><td class="mn" style="font-size:9.5px">'+p.N+'</td><td class="mn" style="font-size:9.5px">'+p.E+'</td><td class="mn" style="font-size:9.5px;color:#4ADE80">'+(p.Z||'---')+'</td></tr>').join('');document.getElementById('lx-altb').innerHTML=lxAls.flatMap(al=>al.elems.map((e,i)=>'<tr><td style="color:var(--Cy);font-weight:700">'+(i===0?al.nm:'')+'</td><td class="mn" style="font-size:9.5px">'+(i===0&&al.len?al.len+' m':'')+'</td><td style="color:'+(e.t==='Line'?'#4ADE80':e.t==='Curve'?'#22D3EE':'#A78BFA')+';font-weight:700;font-size:9.5px">'+e.t.toUpperCase()+'</td><td class="mn" style="font-size:9.5px">'+(e.len?e.len+' m':'')+(e.rad?' r='+e.rad+' m':'')+(e.dir?' dir='+e.dir+'\u00b0':'')+(e.rot?' '+e.rot:'')+'</td></tr>')).join('');}
+function lxFilter(){lxRend();}
+function lxTab(id,el){document.querySelectorAll('#lx-pills .up').forEach(p=>p.classList.remove('on'));el.classList.add('on');document.getElementById('lx-pts').style.display=id==='pts'?'block':'none';document.getElementById('lx-al').style.display=id==='al'?'block':'none';}
+function lxPlot(){const sn=+document.getElementById('ts-sn').value||0,se=+document.getElementById('ts-se').value||0;lxPts.forEach((pt,i)=>{const N=+pt.N,E=+pt.E;if(isNaN(N)||isNaN(E))return;const la=DUBAI[0]+(N-(sn||5000))/111320,lo=DUBAI[1]+(E-(se||5000))/(111320*Math.cos(d2r(DUBAI[0])));const c=COLS[i%COLS.length];const mk=L.circleMarker([la,lo],{radius:6,color:c,fillColor:c,fillOpacity:.85,weight:2});mk.addTo(map);mk.bindTooltip('<b>'+pt.nm+'</b> ['+pt.code+']<br>Z: '+(pt.Z||'---'));const id=addF('LandXML',mk,pt.nm,{lat:la,lng:lo,elev:parseFloat(pt.Z)||undefined,src:'LandXML'});mk.on('click',()=>selF(id));});zA();}
+function lxCSV(){const q=(document.getElementById('lx-q').value||'').toLowerCase();const fl=lxPts.filter(p=>!q||[p.nm,p.desc,p.code].some(v=>v.toLowerCase().includes(q)));const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([['NAME,DESC,CODE,NORTHING,EASTING,ELEVATION',...fl.map(p=>p.nm+','+p.desc+','+p.code+','+p.N+','+p.E+','+p.Z)].join('\n')],{type:'text/csv'}));a.download='landxml_points.csv';a.click();}
+function dubChk(){const h=+document.getElementById('dub-h').value,v=+document.getElementById('dub-v').value,m=document.getElementById('dub-m').value;if(isNaN(h)||isNaN(v))return;const c=h<=.025&&v<=.05?{n:'CLASS A \u2014 CADASTRAL',c:'#1FA8D9',p:true}:h<=.1&&v<=.15?{n:'CLASS B \u2014 ENGINEERING',c:'#4ADE80',p:true}:h<=.25&&v<=.35?{n:'CLASS C \u2014 TOPOGRAPHIC',c:'#F5BE18',p:true}:h<=1&&v<=2?{n:'CLASS D \u2014 GIS',c:'#A78BFA',p:true}:{n:'NON-COMPLIANT',c:'#EF4444',p:false};document.getElementById('dub-r').innerHTML='<div style="background:'+(c.p?'rgba(34,197,94,.07)':'rgba(239,68,68,.07)')+';border:1px solid '+(c.p?'rgba(34,197,94,.2)':'rgba(239,68,68,.2)')+';border-radius:9px;padding:11px;text-align:center;margin-top:5px"><div style="font-weight:800;color:'+c.c+';font-size:11px;letter-spacing:.5px">'+c.n+'</div><div style="color:'+(c.p?'#4ADE80':'#EF4444')+';font-weight:700;font-size:11px;margin:4px 0">'+(c.p?'\u2713 COMPLIANT':'\u00d7 NON-COMPLIANT')+'</div><div style="font-size:10px;color:var(--M)">H: \u00b1'+(h*1000).toFixed(1)+'mm \u00b7 V: \u00b1'+(v*1000).toFixed(1)+'mm \u00b7 '+m+'</div></div>';}
+function initPills(){const ap=document.getElementById('a-pills'),dp=document.getElementById('d-pills');if(ap)ap.innerHTML=Object.keys(AU).map(u=>'<button class="up'+(u===aU?' on':'')+'" onclick="aU=\''+u+'\';document.querySelectorAll(\'#a-pills .up\').forEach(p=>p.classList.remove(\'on\'));this.classList.add(\'on\')">'+u+'</button>').join('');if(dp)dp.innerHTML=Object.keys(DU).map(u=>'<button class="up'+(u===dU?' on':'')+'" onclick="dU=\''+u+'\';document.querySelectorAll(\'#d-pills .up\').forEach(p=>p.classList.remove(\'on\'));this.classList.add(\'on\')">'+u+'</button>').join('');}
+initPills();lvRend();document.getElementById('gf-dt').value=new Date().toISOString().slice(0,10);
+window.addEventListener('resize',()=>{const cv=document.getElementById('gf-cv');if(cv)cv.style.width='100%';});
 </script>
 </body>
 </html>
