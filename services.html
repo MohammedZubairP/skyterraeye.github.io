@@ -1,233 +1,992 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Services | Sky TerraEye Surveying Engineering Services Dubai</title>
-  <meta name="description" content="Surveying services in Dubai: total station, setting-out, as-built surveys, GNSS/GPS RTK control, level surveys, topographic and boundary surveys. CAD-ready deliverables.">
-  <link rel="canonical" href="https://skyterraeye.com/services.html">
-  <meta name="robots" content="index,follow">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="Services | Sky TerraEye Surveying Engineering Services Dubai">
-  <meta property="og:description" content="Surveying services in Dubai: total station, setting-out, as-built surveys, GNSS/GPS RTK control, level surveys, topographic and boundary surveys. CAD-ready deliverables.">
-  <meta property="og:url" content="https://skyterraeye.com/services.html">
-  <meta property="og:image" content="https://skyterraeye.com/assets/img/hero.svg">
-  <meta name="twitter:card" content="summary_large_image">
-  <link rel="icon" href="assets/img/logo.png">
-  <link rel="stylesheet" href="assets/css/styles.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Surveying Services Dubai | Land Survey, 3D Scanning, Utility Mapping | Sky TerraEye</title>
+<meta name="description" content="Sky TerraEye offers 7 professional surveying services in Dubai: land survey, aerial survey, 3D scanning, utility mapping, monitoring, GNSS RTK and traffic surveys. DM compliant. Call +971503091162.">
+<link rel="canonical" href="https://skyterraeye.com/services.html">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8BSZMNT805"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-8BSZMNT805');</script>
+<link rel="icon" href="assets/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
 
-  <script type="application/ld+json">
-  {
-  "@context": "https://schema.org",
-  "@type": "ProfessionalService",
-  "name": "Sky TerraEye",
-  "url": "https://skyterraeye.com/",
-  "image": "https://skyterraeye.com/assets/img/logo.png",
-  "telephone": "+971503091162",
-  "email": "info@skyterraeye.com",
-  "address": {
-    "@type": "PostalAddress",
-    "addressLocality": "Dubai",
-    "addressRegion": "Dubai",
-    "addressCountry": "AE",
-    "streetAddress": "Marina Bay"
-  },
-  "areaServed": [
-    {
-      "@type": "City",
-      "name": "Dubai"
-    }
-  ],
-  "serviceType": [
-    "Surveying Engineering Services",
-    "Land Surveying",
-    "Total Station Surveying",
-    "Setting Out",
-    "As-Built Survey",
-    "GNSS/GPS Surveying",
-    "Level Surveying",
-    "Topographic Survey",
-    "Boundary Survey",
-    "Construction Survey"
-  ],
-  "sameAs": [
-    "https://www.linkedin.com/company/skyterraeye/"
-  ]
+/* ===== SHARED VARIABLES ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0A2540;--blue:#0066CC;--blue2:#0052A3;--bluel:rgba(0,102,204,.1);
+  --white:#fff;--off:#F7F9FC;--g100:#F2F5F9;--g200:#E4E9F0;--g400:#9AA5B4;--g600:#627283;--g800:#334155;
+  --text:#1E293B;--r:6px;--e:.25s ease;--sh:0 2px 16px rgba(10,37,64,.10);--shm:0 4px 32px rgba(10,37,64,.16);
 }
-  </script>
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',sans-serif;color:var(--text);background:#fff;font-size:16px;line-height:1.65;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+img{display:block;max-width:100%;height:auto}
+h1,h2,h3,h4{font-family:'Syne',sans-serif;color:var(--navy);line-height:1.2}
+p{color:var(--g600)}
+ul{list-style:none;padding:0}
+.wrap{max-width:1200px;margin:0 auto;padding:0 32px}
+@media(max-width:768px){.wrap{padding:0 16px}}
 
-  <!-- Google Analytics (GA4) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8BSZMNT805"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-8BSZMNT805');
-  </script>
+/* ===== UAE BAR ===== */
+.uae{height:4px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
+
+/* ===== NAV ===== */
+.site-nav{width:100%;height:72px;display:flex;align-items:center;padding:0 40px;position:fixed;top:0;left:0;right:0;z-index:1000;transition:background .3s,box-shadow .3s}
+.site-nav.transparent{background:rgba(0,0,0,.1);backdrop-filter:blur(4px)}
+.site-nav.solid{background:#fff;box-shadow:0 2px 16px rgba(10,37,64,.1)}
+.nav-inner{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.logo img{height:36px}
+.logo-t{font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:#fff;line-height:1.2;transition:color .3s}
+.site-nav.solid .logo-t{color:var(--navy)}
+.logo-t b{color:#93C5FD;transition:color .3s}
+.site-nav.solid .logo-t b{color:var(--blue)}
+.logo-t small{display:block;font-size:9px;font-weight:500;color:rgba(255,255,255,.55);letter-spacing:2px;text-transform:uppercase;font-family:'Inter',sans-serif;transition:color .3s}
+.site-nav.solid .logo-t small{color:var(--g400)}
+.nav-menu{display:flex;align-items:center;gap:0}
+.nav-menu>a,.nav-menu>.drop-wrap>a{font-size:13.5px;font-weight:500;color:rgba(255,255,255,.85);padding:8px 13px;border-radius:var(--r);transition:var(--e);cursor:pointer;display:block}
+.nav-menu>a:hover,.nav-menu>.drop-wrap>a:hover{color:#fff;background:rgba(255,255,255,.12)}
+.site-nav.solid .nav-menu>a,.site-nav.solid .nav-menu>.drop-wrap>a{color:var(--g800)}
+.site-nav.solid .nav-menu>a:hover,.site-nav.solid .nav-menu>.drop-wrap>a:hover{color:var(--blue);background:var(--bluel)}
+.drop-wrap{position:relative}
+.drop-wrap>a::after{content:" ▾";font-size:9px;opacity:.5}
+.drop-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:6px;min-width:220px;box-shadow:var(--shm);z-index:200}
+.drop-wrap:hover .drop-menu{display:block}
+.drop-menu a{display:block;font-size:13px;color:var(--g800);padding:8px 14px;border-radius:4px;transition:var(--e)}
+.drop-menu a:hover{background:var(--bluel);color:var(--blue)}
+.nav-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.nav-products{display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--r);background:rgba(255,255,255,.1);transition:background .3s}
+.site-nav.solid .nav-products{background:var(--g100)}
+.nav-products span{font-size:10.5px;font-weight:600;color:rgba(255,255,255,.5);transition:color .3s;margin-right:2px}
+.site-nav.solid .nav-products span{color:var(--g400)}
+.nav-products a{font-size:12px;font-weight:600;color:rgba(255,255,255,.75);padding:3px 7px;border-radius:4px;transition:var(--e)}
+.site-nav.solid .nav-products a{color:var(--g600)}
+.nav-products a:hover{background:rgba(255,255,255,.2);color:#fff}
+.site-nav.solid .nav-products a:hover{background:#fff;color:var(--blue)}
+.nav-cta{background:var(--blue);color:#fff!important;font-weight:700;font-size:13.5px;padding:10px 22px;border-radius:var(--r);transition:var(--e);white-space:nowrap}
+.nav-cta:hover{background:var(--blue2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,102,204,.4)}
+
+/* ===== FLOATING BUTTONS ===== */
+.floaters{position:fixed;bottom:24px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;align-items:center}
+.wa-float{width:54px;height:54px;background:#25D366;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(37,211,102,.5);transition:var(--e);cursor:pointer}
+.wa-float:hover{transform:scale(1.1)}
+.wa-float svg{width:28px;height:28px;color:#fff}
+.back-top{width:42px;height:42px;background:var(--navy);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:var(--e);box-shadow:var(--sh)}
+.back-top:hover{background:var(--blue);transform:translateY(-2px)}
+.back-top svg{width:16px;height:16px;color:#fff}
+
+/* ===== FOOTER ===== */
+.site-footer{background:var(--navy);color:#94A3B8;padding:64px 40px 28px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;max-width:1200px;margin:0 auto 44px}
+@media(max-width:900px){.footer-grid{grid-template-columns:1fr 1fr;gap:32px}}
+@media(max-width:500px){.footer-grid{grid-template-columns:1fr}}
+.fbrand-desc{font-size:13.5px;color:#64748B;line-height:1.75;max-width:260px;margin-top:14px}
+.f-badges{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
+.f-badge{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#64748B;font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:3px 8px;border-radius:3px}
+.fcol h4{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#E2E8F0;margin-bottom:14px}
+.fcol ul li{margin-bottom:8px}
+.fcol a{font-size:13.5px;color:#64748B;transition:color var(--e)}
+.fcol a:hover{color:#fff}
+.flink{display:flex;align-items:center;gap:9px;font-size:13.5px;color:#64748B;margin-bottom:10px;transition:color var(--e)}
+.flink:hover{color:#fff}
+.flink svg{width:14px;height:14px;color:#3B82F6;flex-shrink:0}
+.footer-bot{border-top:1px solid rgba(255,255,255,.06);padding-top:20px;max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.footer-bot p{font-size:12.5px;color:#374151}
+.fbot-links{display:flex;gap:18px}
+.fbot-links a{font-size:12.5px;color:#374151;transition:color var(--e)}
+.fbot-links a:hover{color:#60A5FA}
+
+/* ===== SHARED BUTTONS ===== */
+.btn-blue{background:var(--blue);color:#fff;font-weight:700;font-size:14px;padding:12px 26px;border-radius:var(--r);display:inline-flex;align-items:center;gap:7px;transition:var(--e)}
+.btn-blue:hover{background:var(--blue2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,102,204,.3)}
+.btn-outline{background:transparent;color:var(--blue);font-weight:700;font-size:14px;padding:11px 24px;border-radius:var(--r);border:1.5px solid var(--blue);display:inline-flex;align-items:center;gap:7px;transition:var(--e)}
+.btn-outline:hover{background:var(--bluel)}
+.wa-btn{background:#25D366;color:#fff;font-weight:700;font-size:14px;padding:12px 24px;border-radius:var(--r);display:inline-flex;align-items:center;gap:7px;transition:var(--e)}
+.wa-btn:hover{background:#1EBD59;transform:translateY(-1px)}
+.sec-tag{font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--blue);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sec-tag::before{content:'';width:28px;height:2px;background:var(--blue);border-radius:1px;display:block}
+.sec-h{font-size:clamp(28px,3.5vw,42px);font-weight:800;color:var(--navy);margin-bottom:14px;line-height:1.15;letter-spacing:-.5px}
+.sec-p{font-size:16.5px;color:var(--g600);line-height:1.72;max-width:600px}
+.sec-head{margin-bottom:52px}
+.sec-head.c{text-align:center}
+.sec-head.c .sec-tag{justify-content:center}
+.sec-head.c .sec-p{margin:0 auto}
+.fi{opacity:0;transform:translateY(20px);transition:opacity .55s ease,transform .55s ease}
+.fi.vis{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.fi{opacity:1;transform:none}}
+
+.pg-hero{background:linear-gradient(135deg,#0A2540,#0D3561);padding:140px 40px 72px;position:relative;overflow:hidden;text-align:center}
+.pg-hero::before{content:"";position:absolute;inset:0;background:url("assets/img/coverpage.jpg") center/cover no-repeat;opacity:.12}
+.pg-hero-in{position:relative;z-index:1;max-width:1200px;margin:0 auto}
+.pg-hero-in h1{font-size:clamp(32px,5vw,58px);font-weight:800;color:#fff;line-height:1.1;margin-bottom:16px}
+.pg-hero-in h1 em{color:#93C5FD;font-style:normal}
+.pg-hero-in p{font-size:18px;color:rgba(255,255,255,.7);max-width:560px;margin:0 auto 32px;line-height:1.65}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.btn-blue{background:var(--blue);color:#fff;font-weight:700;font-size:14px;padding:13px 26px;border-radius:var(--r);display:inline-flex;align-items:center;gap:8px;transition:var(--e)}
+.btn-blue:hover{background:#0052A3;transform:translateY(-2px)}
+.btn-wa{background:#25D366;color:#fff;font-weight:700;font-size:14px;padding:13px 26px;border-radius:var(--r);display:inline-flex;align-items:center;gap:8px;transition:var(--e)}
+.btn-wa:hover{background:#1EBD59}
+.svc-cards-sec{padding:80px 40px;background:#fff}
+.svc-cards-in{max-width:1200px;margin:0 auto}
+.svc-cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:20px}
+@media(max-width:900px){.svc-cards-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:540px){.svc-cards-grid{grid-template-columns:1fr}}
+.svc-card{background:#fff;border:1px solid var(--g200);border-radius:10px;overflow:hidden;transition:var(--e);display:flex;flex-direction:column}
+.svc-card:hover{border-color:var(--blue);box-shadow:var(--shm);transform:translateY(-5px)}
+.svc-card-anim{background:#06101E;aspect-ratio:16/9;position:relative;overflow:hidden}
+.svc-card-anim canvas{width:100%;height:100%;display:block}
+.svc-card-body{padding:22px 22px 24px;flex:1;display:flex;flex-direction:column}
+.svc-card-tag{font-size:9.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--blue);margin-bottom:8px}
+.svc-card-body h3{font-size:19px;font-weight:800;color:var(--navy);margin-bottom:10px;font-family:"Syne",sans-serif}
+.svc-card-body p{font-size:13.5px;color:var(--g600);line-height:1.65;flex:1;margin-bottom:16px}
+.svc-card-link{font-size:13px;font-weight:700;color:var(--blue);display:inline-flex;align-items:center;gap:5px;transition:gap var(--e)}
+.svc-card:hover .svc-card-link{gap:9px}
+.cta-strip{background:var(--navy);padding:60px 40px;text-align:center}
+.cta-strip h2{font-size:clamp(22px,3vw,36px);font-weight:800;color:#fff;margin-bottom:12px}
+.cta-strip p{font-size:16px;color:#94A3B8;max-width:520px;margin:0 auto 28px;line-height:1.7}
+.cta-btns{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+.cta-cs{display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap}
+.cta-c{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#94A3B8;transition:color var(--e)}
+.cta-c:hover{color:#fff} .cta-c svg{width:16px;height:16px;color:#60A5FA}
+.eye{font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--blue);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.eye::before{content:"";width:28px;height:2px;background:var(--blue);border-radius:1px;display:block}
+.fi{opacity:0;transform:translateY(20px);transition:opacity .55s ease,transform .55s ease}
+.fi.vis{opacity:1;transform:none}
+</style>
 </head>
 <body>
-<div class="topbar">
-  <div class="wrap in">
-    <div class="left">
-      <div class="item" title="Call">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.9 19.9 0 0 1 3.1 5.2 2 2 0 0 1 5 3h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L9 10a16 16 0 0 0 5 5l.6-.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6A2 2 0 0 1 22 16.9Z"/></svg>
-        <a href="tel:+971503091162">+971 50 309 1162</a>
-      </div>
-      <div class="item" title="Email">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="m4 6 8 7 8-7"/></svg>
-        <a href="mailto:info@skyterraeye.com">info@skyterraeye.com</a>
-      </div>
-      <a class="whats" href="https://wa.me/971503091162?text=Hello%20Sky%20TerraEye,%20I%20need%20surveying%20services%20in%20Dubai.%20Please%20share%20a%20quote." target="_blank" rel="noopener" title="WhatsApp">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11.5A8.5 8.5 0 1 1 8.7 3.3 8.5 8.5 0 0 1 20 11.5Z"/><path d="M8 20l-1 3 3-1"/><path d="M9.5 9.5c1.4 2.6 2.4 3.6 5 5"/><path d="M14.8 14.8l1.2-.6c.3-.2.7-.1.9.2l.7 1.1c.2.3.1.7-.2.9-1 .6-2.1.8-3.2.5-2.3-.7-4.6-2.9-5.3-5.3-.3-1.1-.1-2.2.5-3.2.2-.3.6-.4.9-.2l1.1.7c.3.2.4.6.2.9l-.6 1.2"/></svg>
-        WhatsApp
-      </a>
+
+<div class="uae"></div>
+<nav class="site-nav" id="mainNav">
+  <div class="nav-inner">
+    <a class="logo" href="index.html">
+      <img src="assets/img/logo.png" alt="Sky TerraEye Land Surveying Dubai" width="36" height="36" onerror="this.style.display='none'">
+      <div class="logo-t"><b>SKY</b> TERRAEYE<small>Land Surveying &middot; Dubai</small></div>
+    </a>
+    <div class="nav-menu">
+      <a href="index.html">Home</a>
+      <div class="drop-wrap"><a>About Us</a><div class="drop-menu"><a href="about.html">Company Profile</a><a href="about.html#mission">Mission &amp; Vision</a><a href="contact.html">Contact Us</a></div></div>
+      <div class="drop-wrap"><a href="services.html">Services</a><div class="drop-menu">
+        <a href="land-survey.html">Land Survey</a>
+        <a href="aerial-survey.html">Aerial Survey</a>
+        <a href="terrestrial-scanning.html">Terrestrial 3D Scanning</a>
+        <a href="utility-mapping.html">Utility Mapping</a>
+        <a href="monitoring-services.html">Monitoring Services</a>
+        <a href="gnss-survey.html">GNSS / GPS Surveying</a>
+        <a href="traffic-survey.html">Traffic Survey</a>
+      </div></div>
+      <a href="process.html">Process</a>
+      <a href="contact.html">Projects</a>
+      <a href="contact.html">Contact</a>
     </div>
-    <div class="right">
-      <a class="social" href="#" aria-label="Facebook" title="Facebook">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 22v-8h3l1-4h-4V7.5A1.5 1.5 0 0 1 14.5 6H18V2h-3.5A5.5 5.5 0 0 0 9 7.5V10H6v4h3v8h4z"/></svg>
+    <div class="nav-right">
+      <div class="nav-products">
+        <span>Products:</span>
+        <a href="eye.html">Eye</a>
+        <a href="terra.html">Terra</a>
+        <a href="strata.html">Strata</a>
+        <a href="gauge.html">Gauge</a>
+      </div>
+      <a class="nav-cta" href="contact.html">Get a Quote</a>
+    </div>
+  </div>
+</nav>
+
+<div class="pg-hero">
+  <div class="pg-hero-in">
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#60A5FA;margin-bottom:12px"><span style="width:28px;height:2px;background:#60A5FA;border-radius:1px;display:block"></span>Sky TerraEye</div>
+    <h1>Professional <em>Surveying Services</em><br>in Dubai &amp; UAE</h1>
+    <p>Total station, GNSS RTK, 3D scanning, utility mapping, structural monitoring, aerial survey and traffic surveys. All DM compliant. Delivered within 24 hours.</p>
+    <div class="hero-btns">
+      <a class="btn-blue" href="contact.html">Get a Free Quote</a>
+      <a class="btn-wa" href="https://wa.me/971503091162?text=Hello%20I%20need%20a%20survey%20quote" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>"/></svg>WhatsApp Us</a>
+    </div>
+  </div>
+</div>
+<div class="svc-cards-sec">
+  <div class="svc-cards-in">
+    <div class="eye fi">Our Services</div>
+    <h2 style="font-family:Syne,sans-serif;font-size:clamp(28px,3.5vw,42px);font-weight:800;color:var(--navy);margin-bottom:10px;letter-spacing:-.5px" class="fi">All Surveying Services in Dubai</h2>
+    <p style="font-size:16.5px;color:var(--g600);max-width:600px;margin-bottom:48px;line-height:1.7" class="fi">Sky TerraEye provides a complete range of professional surveying services across Dubai and the UAE. Click on any service to learn more and get a quote.</p>
+    <div class="svc-cards-grid">
+      <a class="svc-card fi" href="land-survey.html" style="transition-delay:.04s">
+        <div class="svc-card-anim"><canvas id="sc1" width="400" height="200"></canvas></div>
+        <div class="svc-card-body"><div class="svc-card-tag">Most Requested</div><h3>Land Surveys</h3><p>Topographic mapping, boundary surveys, construction layout, setting-out, as-built documentation and GIS mapping. DM compliant, WGS84/UTM Zone 40N.</p><span class="svc-card-link">View Service <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></div>
       </a>
-      <a class="social" href="#" aria-label="Instagram" title="Instagram">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="3.5"/><path d="M17.5 6.5h.01"/></svg>
+      <a class="svc-card fi" href="aerial-survey.html" style="transition-delay:.08s">
+        <div class="svc-card-anim"><canvas id="sc4" width="400" height="200"></canvas></div>
+        <div class="svc-card-body"><div class="svc-card-tag">Drone Technology</div><h3>Aerial Survey</h3><p>Survey-grade drone photogrammetry, quarry volumetrics, shoreline mapping, power line modelling and asset inspection. GCAA compliant UAE-wide.</p><span class="svc-card-link">View Service <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></div>
       </a>
-      <a class="social" href="https://www.linkedin.com/company/skyterraeye/" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5A2.5 2.5 0 0 1 7.5 6a2.5 2.5 0 0 1-5 0A2.5 2.5 0 0 1 4.98 3.5ZM3 8.98h4v12H3v-12ZM9 8.98h3.8v1.6h.1c.5-.9 1.8-1.9 3.8-1.9 4 0 4.7 2.6 4.7 6v6.3h-4v-5.6c0-1.3 0-3-1.9-3s-2.2 1.4-2.2 2.9v5.7H9v-12Z"/></svg>
+      <a class="svc-card fi" href="terrestrial-scanning.html" style="transition-delay:.12s">
+        <div class="svc-card-anim"><canvas id="cv1" width="400" height="200"></canvas></div>
+        <div class="svc-card-body"><div class="svc-card-tag">3D Technology</div><h3>Terrestrial 3D Scanning</h3><p>High-density 3D laser scanning, point cloud processing, BIM modelling and mobile mapping for construction, industrial and infrastructure projects.</p><span class="svc-card-link">View Service <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></div>
       </a>
-      <a class="social" href="#" aria-label="YouTube" title="YouTube">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.6 7.2a3 3 0 0 0-2.1-2.1C17.7 4.5 12 4.5 12 4.5s-5.7 0-7.5.6A3 3 0 0 0 2.4 7.2 31.6 31.6 0 0 0 2 12a31.6 31.6 0 0 0 .4 4.8 3 3 0 0 0 2.1 2.1c1.8.6 7.5.6 7.5.6s5.7 0 7.5-.6a3 3 0 0 0 2.1-2.1A31.6 31.6 0 0 0 22 12a31.6 31.6 0 0 0-.4-4.8ZM10 15.5v-7l6 3.5-6 3.5Z"/></svg>
+      <a class="svc-card fi" href="utility-mapping.html" style="transition-delay:.16s">
+        <div class="svc-card-anim"><canvas id="sc5" width="400" height="200"></canvas></div>
+        <div class="svc-card-body"><div class="svc-card-tag">Underground Services</div><h3>Utility Mapping</h3><p>GPR surveys, radio detection, CCTV drain inspection and underground utility mapping to protect your project from costly subsurface conflicts.</p><span class="svc-card-link">View Service <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></div>
+      </a>
+      <a class="svc-card fi" href="monitoring-services.html" style="transition-delay:.2s">
+        <div class="svc-card-anim"><canvas id="cv3" width="400" height="200"></canvas></div>
+        <div class="svc-card-body"><div class="svc-card-tag">Structural Safety</div><h3>Monitoring Services</h3><p>Settlement surveys, deformation monitoring, dilapidation surveys and automated real-time monitoring for buildings, bridges and infrastructure.</p><span class="svc-card-link">View Service <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></div>
+      </a>
+      <a class="svc-card fi" href="gnss-survey.html" style="transition-delay:.24s">
+        <div class="svc-card-anim"><canvas id="sc2" width="400" height="200"></canvas></div>
+        <div class="svc-card-body"><div class="svc-card-tag">Control Networks</div><h3>GNSS / GPS Surveying</h3><p>Network RTK surveys, GNSS control networks, static processing and coordinate transformation. All data to WGS84/UTM Zone 40N/EGM2008 DM standards.</p><span class="svc-card-link">View Service <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></div>
+      </a>
+      <a class="svc-card fi" href="traffic-survey.html" style="transition-delay:.28s" style="grid-column:1/-1">
+        <div class="svc-card-anim"><canvas id="cv4" width="400" height="200"></canvas></div>
+        <div class="svc-card-body"><div class="svc-card-tag">RTA Approved</div><h3>Traffic Survey</h3><p>RTA-approved traffic impact studies (TIS), manual and automatic counts, pedestrian surveys, O-D surveys and road safety audits across Dubai and UAE.</p><span class="svc-card-link">View Service <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></div>
       </a>
     </div>
   </div>
 </div>
-<nav class="nav">
-  <div class="wrap in">
-    <a class="brand" href="index.html">
-      <img src="assets/img/logo.png" alt="Sky TerraEye logo">
-      <div class="name">Sky TerraEye</div>
-    </a>
-    <button class="burger" data-burger aria-label="Menu">Menu</button>
-    <div class="menu" aria-label="Primary navigation">
-      <div class="dropdown">
-        <button class="dropbtn" aria-label="Services menu">Services
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
-        <div class="drop" role="menu">
-          <a href="land-surveying-dubai.html">
-            <span class="ic"><img src="assets/img/total-station.svg" alt="" style="width:18px;height:18px"></span>
-            <span>
-              <div class="t">Land & Construction Surveying</div>
-              <div class="d">Topographic, boundary, setting-out, as-built.</div>
-            </span>
-          </a>
-          <a href="total-station-survey-dubai.html">
-            <span class="ic"><img src="assets/img/total-station.svg" alt="" style="width:18px;height:18px"></span>
-            <span>
-              <div class="t">Total Station Surveying</div>
-              <div class="d">Precise control, layout, and verification.</div>
-            </span>
-          </a>
-          <a href="gnss-gps-survey-dubai.html">
-            <span class="ic"><img src="assets/img/gps.svg" alt="" style="width:18px;height:18px"></span>
-            <span>
-              <div class="t">GNSS / GPS Surveying</div>
-              <div class="d">Control points, RTK checks, coordinate transfer.</div>
-            </span>
-          </a>
-          <a href="as-built-survey-dubai.html">
-            <span class="ic"><img src="assets/img/as-built.svg" alt="" style="width:18px;height:18px"></span>
-            <span>
-              <div class="t">As-Built Survey & Drawings</div>
-              <div class="d">CAD plans, redlines, QA/QC-ready deliverables.</div>
-            </span>
-          </a>
-          <a href="setting-out-dubai.html">
-            <span class="ic"><img src="assets/img/setting-out.svg" alt="" style="width:18px;height:18px"></span>
-            <span>
-              <div class="t">Setting Out / Layout</div>
-              <div class="d">Columns, grids, roads, utilities, foundations.</div>
-            </span>
-          </a>
-          <a href="level-survey-dubai.html">
-            <span class="ic"><img src="assets/img/auto-level.svg" alt="" style="width:18px;height:18px"></span>
-            <span>
-              <div class="t">Level Surveying</div>
-              <div class="d">Benchmarks, profiles, cut/fill verification.</div>
-            </span>
-          </a>
-        </div>
-      </div>
+<div class="cta-strip">
+  <h2>Get a Survey Quote in Dubai</h2>
+  <p>Fixed price within 2 hours. Contact Sky TerraEye today.</p>
+  <div class="cta-btns">
+    <a class="btn-blue" href="contact.html">Request a Quote</a>
+    <a class="btn-wa" href="https://wa.me/971503091162?text=Hello%20I%20need%20a%20survey%20quote" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>"/></svg>WhatsApp Us</a>
+  </div>
+  <div class="cta-cs">
+    <a class="cta-c" href="tel:+971503091162"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07"/></svg>+971 50 309 1162</a>
+    <a class="cta-c" href="mailto:info@skyterraeye.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>info@skyterraeye.com</a>
+  </div>
+</div>
 
-      <a href="services.html">All Services</a>
-      <a href="process.html">Process</a>
-      <a href="about.html">About</a>
-      <a href="contact.html">Contact</a>
-      <a class="cta" href="contact.html">Get a Quote</a>
-    </div>
-  </div>
-</nav>
-<header class="hero" style="min-height:360px">
-  <div class="bg" aria-hidden="true"></div>
-  <div class="overlay" aria-hidden="true"></div>
-  <div class="wrap content">
-    <div class="grid" style="grid-template-columns:1fr">
-      <div>
-        <div class="badge"><span class="dot"></span> Dubai • Surveying Engineering Services</div>
-        <h1 style="max-width:18ch">Surveying services in Dubai</h1>
-        <p style="max-width:70ch">Browse our core surveying and CAD deliverables for construction projects in Dubai. Each service page includes scope, typical inputs, outputs, and key terms clients search for.</p>
-      </div>
-    </div>
-  </div>
-</header>
-<section class="section">
-  <div class="wrap">
-    <h2>All services</h2>
-    <p class="sub">If you’re a contractor, developer, consultant or engineer, we can support your site team with field work and reporting.</p>
-    <div class="grid-3" style="margin-top:18px">
-      <a class="card" href="total-station-survey-dubai.html"><h3>Total Station Surveying</h3><p class="sub">Control, traverse, setting-out, verification.</p></a>
-      <a class="card" href="setting-out-dubai.html"><h3>Setting Out / Layout</h3><p class="sub">Grids, columns, roads, utilities, foundations.</p></a>
-      <a class="card" href="as-built-survey-dubai.html"><h3>As-Built Survey & CAD</h3><p class="sub">DWG/PDF as-built drawings and reports.</p></a>
-      <a class="card" href="gnss-gps-survey-dubai.html"><h3>GNSS / GPS RTK Survey</h3><p class="sub">Control points and coordinate validation.</p></a>
-      <a class="card" href="level-survey-dubai.html"><h3>Level Surveying</h3><p class="sub">Benchmarks, profiles, cut/fill checks.</p></a>
-      <a class="card" href="land-surveying-dubai.html"><h3>Land / Boundary / Topographic</h3><p class="sub">Base mapping and land survey deliverables.</p></a>
-    </div>
-  </div>
-</section>
-
-<footer class="footer">
-  <div class="wrap cols">
+<footer class="site-footer">
+  <div class="footer-grid">
     <div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <img src="assets/img/logo.png" alt="Sky TerraEye" style="width:40px;height:40px">
-        <div style="font-weight:900;letter-spacing:.4px">Sky TerraEye</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <img src="assets/img/logo.png" alt="Sky TerraEye" width="32" height="32" onerror="this.style.display='none'">
+        <div style="font-family:Syne,sans-serif;font-weight:800;font-size:15px;color:#fff"><span style="color:#60A5FA">SKY</span> TERRAEYE<div style="font-size:9px;font-weight:500;color:#475569;letter-spacing:2px;text-transform:uppercase;font-family:Inter,sans-serif;margin-top:2px">Land Surveying &middot; Dubai, UAE</div></div>
       </div>
-      <p class="muted" style="margin:10px 0 0;max-width:60ch;line-height:1.6">
-        Surveying Engineering Services for contractors, developers and consultants in Dubai — total station, setting-out, as-built, GNSS control, and leveling with clear CAD-ready deliverables.
-      </p>
+      <p class="fbrand-desc">Professional land surveying company in Dubai. Total station, GNSS RTK, setting-out, as-built, 3D scanning, utility mapping and monitoring surveys across the UAE.</p>
+      <div class="f-badges"><span class="f-badge">DM Compliant</span><span class="f-badge">WGS84</span><span class="f-badge">UTM Zone 40N</span><span class="f-badge">EGM2008</span></div>
     </div>
-    <div>
-      <div style="font-weight:900;margin-bottom:10px">Quick Links</div>
-      <div class="muted" style="display:grid;gap:8px">
-        <a href="services.html">Services</a>
-        <a href="about.html">About</a>
-        <a href="process.html">Process</a>
-        <a href="contact.html">Contact</a>
-        <a href="blog.html">Insights</a>
-      </div>
+    <div class="fcol">
+      <h4>Services</h4>
+      <ul>
+        <li><a href="land-survey.html">Land Survey</a></li>
+        <li><a href="aerial-survey.html">Aerial Survey</a></li>
+        <li><a href="terrestrial-scanning.html">3D Laser Scanning</a></li>
+        <li><a href="utility-mapping.html">Utility Mapping</a></li>
+        <li><a href="monitoring-services.html">Monitoring Services</a></li>
+        <li><a href="gnss-survey.html">GNSS / GPS RTK</a></li>
+        <li><a href="traffic-survey.html">Traffic Survey</a></li>
+      </ul>
     </div>
-    <div>
-      <div style="font-weight:900;margin-bottom:10px">Contact</div>
-      <div class="muted" style="display:grid;gap:8px">
-        <div>Marina Bay, Dubai, UAE</div>
-        <a href="tel:+971503091162">+971 50 309 1162</a>
-        <a href="mailto:info@skyterraeye.com">info@skyterraeye.com</a>
-        <a href="mailto:zubair@skyterraeye.com">zubair@skyterraeye.com</a>
-      </div>
+    <div class="fcol">
+      <h4>Products</h4>
+      <ul>
+        <li><a href="eye.html">Eye &mdash; Satellite Analysis</a></li>
+        <li><a href="terra.html">Terra &mdash; Terrain Planning</a></li>
+        <li><a href="strata.html">Strata &mdash; Layer Analysis</a></li>
+        <li><a href="gauge.html">Gauge &mdash; Measurement</a></li>
+      </ul>
+      <h4 style="margin-top:20px">Company</h4>
+      <ul>
+        <li><a href="about.html">About Us</a></li>
+        <li><a href="contact.html">Projects</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="sitemap.xml">Sitemap</a></li>
+      </ul>
+    </div>
+    <div class="fcol">
+      <h4>Contact Us</h4>
+      <a class="flink" href="tel:+971503091162"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07"/></svg>+971 50 309 1162</a>
+      <a class="flink" href="mailto:info@skyterraeye.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>info@skyterraeye.com</a>
+      <a class="flink" href="https://wa.me/971503091162" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp Us</a>
+      <div class="flink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Dubai, United Arab Emirates</div>
     </div>
   </div>
-  <div class="wrap muted" style="margin-top:18px;border-top:1px solid rgba(255,255,255,.12);padding-top:14px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
-    <div>© <span data-year></span> Sky TerraEye. All rights reserved.</div>
-    <div class="muted">Dubai • Surveying Engineering Services</div>
+  <div class="footer-bot">
+    <p>&copy; 2025 Sky TerraEye. All rights reserved. Professional Land Surveying Dubai, UAE.</p>
+    <div class="fbot-links"><a href="index.html">Home</a><a href="services.html">Services</a><a href="contact.html">Contact</a></div>
   </div>
-  <script src="assets/js/main.js"></script>
 </footer>
+
+<div class="floaters">
+  <a class="wa-float" href="https://wa.me/971503091162?text=Hello%20Sky%20TerraEye,%20I%20need%20a%20surveying%20quote." target="_blank" title="WhatsApp Sky TerraEye">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  </a>
+  <div class="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+  </div>
+</div>
+
+<script>
+(function(){
+  var nav=document.getElementById('mainNav');
+  if(!nav)return;
+  function onScroll(){
+    if(window.scrollY>80){nav.classList.remove('transparent');nav.classList.add('solid');}
+    else{nav.classList.remove('solid');nav.classList.add('transparent');}
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  onScroll();
+  var obs2=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vis');obs2.unobserve(e.target);}});},{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
+  document.querySelectorAll('.fi').forEach(function(el){obs2.observe(el);});
+})();
+</script>
+
+<script>
+
+/* ══════════════════════════════════════════
+   HERO CANVAS — Full Land Surveying Process
+══════════════════════════════════════════ */
+(function(){
+  const cv = document.getElementById('cvHero');
+  if(!cv) return;
+  function resize(){cv.width=cv.offsetWidth||window.innerWidth;cv.height=cv.offsetHeight||window.innerHeight;}
+  resize(); window.addEventListener('resize',resize);
+  const cx = cv.getContext('2d');
+  let t = 0;
+  const pts = []; // scanned ground points
+  const scanPts = []; // setting-out markers
+  let cadProgress = 0;
+
+  // Scene elements
+  const buildings = [
+    [0.05,0.52,0.06,0.28],[0.12,0.52,0.04,0.18],[0.17,0.52,0.07,0.22],
+    [0.25,0.52,0.05,0.32],[0.31,0.52,0.08,0.14],[0.40,0.52,0.06,0.26],
+    [0.60,0.52,0.07,0.22],[0.68,0.52,0.09,0.16],[0.78,0.52,0.05,0.28],
+    [0.84,0.52,0.07,0.20],[0.92,0.52,0.08,0.12]
+  ];
+
+  function drawScene(){
+    const W=cv.width, H=cv.height;
+    // Sky gradient
+    const sky=cx.createLinearGradient(0,0,0,H*0.55);
+    sky.addColorStop(0,'#020A14'); sky.addColorStop(0.6,'#061828'); sky.addColorStop(1,'#0A2235');
+    cx.fillStyle=sky; cx.fillRect(0,0,W,H);
+    // Ground
+    const gnd=cx.createLinearGradient(0,H*0.52,0,H);
+    gnd.addColorStop(0,'#0A1E2C'); gnd.addColorStop(1,'#050F18');
+    cx.fillStyle=gnd; cx.fillRect(0,H*0.52,W,H);
+
+    // Stars
+    if(!cv._st) cv._st=Array.from({length:120},()=>({x:Math.random(),y:Math.random()*0.48,r:Math.random()*1.5+.3,p:Math.random()*6.28}));
+    cv._st.forEach(s=>{
+      const a=0.3+0.3*Math.sin(t*0.02+s.p);
+      cx.fillStyle='rgba(200,230,255,'+a+')';
+      cx.beginPath();cx.arc(s.x*W,s.y*H,s.r,0,6.28);cx.fill();
+    });
+
+    // City silhouette with lights
+    buildings.forEach(([bx,by,bw,bh])=>{
+      cx.fillStyle='#0D1E2C';
+      cx.fillRect(bx*W,by*H-bh*H,bw*W,bh*H+2);
+      // Windows
+      for(let wy=by*H-bh*H+6;wy<by*H-4;wy+=12){
+        for(let wx=bx*W+4;wx<(bx+bw)*W-4;wx+=10){
+          if(Math.random()<0.01) cv._wnd=cv._wnd||{};
+          const key=Math.round(wx)+','+Math.round(wy);
+          if(!cv._wnd) cv._wnd={};
+          if(cv._wnd[key]===undefined) cv._wnd[key]=Math.random()<0.55;
+          if(cv._wnd[key]){
+            const flicker = Math.random()<0.002 ? !cv._wnd[key] : cv._wnd[key];
+            cx.fillStyle=flicker?'rgba(255,220,120,.7)':'rgba(100,160,220,.5)';
+            cx.fillRect(wx,wy,5,7);
+          }
+        }
+      }
+    });
+
+    // Ground perspective grid
+    cx.strokeStyle='rgba(31,168,217,.06)'; cx.lineWidth=.8;
+    const hor=H*0.52, vp={x:W*0.5,y:hor};
+    for(let i=0;i<=20;i++){
+      const x=(i/20)*W;
+      cx.beginPath();cx.moveTo(x,H);cx.lineTo(vp.x+(x-vp.x)*0,hor);cx.stroke();
+    }
+    for(let j=1;j<10;j++){
+      const y=hor+(j/10)*(H-hor);
+      cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();
+    }
+  }
+
+  function drawInstrument(){
+    const W=cv.width, H=cv.height;
+    const ix=W*0.48, iy=H*0.64;
+    const ang=-0.6+Math.sin(t*0.01)*0.9;
+
+    // Tripod
+    cx.strokeStyle='rgba(31,168,217,.45)'; cx.lineWidth=2.5;
+    [[ix-30,iy+55],[ix+30,iy+55],[ix,iy+58]].forEach(([lx,ly])=>{
+      cx.beginPath();cx.moveTo(ix,iy+10);cx.lineTo(lx,ly);cx.stroke();
+    });
+    // Base plate
+    cx.fillStyle='#162840'; cx.strokeStyle='rgba(31,168,217,.5)'; cx.lineWidth=1.5;
+    cx.beginPath();cx.ellipse(ix,iy+10,32,9,0,0,6.28);cx.fill();cx.stroke();
+    // Body
+    const bg=cx.createLinearGradient(ix-18,iy-30,ix+18,iy+10);
+    bg.addColorStop(0,'#1E3A52');bg.addColorStop(1,'#0E2030');
+    cx.fillStyle=bg;cx.strokeStyle='rgba(31,168,217,.6)';cx.lineWidth=1.5;
+    cx.beginPath();cx.roundRect(ix-16,iy-30,32,40,6);cx.fill();cx.stroke();
+    // Scope (rotates)
+    cx.save();cx.translate(ix,iy-12);cx.rotate(ang);
+    cx.fillStyle='#243C52';cx.strokeStyle='rgba(31,168,217,.7)';cx.lineWidth=1.5;
+    cx.beginPath();cx.roundRect(-22,-7,44,14,4);cx.fill();cx.stroke();
+    cx.fillStyle='rgba(31,168,217,.9)';cx.beginPath();cx.arc(22,0,5,0,6.28);cx.fill();
+    cx.restore();
+    // Display on body
+    cx.fillStyle='rgba(31,168,217,.15)';cx.fillRect(ix-10,iy-22,20,12);
+    cx.fillStyle='rgba(31,168,217,.7)';cx.font='6px monospace';
+    cx.fillText('HZ:'+(ang*57.3+90).toFixed(1),ix-9,iy-14);
+
+    // Laser beam
+    const beamLen=Math.min(W*0.45,400);
+    const bx=ix+Math.cos(ang-0.1)*beamLen, by=iy-12+Math.sin(ang-0.1)*beamLen;
+    const lg=cx.createLinearGradient(ix,iy-12,bx,by);
+    lg.addColorStop(0,'rgba(31,168,217,.95)');
+    lg.addColorStop(0.5,'rgba(31,168,217,.3)');
+    lg.addColorStop(1,'rgba(31,168,217,0)');
+    cx.strokeStyle=lg;cx.lineWidth=2;cx.shadowBlur=14;cx.shadowColor='#1FA8D9';
+    cx.beginPath();cx.moveTo(ix,iy-12);cx.lineTo(bx,by);cx.stroke();
+    cx.shadowBlur=0;
+
+    // Accumulate hit points on ground
+    if(by>H*0.5 && by<H*0.95 && t%3===0){
+      pts.push({x:bx,y:by,a:1,age:0});
+      if(pts.length>200) pts.shift();
+    }
+    // Draw scanned points
+    pts.forEach(p=>{
+      p.age++;p.a=Math.max(0,1-p.age/120);
+      cx.fillStyle='rgba(31,168,217,'+p.a+')';
+      cx.shadowBlur=4;cx.shadowColor='#1FA8D9';
+      cx.beginPath();cx.arc(p.x,p.y,1.5,0,6.28);cx.fill();
+      cx.shadowBlur=0;
+    });
+  }
+
+  function drawSettingOut(){
+    const W=cv.width, H=cv.height;
+    // Reveal setting-out markers on ground
+    if(scanPts.length<24 && t%18===0){
+      scanPts.push({
+        x:W*(0.15+Math.random()*0.65),
+        y:H*(0.55+Math.random()*0.38),
+        age:0
+      });
+    }
+    scanPts.forEach(p=>{
+      p.age++;
+      const a=Math.min(1,p.age/25);
+      // Crosshair marker
+      cx.strokeStyle='rgba(245,190,24,'+a*0.85+')';cx.lineWidth=1.5;
+      cx.beginPath();cx.moveTo(p.x-12,p.y);cx.lineTo(p.x+12,p.y);cx.stroke();
+      cx.beginPath();cx.moveTo(p.x,p.y-12);cx.lineTo(p.x,p.y+12);cx.stroke();
+      cx.strokeStyle='rgba(245,190,24,'+a*0.6+')';cx.lineWidth=1;
+      cx.beginPath();cx.arc(p.x,p.y,6,0,6.28);cx.stroke();
+    });
+  }
+
+  function drawCADOverlay(){
+    const W=cv.width, H=cv.height;
+    cadProgress=Math.min(1,(t%600)/400);
+    // Partial building outline drawing itself
+    const bldg=[[0.62,0.22,0.14,0.28]]; // one building outline
+    bldg.forEach(([bx,by,bw,bh])=>{
+      const lines=[
+        [bx,by+bh,bx+bw,by+bh], // bottom
+        [bx,by,bx,by+bh],        // left
+        [bx,by,bx+bw,by],        // top
+        [bx+bw,by,bx+bw,by+bh],  // right
+        [bx+0.03,by,bx+0.03,by+bh], // inner division
+        [bx+0.09,by,bx+0.09,by+bh],
+      ];
+      const totalSegs=lines.length;
+      lines.forEach(([x1,y1,x2,y2],i)=>{
+        const segStart=i/totalSegs, segEnd=(i+1)/totalSegs;
+        if(cadProgress<=segStart) return;
+        const segProgress=Math.min(1,(cadProgress-segStart)/(1/totalSegs));
+        const ex=x1+(x2-x1)*segProgress, ey=y1+(y2-y1)*segProgress;
+        cx.strokeStyle='rgba(245,190,24,.75)';cx.lineWidth=1.2;
+        cx.shadowBlur=4;cx.shadowColor='#F5BE18';
+        cx.beginPath();cx.moveTo(x1*W,y1*H);cx.lineTo(ex*W,ey*H);cx.stroke();
+        cx.shadowBlur=0;
+      });
+      // Corner dots
+      if(cadProgress>0.05){
+        [[bx,by],[bx+bw,by],[bx,by+bh],[bx+bw,by+bh]].forEach(([px,py])=>{
+          cx.fillStyle='rgba(245,190,24,.9)';cx.beginPath();cx.arc(px*W,py*H,3,0,6.28);cx.fill();
+        });
+      }
+    });
+  }
+
+  function drawHUD(){
+    const W=cv.width, H=cv.height;
+    // Top-right HUD panel
+    cx.fillStyle='rgba(3,13,24,.72)';cx.strokeStyle='rgba(31,168,217,.22)';cx.lineWidth=1;
+    cx.beginPath();cx.roundRect(W-230,16,214,100,8);cx.fill();cx.stroke();
+    cx.fillStyle='#1FA8D9';cx.font='bold 10px monospace';
+    cx.fillText('● SKY TERRAEYE — LIVE SURVEY',W-224,34);
+    cx.fillStyle='rgba(208,232,245,.7)';cx.font='10px monospace';
+    cx.fillText('PHASE: '+(t<200?'CONTROL SETUP':t<400?'FIELD SCAN':t<600?'SETTING OUT':'CAD OUTPUT'),W-224,52);
+    cx.fillText('POINTS: '+pts.length+' scanned',W-224,68);
+    cx.fillText('MARKERS: '+scanPts.length+' placed',W-224,84);
+    cx.fillText('CAD: '+(cadProgress*100).toFixed(0)+'% complete',W-224,100);
+  }
+
+  function loop(){
+    t++;
+    drawScene();
+    drawCADOverlay();
+    drawSettingOut();
+    drawInstrument();
+    drawHUD();
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+
+/* ══════════════════════════════════════════
+   SERVICE CARD CANVAS ANIMATIONS
+══════════════════════════════════════════ */
+function makeServiceCanvas(id, drawFn){
+  const cv=document.getElementById(id);
+  if(!cv) return;
+  const cx=cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  let t=0;
+  (function loop(){ t++; drawFn(cx,W,H,t); requestAnimationFrame(loop); })();
+}
+
+// SC1 — Total Station rotating beam
+makeServiceCanvas('sc1',(cx,W,H,t)=>{
+  const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#020B14');g.addColorStop(1,'#081828');
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  // Grid
+  cx.strokeStyle='rgba(31,168,217,.06)';cx.lineWidth=.6;
+  for(let i=0;i<W;i+=20){cx.beginPath();cx.moveTo(i,0);cx.lineTo(i,H);cx.stroke();}
+  for(let j=0;j<H;j+=20){cx.beginPath();cx.moveTo(0,j);cx.lineTo(W,j);cx.stroke();}
+  // Instrument
+  const ix=W/2,iy=H*0.65;
+  const ang=-0.8+Math.sin(t*0.025)*1.1;
+  cx.strokeStyle='rgba(31,168,217,.4)';cx.lineWidth=2;
+  [[ix-18,iy+32],[ix+18,iy+32],[ix,iy+35]].forEach(([lx,ly])=>{cx.beginPath();cx.moveTo(ix,iy+6);cx.lineTo(lx,ly);cx.stroke();});
+  const bg=cx.createLinearGradient(ix-12,iy-22,ix+12,iy+6);
+  bg.addColorStop(0,'#1E3A50');bg.addColorStop(1,'#0E1E30');
+  cx.fillStyle=bg;cx.strokeStyle='rgba(31,168,217,.55)';cx.lineWidth=1.5;
+  cx.beginPath();cx.roundRect(ix-10,iy-22,20,28,4);cx.fill();cx.stroke();
+  cx.fillStyle='rgba(31,168,217,.9)';cx.beginPath();cx.arc(ix,iy-10,4,0,6.28);cx.fill();
+  // Beam
+  const bl=160,bx=ix+Math.cos(ang)*bl,by=iy-10+Math.sin(ang)*bl;
+  const lg=cx.createLinearGradient(ix,iy-10,bx,by);
+  lg.addColorStop(0,'rgba(31,168,217,.9)');lg.addColorStop(1,'rgba(31,168,217,0)');
+  cx.strokeStyle=lg;cx.lineWidth=2;cx.shadowBlur=10;cx.shadowColor='#1FA8D9';
+  cx.beginPath();cx.moveTo(ix,iy-10);cx.lineTo(bx,by);cx.stroke();cx.shadowBlur=0;
+  // Hit sparkle
+  if(by>H*0.5&&by<H){cx.fillStyle='rgba(31,168,217,.8)';cx.shadowBlur=6;cx.shadowColor='#1FA8D9';cx.beginPath();cx.arc(bx,by,2.5,0,6.28);cx.fill();cx.shadowBlur=0;}
+  // Label
+  cx.fillStyle='rgba(31,168,217,.7)';cx.font='bold 8px monospace';
+  cx.fillText('HZ: '+(((ang+0.8)*57.3+90+360)%360).toFixed(2)+'°  SD: '+(12.5+Math.sin(t*.01)*.3).toFixed(3)+'m',8,H-8);
+});
+
+// SC2 — Setting Out coordinate grid
+makeServiceCanvas('sc2',(cx,W,H,t)=>{
+  cx.fillStyle='#030C16';cx.fillRect(0,0,W,H);
+  const cols=7,rows=4,px=28,py=22;
+  const cw=(W-px*2)/cols,ch=(H-py*2)/rows;
+  // Grid
+  const pulse=0.15+0.08*Math.sin(t*0.04);
+  cx.strokeStyle='rgba(31,168,217,'+pulse+')';cx.lineWidth=.7;cx.setLineDash([3,5]);
+  for(let c=0;c<=cols;c++){cx.beginPath();cx.moveTo(px+c*cw,py);cx.lineTo(px+c*cw,H-py);cx.stroke();}
+  for(let r=0;r<=rows;r++){cx.beginPath();cx.moveTo(px,py+r*ch);cx.lineTo(W-px,py+r*ch);cx.stroke();}
+  cx.setLineDash([]);
+  // Markers appear over time
+  const total=(cols+1)*(rows+1);
+  const show=Math.floor((t/3)%total);
+  for(let i=0;i<show;i++){
+    const c=i%(cols+1),r=Math.floor(i/(cols+1));
+    const x=px+c*cw,y=py+r*ch;
+    cx.strokeStyle='rgba(31,168,217,.85)';cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(x-8,y);cx.lineTo(x+8,y);cx.stroke();
+    cx.beginPath();cx.moveTo(x,y-8);cx.lineTo(x,y+8);cx.stroke();
+    cx.strokeStyle='rgba(245,190,24,.7)';cx.lineWidth=1;
+    cx.beginPath();cx.arc(x,y,4,0,6.28);cx.stroke();
+  }
+  // Active scanner
+  const si=show%(cols+1),sj=Math.floor(show/(cols+1))%(rows+1);
+  cx.strokeStyle='rgba(245,190,24,.9)';cx.lineWidth=2;cx.shadowBlur=8;cx.shadowColor='#F5BE18';
+  cx.beginPath();cx.arc(px+si*cw,py+sj*ch,7,0,6.28);cx.stroke();cx.shadowBlur=0;
+  cx.fillStyle='rgba(31,168,217,.65)';cx.font='7px monospace';
+  cx.fillText('GRID '+cols+'x'+rows+' | PLACED: '+show+'/'+total,8,H-7);
+});
+
+// SC3 — CAD drawing itself
+makeServiceCanvas('sc3',(cx,W,H,t)=>{
+  cx.fillStyle='#030D18';cx.fillRect(0,0,W,H);
+  cx.strokeStyle='rgba(31,168,217,.05)';cx.lineWidth=.5;
+  for(let x=0;x<W;x+=16){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke();}
+  for(let y=0;y<H;y+=16){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();}
+  const lines=[[30,30,W-30,30],[W-30,30,W-30,H-30],[W-30,H-30,30,H-30],[30,H-30,30,30],
+    [30,80,W/2,80],[W/2,30,W/2,H-30],[30,130,W/2,130],[W*0.62,30,W*0.62,H-30],
+    [W*0.62,80,W-30,80]];
+  const total=lines.reduce((s,[x1,y1,x2,y2])=>s+Math.sqrt((x2-x1)**2+(y2-y1)**2),0);
+  const drawn=Math.min(total,(t%420)*total/300);
+  let rem=drawn;
+  lines.forEach(([x1,y1,x2,y2],i)=>{
+    const len=Math.sqrt((x2-x1)**2+(y2-y1)**2);
+    if(rem<=0)return;
+    const frac=Math.min(1,rem/len);
+    cx.strokeStyle=i<4?'rgba(31,168,217,.9)':'rgba(31,168,217,.5)';
+    cx.lineWidth=i<4?1.8:.9;cx.shadowBlur=i<4?4:0;cx.shadowColor='#1FA8D9';
+    cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x1+(x2-x1)*frac,y1+(y2-y1)*frac);cx.stroke();
+    cx.shadowBlur=0;rem-=len;
+  });
+  cx.fillStyle='rgba(245,190,24,.8)';cx.font='7px monospace';
+  cx.fillText('DWG | '+(drawn/total*100).toFixed(0)+'% DRAWN',8,H-7);
+});
+
+// SC4 — GNSS satellite orbits
+makeServiceCanvas('sc4',(cx,W,H,t)=>{
+  const g=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.5);
+  g.addColorStop(0,'#061420');g.addColorStop(1,'#020810');
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  if(!cx._st) cx._st=Array.from({length:60},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()+.3,o:Math.random()}));
+  cx._st.forEach(s=>{cx.fillStyle='rgba(200,230,255,'+(s.o*.4+.1)+')',cx.beginPath();cx.arc(s.x,s.y,s.r,0,6.28);cx.fill();});
+  const cx0=W/2,cy0=H/2,R=Math.min(W,H)*0.32;
+  cx.strokeStyle='rgba(31,168,217,.08)';cx.lineWidth=.8;cx.setLineDash([2,5]);
+  [0.55,.75,.95].forEach(f=>{cx.beginPath();cx.arc(cx0,cy0,R*f,0,6.28);cx.stroke();});
+  cx.setLineDash([]);
+  const eg=cx.createRadialGradient(cx0-8,cy0-8,0,cx0,cy0,30);
+  eg.addColorStop(0,'#1A5C8A');eg.addColorStop(1,'#061826');
+  cx.fillStyle=eg;cx.beginPath();cx.arc(cx0,cy0,30,0,6.28);cx.fill();
+  cx.strokeStyle='rgba(31,168,217,.35)';cx.lineWidth=1.2;cx.beginPath();cx.arc(cx0,cy0,30,0,6.28);cx.stroke();
+  [[0.95,0.007,0,'#1FA8D9'],[0.75,0.011,2.1,'#4ADE80'],[0.55,0.015,1.2,'#F5BE18'],[0.85,-0.009,4.2,'#A78BFA']].forEach(([orb,spd,ph,col],i)=>{
+    const ang=ph+t*spd,r=R*orb;
+    const sx=cx0+Math.cos(ang)*r,sy=cy0+Math.sin(ang)*r;
+    const hex=col.replace('#','');
+    const sr=parseInt(hex.slice(0,2),16),sg=parseInt(hex.slice(2,4),16),sb=parseInt(hex.slice(4,6),16);
+    cx.strokeStyle='rgba('+sr+','+sg+','+sb+',.25)';cx.setLineDash([2,4]);cx.lineWidth=.8;
+    cx.beginPath();cx.moveTo(sx,sy);cx.lineTo(cx0+18,cy0+18);cx.stroke();cx.setLineDash([]);
+    cx.fillStyle=col;cx.shadowBlur=6;cx.shadowColor=col;
+    cx.beginPath();cx.arc(sx,sy,4,0,6.28);cx.fill();cx.shadowBlur=0;
+    cx.strokeStyle=col+'88';cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(sx-10,sy);cx.lineTo(sx-5,sy);cx.stroke();
+    cx.beginPath();cx.moveTo(sx+5,sy);cx.lineTo(sx+10,sy);cx.stroke();
+  });
+  cx.fillStyle='rgba(31,168,217,.65)';cx.font='7px monospace';
+  cx.fillText('GNSS | SATS: 4 | HDOP: 0.'+(Math.abs(Math.sin(t*.012))*100).toFixed(0)+'  ±8mm',8,H-7);
+});
+
+// SC5 — Level survey cross-section profile
+makeServiceCanvas('sc5',(cx,W,H,t)=>{
+  cx.fillStyle='#030D18';cx.fillRect(0,0,W,H);
+  cx.strokeStyle='rgba(31,168,217,.06)';cx.lineWidth=.5;
+  for(let x=0;x<W;x+=20){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke();}
+  for(let y=0;y<H;y+=20){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();}
+  // Datum line
+  const datum=H*0.6;
+  cx.strokeStyle='rgba(245,190,24,.5)';cx.lineWidth=1;cx.setLineDash([8,4]);
+  cx.beginPath();cx.moveTo(20,datum);cx.lineTo(W-20,datum);cx.stroke();
+  cx.setLineDash([]);
+  cx.fillStyle='rgba(245,190,24,.5)';cx.font='7px monospace';cx.fillText('DATUM RL=0.000m',24,datum-4);
+  // Ground profile drawing itself
+  const numPts=18;
+  const profPts=Array.from({length:numPts},(_,i)=>{
+    const x=20+(i/(numPts-1))*(W-40);
+    const y=datum-(20+Math.sin(i*0.8)*18+Math.cos(i*0.5)*12);
+    return [x,y];
+  });
+  const show=Math.min(numPts,Math.floor((t%360)/20)+1);
+  cx.strokeStyle='rgba(31,168,217,.8)';cx.lineWidth=1.8;cx.shadowBlur=5;cx.shadowColor='#1FA8D9';
+  cx.beginPath();cx.moveTo(...profPts[0]);
+  for(let i=1;i<show;i++) cx.lineTo(...profPts[i]);
+  cx.stroke();cx.shadowBlur=0;
+  // Level staff at each point
+  for(let i=0;i<show;i++){
+    const [x,y]=profPts[i];
+    cx.strokeStyle='rgba(245,190,24,.6)';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(x,datum);cx.lineTo(x,y);cx.stroke();
+    cx.fillStyle='rgba(245,190,24,.8)';cx.beginPath();cx.arc(x,y,2.5,0,6.28);cx.fill();
+    const rl=(datum-y)*0.02;
+    if(i%3===0){cx.fillStyle='rgba(208,232,245,.55)';cx.font='6.5px monospace';cx.fillText('+'+rl.toFixed(3),x+3,y-4);}
+  }
+  cx.fillStyle='rgba(31,168,217,.65)';cx.font='7px monospace';
+  cx.fillText('LEVEL PROFILE | RL READINGS: '+show+'/'+numPts,8,H-7);
+});
+
+// SC6 — Topographic contour map
+makeServiceCanvas('sc6',(cx,W,H,t)=>{
+  cx.fillStyle='#030E18';cx.fillRect(0,0,W,H);
+  // Contour lines
+  const numC=8;
+  for(let c=0;c<numC;c++){
+    const prog=Math.min(1,(t-c*25)/200);
+    if(prog<=0) continue;
+    const a=0.12+c*0.06;
+    cx.strokeStyle='rgba(31,168,217,'+a+')';cx.lineWidth=c===4?1.5:.8;
+    cx.beginPath();
+    for(let deg=0;deg<=360*prog;deg+=3){
+      const rad=deg*Math.PI/180;
+      const r=(W*0.12)+c*(W*0.055)+(Math.sin(rad*2.5)*W*0.04)+(Math.cos(rad*1.7)*W*0.03);
+      const x=W/2+Math.cos(rad)*r;
+      const y=H/2+Math.sin(rad)*r*0.7;
+      deg===0?cx.moveTo(x,y):cx.lineTo(x,y);
+    }
+    if(prog>=1) cx.closePath();
+    cx.stroke();
+    if(prog>=0.5&&c%2===0){
+      cx.fillStyle='rgba(31,168,217,'+(a+0.2)+')';cx.font='7px monospace';
+      cx.fillText((c*5)+'.00m',W/2+(W*0.12+c*(W*0.055)),H/2+5);
+    }
+  }
+  // Control points
+  [[0.3,0.3],[0.7,0.25],[0.65,0.7],[0.25,0.65],[0.5,0.5]].forEach(([px,py],i)=>{
+    if(t<i*40) return;
+    cx.fillStyle='rgba(245,190,24,.85)';cx.shadowBlur=5;cx.shadowColor='#F5BE18';
+    cx.beginPath();cx.arc(px*W,py*H,3.5,0,6.28);cx.fill();cx.shadowBlur=0;
+    cx.strokeStyle='rgba(245,190,24,.4)';cx.lineWidth=1;
+    cx.beginPath();cx.arc(px*W,py*H,8,0,6.28);cx.stroke();
+  });
+  cx.fillStyle='rgba(31,168,217,.65)';cx.font='7px monospace';
+  cx.fillText('TOPOGRAPHIC | CONTOUR INTERVAL: 5.000m',8,H-7);
+});
+
+/* ══════════════════════════════════════════
+   CANVAS 1 — Total Station Laser Scan (video section)
+══════════════════════════════════════════ */
+(function(){
+  const cv=document.getElementById('cv1');
+  if(!cv) return;
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  let t=0;
+  const pts=[];
+  const ix=W*0.35,iy=H*0.72;
+  function loop(){
+    t++;
+    const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#020B14');g.addColorStop(1,'#0A1E2E');
+    cx.fillStyle=g;cx.fillRect(0,0,W,H);
+    cx.strokeStyle='rgba(31,168,217,.07)';cx.lineWidth=.7;
+    for(let i=0;i<16;i++){const x=(i/15)*W;cx.beginPath();cx.moveTo(x,H*0.58);cx.lineTo(ix,iy);cx.stroke();}
+    for(let j=1;j<8;j++){const y=H*0.58+(j/8)*(H-H*0.58);const f=(y-H*0.58)/(H*0.42);cx.beginPath();cx.moveTo(ix*(1-f),y);cx.lineTo(W-W*(1-f)*(1-ix/W),y);cx.stroke();}
+    cx.fillStyle='#0C1E2E';
+    [[0,.58,.06,.22],[.06,.58,.04,.16],[.10,.58,.07,.19],[.17,.58,.05,.28],[.22,.58,.08,.13],[.30,.58,.06,.24],[.56,.58,.06,.20],[.62,.58,.09,.15],[.71,.58,.05,.25],[.76,.58,.07,.18],[.83,.58,.06,.22],[.89,.58,.11,.12]].forEach(([x,y,w,h2])=>cx.fillRect(x*W,y*H-h2*H,w*W,h2*H));
+    if(!cv._st) cv._st=Array.from({length:60},()=>({x:Math.random()*W,y:Math.random()*H*0.55,r:Math.random()*1.2,o:Math.random()}));
+    cv._st.forEach(s=>{cx.fillStyle='rgba(180,220,255,'+(s.o*(0.4+0.3*Math.sin(t*0.04+s.x)))+')';cx.beginPath();cx.arc(s.x,s.y,s.r,0,6.28);cx.fill();});
+    // Instrument
+    cx.fillStyle='#1A2D3F';cx.strokeStyle='rgba(31,168,217,.4)';cx.lineWidth=1.5;
+    cx.beginPath();cx.ellipse(ix,iy+8,28,8,0,0,6.28);cx.fill();cx.stroke();
+    cx.strokeStyle='rgba(31,168,217,.35)';cx.lineWidth=2;
+    [[ix-22,iy+38],[ix+22,iy+38],[ix,iy+40]].forEach(([lx,ly])=>{cx.beginPath();cx.moveTo(ix,iy+8);cx.lineTo(lx,ly);cx.stroke();});
+    const bg2=cx.createLinearGradient(ix-16,iy-26,ix+16,iy+8);bg2.addColorStop(0,'#1E3A50');bg2.addColorStop(1,'#0E2030');
+    cx.fillStyle=bg2;cx.strokeStyle='rgba(31,168,217,.5)';cx.lineWidth=1.5;
+    cx.beginPath();cx.roundRect(ix-14,iy-26,28,34,5);cx.fill();cx.stroke();
+    const ang=-Math.PI/4+Math.sin(t*0.016)*Math.PI*0.55;
+    cx.fillStyle='rgba(31,168,217,.9)';cx.strokeStyle='#1FA8D9';cx.lineWidth=1;
+    cx.beginPath();cx.arc(ix,iy-10,5,0,6.28);cx.fill();cx.stroke();
+    const bl=320,bx=ix+Math.cos(ang)*bl,by=iy-10+Math.sin(ang)*bl;
+    const lg=cx.createLinearGradient(ix,iy-10,bx,by);
+    lg.addColorStop(0,'rgba(31,168,217,.9)');lg.addColorStop(0.4,'rgba(31,168,217,.35)');lg.addColorStop(1,'rgba(31,168,217,0)');
+    cx.strokeStyle=lg;cx.lineWidth=1.8;cx.shadowBlur=12;cx.shadowColor='#1FA8D9';
+    cx.beginPath();cx.moveTo(ix,iy-10);cx.lineTo(bx,by);cx.stroke();cx.shadowBlur=0;
+    if(by>H*0.56){pts.push({x:bx,y:by,age:0});if(pts.length>120)pts.shift();}
+    pts.forEach(p=>{p.age++;const a=Math.max(0,1-p.age/80);cx.fillStyle='rgba(31,168,217,'+a+')';cx.shadowBlur=6;cx.shadowColor='#1FA8D9';cx.beginPath();cx.arc(p.x,p.y,1.8,0,6.28);cx.fill();cx.shadowBlur=0;});
+    cx.fillStyle='rgba(3,13,24,.7)';cx.strokeStyle='rgba(31,168,217,.28)';cx.lineWidth=1;
+    cx.beginPath();cx.roundRect(12,12,210,88,8);cx.fill();cx.stroke();
+    cx.fillStyle='#1FA8D9';cx.font='bold 10px monospace';cx.fillText('● TOTAL STATION — LIVE SCAN',18,30);
+    cx.fillStyle='rgba(208,232,245,.75)';cx.font='10px monospace';
+    const deg=((-Math.PI/4+Math.sin(t*0.016)*Math.PI*0.55)*(180/Math.PI)+90+360)%360;
+    cx.fillText('HZ: '+deg.toFixed(4)+'°',18,48);
+    cx.fillText('V:  89.'+String(Math.floor((t*17)%10000)).padStart(4,'0')+'°',18,64);
+    cx.fillText('SD: '+(14.1+Math.sin(t*.01)*0.3).toFixed(3)+' m',18,80);
+    cx.fillText('POINTS SCANNED: '+pts.length,18,96);
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+
+/* ══════════════════════════════════════════
+   CANVAS 2 — Setting Out Grid (video section)
+══════════════════════════════════════════ */
+(function(){
+  const cv=document.getElementById('cv2');
+  if(!cv) return;
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  let t=0;
+  const revealed=[];
+  const gridN=8,gridM=5,pad=60;
+  const gw=(W-pad*2)/gridN,gh=(H-pad*2)/gridM;
+  function frame(){
+    t++;
+    const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#020B14');g.addColorStop(1,'#060F1A');
+    cx.fillStyle=g;cx.fillRect(0,0,W,H);
+    const maxPts=(gridN+1)*(gridM+1);
+    if(revealed.length<maxPts&&t%4===0){const idx=revealed.length;revealed.push({r:Math.floor(idx/(gridN+1)),c:idx%(gridN+1),age:0});}
+    const pulse=0.4+0.2*Math.sin(t*0.04);
+    cx.strokeStyle='rgba(31,168,217,'+(pulse*0.3)+')';cx.lineWidth=0.7;cx.setLineDash([4,4]);
+    for(let c=0;c<=gridN;c++){cx.beginPath();cx.moveTo(pad+c*gw,pad);cx.lineTo(pad+c*gw,H-pad);cx.stroke();}
+    for(let r=0;r<=gridM;r++){cx.beginPath();cx.moveTo(pad,pad+r*gh);cx.lineTo(W-pad,pad+r*gh);cx.stroke();}
+    cx.setLineDash([]);
+    revealed.forEach(p=>{
+      p.age++;const x=pad+p.c*gw,y=pad+p.r*gh;const a=Math.min(1,p.age/20);
+      cx.strokeStyle='rgba(31,168,217,'+(a*0.9)+')';cx.lineWidth=1.5;
+      cx.beginPath();cx.moveTo(x-10,y);cx.lineTo(x+10,y);cx.stroke();
+      cx.beginPath();cx.moveTo(x,y-10);cx.lineTo(x,y+10);cx.stroke();
+      cx.strokeStyle='rgba(245,190,24,'+(a*0.7)+')';cx.lineWidth=1;
+      cx.beginPath();cx.arc(x,y,5,0,6.28);cx.stroke();
+      if((p.r+p.c)%3===0){cx.fillStyle='rgba(208,232,245,'+(a*0.6)+')';cx.font='7px monospace';cx.fillText('N'+(p.r*10)+'.00 E'+(p.c*10)+'.00',x+8,y-4);}
+    });
+    const si=Math.floor((t/3)%(gridN+1)),sj=Math.floor((t/3/(gridN+1))%(gridM+1));
+    cx.strokeStyle='rgba(245,190,24,.9)';cx.lineWidth=2;cx.shadowBlur=10;cx.shadowColor='#F5BE18';
+    cx.beginPath();cx.arc(pad+si*gw,pad+sj*gh,8,0,6.28);cx.stroke();cx.shadowBlur=0;
+    cx.fillStyle='rgba(3,13,24,.75)';cx.strokeStyle='rgba(31,168,217,.25)';cx.lineWidth=1;
+    cx.beginPath();cx.roundRect(10,10,175,70,7);cx.fill();cx.stroke();
+    cx.fillStyle='#1FA8D9';cx.font='bold 9px monospace';cx.fillText('● SETTING OUT — GRID LAYOUT',16,26);
+    cx.fillStyle='rgba(208,232,245,.7)';cx.font='9px monospace';
+    cx.fillText('GRID: '+gridN+'x'+gridM+' | TOL: ±3mm',16,42);
+    cx.fillText('POINTS SET: '+revealed.length+'/'+maxPts,16,57);
+    cx.fillText('STATUS: '+(revealed.length<maxPts?'SCANNING...':'COMPLETE ✓'),16,72);
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+/* ══════════════════════════════════════════
+   CANVAS 3 — GNSS Satellite Tracking (video section)
+══════════════════════════════════════════ */
+(function(){
+  const cv=document.getElementById('cv3');
+  if(!cv) return;
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  let t=0;
+  const cx0=W/2,cy0=H/2,R=Math.min(W,H)*0.38;
+  const sats=[{orbit:.95,speed:.007,phase:0,color:'#1FA8D9'},{orbit:.70,speed:.011,phase:1.2,color:'#4ADE80'},{orbit:.75,speed:-.009,phase:2.4,color:'#F5BE18'},{orbit:.55,speed:.015,phase:0.6,color:'#1FA8D9'},{orbit:.80,speed:-.006,phase:3.8,color:'#A78BFA'},{orbit:.60,speed:.013,phase:5.1,color:'#F5BE18'}];
+  function frame(){
+    t++;
+    const g=cx.createRadialGradient(cx0,cy0,0,cx0,cy0,Math.max(W,H)*.6);
+    g.addColorStop(0,'#061826');g.addColorStop(1,'#020B12');
+    cx.fillStyle=g;cx.fillRect(0,0,W,H);
+    if(!cv._s) cv._s=Array.from({length:80},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()+.3,o:Math.random()}));
+    cv._s.forEach(s=>{cx.fillStyle='rgba(200,230,255,'+(s.o*.5)+')';cx.beginPath();cx.arc(s.x,s.y,s.r,0,6.28);cx.fill();});
+    cx.strokeStyle='rgba(31,168,217,.08)';cx.lineWidth=1;cx.setLineDash([3,6]);
+    [0.55,.70,.80,.95].forEach(f=>{cx.beginPath();cx.arc(cx0,cy0,R*f,0,6.28);cx.stroke();});
+    cx.setLineDash([]);
+    const eg=cx.createRadialGradient(cx0-15,cy0-12,0,cx0,cy0,42);
+    eg.addColorStop(0,'#1A5C8A');eg.addColorStop(.6,'#0D3D5E');eg.addColorStop(1,'#061826');
+    cx.fillStyle=eg;cx.beginPath();cx.arc(cx0,cy0,42,0,6.28);cx.fill();
+    cx.strokeStyle='rgba(31,168,217,.3)';cx.lineWidth=1.5;cx.beginPath();cx.arc(cx0,cy0,42,0,6.28);cx.stroke();
+    cx.strokeStyle='rgba(31,168,217,.1)';cx.lineWidth=8;cx.beginPath();cx.arc(cx0,cy0,44,0,6.28);cx.stroke();
+    cx.fillStyle='#F5BE18';cx.beginPath();cx.arc(cx0+28,cy0+28,5,0,6.28);cx.fill();
+    sats.forEach((s,i)=>{
+      const ang=s.phase+t*s.speed,r=R*s.orbit;
+      const sx2=cx0+Math.cos(ang)*r,sy2=cy0+Math.sin(ang)*r;
+      const hex=s.color.replace('#','');
+      const sr=parseInt(hex.slice(0,2),16),sg2=parseInt(hex.slice(2,4),16),sb=parseInt(hex.slice(4,6),16);
+      const sig=0.4+0.2*Math.sin(t*0.05+i);
+      cx.strokeStyle='rgba('+sr+','+sg2+','+sb+','+(sig*0.4)+')';cx.setLineDash([3,5]);cx.lineWidth=.8;
+      cx.beginPath();cx.moveTo(sx2,sy2);cx.lineTo(cx0+28,cy0+28);cx.stroke();cx.setLineDash([]);
+      cx.fillStyle=s.color;cx.shadowBlur=8;cx.shadowColor=s.color;
+      cx.beginPath();cx.arc(sx2,sy2,5,0,6.28);cx.fill();cx.shadowBlur=0;
+      cx.strokeStyle=s.color+'aa';cx.lineWidth=2;
+      cx.beginPath();cx.moveTo(sx2-12,sy2);cx.lineTo(sx2-6,sy2);cx.stroke();
+      cx.beginPath();cx.moveTo(sx2+6,sy2);cx.lineTo(sx2+12,sy2);cx.stroke();
+      cx.fillStyle='rgba(208,232,245,.55)';cx.font='7px monospace';cx.fillText('PRN'+(i+1),sx2+7,sy2-5);
+    });
+    cx.fillStyle='rgba(3,13,24,.78)';cx.strokeStyle='rgba(31,168,217,.25)';cx.lineWidth=1;
+    cx.beginPath();cx.roundRect(10,10,180,72,7);cx.fill();cx.stroke();
+    cx.fillStyle='#1FA8D9';cx.font='bold 9px monospace';cx.fillText('● GNSS RTK — SATELLITE LOCK',16,26);
+    cx.fillStyle='rgba(208,232,245,.7)';cx.font='9px monospace';
+    cx.fillText('SATS TRACKED: '+sats.length+'/6',16,42);
+    cx.fillText('HDOP: 0.'+Math.abs(Math.sin(t*.01)*100).toFixed(0).padStart(3,'0'),16,57);
+    cx.fillText('ACCURACY: ±'+(8+Math.sin(t*.02)*3).toFixed(0)+'mm',16,72);
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+/* ══════════════════════════════════════════
+   CANVAS 4 — CAD Drawing (video section)
+══════════════════════════════════════════ */
+(function(){
+  const cv=document.getElementById('cv4');
+  if(!cv) return;
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  let t=0,drawn=0;
+  const lines=[[60,60,560,60],[560,60,560,290],[560,290,60,290],[60,290,60,60],[200,60,200,180],[60,180,200,180],[200,180,350,180],[350,60,350,180],[350,180,350,290],[200,180,200,290],[60,120,80,120],[200,100,200,120],[330,180,350,180],[240,60,290,60],[420,60,470,60],[100,290,160,290],[400,290,480,290],[60,310,560,310],[40,60,40,290]];
+  const totalLen=lines.reduce((s,[x1,y1,x2,y2])=>s+Math.sqrt((x2-x1)**2+(y2-y1)**2),0);
+  const labels=[{x:60,y:60,txt:'A(0.000,0.000)',age:0,show:false},{x:560,y:60,txt:'B(20.000,0.000)',age:0,show:false},{x:560,y:290,txt:'C(20.000,10.000)',age:0,show:false},{x:60,y:290,txt:'D(0.000,10.000)',age:0,show:false},{x:200,y:60,txt:'E(5.830,0.000)',age:0,show:false},{x:350,y:60,txt:'F(11.670,0.000)',age:0,show:false}];
+  function frame(){
+    t++;
+    const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#020C16');g.addColorStop(1,'#04111C');
+    cx.fillStyle=g;cx.fillRect(0,0,W,H);
+    cx.strokeStyle='rgba(31,168,217,.06)';cx.lineWidth=.5;
+    for(let x=0;x<W;x+=20){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke();}
+    for(let y=0;y<H;y+=20){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();}
+    drawn=Math.min(totalLen,drawn+4);
+    let rem=drawn;
+    lines.forEach(([x1,y1,x2,y2],i)=>{
+      const len=Math.sqrt((x2-x1)**2+(y2-y1)**2);
+      if(rem<=0)return;
+      const frac=Math.min(1,rem/len);
+      cx.strokeStyle=i<4?'rgba(31,168,217,.9)':i<12?'rgba(31,168,217,.55)':'rgba(245,190,24,.4)';
+      cx.lineWidth=i<4?2:1;cx.shadowBlur=i<4?4:0;cx.shadowColor='#1FA8D9';
+      cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x1+(x2-x1)*frac,y1+(y2-y1)*frac);cx.stroke();cx.shadowBlur=0;rem-=len;
+    });
+    labels.forEach((lb,i)=>{
+      if(drawn>i*(totalLen/labels.length))lb.show=true;
+      if(lb.show){lb.age++;const a=Math.min(1,lb.age/20);
+        cx.fillStyle='rgba(245,190,24,'+a+')';cx.strokeStyle='rgba(245,190,24,'+(a*.5)+')';cx.lineWidth=1;
+        cx.beginPath();cx.arc(lb.x,lb.y,4,0,6.28);cx.fill();cx.stroke();
+        cx.fillStyle='rgba(208,232,245,'+(a*.7)+')';cx.font='7.5px monospace';cx.fillText(lb.txt,lb.x+7,lb.y-4);
+      }
+    });
+    if(drawn<totalLen){
+      let rem2=drawn,cx2=lines[0][0],cy2=lines[0][1];
+      for(const [x1,y1,x2,y2] of lines){const len=Math.sqrt((x2-x1)**2+(y2-y1)**2);if(rem2<=len){const f=rem2/len;cx2=x1+(x2-x1)*f;cy2=y1+(y2-y1)*f;break;}rem2-=len;}
+      cx.fillStyle='rgba(245,190,24,.9)';cx.shadowBlur=8;cx.shadowColor='#F5BE18';
+      cx.beginPath();cx.arc(cx2,cy2,5,0,6.28);cx.fill();cx.shadowBlur=0;
+    } else {
+      if(t%240===0){drawn=0;labels.forEach(l=>{l.show=false;l.age=0;});}
+    }
+    const pct=Math.round((drawn/totalLen)*100);
+    cx.fillStyle='rgba(3,13,24,.78)';cx.strokeStyle='rgba(31,168,217,.25)';cx.lineWidth=1;
+    cx.beginPath();cx.roundRect(10,10,195,72,7);cx.fill();cx.stroke();
+    cx.fillStyle='#1FA8D9';cx.font='bold 9px monospace';cx.fillText('● AS-BUILT CAD — DRAWING...',16,26);
+    cx.fillStyle='rgba(208,232,245,.7)';cx.font='9px monospace';
+    cx.fillText('LAYER: FLOOR PLAN | DWG',16,42);
+    cx.fillText('ENTITIES: '+lines.length+' | SCALE 1:100',16,57);
+    cx.fillText('PROGRESS: '+pct+'% COMPLETE',16,72);
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+/* ── Scroll fade-in ── */
+const _animObs=new IntersectionObserver(
+  entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in')}),
+  {threshold:.07,rootMargin:'0px 0px -24px 0px'}
+);
+document.querySelectorAll('.fi').forEach(el=>_animObs.observe(el));
+
+/* ── Counter animation ── */
+const ctEls=[...document.querySelectorAll('.cn[data-to]')];
+let cAnimated=false;
+const ctObs=new IntersectionObserver(([e])=>{
+  if(!e.isIntersecting||cAnimated)return;
+  cAnimated=true;
+  ctEls.forEach(el=>{
+    const target=+el.dataset.to;
+    const suf=el.querySelector('.csuf')?.outerHTML||'';
+    let n=0;const step=target/54;
+    const timer=setInterval(()=>{n=Math.min(n+step,target);el.innerHTML=Math.floor(n)+suf;if(n>=target)clearInterval(timer);},22);
+  });
+  ctObs.disconnect();
+},{threshold:.35});
+const ctRow=document.querySelector('.ctr');
+if(ctRow)ctObs.observe(ctRow);
+
+</script>
 </body>
 </html>
