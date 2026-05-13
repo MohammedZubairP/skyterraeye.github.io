@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- HOMEPAGE -->
+  <url><loc>https://skyterraeye.com/</loc><lastmod>2025-05-13</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
+
+  <!-- SERVICE PAGES -->
+  <url><loc>https://skyterraeye.com/services.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://skyterraeye.com/land-survey.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://skyterraeye.com/aerial-survey.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://skyterraeye.com/terrestrial-scanning.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://skyterraeye.com/utility-mapping.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://skyterraeye.com/monitoring-services.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://skyterraeye.com/gnss-survey.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://skyterraeye.com/traffic-survey.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+
+  <!-- BLOG POSTS - ORIGINAL (RANKING) -->
+  <url><loc>https://skyterraeye.com/blog/top-land-surveying-company-dubai.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://skyterraeye.com/blog/total-station-survey-dubai.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://skyterraeye.com/blog/setting-out-survey-dubai.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://skyterraeye.com/blog/gnss-gps-survey-dubai.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+
+  <!-- BLOG POSTS - NEW -->
+  <url><loc>https://skyterraeye.com/blog/as-built-survey-dubai.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://skyterraeye.com/blog/topographic-survey-dubai.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://skyterraeye.com/blog/utility-mapping-dubai.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://skyterraeye.com/blog/3d-laser-scanning-dubai.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://skyterraeye.com/blog/boundary-survey-dubai.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://skyterraeye.com/blog/construction-survey-dubai.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://skyterraeye.com/blog/drone-survey-dubai.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://skyterraeye.com/blog/structural-monitoring-dubai.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://skyterraeye.com/blog/traffic-survey-dubai.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://skyterraeye.com/blog/land-surveyor-dubai.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+
+  <!-- OTHER PAGES -->
+  <url><loc>https://skyterraeye.com/about.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://skyterraeye.com/contact.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://skyterraeye.com/gauge.html</loc><lastmod>2025-05-13</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+
+</urlset>
