@@ -1,3 +1,8 @@
 User-agent: *
 Allow: /
+
 Sitemap: https://skyterraeye.com/sitemap.xml
+
+# Block admin/private paths
+Disallow: /admin/
+Disallow: /private/
