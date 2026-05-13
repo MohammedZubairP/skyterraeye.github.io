@@ -396,6 +396,70 @@ footer{background:var(--navy);color:#94A3B8;padding:64px 40px 28px}
 .fi.vis{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){.fi{opacity:1;transform:none}}
 @media(max-width:768px){section{padding:56px 0}.hero-c,.lead-bar,.wrap{padding-left:20px;padding-right:20px}#nav{padding:0 20px}.svc-txt{padding:36px 24px}.arrows{left:20px}}
+
+/* ─── TESTIMONIALS ─── */
+.testi-sec{background:var(--navy);padding:80px 0;position:relative;overflow:hidden}
+.testi-sec::before{content:'';position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1920&q=40') center/cover no-repeat;opacity:.05}
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;position:relative;z-index:1}
+@media(max-width:860px){.testi-grid{grid-template-columns:1fr}}
+.tcard{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:28px;transition:var(--e)}
+.tcard:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);transform:translateY(-4px)}
+.tcard-stars{color:#F59E0B;font-size:18px;letter-spacing:2px;margin-bottom:16px}
+.tcard-text{font-size:15px;color:rgba(255,255,255,.75);line-height:1.75;margin-bottom:20px;font-style:italic}
+.tcard-author{display:flex;align-items:center;gap:12px}
+.tcard-avatar{width:44px;height:44px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#fff;flex-shrink:0}
+.tcard-name{font-size:14px;font-weight:700;color:#fff}
+.tcard-role{font-size:12px;color:rgba(255,255,255,.45);margin-top:2px}
+.tcard-verified{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;color:#4ADE80;margin-top:6px}
+.tcard-verified svg{width:12px;height:12px}
+
+/* ─── QUICK QUOTE ─── */
+.quote-sec{background:var(--off);padding:80px 0}
+.quote-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+@media(max-width:860px){.quote-grid{grid-template-columns:1fr}}
+.quote-left h2{font-size:clamp(26px,3vw,38px);font-weight:800;color:var(--navy);margin-bottom:14px;letter-spacing:-.5px}
+.quote-left p{font-size:15.5px;color:var(--g600);line-height:1.75;margin-bottom:18px}
+.promise-list{list-style:none;padding:0;margin-bottom:24px}
+.promise-list li{display:flex;align-items:flex-start;gap:10px;font-size:14.5px;color:var(--g600);padding:7px 0;border-bottom:1px solid var(--g200);line-height:1.55}
+.promise-list li:last-child{border-bottom:none}
+.promise-list li svg{width:16px;height:16px;color:var(--blue);flex-shrink:0;margin-top:1px}
+.promise-list li strong{color:var(--g800)}
+.qform{background:#fff;border-radius:12px;padding:32px;box-shadow:0 4px 32px rgba(10,37,64,.1);border:1px solid var(--g200)}
+.qform h3{font-size:20px;font-weight:800;color:var(--navy);margin-bottom:6px}
+.qform p{font-size:13.5px;color:var(--g600);margin-bottom:22px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:580px){.frow{grid-template-columns:1fr}}
+.finput{width:100%;padding:11px 14px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:14px;color:var(--text);font-family:'Inter',sans-serif;outline:none;transition:border-color var(--e)}
+.finput:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,204,.08)}
+.finput::placeholder{color:var(--g400)}
+select.finput{background:#fff;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239AA5B4' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.fsubmit{width:100%;padding:14px;background:var(--blue);color:#fff;font-weight:700;font-size:15px;border:none;border-radius:var(--r);cursor:pointer;font-family:'Inter',sans-serif;transition:var(--e);margin-top:4px}
+.fsubmit:hover{background:var(--blue2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,102,204,.35)}
+.fform-or{text-align:center;font-size:13px;color:var(--g400);margin:12px 0}
+.fform-wa{width:100%;padding:13px;background:#25D366;color:#fff;font-weight:700;font-size:14px;border:none;border-radius:var(--r);cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;transition:var(--e);text-decoration:none}
+.fform-wa:hover{background:#1EBD59}
+
+/* ─── TRUST BAR ─── */
+.trust-bar{background:var(--navy);padding:18px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.trust-bar-in{max-width:1180px;margin:0 auto;padding:0 40px;display:flex;align-items:center;justify-content:space-around;gap:20px;flex-wrap:wrap}
+.tb-item{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.6);font-size:13px;font-weight:500}
+.tb-item svg{width:18px;height:18px;color:#60A5FA;flex-shrink:0}
+.tb-item strong{color:#fff;font-weight:700}
+
+/* ─── AREAS ─── */
+.areas-sec{background:#fff;padding:60px 0;border-top:1px solid var(--g200)}
+.areas-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+.area-pill{background:var(--g100);border:1px solid var(--g200);color:var(--g800);font-size:13px;font-weight:600;padding:7px 16px;border-radius:999px;transition:var(--e);cursor:default;display:flex;align-items:center;gap:6px}
+.area-pill svg{width:12px;height:12px;color:var(--blue)}
+.area-pill:hover{background:var(--bluel);border-color:rgba(0,102,204,.22);color:var(--blue)}
+
+/* ─── STICKY MOBILE CTA ─── */
+.mob-cta{display:none;position:fixed;bottom:0;left:0;right:0;z-index:998;background:#fff;border-top:1px solid var(--g200);padding:12px 16px;box-shadow:0 -4px 20px rgba(10,37,64,.12)}
+@media(max-width:768px){.mob-cta{display:flex;gap:8px}}
+.mob-cta a{flex:1;padding:12px 10px;border-radius:var(--r);text-align:center;font-weight:700;font-size:14px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px}
+.mob-cta .mc-call{background:var(--blue);color:#fff}
+.mob-cta .mc-wa{background:#25D366;color:#fff}
+
 </style>
 </head>
 <body>
@@ -693,6 +757,62 @@ footer{background:var(--navy);color:#94A3B8;padding:64px 40px 28px}
   </div>
 </section>
 
+
+<!-- ── TESTIMONIALS ── -->
+<section class="testi-sec" id="testimonials" aria-labelledby="testi-h">
+  <div class="wrap">
+    <div class="sec-head c fi">
+      <div class="eyebrow">Client Reviews</div>
+      <h2 class="sec-h" id="testi-h" style="color:#fff">What Our Clients Say</h2>
+      <p class="sec-p" style="color:#94A3B8">Trusted by contractors, developers and consultants across Dubai and the UAE.</p>
+    </div>
+    <div class="testi-grid">
+      <div class="tcard fi">
+        <div class="tcard-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p class="tcard-text">&ldquo;Sky TerraEye provided excellent setting-out services for our G+12 residential project in JVC. The team was on site within 24 hours, accurate first time and the CAD files were ready the same evening. Will use again for all our future projects.&rdquo;</p>
+        <div class="tcard-author">
+          <div class="tcard-avatar">A</div>
+          <div>
+            <div class="tcard-name">Ahmed Al Mansouri</div>
+            <div class="tcard-role">Project Manager &mdash; Construction Company, Dubai</div>
+            <div class="tcard-verified"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Verified Review</div>
+          </div>
+        </div>
+      </div>
+      <div class="tcard fi" style="transition-delay:.1s">
+        <div class="tcard-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p class="tcard-text">&ldquo;We used Sky TerraEye for topographic survey and as-built documentation on a villa development in Meydan. Very professional team, DM submission passed first time and the price was competitive. Highly recommended for any surveying work in Dubai.&rdquo;</p>
+        <div class="tcard-author">
+          <div class="tcard-avatar">M</div>
+          <div>
+            <div class="tcard-name">Mohammed Hassan</div>
+            <div class="tcard-role">Site Engineer &mdash; Real Estate Developer, Dubai</div>
+            <div class="tcard-verified"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Verified Review</div>
+          </div>
+        </div>
+      </div>
+      <div class="tcard fi" style="transition-delay:.2s">
+        <div class="tcard-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p class="tcard-text">&ldquo;Engaged Sky TerraEye for GNSS control network and weekly setting-out support on a large infrastructure project in Dubai South. Their surveyors are knowledgeable, punctual and their reports are always clear. Best surveying company we have used in the UAE.&rdquo;</p>
+        <div class="tcard-author">
+          <div class="tcard-avatar">R</div>
+          <div>
+            <div class="tcard-name">Rajan Pillai</div>
+            <div class="tcard-role">Senior Engineer &mdash; Civil Contractor, UAE</div>
+            <div class="tcard-verified"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Verified Review</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:36px">
+      <a href="contact.html" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);font-size:14px;font-weight:600;padding:12px 24px;border-radius:6px;transition:.2s;text-decoration:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Join Our 47 Happy Clients &rarr; Get a Free Quote
+      </a>
+    </div>
+  </div>
+</section>
+
 <section class="cta-sec">
   <div class="wrap">
     <div class="cta-in fi">
@@ -712,12 +832,106 @@ footer{background:var(--navy);color:#94A3B8;padding:64px 40px 28px}
   </div>
 </section>
 
+
+<!-- ── QUICK QUOTE FORM ── -->
+<section class="quote-sec" id="get-quote">
+  <div class="wrap">
+    <div class="quote-grid">
+      <div class="quote-left fi">
+        <div class="eyebrow">Free Quote in 2 Hours</div>
+        <h2>Get a Survey Quote<br>in Dubai Today</h2>
+        <p>Tell us what you need and we will send you a fixed price quote within 2 hours. No obligation, no hidden fees. Just honest pricing from Dubai&rsquo;s trusted surveyors.</p>
+        <ul class="promise-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span><strong>Fixed price quote</strong> &mdash; no surprises, no hourly billing</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span><strong>2-hour response</strong> &mdash; we reply same day, 7 days a week</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span><strong>DM compliant deliverables</strong> &mdash; accepted by Dubai Municipality first time</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span><strong>24-hour turnaround</strong> &mdash; field to CAD drawings in 24 hours</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span><strong>No commitment required</strong> &mdash; quote is free with no obligation</span></li>
+        </ul>
+        <div style="background:var(--bluel);border:1px solid #BFDBFE;border-radius:10px;padding:20px 22px">
+          <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px">&#128222; Prefer to call or message?</div>
+          <a href="tel:+971503091162" style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--navy);display:block;margin-bottom:4px;text-decoration:none">+971 50 309 1162</a>
+          <a href="mailto:info@skyterraeye.com" style="font-size:14px;color:var(--blue);text-decoration:none">info@skyterraeye.com</a>
+          <div style="font-size:12.5px;color:var(--g600);margin-top:6px">Available 7 days &bull; Mon&ndash;Thu 7am&ndash;6pm &bull; Sat 7am&ndash;2pm</div>
+        </div>
+      </div>
+      <div class="fi" style="transition-delay:.12s">
+        <div class="qform">
+          <h3>Request a Free Quote</h3>
+          <p>Fill in your details and we will contact you within 2 hours.</p>
+          <form action="https://formspree.io/f/info@skyterraeye.com" method="POST" onsubmit="return handleForm(event)">
+            <div class="frow">
+              <input class="finput" type="text" name="name" placeholder="Your Name *" required>
+              <input class="finput" type="tel" name="phone" placeholder="Phone / WhatsApp *" required>
+            </div>
+            <div class="frow">
+              <input class="finput" type="email" name="email" placeholder="Email Address">
+              <select class="finput" name="service">
+                <option value="" disabled selected>Service Required *</option>
+                <option>Land Survey / Topographic</option>
+                <option>Setting Out / Layout</option>
+                <option>As-Built Survey</option>
+                <option>GNSS / GPS RTK</option>
+                <option>Aerial Survey / Drone</option>
+                <option>3D Laser Scanning</option>
+                <option>Utility Mapping / GPR</option>
+                <option>Structural Monitoring</option>
+                <option>Traffic Survey</option>
+                <option>Other / Not Sure</option>
+              </select>
+            </div>
+            <textarea class="finput" name="message" placeholder="Site location, area (sqm) and any details..." style="height:90px;resize:none;width:100%;margin-bottom:12px;display:block"></textarea>
+            <button type="submit" class="fsubmit">Send Request &mdash; Free Quote in 2 Hours</button>
+          </form>
+          <div class="fform-or">or contact us directly</div>
+          <a class="fform-wa" href="https://wa.me/971503091162?text=Hello%20Sky%20TerraEye,%20I%20need%20a%20survey%20quote%20for%20my%20project%20in%20Dubai" target="_blank">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            Send Drawings on WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section style="background:var(--g100);padding:68px 0">
   <div class="wrap">
     <div class="seo-g fi">
       <div class="seo-b"><h3>Top Land Surveying Company in Dubai</h3><p>Sky TerraEye is a professional land surveying company in Dubai providing <a href="land-survey.html">total station surveys</a>, <a href="land-survey.html">setting-out and as-built surveys</a>, <a href="gnss-survey.html">GNSS RTK</a>, <a href="aerial-survey.html">aerial drone surveys</a>, <a href="terrestrial-scanning.html">3D laser scanning</a>, <a href="utility-mapping.html">utility mapping and GPR</a>, <a href="monitoring-services.html">structural monitoring</a> and <a href="traffic-survey.html">traffic surveys</a> across the UAE.</p></div>
       <div class="seo-b"><h3>Survey Services in Dubai &amp; UAE</h3><ul><li><a href="land-survey.html">Total Station &amp; Land Survey Dubai</a></li><li><a href="land-survey.html">Setting Out Survey Dubai</a></li><li><a href="land-survey.html">As-Built Survey Dubai</a></li><li><a href="gnss-survey.html">GNSS / GPS RTK Survey Dubai</a></li><li><a href="aerial-survey.html">Aerial &amp; Drone Survey UAE</a></li><li><a href="terrestrial-scanning.html">3D Laser Scanning Dubai</a></li><li><a href="utility-mapping.html">Utility Mapping &amp; GPR Dubai</a></li><li><a href="monitoring-services.html">Structural Monitoring UAE</a></li><li><a href="traffic-survey.html">Traffic Survey &amp; RTA Dubai</a></li></ul></div>
       <div class="seo-b"><h3>Best Surveying Company in UAE</h3><p>Sky TerraEye uses Leica and Trimble instruments to deliver Dubai Municipality compliant surveys for land registration, construction, infrastructure and master planning. We cover all UAE Emirates. Call <a href="tel:+971503091162">+971 50 309 1162</a> or email <a href="mailto:info@skyterraeye.com">info@skyterraeye.com</a> for a free quote.</p></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ── AREAS WE SERVE ── -->
+<section class="areas-sec">
+  <div class="wrap">
+    <div class="sec-head fi">
+      <div class="eyebrow">Coverage</div>
+      <h2 class="sec-h">Areas We Serve in Dubai &amp; UAE</h2>
+      <p class="sec-p">Sky TerraEye provides land surveying services across all areas of Dubai and all seven Emirates.</p>
+    </div>
+    <div class="areas-grid fi">
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Downtown Dubai</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Dubai Marina</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Business Bay</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Jumeirah Village (JVC)</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>DIFC</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Al Quoz</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Deira &amp; Bur Dubai</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Dubai South (Expo City)</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>MBR City</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Dubai Creek Harbour</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Meydan</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Al Barsha</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Dubai Investment Park</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Abu Dhabi</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Sharjah</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Ajman</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Ras Al Khaimah</div>
+      <div class="area-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Fujairah</div>
     </div>
   </div>
 </section>
@@ -1479,5 +1693,30 @@ const ctRow=document.querySelector('.ctr');
 if(ctRow)ctObs.observe(ctRow);
 
 </script>
+
+<!-- ── MOBILE STICKY CTA ── -->
+<div class="mob-cta">
+  <a class="mc-call" href="tel:+971503091162">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07"/></svg>Call Now
+  </a>
+  <a class="mc-wa" href="https://wa.me/971503091162?text=Hello%20I%20need%20a%20survey%20quote" target="_blank">
+    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp
+  </a>
+</div>
+
+
+<script>
+function handleForm(e){
+  e.preventDefault();
+  var f=e.target;
+  var data={name:f.name.value,phone:f.phone.value,email:f.email.value,service:f.service.value,message:f.message.value};
+  var wa='https://wa.me/971503091162?text='+encodeURIComponent('NEW QUOTE REQUEST\nName: '+data.name+'\nPhone: '+data.phone+'\nService: '+data.service+'\nMessage: '+data.message);
+  window.open(wa,'_blank');
+  f.reset();
+  alert('Thank you! We will contact you within 2 hours. You can also reach us on WhatsApp at +971 50 309 1162');
+  return false;
+}
+</script>
+
 </body>
 </html>
