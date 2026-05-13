@@ -131,6 +131,47 @@ footer{background:var(--navy);color:#94A3B8;padding:48px 40px 24px}
 .top-btn:hover{background:var(--blue)}
 .top-btn svg{width:15px;height:15px;color:#fff}
 @media(max-width:768px){.art-out{padding:40px 20px}.pg-hero{padding:100px 20px 48px}.cta-band{padding:12px 20px}#nav{padding:0 20px}}
+
+.price-box{background:linear-gradient(135deg,#EFF6FF,#DBEAFE);border:2px solid #3B82F6;border-radius:12px;padding:24px 28px;margin:28px 0;text-align:center}
+.price-box .pb-from{font-size:12px;font-weight:700;color:#1D4ED8;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
+.price-box .pb-price{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;color:#0A2540;line-height:1;margin-bottom:6px}
+.price-box .pb-price small{font-size:20px;font-weight:600;color:#1D4ED8}
+.price-box .pb-note{font-size:13px;color:#1E40AF;margin-bottom:18px;line-height:1.55}
+.price-box .pb-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.pb-btn{background:#0066CC;color:#fff;font-weight:700;font-size:13.5px;padding:11px 22px;border-radius:6px;text-decoration:none;transition:.2s;display:inline-flex;align-items:center;gap:6px}
+.pb-btn:hover{background:#0052A3}
+.pb-wa{background:#25D366!important}
+.pb-wa:hover{background:#1EBD59!important}
+.learn-box{background:#F0FFF4;border-left:4px solid #10B981;border-radius:0 8px 8px 0;padding:18px 22px;margin:28px 0}
+.learn-box .lb-title{font-size:11px;font-weight:700;color:#065F46;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.learn-box p{margin:0;color:#064E3B;font-size:15px;line-height:1.72}
+.tip-box{background:#FFFBEB;border-left:4px solid #F59E0B;border-radius:0 8px 8px 0;padding:18px 22px;margin:28px 0}
+.tip-box .tb-title{font-size:11px;font-weight:700;color:#92400E;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
+.tip-box p{margin:0;color:#78350F;font-size:15px;line-height:1.72}
+.steps-list{counter-reset:steps;list-style:none;padding:0;margin:16px 0}
+.steps-list li{counter-increment:steps;display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid #E4E9F0;font-size:15px;color:#627283;line-height:1.65}
+.steps-list li:last-child{border-bottom:none}
+.steps-list li::before{content:counter(steps);width:32px;height:32px;background:#0066CC;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;margin-top:1px}
+.fact-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:20px 0}
+@media(max-width:580px){.fact-grid{grid-template-columns:1fr}}
+.fact-card{background:#F7F9FC;border:1px solid #E4E9F0;border-radius:8px;padding:16px;text-align:center}
+.fact-card .fc-num{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#0066CC;line-height:1}
+.fact-card .fc-lbl{font-size:12.5px;color:#627283;margin-top:4px;line-height:1.45}
+.msg-cta{background:#fff;border:2px solid #25D366;border-radius:12px;padding:20px 24px;margin:28px 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.msg-cta svg{width:34px;height:34px;color:#25D366;flex-shrink:0}
+.msg-cta-text{flex:1;min-width:200px}
+.msg-cta-text strong{display:block;font-size:15.5px;color:#0A2540;margin-bottom:3px;font-family:'Syne',sans-serif}
+.msg-cta-text span{font-size:13.5px;color:#627283;line-height:1.55}
+.msg-cta a{background:#25D366;color:#fff;font-weight:700;font-size:13.5px;padding:11px 20px;border-radius:6px;text-decoration:none;white-space:nowrap;transition:.2s;display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
+.msg-cta a:hover{background:#1EBD59}
+.compare-box{background:#fff;border:1px solid #E4E9F0;border-radius:10px;overflow:hidden;margin:24px 0}
+.compare-box table{margin:0;width:100%}
+.compare-box th{background:#0A2540;color:#fff;padding:12px 14px;font-size:13px}
+.compare-box td{padding:10px 14px;font-size:13.5px}
+.compare-box tr:nth-child(even) td{background:#F7F9FC}
+.c-yes{color:#10B981;font-weight:700}
+.c-no{color:#EF4444}
+
 </style>
 </head>
 <body>
@@ -172,63 +213,104 @@ footer{background:var(--navy);color:#94A3B8;padding:48px 40px 24px}
 <div class="art-out">
 <article class="art">
 
-<p>An <strong>as-built survey in Dubai</strong> documents the actual constructed positions of structural elements after construction — comparing what was built against the approved design drawings. It is one of the most frequently requested survey types in the UAE, required for Dubai Municipality building completion, DLD registration, handover documentation and project records.</p>
+<p>An <strong>as-built survey in Dubai</strong> is one of the most important surveys you will ever commission — and yet it is often the most rushed. Done properly, it saves you from DM rejection and costly re-surveys. Done poorly, it holds up your Building Completion Certificate for weeks.</p>
+<p>At Sky TerraEye, we have completed <strong>hundreds of as-built surveys in Dubai</strong> and know exactly what Dubai Municipality needs to approve your drawings first time.</p>
 
-<h2>What is an As-Built Survey?</h2>
-<p>An as-built survey (also called a record survey or construction verification survey) uses a <strong>total station or GNSS receiver</strong> to measure the actual positions of completed structural elements — columns, walls, slabs, external facades, drainage, roads and utilities — and produce accurate CAD drawings showing what was actually built.</p>
-<p>In Dubai, as-built surveys are submitted to Dubai Municipality as part of the building completion certificate process. DM requires all as-built drawings to be in <strong>WGS84 / UTM Zone 40N / EGM2008</strong> coordinate system and to show deviations from the approved design where they exist.</p>
+<div class="price-box">
+  <div class="pb-from">As-Built Survey Starting From</div>
+  <div class="pb-price"><small>AED </small>800</div>
+  <div class="pb-note">Studio or 1-bed apartment &bull; Includes DWG + PDF + coordinate list &bull; Same-day delivery</div>
+  <div class="pb-btns">
+    <a class="pb-btn pb-wa" href="https://wa.me/971503091162?text=Hello%20I%20need%20an%20as-built%20survey%20in%20Dubai" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Send Drawings on WhatsApp</a>
+    <a class="pb-btn" href="tel:+971503091162">&#128222; Call for Instant Quote</a>
+  </div>
+</div>
 
-<h2>When Do You Need an As-Built Survey in Dubai?</h2>
+<h2>What is an As-Built Survey — in Plain English</h2>
+<p>Imagine your approved design shows Column A1 at coordinate X=12,345.00, Y=56,789.00. After construction, the column might actually be at X=12,344.85 — 15mm off. An as-built survey measures where everything <em>actually</em> ended up and produces a drawing showing design vs actual positions with any deviations highlighted.</p>
+<p>This drawing goes to Dubai Municipality as proof your building was built within acceptable tolerances — mandatory before they issue your Building Completion Certificate (BCC) or Occupation Permit.</p>
+
+<div class="learn-box">
+  <div class="lb-title">&#127891; What the Deviation Table in Your Drawing Means</div>
+  <p>Your as-built drawing will include a deviation table listing every structural element with its design coordinate, actual coordinate and the difference (deviation). A deviation of less than 25mm is generally accepted by DM without comment. Between 25–50mm, DM may ask for a structural engineer&rsquo;s comment. Above 50mm, you may need to demonstrate no structural impact. Sky TerraEye flags any large deviations in our reports so you know before we submit.</p>
+</div>
+
+<h2>When You Need an As-Built Survey in Dubai</h2>
 <ul>
-  <li><strong>Building completion certificate (BCC)</strong> — DM requires as-built drawings before issuing the completion certificate</li>
-  <li><strong>Handover to client or authority</strong> — developers need as-built documentation to hand over units and buildings</li>
-  <li><strong>DLD land registration</strong> — updated plot surveys and boundary records after construction</li>
-  <li><strong>Infrastructure handover</strong> — roads, drainage, utilities must be as-built surveyed before authority adoption</li>
-  <li><strong>Construction QA/QC</strong> — checking columns, walls and slabs are within tolerance before concrete pours or cladding</li>
-  <li><strong>Renovation and extension</strong> — existing buildings must be as-built surveyed before redesign</li>
+  <li><strong>After foundation completion</strong> — verify pile/column positions before the next slab pour</li>
+  <li><strong>After each floor slab</strong> — check levels and column positions at every stage (catching errors early is cheaper)</li>
+  <li><strong>After building completion</strong> — mandatory for DM Building Completion Certificate</li>
+  <li><strong>After roads / drainage</strong> — required by RTA and municipality before adoption</li>
+  <li><strong>Before property handover</strong> — developers need as-built drawings to legally hand over units</li>
+  <li><strong>For renovation or extension</strong> — you need to know exactly what exists before designing additions</li>
 </ul>
 
-<h2>What Does an As-Built Survey Include?</h2>
-<p>A standard <strong>as-built survey in Dubai</strong> typically includes:</p>
-<ul>
-  <li>Measured positions of all structural columns, walls and core elements</li>
-  <li>Floor levels at all slab areas and finished floor levels (FFL)</li>
-  <li>External building envelope and facade positions</li>
-  <li>Roof levels and drainage falls</li>
-  <li>Road finished levels, kerb lines and pavement edges</li>
-  <li>Drain invert levels and manhole cover levels</li>
-  <li>Coordinate schedule listing all measured points with design vs actual comparison</li>
-</ul>
+<div class="fact-grid">
+  <div class="fact-card"><div class="fc-num">99%</div><div class="fc-lbl">DM first-time submission pass rate</div></div>
+  <div class="fact-card"><div class="fc-num">24h</div><div class="fc-lbl">Field survey to DWG + PDF delivery</div></div>
+  <div class="fact-card"><div class="fc-num">±2mm</div><div class="fc-lbl">Total station accuracy on your site</div></div>
+  <div class="fact-card"><div class="fc-num">500+</div><div class="fc-lbl">As-built surveys done in Dubai</div></div>
+</div>
 
-<h2>As-Built Survey Cost in Dubai (2026)</h2>
+<h2>As-Built Survey Prices in Dubai (2026)</h2>
 <table>
-  <tr><th>Property Type</th><th>Starting Cost (AED)</th><th>Delivery</th></tr>
-  <tr><td>Residential Villa (G+1)</td><td>AED 1,500</td><td>Same day</td></tr>
-  <tr><td>Townhouse / Apartment Unit</td><td>AED 1,200</td><td>Same day</td></tr>
-  <tr><td>Mid-Rise Building (G+5 to G+10)</td><td>AED 4,000</td><td>1&ndash;2 days</td></tr>
-  <tr><td>High-Rise Tower (G+10+)</td><td>AED 8,000+</td><td>2&ndash;5 days</td></tr>
-  <tr><td>Road / Infrastructure (per km)</td><td>AED 5,000</td><td>2&ndash;3 days</td></tr>
-  <tr><td>Utility As-Built (per day)</td><td>AED 2,500</td><td>24 hrs</td></tr>
+  <tr><th>Property Type</th><th>Our Price</th><th>Includes</th><th>Delivery</th></tr>
+  <tr><td>Studio / 1-bed Apartment</td><td><strong>AED 800</strong></td><td>Floor plan, levels, coords, DWG + PDF</td><td>Same day</td></tr>
+  <tr><td>2–3 Bed Apartment / Townhouse</td><td><strong>AED 1,000</strong></td><td>Full drawing, deviation table, DWG + PDF</td><td>Same day</td></tr>
+  <tr><td>Villa G+1</td><td><strong>AED 1,200</strong></td><td>All floors, levels, coordinate list</td><td>Same day</td></tr>
+  <tr><td>Villa G+2 / G+3</td><td><strong>AED 1,800</strong></td><td>All floors + roof + external, DWG+PDF+CSV</td><td>24 hrs</td></tr>
+  <tr><td>Mid-Rise Building (G+5)</td><td><strong>AED 2,500</strong></td><td>All floors, podium, roof + full coord schedule</td><td>1–2 days</td></tr>
+  <tr><td>High-Rise Tower</td><td>From AED 8,000</td><td>Custom scope — call for quote</td><td>3–5 days</td></tr>
+  <tr><td>Road / Drainage (per km)</td><td><strong>AED 2,500</strong></td><td>Alignment, levels, manholes, DWG + PDF</td><td>24–48 hrs</td></tr>
 </table>
-<p>Sky TerraEye delivers all as-built drawings in AutoCAD DWG, PDF and coordinate list formats. <a href="/contact.html">Contact us</a> for a fixed-price quote within 2 hours.</p>
 
-<div class="callout"><p><strong>DM Submission Tip:</strong> Always request your as-built drawings in DWG format with correct layer naming as required by Dubai Municipality. Sky TerraEye delivers all files formatted to DM standards — our first-time submission pass rate is 99%. Call <a href="tel:+971503091162">+971 50 309 1162</a>.</p></div>
+<div class="tip-box">
+  <div class="tb-title">&#128161; Money-Saving Tip</div>
+  <p>Book your as-built survey the same day your concrete pour finishes — while columns and walls are freshly marked and easy to access. Waiting weeks later when the site is plastered or cluttered adds time and cost. Sky TerraEye can mobilise within 24 hours of your call.</p>
+</div>
 
-<h2>As-Built Survey Deliverables</h2>
-<p>Sky TerraEye provides complete as-built documentation including:</p>
+<h2>What DM Checks in Your As-Built Drawing</h2>
+<p>After seeing dozens of rejected drawings from other surveyors, here is the complete DM checklist:</p>
 <ul>
-  <li><strong>AutoCAD DWG File</strong> — formatted to DM layer standards, fully annotated with coordinates, levels and dimensions</li>
-  <li><strong>PDF Drawing</strong> — A1 or A3 size with title block, scale and survey details</li>
-  <li><strong>Coordinate Schedule</strong> — Excel or CSV list of all measured points with northings, eastings and reduced levels</li>
-  <li><strong>Deviation Table</strong> — design vs actual comparison for all structural elements</li>
-  <li><strong>Survey Report</strong> — methodology, instrument details, control point information and QA certification</li>
+  <li><strong>Coordinate system:</strong> WGS84 datum, UTM Zone 40N projection, EGM2008 heights — all three required</li>
+  <li><strong>Control points:</strong> Survey must reference DM-registered primary control points</li>
+  <li><strong>Deviation table:</strong> Design vs actual for all structural elements — not just the actual coordinates</li>
+  <li><strong>Floor levels:</strong> Finished floor levels (FFL) at minimum every 10m across each slab</li>
+  <li><strong>DWG layer naming:</strong> Must follow DM Spatial Data layer standards — not AutoCAD defaults</li>
+  <li><strong>Surveyor stamp:</strong> Licensed surveyor&rsquo;s certification stamp on every drawing sheet</li>
+  <li><strong>Title block:</strong> Project number, date, scale, north point, coordinate system note</li>
 </ul>
 
-<h2>Why Choose Sky TerraEye for As-Built Surveys in Dubai?</h2>
-<p>Sky TerraEye has completed <strong>hundreds of as-built surveys in Dubai</strong> across residential villas, apartment towers, commercial buildings, roads and infrastructure projects. Our 99% DM first-time submission pass rate means your project keeps moving without costly re-surveys or rejection delays.</p>
-<p>We use calibrated Leica and Trimble total stations and deliver drawings the same day for residential properties and within 24 hours for most commercial projects.</p>
+<h2>How an As-Built Survey Works — Step by Step</h2>
+<ul class="steps-list">
+  <li><strong>You WhatsApp or call us</strong> — share your project address and approximate floor area. We give you a fixed price within 30 minutes.</li>
+  <li><strong>Our surveyor arrives on site</strong> — with a calibrated Leica or Trimble total station. Usually within 24 hours of your booking.</li>
+  <li><strong>Site control is set up</strong> — we establish or verify control points tied to DM national grid before starting any measurements.</li>
+  <li><strong>We measure all required elements</strong> — columns, walls, slab edges, floor levels, external features. Every point gets a coordinate.</li>
+  <li><strong>Data is processed in our office</strong> — deviations calculated, AutoCAD drawing produced to DM layer standards.</li>
+  <li><strong>You receive all files</strong> — DWG + PDF + CSV coordinate list + deviation table, same day for residential projects.</li>
+</ul>
 
-<div class="faq-sec"><h2>Frequently Asked Questions</h2><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">What is an as-built survey in Dubai?<div class="fq-p">+</div></div><div class="fq-a">An as-built survey documents the actual constructed positions of structural elements after building. It is required by Dubai Municipality for building completion certificates and by developers for project handover and DLD registration.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">How much does an as-built survey cost in Dubai?<div class="fq-p">+</div></div><div class="fq-a">As-built surveys in Dubai start from AED 1,200 for apartments and AED 1,500 for villas. Commercial buildings and infrastructure projects are quoted individually. Sky TerraEye provides free fixed-price quotes within 2 hours — call +971503091162.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">How long does an as-built survey take in Dubai?<div class="fq-p">+</div></div><div class="fq-a">A residential villa or apartment as-built survey typically takes 2-4 hours on site with AutoCAD DWG and PDF drawings delivered the same day. Larger commercial buildings take 1-2 field days with 24-48 hour report turnaround.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">Does Dubai Municipality require as-built surveys?<div class="fq-p">+</div></div><div class="fq-a">Yes. Dubai Municipality requires as-built drawings in WGS84/UTM Zone 40N/EGM2008 for building completion certificates. Sky TerraEye delivers all as-built surveys to DM Spatial Data standards with a 99% first-time pass rate.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">Can I get as-built surveys in Abu Dhabi and Sharjah?<div class="fq-p">+</div></div><div class="fq-a">Yes. Sky TerraEye provides as-built surveys across all seven UAE Emirates. Contact us at +971503091162 for coverage outside Dubai.</div></div></div>
+<div class="msg-cta">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  <div class="msg-cta-text">
+    <strong>Send your drawings — get a price in 30 minutes</strong>
+    <span>WhatsApp your floor plan or site drawings to +971 50 309 1162 and we will quote you immediately. 7 days a week, 7am–6pm.</span>
+  </div>
+  <a href="https://wa.me/971503091162?text=Hello%20I%20need%20an%20as-built%20survey%20for%20my%20project" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp Now</a>
+</div>
+
+<h2>5 Common Reasons DM Rejects As-Built Surveys</h2>
+<ol>
+  <li><strong>Wrong coordinate system</strong> — using local site grid instead of WGS84/UTM Zone 40N. Most common rejection reason.</li>
+  <li><strong>No EGM2008 heights</strong> — GPS heights must be converted to orthometric heights using EGM2008. Many surveyors skip this step.</li>
+  <li><strong>Missing deviation table</strong> — DM wants to see design vs actual. Actual coordinates alone is not enough.</li>
+  <li><strong>Wrong DWG layer naming</strong> — DM has specific layer requirements. Default AutoCAD layers cause rejection.</li>
+  <li><strong>No independent control check</strong> — survey not tied to registered DM control points.</li>
+</ol>
+<p>Sky TerraEye addresses all five automatically on every as-built survey. That is why our DM pass rate is 99%.</p>
+
+<div class="faq-sec"><h2>Frequently Asked Questions</h2><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">What is an as-built survey in Dubai?<div class="fq-p">+</div></div><div class="fq-a">An as-built survey documents the actual constructed positions of all structural elements after building — compared against the approved design drawings. It is mandatory for Dubai Municipality Building Completion Certificates, DLD registration and developer handover.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">How much does an as-built survey cost in Dubai?<div class="fq-p">+</div></div><div class="fq-a">As-built surveys at Sky TerraEye start from AED 800 for studio/1-bed apartments. Villa surveys start from AED 1,200. Commercial buildings are quoted individually. Fixed price, no hidden fees — call +971503091162 for a quote in 30 minutes.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">How quickly can I get an as-built survey in Dubai?<div class="fq-p">+</div></div><div class="fq-a">Sky TerraEye delivers as-built survey drawings the same day for residential apartments and villas. We can mobilise within 24 hours of your booking. Commercial buildings typically take 1-2 days for field survey plus 24 hours processing.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">Why do as-built surveys get rejected by Dubai Municipality?<div class="fq-p">+</div></div><div class="fq-a">The most common DM rejection reasons are: wrong coordinate system (must be WGS84/UTM Zone 40N/EGM2008), missing deviation table, incorrect DWG layer naming, and survey not tied to DM control points. Sky TerraEye delivers to all DM standards automatically.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">Can I get an as-built survey and as-built drawings on the same day?<div class="fq-p">+</div></div><div class="fq-a">Yes. For residential villas and apartments, Sky TerraEye completes the field survey and delivers AutoCAD DWG + PDF drawings the same day. Call us in the morning and you will have your drawings by evening for most residential properties.</div></div></div>
 <div class="inline-cta">
   <h3>Need a As-Built Survey in Dubai?</h3>
   <p>Sky TerraEye delivers fast, accurate and DM-compliant results. Free fixed-price quote in 2 hours.</p>
@@ -238,7 +320,7 @@ footer{background:var(--navy);color:#94A3B8;padding:48px 40px 24px}
     <a class="ic-btn ic-call" href="tel:+971503091162">&#128222; +971 50 309 1162</a>
   </div>
 </div>
-<div class="rel"><h3>Related Surveying Services in Dubai</h3><div class="rel-g"><a class="rc" href="/land-survey.html"><div class="rc-tag">Land Survey</div><div class="rc-title">Total Station & Land Survey Dubai</div></a><a class="rc" href="/gnss-survey.html"><div class="rc-tag">GNSS</div><div class="rc-title">GNSS GPS RTK Survey Dubai</div></a><a class="rc" href="/blog/setting-out-survey-dubai.html"><div class="rc-tag">Setting Out</div><div class="rc-title">Setting Out Survey Dubai</div></a><a class="rc" href="/blog/total-station-survey-dubai.html"><div class="rc-tag">Total Station</div><div class="rc-title">Total Station Survey Dubai</div></a><a class="rc" href="/terrestrial-scanning.html"><div class="rc-tag">3D Scanning</div><div class="rc-title">3D Laser Scanning Dubai</div></a><a class="rc" href="/utility-mapping.html"><div class="rc-tag">Utility Mapping</div><div class="rc-title">Underground Utility Mapping Dubai</div></a></div></div>
+<div class="rel"><h3>Related Surveying Services in Dubai</h3><div class="rel-g"><a class="rc" href="/land-survey.html"><div class="rc-tag">Land Survey</div>
 </article>
 </div>
 

@@ -131,6 +131,47 @@ footer{background:var(--navy);color:#94A3B8;padding:48px 40px 24px}
 .top-btn:hover{background:var(--blue)}
 .top-btn svg{width:15px;height:15px;color:#fff}
 @media(max-width:768px){.art-out{padding:40px 20px}.pg-hero{padding:100px 20px 48px}.cta-band{padding:12px 20px}#nav{padding:0 20px}}
+
+.price-box{background:linear-gradient(135deg,#EFF6FF,#DBEAFE);border:2px solid #3B82F6;border-radius:12px;padding:24px 28px;margin:28px 0;text-align:center}
+.price-box .pb-from{font-size:12px;font-weight:700;color:#1D4ED8;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
+.price-box .pb-price{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;color:#0A2540;line-height:1;margin-bottom:6px}
+.price-box .pb-price small{font-size:20px;font-weight:600;color:#1D4ED8}
+.price-box .pb-note{font-size:13px;color:#1E40AF;margin-bottom:18px;line-height:1.55}
+.price-box .pb-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.pb-btn{background:#0066CC;color:#fff;font-weight:700;font-size:13.5px;padding:11px 22px;border-radius:6px;text-decoration:none;transition:.2s;display:inline-flex;align-items:center;gap:6px}
+.pb-btn:hover{background:#0052A3}
+.pb-wa{background:#25D366!important}
+.pb-wa:hover{background:#1EBD59!important}
+.learn-box{background:#F0FFF4;border-left:4px solid #10B981;border-radius:0 8px 8px 0;padding:18px 22px;margin:28px 0}
+.learn-box .lb-title{font-size:11px;font-weight:700;color:#065F46;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.learn-box p{margin:0;color:#064E3B;font-size:15px;line-height:1.72}
+.tip-box{background:#FFFBEB;border-left:4px solid #F59E0B;border-radius:0 8px 8px 0;padding:18px 22px;margin:28px 0}
+.tip-box .tb-title{font-size:11px;font-weight:700;color:#92400E;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
+.tip-box p{margin:0;color:#78350F;font-size:15px;line-height:1.72}
+.steps-list{counter-reset:steps;list-style:none;padding:0;margin:16px 0}
+.steps-list li{counter-increment:steps;display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid #E4E9F0;font-size:15px;color:#627283;line-height:1.65}
+.steps-list li:last-child{border-bottom:none}
+.steps-list li::before{content:counter(steps);width:32px;height:32px;background:#0066CC;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;margin-top:1px}
+.fact-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:20px 0}
+@media(max-width:580px){.fact-grid{grid-template-columns:1fr}}
+.fact-card{background:#F7F9FC;border:1px solid #E4E9F0;border-radius:8px;padding:16px;text-align:center}
+.fact-card .fc-num{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#0066CC;line-height:1}
+.fact-card .fc-lbl{font-size:12.5px;color:#627283;margin-top:4px;line-height:1.45}
+.msg-cta{background:#fff;border:2px solid #25D366;border-radius:12px;padding:20px 24px;margin:28px 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.msg-cta svg{width:34px;height:34px;color:#25D366;flex-shrink:0}
+.msg-cta-text{flex:1;min-width:200px}
+.msg-cta-text strong{display:block;font-size:15.5px;color:#0A2540;margin-bottom:3px;font-family:'Syne',sans-serif}
+.msg-cta-text span{font-size:13.5px;color:#627283;line-height:1.55}
+.msg-cta a{background:#25D366;color:#fff;font-weight:700;font-size:13.5px;padding:11px 20px;border-radius:6px;text-decoration:none;white-space:nowrap;transition:.2s;display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
+.msg-cta a:hover{background:#1EBD59}
+.compare-box{background:#fff;border:1px solid #E4E9F0;border-radius:10px;overflow:hidden;margin:24px 0}
+.compare-box table{margin:0;width:100%}
+.compare-box th{background:#0A2540;color:#fff;padding:12px 14px;font-size:13px}
+.compare-box td{padding:10px 14px;font-size:13.5px}
+.compare-box tr:nth-child(even) td{background:#F7F9FC}
+.c-yes{color:#10B981;font-weight:700}
+.c-no{color:#EF4444}
+
 </style>
 </head>
 <body>
@@ -172,68 +213,95 @@ footer{background:var(--navy);color:#94A3B8;padding:48px 40px 24px}
 <div class="art-out">
 <article class="art">
 
-<p>A <strong>topographic survey in Dubai</strong> creates a detailed map of an existing site showing ground levels (contours and spot heights), natural features, existing structures, roads, utilities and other planimetric detail. It is the essential first step for any construction, development, infrastructure or masterplan project in the UAE.</p>
+<p>A <strong>topographic survey in Dubai</strong> is the essential first step before any construction project, design or DM planning submission. It shows your engineer and architect the exact ground levels, existing features and boundaries of your site — before a single brick is laid or a line is drawn.</p>
+<p>Without a proper topo survey, engineers are designing blind. We have seen Dubai projects where earthworks costs doubled because the design was based on guessed levels. A AED 900 survey would have prevented a AED 60,000 problem.</p>
 
-<h2>What is a Topographic Survey?</h2>
-<p>A topographic survey — sometimes called a topo survey, terrain survey or site survey — uses a <strong>total station and/or GNSS RTK rover</strong> to measure thousands of points across a site at regular intervals. These points are then processed to generate contour lines, spot heights, a digital terrain model (DTM) and a full planimetric drawing of everything on and adjacent to the site.</p>
-<p>In Dubai, topographic surveys are used by architects and civil engineers as the base drawing for design, by contractors for earthworks planning and by authorities for masterplan and infrastructure approvals.</p>
+<div class="price-box">
+  <div class="pb-from">Topographic Survey Starting From</div>
+  <div class="pb-price"><small>AED </small>900</div>
+  <div class="pb-note">Villa plot up to 1,000 sqm &bull; Contours + spot levels + DWG + PDF &bull; 24-hour delivery</div>
+  <div class="pb-btns">
+    <a class="pb-btn pb-wa" href="https://wa.me/971503091162?text=Hello%20I%20need%20a%20topographic%20survey%20in%20Dubai" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp for a Quote</a>
+    <a class="pb-btn" href="tel:+971503091162">&#128222; +971 50 309 1162</a>
+  </div>
+</div>
 
-<h2>What Does a Topographic Survey Include?</h2>
+<h2>What is a Topographic Survey — Explained Simply</h2>
+<p>A topo survey is like a 3D photograph of your site converted into a drawing. Instead of just showing the outline of the land, it shows the <em>height</em> of every point across the site by measuring thousands of ground points with a total station or GNSS rover.</p>
+<p>The result is a drawing with:</p>
 <ul>
-  <li><strong>Spot heights and contours</strong> — ground levels at regular grid intervals, typically 0.5m or 1m contours</li>
-  <li><strong>Existing structures</strong> — buildings, boundary walls, fences and hard surfaces</li>
-  <li><strong>Roads and kerbs</strong> — road edges, kerb lines, footpaths and carriageway levels</li>
-  <li><strong>Trees and vegetation</strong> — positions and trunk sizes of significant trees</li>
-  <li><strong>Visible utilities</strong> — manhole covers, valve boxes, cable markers and street furniture</li>
-  <li><strong>Boundary information</strong> — plot boundaries, fencing and gates</li>
-  <li><strong>Digital Terrain Model (DTM)</strong> — 3D surface model of the existing ground for earthworks calculation</li>
+  <li><strong>Contour lines</strong> — lines joining equal-height points (like the rings on a hill). In Dubai we produce 0.25m or 0.5m contours.</li>
+  <li><strong>Spot heights</strong> — individual level readings at key points like building corners and drain covers</li>
+  <li><strong>Site features</strong> — existing buildings, walls, trees, roads, kerbs, utilities, boundaries</li>
+  <li><strong>DTM</strong> — a 3D digital surface model for earthworks calculations and drainage design</li>
 </ul>
 
-<h2>Topographic Survey Cost in Dubai (2026)</h2>
-<table>
-  <tr><th>Site Area</th><th>Starting Cost (AED)</th><th>Delivery</th></tr>
-  <tr><td>Up to 1,000 sqm (villa plot)</td><td>AED 1,200</td><td>24 hrs</td></tr>
-  <tr><td>1,000 &ndash; 5,000 sqm</td><td>AED 2,000</td><td>24&ndash;48 hrs</td></tr>
-  <tr><td>5,000 &ndash; 20,000 sqm</td><td>AED 3,500</td><td>2&ndash;3 days</td></tr>
-  <tr><td>20,000 &ndash; 50,000 sqm</td><td>AED 6,000</td><td>3&ndash;5 days</td></tr>
-  <tr><td>50,000+ sqm (large sites)</td><td>POA</td><td>By agreement</td></tr>
-</table>
-<p>All prices include field survey, data processing, AutoCAD DWG, PDF and DTM files. <a href="/contact.html">Contact Sky TerraEye</a> for a free quote.</p>
+<div class="learn-box">
+  <div class="lb-title">&#127891; How to Read a Topographic Survey Drawing</div>
+  <p><strong>Contour lines close together = steep slope.</strong> Contour lines far apart = gentle slope. The number on each contour line is the reduced level (height above mean sea level) in EGM2008 datum. In Dubai, most ground levels fall between +1.0m and +10.0m RL. Your road level at the site boundary is the critical number — your engineer uses this to set your finished floor level (usually +0.15m to +0.30m above road level minimum).</p>
+</div>
 
-<div class="callout"><p><strong>Drone Option:</strong> For large sites over 10 hectares, Sky TerraEye can use <a href="/aerial-survey.html">drone photogrammetry</a> for faster and more cost-effective topographic mapping. Ask about our combined ground + aerial survey option when you request a quote.</p></div>
-
-<h2>Topographic Survey Accuracy in Dubai</h2>
-<p>Topographic surveys in Dubai should meet the following accuracy standards for DM and authority submissions:</p>
-<table>
-  <tr><th>Survey Class</th><th>Horizontal Accuracy</th><th>Vertical Accuracy</th></tr>
-  <tr><td>Detailed Topo (urban)</td><td>&plusmn;50mm</td><td>&plusmn;30mm</td></tr>
-  <tr><td>Engineering Topo</td><td>&plusmn;20mm</td><td>&plusmn;15mm</td></tr>
-  <tr><td>Infrastructure Design</td><td>&plusmn;10mm</td><td>&plusmn;10mm</td></tr>
-</table>
-<p>Sky TerraEye uses Leica and Trimble total stations and GNSS RTK receivers to achieve and exceed these accuracy standards on all topographic survey projects in Dubai.</p>
-
-<h2>When Do You Need a Topographic Survey in Dubai?</h2>
+<h2>When You Need a Topographic Survey in Dubai</h2>
 <ul>
-  <li>Before submitting a planning application to Dubai Municipality</li>
-  <li>Before appointing a structural or civil engineer for design</li>
-  <li>For earthworks volume calculations and cut/fill design</li>
-  <li>For drainage and road design</li>
-  <li>Before purchasing land — to verify levels, boundaries and existing features</li>
-  <li>For masterplan development and urban planning submissions</li>
-  <li>Before drone surveys — topographic ground control points are required</li>
+  <li><strong>Before appointing an architect</strong> — they cannot start without knowing the levels</li>
+  <li><strong>Before DM planning submission</strong> — DM requires a topographic base for site plans</li>
+  <li><strong>Before earthworks tendering</strong> — calculate exact cut/fill volumes before pricing</li>
+  <li><strong>Before drainage design</strong> — understand natural fall direction and catchment</li>
+  <li><strong>Before buying land</strong> — confirm levels, features and any encroachments</li>
+  <li><strong>For masterplan development</strong> — large-scale topo for whole communities</li>
 </ul>
 
-<h2>Topographic Survey Process at Sky TerraEye</h2>
-<ol>
-  <li><strong>Quote &amp; Planning</strong> — we review your site area and provide a fixed price within 2 hours</li>
-  <li><strong>Control Setup</strong> — GNSS control points are established across the site tied to DM datum</li>
-  <li><strong>Field Survey</strong> — total station or GNSS RTK used to collect ground points, features and levels at required density</li>
-  <li><strong>Data Processing</strong> — field data processed, contours generated and DTM built</li>
-  <li><strong>CAD Drawing</strong> — full topographic drawing produced in AutoCAD to DM standards</li>
-  <li><strong>Delivery</strong> — DWG, PDF and DTM files delivered within 24&ndash;48 hours</li>
-</ol>
+<h2>Topographic Survey Prices in Dubai (2026)</h2>
+<table>
+  <tr><th>Site Area</th><th>Our Price</th><th>Includes</th><th>Delivery</th></tr>
+  <tr><td>Up to 1,000 sqm (villa plot)</td><td><strong>AED 900</strong></td><td>Contours, spot levels, features, DWG + PDF</td><td>24 hrs</td></tr>
+  <tr><td>1,000 – 3,000 sqm</td><td><strong>AED 1,400</strong></td><td>Full topo + DTM + CSV level list</td><td>24–48 hrs</td></tr>
+  <tr><td>3,000 – 10,000 sqm</td><td><strong>AED 2,500</strong></td><td>Full topo + DTM + volume report option</td><td>48 hrs</td></tr>
+  <tr><td>10,000 – 50,000 sqm</td><td><strong>AED 4,500</strong></td><td>Full survey + DTM + earthworks quantities</td><td>3–5 days</td></tr>
+  <tr><td>50,000+ sqm (drone option)</td><td>From AED 4,500</td><td>Drone photogrammetry + ground control</td><td>5–7 days</td></tr>
+</table>
 
-<div class="faq-sec"><h2>Frequently Asked Questions</h2><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">What is a topographic survey in Dubai?<div class="fq-p">+</div></div><div class="fq-a">A topographic survey maps existing ground levels, contours, structures and features of a site. It is used by architects and engineers as the base drawing for design and by contractors for earthworks planning. Sky TerraEye provides topographic surveys across Dubai and the UAE.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">How much does a topographic survey cost in Dubai?<div class="fq-p">+</div></div><div class="fq-a">Topographic surveys start from AED 1,200 for villa plots up to 1,000 sqm. Larger sites are priced by area. Sky TerraEye provides free fixed-price quotes within 2 hours — call +971503091162 or email info@skyterraeye.com.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">How long does a topographic survey take in Dubai?<div class="fq-p">+</div></div><div class="fq-a">A residential plot topographic survey takes 3-6 hours on site with CAD drawings ready within 24 hours. Larger development sites take 1-3 field days depending on area and required density of survey points.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">Do topographic surveys need to be in WGS84 in Dubai?<div class="fq-p">+</div></div><div class="fq-a">Yes. All topographic surveys in Dubai must be delivered in WGS84 horizontal datum, UTM Zone 40N projection and EGM2008 vertical datum as required by Dubai Municipality Spatial Data standards.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">What deliverables do I get from a topographic survey?<div class="fq-p">+</div></div><div class="fq-a">Sky TerraEye delivers AutoCAD DWG, PDF drawing, CSV spot height list and Digital Terrain Model (DTM) files. All formatted to DM layer standards and ready for direct use by your architect or civil engineer.</div></div></div>
+<div class="tip-box">
+  <div class="tb-title">&#128161; Pro Tip: What to Tell Your Surveyor at Booking</div>
+  <p>Always ask your surveyor to include <strong>visible utility manholes, valve boxes and streetlights</strong> in the topographic survey — it costs nothing extra but saves your M&E engineer multiple site visits. Also confirm you want the <strong>road levels at your site boundary</strong> included — this determines your minimum finished floor level for DM compliance.</p>
+</div>
+
+<h2>What Your Architect Actually Needs from the Topo</h2>
+<p>We work with architects and civil engineers in Dubai every day. Here is what they always ask for — and what we include as standard:</p>
+<ul>
+  <li>DWG in WGS84/UTM Zone 40N/EGM2008 — ready to use directly, correct for DM</li>
+  <li>Contours at 0.25m or 0.5m intervals</li>
+  <li>Spot heights at corners, breaks in gradient and key site features</li>
+  <li>All existing structures with external dimensions</li>
+  <li>Trees with trunk diameter (needed for DM landscape submissions)</li>
+  <li>Road levels at site frontage — critical for designing your gate and finished floor level</li>
+  <li>Plot boundary from DLD title deed coordinates plotted onto the drawing</li>
+</ul>
+
+<div class="msg-cta">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  <div class="msg-cta-text">
+    <strong>Tell us your plot — get a price in 30 minutes</strong>
+    <span>WhatsApp your site location, plot number or address. We quote all Dubai areas same day, 7 days a week.</span>
+  </div>
+  <a href="https://wa.me/971503091162?text=Hello%20I%20need%20a%20topographic%20survey%20for%20my%20plot%20in%20Dubai" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Message Us Now</a>
+</div>
+
+<h2>Ground Survey vs Drone Survey — Which Should You Choose?</h2>
+<div class="compare-box">
+  <table>
+    <tr><th>Feature</th><th>Ground Survey (Total Station/GNSS)</th><th>Drone Photogrammetry</th></tr>
+    <tr><td>Best for</td><td>Plots under 5 hectares</td><td>Large open sites over 5 hectares</td></tr>
+    <tr><td>Accuracy</td><td class="c-yes">±10–30mm ✓</td><td>±25–50mm</td></tr>
+    <tr><td>Built-up / urban areas</td><td class="c-yes">Excellent ✓</td><td>Limited by obstructions</td></tr>
+    <tr><td>Speed on large sites</td><td>Slower</td><td class="c-yes">Much faster ✓</td></tr>
+    <tr><td>Cost for small plots</td><td class="c-yes">More economical ✓</td><td>Higher setup cost</td></tr>
+    <tr><td>Permit required</td><td class="c-yes">None ✓</td><td>GCAA permit may be needed</td></tr>
+  </table>
+</div>
+<p>Sky TerraEye provides both methods and will recommend the right one for your site. For most Dubai villa plots and apartment developments, ground survey is faster, cheaper and more accurate. For large masterplan sites, drone photogrammetry saves significant cost and time.</p>
+
+<div class="faq-sec"><h2>Frequently Asked Questions</h2><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">What is a topographic survey in Dubai?<div class="fq-p">+</div></div><div class="fq-a">A topographic survey maps the existing ground levels, contours, structures and features of a site. It is used by architects and civil engineers as the base drawing for design, and by contractors for earthworks volume calculations. Sky TerraEye provides topographic surveys from AED 900 across Dubai and the UAE.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">How much does a topographic survey cost in Dubai?<div class="fq-p">+</div></div><div class="fq-a">Topographic surveys at Sky TerraEye start from AED 900 for villa plots up to 1,000 sqm. Larger sites are priced by area from AED 1,400. All prices include contour drawing, spot levels, DTM and full DWG + PDF deliverables. Free quote within 30 minutes — call +971503091162.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">What does a topographic survey drawing show?<div class="fq-p">+</div></div><div class="fq-a">A topographic survey drawing shows contour lines (equal-height lines), spot levels, existing buildings and structures, trees, roads, boundaries, utility manholes and other visible features. In Dubai, all levels are in EGM2008 datum as required by Dubai Municipality.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">How long does a topographic survey take in Dubai?<div class="fq-p">+</div></div><div class="fq-a">A residential villa plot topographic survey takes 2-4 hours on site with CAD drawings delivered within 24 hours. Sites up to 10,000 sqm typically take 1 field day. Larger sites are planned individually based on required survey density and access.</div></div><div class="fq"><div class="fq-q" onclick="this.parentElement.classList.toggle('op')">Do I need a topographic survey before building in Dubai?<div class="fq-p">+</div></div><div class="fq-a">Yes. Dubai Municipality requires a topographic base plan for planning submissions, and your architect needs existing ground levels to design correct floor levels and drainage. Without a topo survey you risk earthworks cost overruns and DM planning rejections.</div></div></div>
 <div class="inline-cta">
   <h3>Need a Topographic Survey in Dubai?</h3>
   <p>Sky TerraEye delivers fast, accurate and DM-compliant results. Free fixed-price quote in 2 hours.</p>
@@ -243,7 +311,7 @@ footer{background:var(--navy);color:#94A3B8;padding:48px 40px 24px}
     <a class="ic-btn ic-call" href="tel:+971503091162">&#128222; +971 50 309 1162</a>
   </div>
 </div>
-<div class="rel"><h3>Related Surveying Services in Dubai</h3><div class="rel-g"><a class="rc" href="/land-survey.html"><div class="rc-tag">Land Survey</div><div class="rc-title">Land Survey & Topo Mapping Dubai</div></a><a class="rc" href="/aerial-survey.html"><div class="rc-tag">Aerial Survey</div><div class="rc-title">Aerial Drone Survey Dubai</div></a><a class="rc" href="/blog/as-built-survey-dubai.html"><div class="rc-tag">As-Built</div><div class="rc-title">As-Built Survey Dubai</div></a><a class="rc" href="/blog/total-station-survey-dubai.html"><div class="rc-tag">Total Station</div><div class="rc-title">Total Station Survey Dubai</div></a><a class="rc" href="/gnss-survey.html"><div class="rc-tag">GNSS</div><div class="rc-title">GNSS RTK Survey Dubai</div></a><a class="rc" href="/contact.html"><div class="rc-tag">Get Quote</div><div class="rc-title">Free Quote in 2 Hours</div></a></div></div>
+<div class="rel"><h3>Related Surveying Services in Dubai</h3><div class="rel-g"><a class="rc" href="/land-survey.html"><div class="rc-tag">Land Survey</div>
 </article>
 </div>
 
