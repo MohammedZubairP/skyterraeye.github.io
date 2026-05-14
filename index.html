@@ -256,16 +256,25 @@ section{padding:80px 0}
 .si-ico svg{width:20px;height:20px;color:var(--blue);transition:var(--e)}
 .si-lbl{font-size:11.5px;font-weight:600;color:var(--g800);transition:color var(--e)}
 
-/* ─── SERVICES ROWS ─── */
-.svc-rows{padding:0}
-.svc-row{display:grid;grid-template-columns:1fr 1fr;min-height:520px;border-bottom:1px solid var(--g200)}
-@media(max-width:860px){.svc-row{grid-template-columns:1fr;min-height:auto}}
-.svc-row.rev .svc-anim{order:2}
-.svc-row.rev .svc-txt{order:1}
-.svc-anim{background:#06101E;position:relative;overflow:hidden;min-height:520px}
-@media(max-width:860px){.svc-anim{min-height:280px}}
-.svc-anim canvas{position:absolute;top:0;left:0;width:100% !important;height:100% !important;display:block}
-.svc-albl{position:absolute;bottom:14px;left:14px;background:rgba(2,7,9,.9);backdrop-filter:blur(12px);border:1px solid rgba(59,130,246,.2);color:#60A5FA;font-size:11px;font-weight:600;padding:6px 12px;border-radius:5px;display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;z-index:2}
+/* ─── SERVICES GRID ─── */
+.nsvc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:1100px){.nsvc-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:780px){.nsvc-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.nsvc-grid{grid-template-columns:1fr}}
+.nsvc-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:24px 22px;text-decoration:none;display:flex;flex-direction:column;transition:.25s;cursor:pointer}
+.nsvc-card:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.18);transform:translateY(-4px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.nsvc-icon{width:54px;height:54px;border:1px solid;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.nsvc-tag{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#60A5FA;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);padding:3px 9px;border-radius:999px;display:inline-block;margin-bottom:10px;width:fit-content}
+.nsvc-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#fff;margin-bottom:8px;line-height:1.3}
+.nsvc-desc{font-size:13.5px;color:#64748B;line-height:1.65;margin-bottom:14px;flex:1}
+.nsvc-pills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px}
+.nsvc-pills span{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#94A3B8;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px}
+.nsvc-footer{display:flex;align-items:center;justify-content:flex-end;padding-top:14px;border-top:1px solid rgba(255,255,255,.07);margin-top:auto}
+
+.nsvc-arr{width:28px;height:28px;background:rgba(255,255,255,.08);border-radius:50%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);font-size:14px;transition:.2s}
+.nsvc-card:hover .nsvc-arr{background:var(--blue);color:#fff}
+.nsvc-cta-card{background:linear-gradient(135deg,rgba(0,102,204,.2),rgba(0,102,204,.08));border:1px solid rgba(0,102,204,.3);border-radius:12px;padding:28px 22px;display:flex;flex-direction:column;justify-content:center}
+/* removed */
 .svc-albl::before{content:'';width:5px;height:5px;border-radius:50%;background:#3B82F6;animation:blink 1.8s infinite;flex-shrink:0}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 .svc-txt{padding:44px 48px;display:flex;flex-direction:column;justify-content:center;background:#fff}
@@ -571,90 +580,161 @@ select.finput{background:#fff;cursor:pointer;appearance:none;background-image:ur
         <div class="eyebrow">Company Profile</div>
         <h2 class="about-txt" style="font-size:clamp(24px,3vw,36px);font-weight:800;color:var(--navy);margin-bottom:16px">Welcome to <strong>Sky TerraEye</strong></h2>
         <p style="font-size:15.5px;color:var(--g600);line-height:1.75;margin-bottom:14px">Sky TerraEye is one of Dubai&rsquo;s leading professional land surveying companies. We strive to deliver a tailored and experienced service every time &mdash; no matter what size your project is. Whether you are a developer requiring construction control or a contractor needing setting-out support, we provide a complete, hassle-free solution.</p>
-        <p style="font-size:15.5px;color:var(--g600);line-height:1.75;margin-bottom:14px">From topographic surveys and GNSS control networks through to 3D laser scanning, utility mapping and structural monitoring, our team ensures seamless progression of your project and full compliance with Dubai Municipality standards.</p>
-        <div class="checks">
-          <div class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Dubai Municipality Compliant</div>
-          <div class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>WGS84 / UTM Zone 40N</div>
-          <div class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Leica &amp; Trimble Equipment</div>
-          <div class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>EGM2008 Height Datum</div>
-          <div class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>24-Hour Turnaround</div>
-          <div class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>500+ Projects Completed</div>
-        </div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap">
-          <a class="btn-blue" href="about.html">Read More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-          <a class="btn-ol" href="contact.html">Contact Us</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-<!-- SERVICES HEADER - Clean white section -->
-<section style="background:#fff;padding:72px 0 32px 0" id="services">
+        <p style="font-size:15.5px;color:var(--g600);line-height:1.75;margin-bottom:14px">From topographic surveys and GNSS control networks through to 3D laser scanning, utility mappin<!-- ═══ SERVICES SECTION — REDESIGNED ═══ -->
+<section id="services" style="background:var(--navy);padding:80px 0">
   <div class="wrap">
-    <div class="sec-head c fi">
-      <div class="eyebrow">Our Services</div>
-      <h2 class="sec-h">Core Surveying Services in Dubai</h2>
-      <p class="sec-p">Professional fieldwork, calibrated instruments and submission-ready CAD deliverables — every time.</p>
+
+    <!-- Section Header -->
+    <div style="text-align:center;margin-bottom:52px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#60A5FA;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px">
+        <span style="width:28px;height:2px;background:#60A5FA;border-radius:1px;display:block"></span>
+        Our Services
+        <span style="width:28px;height:2px;background:#60A5FA;border-radius:1px;display:block"></span>
+      </div>
+      <h2 style="font-family:'Syne',sans-serif;font-size:clamp(28px,3.5vw,42px);font-weight:800;color:#fff;margin-bottom:14px;letter-spacing:-.5px">Core Surveying Services in Dubai</h2>
+      <p style="font-size:16.5px;color:#64748B;max-width:560px;margin:0 auto;line-height:1.72">Professional fieldwork, calibrated instruments and submission-ready CAD deliverables — every time.</p>
     </div>
+
+    <!-- Services Grid -->
+    <div class="nsvc-grid">
+
+      <!-- 1 - Land Survey -->
+      <a class="nsvc-card" href="land-survey.html">
+        <div class="nsvc-icon" style="background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.25)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" width="26" height="26"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M1 12h4M19 12h4"/></svg>
+        </div>
+        <div class="nsvc-tag">Most Requested</div>
+        <div class="nsvc-title">Total Station &amp; Land Survey</div>
+        <div class="nsvc-desc">Topographic mapping, boundary surveys, as-built documentation and construction control — all DM compliant.</div>
+        <div class="nsvc-pills">
+          <span>Topographic</span><span>As-Built</span><span>Setting Out</span><span>Boundary</span>
+        </div>
+        <div class="nsvc-footer">
+          <div class="nsvc-arr">&#8594;</div>
+        </div>
+      </a>
+
+      <!-- 2 - Aerial Survey -->
+      <a class="nsvc-card" href="aerial-survey.html">
+        <div class="nsvc-icon" style="background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.25)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2" width="26" height="26"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="nsvc-tag" style="color:#34D399;background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.2)">Drone &amp; UAV</div>
+        <div class="nsvc-title">Aerial Survey &amp; Drone Mapping</div>
+        <div class="nsvc-desc">Survey-grade drone photogrammetry for large sites. Orthophoto, DTM, volume reports and 3D models.</div>
+        <div class="nsvc-pills">
+          <span>Photogrammetry</span><span>Quarry Volumes</span><span>Progress Survey</span>
+        </div>
+        <div class="nsvc-footer">
+          <div class="nsvc-arr">&#8594;</div>
+        </div>
+      </a>
+
+      <!-- 3 - 3D Scanning -->
+      <a class="nsvc-card" href="terrestrial-scanning.html">
+        <div class="nsvc-icon" style="background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.25)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2" width="26" height="26"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/><path d="M3 9h2M3 15h2M19 9h2M19 15h2M9 3v2M15 3v2M9 19v2M15 19v2"/></svg>
+        </div>
+        <div class="nsvc-tag" style="color:#A78BFA;background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.2)">BIM Ready</div>
+        <div class="nsvc-title">3D Laser Scanning &amp; BIM</div>
+        <div class="nsvc-desc">Millimetre-accurate point clouds of any building. Scan-to-BIM in Revit at any Level of Detail.</div>
+        <div class="nsvc-pills">
+          <span>Point Cloud</span><span>Scan-to-BIM</span><span>Revit/DWG</span>
+        </div>
+        <div class="nsvc-footer">
+          <div class="nsvc-arr">&#8594;</div>
+        </div>
+      </a>
+
+      <!-- 4 - Utility Mapping -->
+      <a class="nsvc-card" href="utility-mapping.html">
+        <div class="nsvc-icon" style="background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.25)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2" width="26" height="26"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <div class="nsvc-tag" style="color:#FBBF24;background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.2)">Safety Critical</div>
+        <div class="nsvc-title">Utility Mapping &amp; GPR</div>
+        <div class="nsvc-desc">Detect all underground utilities before excavation using GPR and radio detection. Prevent costly strikes.</div>
+        <div class="nsvc-pills">
+          <span>GPR Survey</span><span>Radio Detection</span><span>CCTV Drain</span>
+        </div>
+        <div class="nsvc-footer">
+          <div class="nsvc-arr">&#8594;</div>
+        </div>
+      </a>
+
+      <!-- 5 - Monitoring -->
+      <a class="nsvc-card" href="monitoring-services.html">
+        <div class="nsvc-icon" style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.25)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="2" width="26" height="26"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="nsvc-tag" style="color:#F87171;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.2)">24/7 Alerts</div>
+        <div class="nsvc-title">Structural Monitoring</div>
+        <div class="nsvc-desc">Settlement and deformation monitoring for buildings and infrastructure. Real-time data with alarm thresholds.</div>
+        <div class="nsvc-pills">
+          <span>Settlement</span><span>Dilapidation</span><span>Automated</span>
+        </div>
+        <div class="nsvc-footer">
+          <div class="nsvc-arr">&#8594;</div>
+        </div>
+      </a>
+
+      <!-- 6 - GNSS -->
+      <a class="nsvc-card" href="gnss-survey.html">
+        <div class="nsvc-icon" style="background:rgba(20,184,166,.12);border-color:rgba(20,184,166,.25)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2" width="26" height="26"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <div class="nsvc-tag" style="color:#2DD4BF;background:rgba(20,184,166,.1);border-color:rgba(20,184,166,.2)">±10mm Accuracy</div>
+        <div class="nsvc-title">GNSS / GPS RTK Survey</div>
+        <div class="nsvc-desc">Network RTK control networks in WGS84/UTM Zone 40N/EGM2008 for large sites and precise positioning.</div>
+        <div class="nsvc-pills">
+          <span>Network RTK</span><span>Control Networks</span><span>DM Compliant</span>
+        </div>
+        <div class="nsvc-footer">
+          <div class="nsvc-arr">&#8594;</div>
+        </div>
+      </a>
+
+      <!-- 7 - Traffic -->
+      <a class="nsvc-card" href="traffic-survey.html">
+        <div class="nsvc-icon" style="background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.25)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#FB923C" stroke-width="2" width="26" height="26"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+        </div>
+        <div class="nsvc-tag" style="color:#FB923C;background:rgba(249,115,22,.1);border-color:rgba(249,115,22,.2)">RTA Approved</div>
+        <div class="nsvc-title">Traffic Survey &amp; TIS</div>
+        <div class="nsvc-desc">RTA-approved traffic counts, turning movement surveys and Traffic Impact Studies for development approvals.</div>
+        <div class="nsvc-pills">
+          <span>Manual Count</span><span>ATC Survey</span><span>TIS Data</span>
+        </div>
+        <div class="nsvc-footer">
+          <div class="nsvc-arr">&#8594;</div>
+        </div>
+      </a>
+
+      <!-- CTA Card -->
+      <div class="nsvc-cta-card">
+        <div style="font-size:36px;margin-bottom:12px">&#128222;</div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;margin-bottom:10px">Need a Quote?</div>
+        <div style="font-size:14px;color:#64748B;line-height:1.65;margin-bottom:20px">Free fixed-price quote within 30 minutes. All 7 UAE Emirates covered. 500+ projects completed.</div>
+        <a href="contact.html" style="display:block;background:var(--blue);color:#fff;font-weight:700;font-size:14px;padding:12px 20px;border-radius:7px;text-align:center;margin-bottom:10px;text-decoration:none;transition:.2s">Get a Free Quote</a>
+        <a href="https://wa.me/971503091162?text=Hello%20I%20need%20a%20survey%20quote" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:7px;background:#25D366;color:#fff;font-weight:700;font-size:14px;padding:12px 20px;border-radius:7px;text-decoration:none;transition:.2s">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp Now
+        </a>
+        <div style="font-size:12px;color:#374151;text-align:center;margin-top:14px">Mon–Sat 7am–6pm &bull; WhatsApp 7 days</div>
+      </div>
+
+    </div><!-- end grid -->
+
+    <!-- All services link -->
+    <div style="text-align:center;margin-top:44px">
+      <a href="services.html" style="display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.75);font-size:14px;font-weight:600;padding:13px 28px;border-radius:7px;transition:.2s;text-decoration:none">
+        View All Services &amp; Prices
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+
   </div>
-</section>
-<section class="svc-rows" style="padding:0">
-<div class="svc-row">
-  <div class="svc-anim"><canvas id="sc1" width="800" height="450"></canvas><div class="svc-albl">Total Station Survey</div></div>
-  <div class="svc-txt fi">
-    <div class="tag">Land Survey</div>
-    <h3>Topographic, Boundary &amp; Construction Surveys</h3>
-    <p>From topographic and boundary surveys to construction layout and as-built documentation, Sky TerraEye delivers complete land survey solutions across Dubai and the UAE. All deliverables meet DM Spatial Data standards.</p>
-    <div class="pills"><span class="pill">Topographic Mapping</span><span class="pill">Contour Survey</span><span class="pill">Boundary Pegging</span><span class="pill">As-Built Survey</span><span class="pill">Setting Out</span><span class="pill">Control Networks</span><span class="pill">GIS Mapping</span><span class="pill">Data Processing</span></div>
-    <a class="btn-blue" style="display:inline-flex;width:auto" href="land-survey.html">View Full Service <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-  </div>
-</div>
-<div class="svc-row rev">
-  <div class="svc-anim"><canvas id="sc4" width="800" height="450"></canvas><div class="svc-albl">GNSS &amp; Aerial Survey</div></div>
-  <div class="svc-txt fi">
-    <div class="tag">Aerial Survey</div>
-    <h3>Drone Mapping &amp; Photogrammetric Survey</h3>
-    <p>Sky TerraEye uses advanced drone solutions to deliver fast, accurate aerial surveys. Our capabilities cover survey-grade mapping, quarry inspection, shoreline mapping, power line modelling and asset inspection. GCAA compliant.</p>
-    <div class="pills"><span class="pill">Drone Survey</span><span class="pill">Photogrammetry</span><span class="pill">Quarry Volumetrics</span><span class="pill">Asset Inspection</span><span class="pill">Shoreline Mapping</span><span class="pill">Power Line Modelling</span></div>
-    <a class="btn-blue" style="display:inline-flex;width:auto" href="aerial-survey.html">View Full Service <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-  </div>
-</div>
-<div class="svc-row">
-  <div class="svc-anim"><canvas id="cv1" width="800" height="450"></canvas><div class="svc-albl">3D Laser Scanning</div></div>
-  <div class="svc-txt fi">
-    <div class="tag">Terrestrial Scanning</div>
-    <h3>3D Laser Scanning, Point Cloud &amp; BIM</h3>
-    <p>Laser scanning captures 3D point clouds using mobile mapping systems and terrestrial laser scanners. We create 3D models in any format or Level of Detail (LOD) for civil, construction and industrial projects across the UAE.</p>
-    <div class="pills"><span class="pill">3D Laser Scanning</span><span class="pill">3D Modelling</span><span class="pill">BIM / Revit</span><span class="pill">Mobile Mapper</span><span class="pill">Point Cloud Processing</span><span class="pill">As-Built 3D</span></div>
-    <a class="btn-blue" style="display:inline-flex;width:auto" href="terrestrial-scanning.html">View Full Service <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-  </div>
-</div>
-<div class="svc-row rev">
-  <div class="svc-anim"><canvas id="sc5" width="800" height="450"></canvas><div class="svc-albl">Utility Detection</div></div>
-  <div class="svc-txt fi">
-    <div class="tag">Utility Mapping</div>
-    <h3>Underground Utility Detection, GPR &amp; Mapping</h3>
-    <p>We identify and map underground utilities including telecoms, electricity, gas, water and waste water using state-of-the-art GPR and radio detection equipment. Protect your project from costly subsurface conflicts.</p>
-    <div class="pills"><span class="pill">GPR Surveys</span><span class="pill">Radio Detection</span><span class="pill">CCTV Drain Surveys</span><span class="pill">Drainage Surveys</span><span class="pill">Conflict Analysis</span><span class="pill">BIM Integration</span></div>
-    <a class="btn-blue" style="display:inline-flex;width:auto" href="utility-mapping.html">View Full Service <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-  </div>
-</div>
-<div class="svc-row">
-  <div class="svc-anim"><canvas id="cv3" width="800" height="450"></canvas><div class="svc-albl">Structural Monitoring</div></div>
-  <div class="svc-txt fi">
-    <div class="tag">Monitoring Services</div>
-    <h3>Structural Settlement &amp; Deformation Monitoring</h3>
-    <p>Our monitoring solutions provide precise measurement of settlement and movement in buildings and structures. Onsite sensor installation with optional online connectivity gives you real-time access to data from anywhere.</p>
-    <div class="pills"><span class="pill">Dilapidation Surveys</span><span class="pill">Settlement Monitoring</span><span class="pill">Bridge Monitoring</span><span class="pill">Deformation Monitoring</span><span class="pill">Automated Monitoring</span><span class="pill">Building Settlement</span></div>
-    <a class="btn-blue" style="display:inline-flex;width:auto" href="monitoring-services.html">View Full Service <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-  </div>
-</div>
-<div class="svc-row rev">
-  <div class="svc-anim"><canvas id="sc2" width="800" height="450"></canvas><div class="svc-albl">GNSS RTK Positioning</div></div>
-  <div class="svc-txt fi">
-    <div class="tag">GNSS / GPS Surveying</div>
-    <h3>Network RTK, Control Networks &amp; GPS Survey</h3>
-    <p>Sky TerraEye provides high-accuracy GNSS RTK surveys for construction control, topographic mapping and boundary demarcation. All work is delivered in WGS84/UTM Zone 40N/EGM2008 per DM standards.</p>
+</section><!-- end services -->
+</p>
     <div class="pills"><span class="pill">Network RTK</span><span class="pill">Control Networks</span><span class="pill">Static Processing</span><span class="pill">Coordinate Transform</span><span class="pill">Boundary Demarcation</span><span class="pill">DM Submission</span></div>
     <a class="btn-blue" style="display:inline-flex;width:auto" href="gnss-survey.html">View Full Service <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
   </div>
