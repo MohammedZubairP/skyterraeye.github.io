@@ -1619,6 +1619,8 @@ let _renderDepth = 0;
 function render() {
   if(_renderDepth > 5) { _renderDepth=0; return; }
   _renderDepth++;
+  // Always clear stale RAF frames
+  if(typeof _rafId!=='undefined'&&_rafId) cancelAnimationFrame(_rafId);
 
   ctx.clearRect(0,0,W,H);
   // Transparent bg when map is active so map shows through
@@ -2628,25 +2630,54 @@ function offsetEnt(e, d) {
     case 'rect':     ne.x=e.x-d; ne.y=e.y-d; ne.w=e.w+2*d; ne.h=e.h+2*d; break;
     case 'polyline': {
       if (!e.pts || e.pts.length < 2) return null;
+      const pts = e.pts;
+      const n2  = pts.length;
+      const closed2 = !!e.closed;
       const newPts = [];
-      for (let i=0; i<e.pts.length; i++) {
-        // Average normals of adjacent segments
-        let nx=0, ny=0, count=0;
-        if (i < e.pts.length-1) {
-          const dxa=e.pts[i+1].x-e.pts[i].x, dya=e.pts[i+1].y-e.pts[i].y;
-          const la=Math.hypot(dxa,dya)||1;
-          nx += -dya/la; ny += dxa/la; count++;
+
+      for (let i = 0; i < n2; i++) {
+        let nx = 0, ny = 0;
+
+        // Segment BEFORE this vertex
+        const iPrev = closed2 ? (i - 1 + n2) % n2 : i - 1;
+        if (closed2 || i > 0) {
+          const dxb = pts[i].x - pts[iPrev].x;
+          const dyb = pts[i].y - pts[iPrev].y;
+          const lb  = Math.hypot(dxb, dyb) || 1;
+          // Inward normal of this segment
+          nx += -dyb / lb;
+          ny +=  dxb / lb;
         }
-        if (i > 0) {
-          const dxb=e.pts[i].x-e.pts[i-1].x, dyb=e.pts[i].y-e.pts[i-1].y;
-          const lb=Math.hypot(dxb,dyb)||1;
-          nx += -dyb/lb; ny += dxb/lb; count++;
+
+        // Segment AFTER this vertex
+        const iNext = closed2 ? (i + 1) % n2 : i + 1;
+        if (closed2 || i < n2 - 1) {
+          const dxa = pts[iNext].x - pts[i].x;
+          const dya = pts[iNext].y - pts[i].y;
+          const la  = Math.hypot(dxa, dya) || 1;
+          nx += -dya / la;
+          ny +=  dxa / la;
         }
-        if (count > 0) { nx/=count; ny/=count; }
-        const nlen=Math.hypot(nx,ny)||1;
-        newPts.push({x: e.pts[i].x+nx/nlen*d, y: e.pts[i].y+ny/nlen*d});
+
+        // Normalise — miter length correction for corners
+        const nlen = Math.hypot(nx, ny) || 1;
+        const ux = nx / nlen, uy = ny / nlen;
+        // Miter limit: prevent very sharp corners from exploding
+        let miterLen = 1;
+        if (closed2 || (i > 0 && i < n2 - 1)) {
+          // Dot product of the two unit normals gives cos(half-angle)
+          // miterLen = 1 / sin(half-angle) ≈ 1/nlen when averaged
+          miterLen = Math.min(d === 0 ? 1 : Math.abs(d) * 4, 1 / Math.max(0.2, nlen / 2));
+        }
+
+        newPts.push({
+          x: pts[i].x + ux * d,
+          y: pts[i].y + uy * d
+        });
       }
-      ne.pts = newPts; break;
+      ne.pts   = newPts;
+      ne.closed = closed2;
+      break;
     }
     case 'acawall':  ne.wallWidth = Math.max(1, (e.wallWidth||200)+2*d); break;
     default: return null;
@@ -2843,32 +2874,69 @@ function applyOp(wp){
   const op=ST.opState;
   if(!op) return;
 
-  // OFFSET: click the entity directly
+  // ── OFFSET — 3-phase AutoCAD workflow ────────────────────────────
+  // Phase A: type distance in DIST field
+  // Phase B: click the entity to offset
+  // Phase C: click WHICH SIDE → offset placed exactly that distance
   if(op.type==='offset'){
     if(!op._pendingEnt){
-      // Phase 1: click entity
-      const tol=12/ST.zoom;
+      // Phase B: click entity
+      const tol=14/ST.zoom;
+      let found=null;
       for(let i=ST.entities.length-1;i>=0;i--){
         const e=ST.entities[i];
-        if(!layVisible(e.layer))continue;
-        if(ptHitsEnt(wp.x,wp.y,e,tol)){
-          op._pendingEnt=e;
-          // Show input bar for distance entry
-          const ibDist=document.getElementById('ibDist');
-          if(ibDist){ibDist.value='';ibDist.placeholder='offset distance…';ibDist.focus();}
-          setMsg('Entity selected — type offset distance in input bar above + Enter  |  ESC=cancel');
-          return;
+        if(!layVisible(e.layer)) continue;
+        if(ptHitsEnt(wp.x,wp.y,e,tol)){ found=e; break; }
+      }
+      if(!found){ toast('Click a line, polyline, circle or arc to offset','warn'); return; }
+      op._pendingEnt=found;
+      if(!op.dist||op.dist<=0){
+        const ibEl=document.getElementById('ibDist');
+        const typed=ibEl?parseFloat(ibEl.value):NaN;
+        if(!isNaN(typed)&&typed>0){ op.dist=typed; }
+        else{
+          const ans=prompt('Offset distance ('+ST.units+'):','1000');
+          if(ans===null){ op._pendingEnt=null; return; }
+          op.dist=Math.abs(parseFloat(ans)||1000);
         }
       }
-      toast('Click an entity to offset first','warn'); return;
+      setMsg('OFFSET '+op.dist.toFixed(2)+' '+ST.units+' — click the SIDE to offset towards | ESC=cancel');
+      return;
     }
-    // Phase 2: distance was typed via input bar (applyOffsetDist) or clicked (use click dist)
-    const dist=op.dist||Math.hypot(wp.x-op._pendingEnt.x1||0,wp.y-op._pendingEnt.y1||0)||50;
-    const ne=offsetEnt(op._pendingEnt,dist);
-    if(ne){pushUndo();ne._id=++ST._eid;ne.selected=false;ST.entities.push(ne);render();toast('Offset '+dist.toFixed(2)+' '+ST.units,'ok');}
-    else toast('Cannot offset this entity type','warn');
-    op._pendingEnt=null; op.dist=null;
-    setMsg('Offset done — click another entity  |  ESC=cancel');
+    // Phase C: click side
+    const ent=op._pendingEnt, dist=op.dist;
+    let sign=1;
+    if(ent.type==='line'){
+      const dx=ent.x2-ent.x1,dy=ent.y2-ent.y1;
+      sign=((wp.x-ent.x1)*dy-(wp.y-ent.y1)*dx)>0?1:-1;
+    } else if(ent.type==='polyline' && ent.pts && ent.pts.length>=2) {
+      if (ent.closed && ent.pts.length >= 3) {
+        // For closed polygon: check if click is inside (offset inward=-1) or outside (+1)
+        // Use ray-casting point-in-polygon
+        var inside = false;
+        var px=wp.x, py=wp.y;
+        for (var ii=0,jj=ent.pts.length-1; ii<ent.pts.length; jj=ii++) {
+          var xi=ent.pts[ii].x, yi=ent.pts[ii].y;
+          var xj=ent.pts[jj].x, yj=ent.pts[jj].y;
+          if (((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi)+xi)) inside=!inside;
+        }
+        sign = inside ? -1 : 1;
+      } else {
+        var p1=ent.pts[0], p2=ent.pts[Math.min(1,ent.pts.length-1)];
+        sign=((wp.x-p1.x)*(p2.y-p1.y)-(wp.y-p1.y)*(p2.x-p1.x))>0?1:-1;
+      }
+    }else if(ent.type==='circle'||ent.type==='arc'){
+      sign=Math.hypot(wp.x-ent.cx,wp.y-ent.cy)>ent.r?1:-1;
+    }
+    const ne=offsetEnt(ent,dist*sign);
+    if(ne){
+      pushUndo(); ne._id=++ST._eid; ne.selected=true; ST.entities.push(ne);
+      invalidateSpatialIndex&&invalidateSpatialIndex();
+      if(typeof renderImmediate==='function') renderImmediate(); else render();
+      toast('Offset '+dist.toFixed(2)+' '+ST.units,'ok');
+    }else toast('Cannot offset this entity type','warn');
+    op._pendingEnt=null;
+    setMsg('OFFSET '+dist.toFixed(2)+' '+ST.units+' — click next entity | ESC=done');
     return;
   }
 
@@ -3515,13 +3583,51 @@ function updateToolUI(tool) {
 
 // ── DELETE ────────────────────────────────────────────────────────
 function delSel() {
-  const b=ST.entities.length;
-  pushUndo();
-  ST.entities=ST.entities.filter(e=>!e.selected);
-  const d=b-ST.entities.length;
-  if(d>0){toast(d+' deleted','ok');setMsg(d+' deleted');}
-  else{toast('Nothing selected','warn');}
-  updateSel(); render();
+  const sels = ST.entities.filter(e => e.selected);
+  if (!sels.length) { toast('Nothing selected','warn'); return; }
+
+  // Snapshot for undo BEFORE mutating entities
+  if (typeof pushUndo === 'function') pushUndo('delete');
+
+  // Remove deleted entities
+  ST.entities = ST.entities.filter(e => !e.selected);
+
+  // Wipe ALL ghost/gizmo/operation state
+  ST.ghostEnt   = null;
+  ST.opState    = null;
+  ST.startPt    = null;
+  ST.drawing    = false;
+  ST._polyPts   = [];
+  ST._polyCursorWP = null;
+  if (typeof hideRotateScaleGizmo === 'function') hideRotateScaleGizmo();
+
+  // Update UI
+  updateSel();
+  const d = sels.length;
+  toast(d + ' deleted', 'ok');
+  setMsg(d + ' deleted');
+
+  // Nuke the spatial index — force full rebuild
+  if (typeof invalidateSpatialIndex === 'function') invalidateSpatialIndex();
+
+  // Cancel any pending RAF, then force-draw the new state immediately
+  var cad2 = document.getElementById('cad');
+  if (cad2) {
+    // Wipe canvas NOW before RAF can fire
+    var ctx2 = cad2.getContext('2d');
+    ctx2.clearRect(0, 0, cad2.width, cad2.height);
+    ctx2.fillStyle = ST.bgColor || '#060E1A';
+    ctx2.fillRect(0, 0, cad2.width, cad2.height);
+  }
+
+  // Then call renderImmediate to redraw cleanly
+  if (typeof renderImmediate === 'function') {
+    renderImmediate();
+    // Second pass after 16ms to ensure RAF wrapper doesn't re-add ghosts
+    setTimeout(function() { renderImmediate(); }, 20);
+  } else {
+    render(); render();
+  }
 }
 
 function groupSel() {
@@ -17933,11 +18039,16 @@ setTimeout(function() {
   var _baseRender3 = window.render;
   window.render = function() {
     if (typeof _baseRender3 === 'function') _baseRender3();
-    drawGrips();
+    // Only draw grips if entities exist and are selected
+    if (ST.entities && ST.entities.some(function(e){return e.selected&&e.pts;})) {
+      drawGrips();
+    }
   };
 
   function drawGrips() {
+    // Skip if nothing selected (avoids ghost grips after delete)
     var sels = ST.entities.filter(function(e){return e.selected&&e.pts&&e.pts.length;});
+    if (!sels.length) return; // nothing to draw
     var cad2 = document.getElementById('cad');
     if (!sels.length || !cad2) { clearGripOverlay(); return; }
 
@@ -19912,13 +20023,7 @@ document.addEventListener('keydown', function(ev) {
     var dels = ST.entities.filter(function(e){return e.selected;});
     if (dels.length) {
       ev.preventDefault();
-      pushUndo && pushUndo('delete');
-      ST.entities = ST.entities.filter(function(e){return !e.selected;});
-      invalidateSpatialIndex && invalidateSpatialIndex();
-      hideRotateScaleGizmo && hideRotateScaleGizmo();
-      // Use renderImmediate so deleted objects disappear instantly
-      if (typeof renderImmediate==='function') renderImmediate();
-      else render();
+      delSel(); // use the main delSel which has proper cleanup
     }
   }
 }, false);
@@ -23617,12 +23722,16 @@ document.addEventListener('keydown', function(ev) {
 // Apply numeric scale from DIST input field
 var _origIbDistEnter = window.ibDistEnter;
 window.ibDistEnter = function(val) {
-  // Handle offset distance
+  // Handle offset distance entry
   if (ST.opState && ST.opState.type==='offset') {
     var d2 = parseFloat(val);
     if (!isNaN(d2) && d2 > 0) {
       ST.opState.dist = d2;
-      setMsg && setMsg('OFFSET: '+d2+' '+ST.units+' — now click entity to offset, then click which side');
+      setMsg && setMsg('OFFSET: '+d2.toFixed(2)+' '+(ST.units||'mm')+' — click entity to offset, then click which side');
+      toast && toast('Offset distance set: '+d2.toFixed(2)+' '+(ST.units||'mm'), 'ok');
+      // Clear input ready for next use
+      var ibEl = document.getElementById('ibDist');
+      if (ibEl) ibEl.placeholder = 'offset distance set ✓';
       return;
     }
   }
