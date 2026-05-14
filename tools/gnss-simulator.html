@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GNSS Survey Simulator Dubai | Satellite Navigation Demo | Sky TerraEye</title>
+<meta name="description" content="Interactive GNSS satellite positioning simulator for Dubai surveys. See how GPS, GLONASS and Galileo satellites combine for RTK accuracy. Free tool by Sky TerraEye.">
+<link rel="canonical" href="https://skyterraeye.com/tools/gnss-simulator.html">
+<meta name="robots" content="index,follow">
+<link rel="icon" href="/assets/img/logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8BSZMNT805"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-8BSZMNT805');</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#030812;color:#E2E8F0;min-height:100vh;padding-top:68px;overflow-x:hidden}
+nav{position:fixed;top:0;left:0;right:0;z-index:999;height:60px;display:flex;align-items:center;padding:0 24px;background:rgba(3,8,18,.96);border-bottom:1px solid rgba(47,126,255,.15);justify-content:space-between}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:#fff;text-decoration:none}.logo b{color:#93C5FD}
+.nc{background:#0066CC;color:#fff;font-weight:700;font-size:13px;padding:8px 16px;border-radius:5px;text-decoration:none}
+.hero{padding:44px 24px 32px;text-align:center;background:radial-gradient(ellipse at 50% 0%, rgba(59,130,246,.15) 0%, transparent 70%)}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(22px,4vw,40px);font-weight:800;color:#fff;margin-bottom:10px}
+.hero p{font-size:16px;color:rgba(255,255,255,.55);max-width:580px;margin:0 auto}
+.main{max-width:1100px;margin:0 auto;padding:20px 18px 60px;display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:start}
+@media(max-width:800px){.main{grid-template-columns:1fr}}
+.sky-canvas{background:#030812;border:1px solid rgba(47,126,255,.15);border-radius:14px;overflow:hidden;position:relative;aspect-ratio:1}
+.sky-canvas canvas{width:100%;height:100%;display:block}
+.panel{display:flex;flex-direction:column;gap:14px}
+.pcard{background:#080F1F;border:1px solid rgba(47,126,255,.12);border-radius:12px;padding:18px}
+.pcard h3{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#93C5FD;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px}
+.sat-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.sat-row:last-child{border-bottom:none}
+.sat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.sat-name{font-size:12.5px;font-family:'IBM Plex Mono',monospace;color:#94A3B8;flex:1}
+.sat-el{font-size:12px;font-family:'IBM Plex Mono',monospace;color:#64748B;width:50px;text-align:right}
+.sat-snr{height:5px;background:rgba(255,255,255,.06);border-radius:3px;flex:1;overflow:hidden;max-width:80px}
+.sat-snr-fill{height:100%;border-radius:3px;transition:width .5s}
+.coord-box{background:rgba(0,0,0,.4);border:1px solid rgba(52,211,153,.2);border-radius:8px;padding:12px;font-family:'IBM Plex Mono',monospace;font-size:13px}
+.cbl{font-size:10px;font-weight:700;color:#64748B;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.cbv{color:#34D399;font-size:14px;font-weight:700}
+.acc-row{display:flex;gap:10px;margin-top:10px}
+.acc-box{flex:1;background:rgba(0,0,0,.4);border:1px solid rgba(96,165,250,.15);border-radius:7px;padding:9px;text-align:center}
+.acc-val{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:#60A5FA}
+.acc-lbl{font-size:10px;color:#64748B;margin-top:2px}
+.fix-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#34D399;font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;margin-top:10px}
+.fix-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:#34D399;animation:fp 1s infinite}
+@keyframes fp{0%,100%{opacity:1}50%{opacity:.3}}
+.ctrl-btn{width:100%;padding:11px;background:#0066CC;color:#fff;font-weight:700;font-size:14px;border:none;border-radius:7px;cursor:pointer;font-family:'Inter',sans-serif;transition:.2s;margin-top:8px}
+.ctrl-btn:hover{background:#0052A3}
+.ctrl-btn.red{background:rgba(239,68,68,.8)} .ctrl-btn.red:hover{background:#DC2626}
+</style>
+</head>
+<body>
+<nav><a class="logo" href="/index.html"><b>SKY</b> TERRAEYE</a><a class="nc" href="/contact.html">Get a Quote</a></nav>
+<div class="hero">
+  <h1>&#127759; GNSS Satellite Simulator</h1>
+  <p>Interactive GNSS sky plot for Dubai. See how GPS, GLONASS, Galileo and BeiDou satellites are used for RTK surveys — and how signal quality affects your coordinate accuracy.</p>
+</div>
+<div class="main">
+  <div class="sky-canvas"><canvas id="skyPlot"></canvas></div>
+  <div class="panel">
+    <div class="pcard">
+      <h3>Fix Status</h3>
+      <div class="coord-box">
+        <div class="cbl">Latitude</div><div class="cbv" id="lat">25.204849° N</div>
+        <div class="cbl" style="margin-top:8px">Longitude</div><div class="cbv" id="lng">55.270782° E</div>
+        <div class="cbl" style="margin-top:8px">Height (EGM2008)</div><div class="cbv" id="ht">+5.823 m</div>
+      </div>
+      <div class="acc-row">
+        <div class="acc-box"><div class="acc-val" id="hacc">±9mm</div><div class="acc-lbl">H-Accuracy</div></div>
+        <div class="acc-box"><div class="acc-val" id="vacc">±14mm</div><div class="acc-lbl">V-Accuracy</div></div>
+        <div class="acc-box"><div class="acc-val" id="sats">0</div><div class="acc-lbl">Satellites</div></div>
+      </div>
+      <div class="fix-badge" id="fixBadge">RTK Fixed</div>
+    </div>
+    <div class="pcard">
+      <h3>Satellites in View</h3>
+      <div id="satList"></div>
+    </div>
+    <div class="pcard">
+      <h3>Controls</h3>
+      <button class="ctrl-btn" onclick="toggleObstruction()">&#127961; Toggle Urban Canyon</button>
+      <button class="ctrl-btn" onclick="addMultipath()">&#128268; Simulate Multipath</button>
+      <button class="ctrl-btn red" onclick="resetSim()">&#8635; Reset</button>
+      <p style="font-size:12px;color:#475569;margin-top:10px;line-height:1.6">Toggle Urban Canyon to simulate how tall buildings in Dubai Marina or Downtown reduce satellite visibility and degrade RTK accuracy — a key challenge in urban GNSS surveys.</p>
+    </div>
+  </div>
+</div>
+<div style="max-width:1100px;margin:0 auto 40px;padding:0 18px">
+  <div style="background:#080F1F;border:1px solid rgba(47,126,255,.12);border-radius:12px;padding:22px">
+    <h3 style="font-family:Syne,sans-serif;font-size:18px;font-weight:800;color:#fff;margin-bottom:12px">&#127891; Understanding GNSS in Dubai</h3>
+    <p style="font-size:14.5px;color:#64748B;line-height:1.75;margin-bottom:10px">This simulator shows a realistic sky plot for Dubai (latitude 25.2°N). In a real <a href="/gnss-survey.html" style="color:#60A5FA">GNSS RTK survey</a>, your receiver connects to the UAE National CORS Network (Continuously Operating Reference Stations) for real-time corrections, achieving <strong>±10mm horizontal</strong> and <strong>±20mm vertical</strong> accuracy.</p>
+    <p style="font-size:14.5px;color:#64748B;line-height:1.75">Click <strong>Toggle Urban Canyon</strong> to see why GNSS surveys near tall buildings in Dubai Marina, Downtown or DIFC are challenging — fewer satellites means higher PDOP and lower accuracy. In these situations, Sky TerraEye uses total stations for localised high-accuracy work, switching to GNSS for open areas.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px">
+      <a href="https://wa.me/971503091162?text=I%20need%20a%20GNSS%20RTK%20survey%20in%20Dubai" target="_blank" style="background:#25D366;color:#fff;font-weight:700;font-size:14px;padding:11px 20px;border-radius:7px;text-decoration:none;display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Quote for GNSS Survey</a>
+      <a href="/blog/gnss-gps-survey-dubai.html" style="background:rgba(59,130,246,.15);color:#60A5FA;font-weight:700;font-size:14px;padding:11px 20px;border-radius:7px;text-decoration:none;border:1px solid rgba(59,130,246,.25)">GNSS Survey Guide</a>
+    </div>
+  </div>
+</div>
+<script>
+var cv=document.getElementById('skyPlot'),cx=cv.getContext('2d');
+var t=0,obstruction=false,multipath=false;
+var CONSTS=[
+  {id:'GPS',color:'#60A5FA',sats:Array.from({length:8},(_,i)=>{return {prn:'G'+(i+1),az:Math.random()*360,el:20+Math.random()*60,snr:35+Math.random()*20};})},
+  {id:'GLONASS',color:'#34D399',sats:Array.from({length:6},(_,i)=>{return {prn:'R'+(i+1),az:Math.random()*360,el:15+Math.random()*55,snr:32+Math.random()*18};})},
+  {id:'Galileo',color:'#F59E0B',sats:Array.from({length:5},(_,i)=>{return {prn:'E'+(i+1),az:Math.random()*360,el:25+Math.random()*50,snr:36+Math.random()*16};})},
+  {id:'BeiDou',color:'#A78BFA',sats:Array.from({length:4},(_,i)=>{return {prn:'C'+(i+1),az:Math.random()*360,el:20+Math.random()*45,snr:30+Math.random()*15};})}
+];
+function resize(){cv.width=cv.offsetWidth;cv.height=cv.offsetHeight;}
+window.addEventListener('resize',resize);resize();
+function inObstruction(az){if(!obstruction)return false;return(az>200&&az<340);}
+function draw(){
+  var W=cv.width,H=cv.height,cx2=W/2,cy2=H/2,R=Math.min(W,H)*.44;
+  cx.fillStyle='#030812';cx.fillRect(0,0,W,H);
+  // Rings
+  [1,.67,.33].forEach(function(r,i){
+    cx.strokeStyle='rgba(47,126,255,0.'+(8-i*2)+')';cx.lineWidth=1;
+    cx.beginPath();cx.arc(cx2,cy2,R*r,0,6.28);cx.stroke();
+  });
+  // Cardinal labels
+  cx.fillStyle='rgba(255,255,255,.4)';cx.font='bold '+(W*.025)+'px Inter,sans-serif';cx.textAlign='center';
+  cx.fillText('N',cx2,cy2-R-.01*W);cx.fillText('S',cx2,cy2+R+.03*W);
+  cx.fillText('E',cx2+R+.02*W,cy2+.01*W);cx.fillText('W',cx2-R-.02*W,cy2+.01*W);
+  // Elevation labels
+  cx.font=(W*.018)+'px IBM Plex Mono,monospace';cx.fillStyle='rgba(255,255,255,.25)';
+  cx.fillText('0°',cx2+R+.01*W,cy2);cx.fillText('30°',cx2+R*.67+.01*W,cy2);cx.fillText('60°',cx2+R*.33+.01*W,cy2);cx.fillText('90°',cx2+.01*W,cy2);
+  cx.textAlign='left';
+  // Urban canyon obstruction
+  if(obstruction){
+    cx.fillStyle='rgba(239,68,68,.12)';cx.beginPath();
+    cx.moveTo(cx2,cy2);
+    for(var a=200;a<=340;a+=2){var ar=(a-90)*Math.PI/180;cx.lineTo(cx2+Math.cos(ar)*R,cy2+Math.sin(ar)*R);}
+    cx.closePath();cx.fill();
+    cx.fillStyle='rgba(239,68,68,.5)';cx.font='bold '+(W*.016)+'px Inter,sans-serif';cx.textAlign='center';
+    cx.fillText('OBSTRUCTED (Buildings)',cx2,cy2+R*.55);cx.textAlign='left';
+  }
+  // Satellites
+  var visible=0,satListHTML='';
+  CONSTS.forEach(function(const_){
+    const_.sats.forEach(function(s){
+      s.az+=(Math.random()-.5)*.3;s.el+=Math.sin(t*.01)*.05;s.snr+=Math.sin(t*.02+s.az)*.5;
+      var blocked=inObstruction(s.az)||(s.el<15&&obstruction&&Math.random()>.4);
+      var mr=multipath&&!blocked&&Math.random()>.7;
+      if(blocked)return;
+      visible++;
+      var ar=(s.az-90)*Math.PI/180;
+      var r=R*(1-s.el/90);
+      var sx=cx2+Math.cos(ar)*r,sy=cy2+Math.sin(ar)*r;
+      var snrNorm=Math.min((s.snr-25)/30,1);
+      cx.fillStyle=mr?'#EF4444':const_.color;
+      cx.beginPath();cx.arc(sx,sy,7,0,6.28);cx.fill();
+      if(mr){cx.strokeStyle='rgba(239,68,68,.5)';cx.lineWidth=2;cx.beginPath();cx.arc(sx,sy,11,0,6.28);cx.stroke();}
+      cx.fillStyle='rgba(255,255,255,.7)';cx.font='bold '+(W*.016)+'px IBM Plex Mono,monospace';cx.textAlign='center';
+      cx.fillText(s.prn,sx,sy-9);cx.textAlign='left';
+      satListHTML+='<div class="sat-row"><div class="sat-dot" style="background:'+const_.color+'"></div><div class="sat-name">'+s.prn+'</div><div class="sat-el">'+s.el.toFixed(0)+'°</div><div class="sat-snr"><div class="sat-snr-fill" style="width:'+Math.round(snrNorm*100)+'%;background:'+const_.color+'"></div></div></div>';
+    });
+  });
+  document.getElementById('sats').textContent=visible;
+  document.getElementById('satList').innerHTML=satListHTML;
+  var hacc=obstruction?'±'+((12+Math.random()*8).toFixed(0))+'mm':'±'+((7+Math.sin(t*.05)*2).toFixed(0))+'mm';
+  var vacc=obstruction?'±'+((20+Math.random()*12).toFixed(0))+'mm':'±'+((14+Math.sin(t*.05)*3).toFixed(0))+'mm';
+  document.getElementById('hacc').textContent=hacc;document.getElementById('vacc').textContent=vacc;
+  document.getElementById('lat').textContent=(25.204849+Math.sin(t*.001)*.000005).toFixed(6)+'° N';
+  document.getElementById('lng').textContent=(55.270782+Math.cos(t*.001)*.000005).toFixed(6)+'° E';
+  document.getElementById('ht').textContent='+'+(5.823+Math.sin(t*.003)*.002).toFixed(3)+' m';
+  document.getElementById('fixBadge').textContent=obstruction?(visible<6?'Float Fix':'RTK Fixed'):'RTK Fixed';
+  document.getElementById('fixBadge').style.color=obstruction&&visible<6?'#F59E0B':'#34D399';
+  t++;requestAnimationFrame(draw);
+}
+function toggleObstruction(){obstruction=!obstruction;}
+function addMultipath(){multipath=!multipath;}
+function resetSim(){obstruction=false;multipath=false;}
+resize();draw();
+</script>
+</body>
+</html>

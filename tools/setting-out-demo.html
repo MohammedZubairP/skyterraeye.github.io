@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Setting Out Survey Demo & Game | Learn Land Surveying | Sky TerraEye Dubai</title>
+<meta name="description" content="Interactive setting out survey demo. Learn how surveyors mark column grids on Dubai construction sites. Free educational tool from Sky TerraEye. +971503091162.">
+<link rel="canonical" href="https://skyterraeye.com/tools/setting-out-demo.html">
+<meta name="robots" content="index,follow">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8BSZMNT805"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-8BSZMNT805');</script>
+<link rel="icon" href="/assets/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#0A0F1E;color:#E2E8F0;min-height:100vh;padding-top:70px}
+.hero{background:linear-gradient(135deg,#0A2540,#0D3561);padding:44px 28px 36px;text-align:center}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(22px,4vw,36px);font-weight:800;color:#fff;margin-bottom:10px}
+.hero p{font-size:16px;color:rgba(255,255,255,.7);max-width:540px;margin:0 auto}
+.game-wrap{max-width:900px;margin:24px auto;padding:0 16px 60px}
+.game-card{background:#111827;border:1px solid rgba(47,126,255,.15);border-radius:12px;overflow:hidden;margin-bottom:18px}
+.game-canvas-wrap{position:relative;aspect-ratio:16/9;background:#06101E}
+.game-canvas-wrap canvas{width:100%;height:100%;display:block}
+.game-controls{padding:18px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;background:#0F1827;border-top:1px solid rgba(47,126,255,.1)}
+.ctrl-btn{background:#0066CC;color:#fff;font-weight:700;font-size:13.5px;padding:10px 20px;border-radius:7px;border:none;cursor:pointer;font-family:'Inter',sans-serif;transition:.2s;display:inline-flex;align-items:center;gap:6px}
+.ctrl-btn:hover{background:#0052A3}
+.ctrl-btn.green{background:#059669} .ctrl-btn.green:hover{background:#047857}
+.ctrl-btn.orange{background:#D97706} .ctrl-btn.orange:hover{background:#B45309}
+.stats{display:flex;gap:16px;flex-wrap:wrap}
+.stat-pill{background:rgba(47,126,255,.1);border:1px solid rgba(47,126,255,.2);border-radius:999px;padding:6px 14px;font-size:12.5px;font-weight:600;color:#60A5FA;font-family:'IBM Plex Mono',monospace}
+.info-panel{background:#0A0F1E;padding:16px 20px;border-top:1px solid rgba(47,126,255,.08)}
+.info-panel p{font-size:14px;color:#64748B;line-height:1.65}
+.cta-card{background:#fff;border-radius:12px;padding:24px;text-align:center;margin:18px 0}
+.cta-card h3{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#0A2540;margin-bottom:10px}
+.cta-card p{font-size:15px;color:#627283;margin-bottom:18px;line-height:1.65}
+.cta-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.cta-btn{background:#0066CC;color:#fff;font-weight:700;font-size:14px;padding:12px 22px;border-radius:7px;text-decoration:none;display:inline-flex;align-items:center;gap:7px;transition:.2s}
+.cta-btn:hover{background:#0052A3}
+.cta-wa{background:#25D366} .cta-wa:hover{background:#1EBD59}
+</style>
+</head>
+<body>
+
+<div style="height:4px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)"></div>
+<nav style="position:fixed;top:0;left:0;right:0;z-index:999;height:60px;display:flex;align-items:center;padding:0 28px;background:rgba(10,37,64,.95);backdrop-filter:blur(16px);justify-content:space-between">
+  <a href="/index.html" style="display:flex;align-items:center;gap:9px;text-decoration:none">
+    <img src="/assets/img/logo.png" width="28" height="28" style="display:block" onerror="this.style.display='none'">
+    <div style="font-family:Syne,sans-serif;font-weight:800;font-size:14px;color:#fff"><span style="color:#93C5FD">SKY</span> TERRAEYE<div style="font-size:8.5px;font-weight:500;color:rgba(255,255,255,.5);letter-spacing:2px;text-transform:uppercase">Land Surveying &middot; Dubai</div></div>
+  </a>
+  <div style="display:flex;align-items:center;gap:0">
+    <a href="/index.html" style="font-size:13px;font-weight:500;color:rgba(255,255,255,.8);padding:7px 11px;border-radius:5px;text-decoration:none">Home</a>
+    <a href="/services.html" style="font-size:13px;font-weight:500;color:rgba(255,255,255,.8);padding:7px 11px;border-radius:5px;text-decoration:none">Services</a>
+    <a href="/tools.html" style="font-size:13px;font-weight:500;color:rgba(255,255,255,.8);padding:7px 11px;border-radius:5px;text-decoration:none">Tools</a>
+  </div>
+  <a href="/contact.html" style="background:#0066CC;color:#fff;font-weight:700;font-size:13px;padding:9px 18px;border-radius:5px;text-decoration:none">Get a Quote</a>
+</nav>
+
+<div class="hero">
+  <h1>&#127919; Setting Out Survey — Interactive Demo</h1>
+  <p>See how Sky TerraEye surveyors mark column grids on Dubai construction sites. Click to place points and see the accuracy feedback in real time.</p>
+</div>
+<div class="game-wrap">
+  <div class="game-card">
+    <div class="game-canvas-wrap">
+      <canvas id="gameCanvas"></canvas>
+    </div>
+    <div class="game-controls">
+      <div class="stats">
+        <div class="stat-pill">Points Set: <span id="ptCount">0</span>/25</div>
+        <div class="stat-pill">Accuracy: <span id="accuracy">--</span></div>
+        <div class="stat-pill">Score: <span id="score">0</span></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="ctrl-btn green" onclick="startGame()">&#9654; Start Survey</button>
+        <button class="ctrl-btn orange" onclick="resetGame()">&#8635; Reset</button>
+      </div>
+    </div>
+    <div class="info-panel">
+      <p id="gameMsg">&#128161; Click <strong>Start Survey</strong> to begin. Your task: click as close as possible to each target point (column position) to simulate setting out on a construction site. Your total station has ±2mm accuracy — can you match it?</p>
+    </div>
+  </div>
+
+  <div style="background:#111827;border:1px solid rgba(47,126,255,.1);border-radius:12px;padding:22px;margin-bottom:18px">
+    <h3 style="font-family:Syne,sans-serif;font-size:18px;font-weight:800;color:#fff;margin-bottom:12px">&#127891; How Real Setting Out Works</h3>
+    <p style="font-size:14.5px;color:#64748B;line-height:1.72;margin-bottom:10px">In a real <strong>setting out survey in Dubai</strong>, a licensed surveyor uses a Leica or Trimble total station — an electronic instrument combining a theodolite (angle measurement) and a distance meter — to calculate and physically mark each column or pile position from the approved structural drawings.</p>
+    <p style="font-size:14.5px;color:#64748B;line-height:1.72;margin-bottom:10px">The process: (1) Set up the total station over a known control point. (2) Orient to a second control point. (3) Enter the design coordinates for each column. (4) The instrument calculates where to look. (5) Walk the prism pole to where the instrument signals. (6) Drive a nail or pin at the exact position. Modern total stations achieve <strong>±1–2mm accuracy</strong> — far better than what a human can do in this game!</p>
+    <p style="font-size:14.5px;color:#64748B;line-height:1.72">Sky TerraEye performs <a href="/blog/setting-out-survey-dubai.html" style="color:#60A5FA">setting out surveys in Dubai</a> starting from AED 1,000 for villa foundations. <a href="https://wa.me/971503091162" style="color:#25D366;font-weight:600">WhatsApp us</a> for a same-day quote.</p>
+  </div>
+
+  <div class="cta-card">
+    <h3>Need a Real Setting Out Survey in Dubai?</h3>
+    <p>Sky TerraEye provides professional setting out surveys across all Dubai areas. Fixed price from AED 1,000. Same-day mobilisation available.</p>
+    <div class="cta-btns">
+      <a class="cta-btn cta-wa" href="https://wa.me/971503091162?text=Hello%20I%20need%20a%20setting%20out%20survey%20in%20Dubai" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp for a Quote</a>
+      <a class="cta-btn" href="/blog/setting-out-survey-dubai.html">Learn About Setting Out</a>
+    </div>
+  </div>
+</div>
+
+<div style="position:fixed;bottom:22px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:9px;align-items:center">
+  <a href="https://wa.me/971503091162?text=Hello%20I%20need%20a%20survey%20quote" target="_blank" style="width:50px;height:50px;background:#25D366;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(37,211,102,.5);text-decoration:none">
+    <svg viewBox="0 0 24 24" fill="white" width="26" height="26"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  </a>
+</div>
+
+
+<footer style="background:#0A2540;color:#64748B;padding:36px 28px 20px;margin-top:0">
+  <div style="max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.06)">
+    <div style="font-family:Syne,sans-serif;font-weight:800;font-size:14px;color:#fff"><span style="color:#60A5FA">SKY</span> TERRAEYE &mdash; Land Surveying Dubai</div>
+    <div style="display:flex;gap:16px">
+      <a href="/index.html" style="font-size:13px;color:#64748B;text-decoration:none">Home</a>
+      <a href="/services.html" style="font-size:13px;color:#64748B;text-decoration:none">Services</a>
+      <a href="/contact.html" style="font-size:13px;color:#64748B;text-decoration:none">Contact</a>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#374151;text-align:center;margin-top:16px">&copy; 2025 Sky TerraEye. All rights reserved. Professional Land Surveying Dubai, UAE.</p>
+</footer>
+
+<script>
+var cv=document.getElementById('gameCanvas'),cx=cv.getContext('2d');
+var W,H,targets=[],placed=[],gameActive=false,score=0;
+function resize(){W=cv.offsetWidth;H=cv.offsetHeight;cv.width=W;cv.height=H;if(!gameActive)drawIdle();}
+window.addEventListener('resize',resize);
+function makeTargets(){
+  targets=[];placed=[];
+  var gsx=W*.15,gsy=H*.1,gew=W*.7,geh=H*.8;
+  var cols=5,rows=5,cw=gew/(cols-1),ch=geh/(rows-1);
+  for(var r=0;r<rows;r++) for(var c=0;c<cols;c++) targets.push({x:gsx+c*cw,y:gsy+r*ch,done:false,err:0,label:String.fromCharCode(65+c)+(r+1)});
+}
+function drawIdle(){
+  if(!W)return;
+  cx.fillStyle='#06101E';cx.fillRect(0,0,W,H);
+  cx.strokeStyle='rgba(47,126,255,.04)';cx.lineWidth=1;
+  for(var x=0;x<W;x+=50){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke();}
+  for(var y=0;y<H;y+=50){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();}
+  cx.fillStyle='rgba(47,126,255,.7)';cx.font='bold '+Math.floor(W*.025)+'px Syne,sans-serif';cx.textAlign='center';
+  cx.fillText('Click START SURVEY to begin',W/2,H/2);
+  cx.font=Math.floor(W*.016)+'px Inter,sans-serif';cx.fillStyle='rgba(255,255,255,.4)';
+  cx.fillText('Interactive setting out simulation',W/2,H/2+H*.07);cx.textAlign='left';
+}
+function drawGame(){
+  cx.fillStyle='#06101E';cx.fillRect(0,0,W,H);
+  cx.strokeStyle='rgba(47,126,255,.05)';cx.lineWidth=1;
+  for(var x=0;x<W;x+=50){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke();}
+  for(var y=0;y<H;y+=50){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();}
+  // Grid lines
+  targets.forEach(function(t,i){
+    if(i%5<4){var n=targets[i+1];if(n){cx.strokeStyle='rgba(255,200,50,.1)';cx.lineWidth=1;cx.beginPath();cx.moveTo(t.x,t.y);cx.lineTo(n.x,n.y);cx.stroke();}}
+    if(i<20){var n2=targets[i+5];if(n2){cx.strokeStyle='rgba(255,200,50,.1)';cx.lineWidth=1;cx.beginPath();cx.moveTo(t.x,t.y);cx.lineTo(n2.x,n2.y);cx.stroke();}}
+  });
+  // Target points
+  targets.forEach(function(t){
+    if(t.done)return;
+    var pulse=.3+.2*Math.sin(Date.now()*.005);
+    cx.strokeStyle='rgba(239,68,68,'+(.4+pulse)+')';cx.lineWidth=2;cx.beginPath();cx.arc(t.x,t.y,12,0,6.28);cx.stroke();
+    cx.fillStyle='rgba(239,68,68,.2)';cx.beginPath();cx.arc(t.x,t.y,8,0,6.28);cx.fill();
+    cx.fillStyle='rgba(239,68,68,.8)';cx.font='bold '+(W*.012)+'px IBM Plex Mono,monospace';cx.fillText(t.label,t.x+6,t.y-8);
+  });
+  // Placed points
+  placed.forEach(function(p){
+    var col=p.err<5?'#10B981':p.err<15?'#F59E0B':'#EF4444';
+    cx.fillStyle=col;cx.beginPath();cx.arc(p.x,p.y,5,0,6.28);cx.fill();
+    cx.fillStyle=col.replace(')',',0.3)').replace('rgb','rgba');cx.beginPath();cx.arc(p.x,p.y,10,0,6.28);cx.fill();
+    cx.strokeStyle=col;cx.lineWidth=1;cx.beginPath();cx.arc(p.x,p.y,12,0,6.28);cx.stroke();
+    cx.fillStyle=col;cx.font='bold '+(W*.011)+'px IBM Plex Mono,monospace';cx.fillText('±'+p.err.toFixed(0)+'px',p.x+8,p.y-8);
+  });
+  requestAnimationFrame(drawGame);
+}
+function startGame(){
+  resize();makeTargets();placed=[];score=0;gameActive=true;
+  document.getElementById('ptCount').textContent='0';
+  document.getElementById('accuracy').textContent='--';
+  document.getElementById('score').textContent='0';
+  document.getElementById('gameMsg').textContent='📍 Click on each red target point to place your survey peg. Get as close as possible!';
+  cv.style.cursor='crosshair';drawGame();
+}
+function resetGame(){gameActive=false;targets=[];placed=[];score=0;cv.style.cursor='default';
+  document.getElementById('ptCount').textContent='0';document.getElementById('accuracy').textContent='--';document.getElementById('score').textContent='0';
+  document.getElementById('gameMsg').textContent='💡 Click Start Survey to begin again.';drawIdle();}
+cv.addEventListener('click',function(e){
+  if(!gameActive)return;
+  var rect=cv.getBoundingClientRect();
+  var mx=(e.clientX-rect.left)*(W/rect.width);
+  var my=(e.clientY-rect.top)*(H/rect.height);
+  var closest=null,minD=9999;
+  targets.forEach(function(t){if(t.done)return;var d=Math.sqrt((t.x-mx)**2+(t.y-my)**2);if(d<minD){minD=d;closest=t;}});
+  if(closest&&minD<50){
+    closest.done=true;placed.push({x:mx,y:my,err:minD});
+    var pts=minD<3?100:minD<8?80:minD<15?60:minD<25?40:20;
+    score+=pts;document.getElementById('score').textContent=score;
+    document.getElementById('ptCount').textContent=placed.length;
+    var avgErr=placed.reduce(function(a,b){return a+b.err;},0)/placed.length;
+    document.getElementById('accuracy').textContent='±'+avgErr.toFixed(1)+'px (Real: ±2mm)';
+    if(placed.length===targets.length){
+      gameActive=false;cv.style.cursor='default';
+      document.getElementById('gameMsg').innerHTML='🏆 Survey complete! Score: <strong>'+score+'/2500</strong>. A real total station achieves ±2mm — far more accurate. <a href="https://wa.me/971503091162" style="color:#60A5FA">WhatsApp Sky TerraEye</a> for a professional setting out survey from AED 1,000.';
+    } else {document.getElementById('gameMsg').textContent='✓ Point '+closest.label+' set! Error: ±'+minD.toFixed(0)+'px. '+pts+' points scored. '+(25-placed.length)+' points remaining.';}
+  }
+});
+resize();
+</script>
+</body>
+</html>

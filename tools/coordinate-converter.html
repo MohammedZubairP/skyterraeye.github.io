@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WGS84 to UTM Zone 40N Coordinate Converter Dubai | Sky TerraEye</title>
+<meta name="description" content="Free online WGS84 to UTM Zone 40N coordinate converter for Dubai surveys. Convert latitude/longitude to Easting/Northing instantly. Sky TerraEye surveying tools.">
+<link rel="canonical" href="https://skyterraeye.com/tools/coordinate-converter.html">
+<meta name="robots" content="index,follow">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8BSZMNT805"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-8BSZMNT805');</script>
+<link rel="icon" href="/assets/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#F7F9FC;color:#1E293B;min-height:100vh;padding-top:70px}
+.hero{background:linear-gradient(135deg,#0A2540,#0D3561);padding:44px 28px 36px;text-align:center}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(22px,4vw,36px);font-weight:800;color:#fff;margin-bottom:10px}
+.hero p{font-size:16px;color:rgba(255,255,255,.7);max-width:540px;margin:0 auto}
+.wrap{max-width:760px;margin:28px auto;padding:0 20px 60px}
+.card{background:#fff;border-radius:12px;padding:26px;box-shadow:0 2px 16px rgba(10,37,64,.08);margin-bottom:18px}
+.card h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#0A2540;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:540px){.row2{grid-template-columns:1fr}}
+.field label{display:block;font-size:13px;font-weight:600;color:#334155;margin-bottom:6px}
+.field input{width:100%;padding:11px 14px;border:1.5px solid #E4E9F0;border-radius:8px;font-size:14px;color:#1E293B;font-family:'IBM Plex Mono',monospace;outline:none}
+.field input:focus{border-color:#0066CC;box-shadow:0 0 0 3px rgba(0,102,204,.08)}
+.convert-btn{width:100%;padding:14px;background:#0066CC;color:#fff;font-weight:700;font-size:15px;border:none;border-radius:8px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:6px;transition:.2s}
+.convert-btn:hover{background:#0052A3}
+.result-field{background:#F7F9FC;border:1.5px solid #E4E9F0;border-radius:8px;padding:11px 14px;font-size:14px;font-family:'IBM Plex Mono',monospace;color:#0A2540;width:100%;font-weight:700}
+.result-card{background:linear-gradient(135deg,#EFF6FF,#DBEAFE);border:2px solid #3B82F6;border-radius:12px;padding:22px;margin:18px 0}
+.result-card h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#1D4ED8;margin-bottom:14px}
+.copy-btn{background:transparent;border:1px solid #3B82F6;color:#1D4ED8;font-size:12px;font-weight:600;padding:4px 10px;border-radius:5px;cursor:pointer;margin-left:8px;font-family:'Inter',sans-serif}
+.copy-btn:hover{background:#BFDBFE}
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+@media(max-width:540px){.info-grid{grid-template-columns:1fr}}
+.info-item{background:#fff;border:1px solid #E4E9F0;border-radius:8px;padding:12px;text-align:center}
+.info-val{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:#0A2540}
+.info-lbl{font-size:11px;color:#627283;margin-top:3px}
+.preset-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.preset-btn{background:#F7F9FC;border:1px solid #E4E9F0;color:#334155;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:999px;cursor:pointer;transition:.2s;font-family:'Inter',sans-serif}
+.preset-btn:hover{background:#EFF6FF;border-color:#BFDBFE;color:#0066CC}
+.anim-box{background:#06101E;border-radius:10px;overflow:hidden;aspect-ratio:16/7;margin:20px 0;position:relative}
+.anim-box canvas{width:100%;height:100%;display:block}
+.anim-box .lbl{position:absolute;bottom:10px;left:12px;background:rgba(2,7,9,.9);color:#60A5FA;font-size:11px;font-weight:600;padding:5px 11px;border-radius:5px;font-family:'IBM Plex Mono',monospace}
+</style>
+</head>
+<body>
+
+<div style="height:4px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)"></div>
+<nav style="position:fixed;top:0;left:0;right:0;z-index:999;height:60px;display:flex;align-items:center;padding:0 28px;background:rgba(10,37,64,.95);backdrop-filter:blur(16px);justify-content:space-between">
+  <a href="/index.html" style="display:flex;align-items:center;gap:9px;text-decoration:none">
+    <img src="/assets/img/logo.png" width="28" height="28" style="display:block" onerror="this.style.display='none'">
+    <div style="font-family:Syne,sans-serif;font-weight:800;font-size:14px;color:#fff"><span style="color:#93C5FD">SKY</span> TERRAEYE<div style="font-size:8.5px;font-weight:500;color:rgba(255,255,255,.5);letter-spacing:2px;text-transform:uppercase">Land Surveying &middot; Dubai</div></div>
+  </a>
+  <div style="display:flex;align-items:center;gap:0">
+    <a href="/index.html" style="font-size:13px;font-weight:500;color:rgba(255,255,255,.8);padding:7px 11px;border-radius:5px;text-decoration:none">Home</a>
+    <a href="/services.html" style="font-size:13px;font-weight:500;color:rgba(255,255,255,.8);padding:7px 11px;border-radius:5px;text-decoration:none">Services</a>
+    <a href="/tools.html" style="font-size:13px;font-weight:500;color:rgba(255,255,255,.8);padding:7px 11px;border-radius:5px;text-decoration:none">Tools</a>
+  </div>
+  <a href="/contact.html" style="background:#0066CC;color:#fff;font-weight:700;font-size:13px;padding:9px 18px;border-radius:5px;text-decoration:none">Get a Quote</a>
+</nav>
+
+<div class="hero">
+  <h1>&#127758; WGS84 &rarr; UTM Zone 40N Converter</h1>
+  <p>Free coordinate converter for Dubai land surveys. Convert WGS84 Lat/Long to UTM Zone 40N Easting/Northing used by Dubai Municipality.</p>
+</div>
+<div class="wrap">
+  <div class="card">
+    <h2>&#9660; WGS84 Input (GPS / Lat-Long)</h2>
+    <div class="row2">
+      <div class="field"><label>Latitude (Decimal Degrees)</label><input id="lat" type="number" step="0.000001" placeholder="25.204849" value="25.204849"></div>
+      <div class="field"><label>Longitude (Decimal Degrees)</label><input id="lng" type="number" step="0.000001" placeholder="55.270782" value="55.270782"></div>
+    </div>
+    <div style="margin-top:10px">
+      <div style="font-size:12px;font-weight:600;color:#334155;margin-bottom:8px">Quick Presets (Dubai Landmarks):</div>
+      <div class="preset-grid">
+        <button class="preset-btn" onclick="setPreset(25.197197,55.274376)">Burj Khalifa</button>
+        <button class="preset-btn" onclick="setPreset(25.141230,55.185224)">Dubai Marina</button>
+        <button class="preset-btn" onclick="setPreset(25.093000,55.167000)">JVC Centre</button>
+        <button class="preset-btn" onclick="setPreset(25.225000,55.296000)">Business Bay</button>
+        <button class="preset-btn" onclick="setPreset(25.264820,55.307210)">DIFC</button>
+        <button class="preset-btn" onclick="setPreset(24.453884,54.377343)">Abu Dhabi</button>
+      </div>
+    </div>
+    <button class="convert-btn" onclick="convert()">Convert to UTM Zone 40N &rarr;</button>
+  </div>
+  <div class="result-card" id="resultCard" style="display:none">
+    <h3>&#9650; UTM Zone 40N Result (Dubai Municipality Format)</h3>
+    <div class="row2">
+      <div class="field"><label>Easting (m) <button class="copy-btn" onclick="copyVal('easting')">Copy</button></label><div class="result-field" id="easting">--</div></div>
+      <div class="field"><label>Northing (m) <button class="copy-btn" onclick="copyVal('northing')">Copy</button></label><div class="result-field" id="northing">--</div></div>
+    </div>
+    <div class="info-grid">
+      <div class="info-item"><div class="info-val" id="zone">40N</div><div class="info-lbl">UTM Zone</div></div>
+      <div class="info-item"><div class="info-val" id="datum">WGS84</div><div class="info-lbl">Datum</div></div>
+      <div class="info-item"><div class="info-val" id="height-sys">EGM2008</div><div class="info-lbl">Height System</div></div>
+    </div>
+    <div style="background:rgba(255,255,255,.7);border-radius:8px;padding:12px;margin-top:12px;font-size:13px;color:#1E40AF">
+      <strong>DM Drawing Note:</strong> &ldquo;Horizontal Datum: WGS84 | Projection: UTM Zone 40N | Vertical Datum: EGM2008&rdquo;
+    </div>
+  </div>
+  <div class="anim-box">
+    <canvas data-anim="gnss"></canvas>
+    <div class="lbl">&#9679; GNSS Satellite Positioning</div>
+  </div>
+  <div class="card">
+    <h2>&#128218; About This Converter</h2>
+    <p style="font-size:15px;color:#627283;line-height:1.75;margin-bottom:12px">This tool converts WGS84 geographic coordinates (latitude/longitude) to UTM Zone 40N grid coordinates (Easting/Northing) as required by <strong>Dubai Municipality Spatial Data standards</strong> for all land survey submissions.</p>
+    <p style="font-size:15px;color:#627283;line-height:1.75;margin-bottom:12px">Dubai falls entirely within <strong>UTM Zone 40N</strong>. All DM submissions must use WGS84 datum with UTM Zone 40N projection. Heights must be in <strong>EGM2008 orthometric datum</strong> — not GPS ellipsoidal heights.</p>
+    <p style="font-size:15px;color:#627283;line-height:1.75">Need a DM-compliant land survey in Dubai? <a href="https://wa.me/971503091162" style="color:#0066CC;font-weight:600">WhatsApp Sky TerraEye</a> for a fixed-price quote within 30 minutes.</p>
+  </div>
+</div>
+
+<div style="position:fixed;bottom:22px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:9px;align-items:center">
+  <a href="https://wa.me/971503091162?text=Hello%20I%20need%20a%20survey%20quote" target="_blank" style="width:50px;height:50px;background:#25D366;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(37,211,102,.5);text-decoration:none">
+    <svg viewBox="0 0 24 24" fill="white" width="26" height="26"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  </a>
+</div>
+
+
+<footer style="background:#0A2540;color:#64748B;padding:36px 28px 20px;margin-top:0">
+  <div style="max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.06)">
+    <div style="font-family:Syne,sans-serif;font-weight:800;font-size:14px;color:#fff"><span style="color:#60A5FA">SKY</span> TERRAEYE &mdash; Land Surveying Dubai</div>
+    <div style="display:flex;gap:16px">
+      <a href="/index.html" style="font-size:13px;color:#64748B;text-decoration:none">Home</a>
+      <a href="/services.html" style="font-size:13px;color:#64748B;text-decoration:none">Services</a>
+      <a href="/contact.html" style="font-size:13px;color:#64748B;text-decoration:none">Contact</a>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#374151;text-align:center;margin-top:16px">&copy; 2025 Sky TerraEye. All rights reserved. Professional Land Surveying Dubai, UAE.</p>
+</footer>
+
+<script src="/survey_anims.js"></script>
+<script>
+function setPreset(lat,lng){document.getElementById('lat').value=lat;document.getElementById('lng').value=lng;convert();}
+function convert(){
+  var lat=parseFloat(document.getElementById('lat').value);
+  var lng=parseFloat(document.getElementById('lng').value);
+  if(isNaN(lat)||isNaN(lng)){alert('Please enter valid coordinates');return;}
+  // UTM conversion
+  var a=6378137,e2=0.00669437999014,k0=0.9996;
+  var latr=lat*Math.PI/180,lngr=lng*Math.PI/180;
+  var zone=Math.floor((lng+180)/6)+1;
+  var lng0=((zone-1)*6-180+3)*Math.PI/180;
+  var N=a/Math.sqrt(1-e2*Math.sin(latr)*Math.sin(latr));
+  var T=Math.tan(latr)*Math.tan(latr);
+  var C=e2/(1-e2)*Math.cos(latr)*Math.cos(latr);
+  var A=Math.cos(latr)*(lngr-lng0);
+  var e4=e2*e2,e6=e4*e2;
+  var M=a*((1-e2/4-3*e4/64-5*e6/256)*latr-(3*e2/8+3*e4/32+45*e6/1024)*Math.sin(2*latr)+(15*e4/256+45*e6/1024)*Math.sin(4*latr)-(35*e6/3072)*Math.sin(6*latr));
+  var E=k0*N*(A+(1-T+C)*A*A*A/6+(5-18*T+T*T+72*C-58*e2/(1-e2))*A*A*A*A*A/120)+500000;
+  var Nv=k0*(M+N*Math.tan(latr)*(A*A/2+(5-T+9*C+4*C*C)*A*A*A*A/24+(61-58*T+T*T+600*C-330*e2/(1-e2))*A*A*A*A*A*A/720));
+  if(lat<0) Nv+=10000000;
+  document.getElementById('easting').textContent=E.toFixed(3)+' m';
+  document.getElementById('northing').textContent=Nv.toFixed(3)+' m';
+  document.getElementById('zone').textContent=zone+'N';
+  document.getElementById('resultCard').style.display='block';
+}
+function copyVal(id){
+  var v=document.getElementById(id).textContent;
+  navigator.clipboard.writeText(v).then(function(){alert('Copied: '+v);}).catch(function(){var t=document.createElement('textarea');t.value=v;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);alert('Copied: '+v);});
+}
+document.addEventListener('DOMContentLoaded',function(){convert();});
+</script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Digital Level Survey Calculator Dubai | HPC Rise & Fall | Sky TerraEye</title>
+<meta name="description" content="Free digital leveling calculator for Dubai surveys. Enter backsight/foresight readings to compute Rise & Fall, HPC and reduced levels. EGM2008 datum. Sky TerraEye.">
+<link rel="canonical" href="https://skyterraeye.com/tools/level-calculator.html">
+<meta name="robots" content="index,follow">
+<link rel="icon" href="/assets/img/logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8BSZMNT805"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-8BSZMNT805');</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#0A0F1E;color:#E2E8F0;min-height:100vh;padding-top:70px}
+nav{position:fixed;top:0;left:0;right:0;z-index:999;height:60px;display:flex;align-items:center;padding:0 24px;background:rgba(10,37,64,.95);backdrop-filter:blur(16px);justify-content:space-between}
+.uae{height:4px;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%);position:fixed;top:60px;left:0;right:0;z-index:998}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:#fff;text-decoration:none}.logo b{color:#93C5FD}
+.nc{background:#0066CC;color:#fff;font-weight:700;font-size:13px;padding:8px 16px;border-radius:5px;text-decoration:none}
+.hero{background:linear-gradient(135deg,#0A2540,#0D3561);padding:60px 24px 44px;text-align:center}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(22px,4vw,36px);font-weight:800;color:#fff;margin-bottom:10px}
+.hero p{font-size:16px;color:rgba(255,255,255,.65);max-width:500px;margin:0 auto}
+.wrap{max-width:900px;margin:24px auto;padding:0 18px 60px;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+@media(max-width:700px){.wrap{grid-template-columns:1fr}}
+.card{background:#111827;border:1px solid rgba(47,126,255,.15);border-radius:12px;padding:22px}
+.card h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff;margin-bottom:16px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:#94A3B8;margin-bottom:5px;text-transform:uppercase;letter-spacing:.8px}
+.field input{width:100%;padding:10px 13px;background:#0F1827;border:1.5px solid rgba(47,126,255,.2);border-radius:7px;font-size:14px;color:#E2E8F0;font-family:'IBM Plex Mono',monospace;outline:none;transition:.2s}
+.field input:focus{border-color:#3B82F6;box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.add-btn{width:100%;padding:11px;background:#0066CC;color:#fff;font-weight:700;font-size:14px;border:none;border-radius:7px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:6px;transition:.2s}
+.add-btn:hover{background:#0052A3}
+.clear-btn{width:100%;padding:9px;background:rgba(239,68,68,.15);color:#EF4444;font-weight:600;font-size:13px;border:1px solid rgba(239,68,68,.3);border-radius:7px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:6px;transition:.2s}
+.clear-btn:hover{background:rgba(239,68,68,.25)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;font-family:'IBM Plex Mono',monospace}
+th{background:rgba(47,126,255,.15);color:#60A5FA;font-weight:700;padding:8px 10px;text-align:left;border:1px solid rgba(47,126,255,.15)}
+td{padding:7px 10px;border:1px solid rgba(47,126,255,.08);color:#E2E8F0}
+tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.rl-cell{color:#34D399;font-weight:700}
+.rise{color:#34D399}.fall{color:#EF4444}
+.closure-row td{background:rgba(245,158,11,.08);color:#F59E0B;font-weight:700}
+.anim-preview{background:#06101E;border-radius:10px;overflow:hidden;position:relative;margin:20px 0;aspect-ratio:16/7}
+.anim-preview canvas{width:100%;height:100%;display:block}
+.anim-preview .al{position:absolute;bottom:10px;left:12px;background:rgba(2,7,9,.92);color:#60A5FA;font-size:11px;font-weight:600;padding:5px 11px;border-radius:5px;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:5px}
+.al::before{content:'';width:5px;height:5px;border-radius:50%;background:#3B82F6;animation:ab 1.8s infinite}
+@keyframes ab{0%,100%{opacity:1}50%{opacity:.2}}
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.stat-box{background:rgba(47,126,255,.08);border:1px solid rgba(47,126,255,.15);border-radius:8px;padding:12px;text-align:center}
+.stat-val{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:#60A5FA}
+.stat-lbl{font-size:11px;color:#64748B;margin-top:3px}
+.info-card{background:#111827;border:1px solid rgba(47,126,255,.1);border-radius:12px;padding:20px;margin-top:18px}
+.info-card h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#fff;margin-bottom:10px}
+.info-card p{font-size:14px;color:#64748B;line-height:1.7}
+.info-card a{color:#60A5FA}
+.full-width{grid-column:1/-1}
+</style>
+</head>
+<body>
+<div class="uae"></div>
+<nav>
+  <a class="logo" href="/index.html"><b>SKY</b> TERRAEYE</a>
+  <a class="nc" href="/contact.html">Get a Quote</a>
+</nav>
+<div class="hero">
+  <h1>&#128207; Digital Level Survey Calculator</h1>
+  <p>Calculate Rise &amp; Fall, Height of Instrument (HPC) and Reduced Levels for any levelling run. Dubai EGM2008 datum.</p>
+</div>
+<div class="wrap">
+  <div class="card">
+    <h2>Add Levelling Readings</h2>
+    <div class="field"><label>Point ID / Name</label><input id="ptid" placeholder="e.g. BM1, CP1, TP2..." value="BM1"></div>
+    <div class="field"><label>Backsight (BS)</label><input id="bs" type="number" step="0.001" placeholder="e.g. 1.452"></div>
+    <div class="field"><label>Intermediate Sight (IS)</label><input id="is_" type="number" step="0.001" placeholder="Leave blank if not IS"></div>
+    <div class="field"><label>Foresight (FS)</label><input id="fs" type="number" step="0.001" placeholder="e.g. 2.187"></div>
+    <div class="field"><label>Known RL (m EGM2008) — first point only</label><input id="rl0" type="number" step="0.001" placeholder="e.g. 5.000 (BM elevation)"></div>
+    <button class="add-btn" onclick="addRow()">+ Add Reading</button>
+    <button class="clear-btn" onclick="clearAll()">&#8635; Clear All Readings</button>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val" id="statPts">0</div><div class="stat-lbl">Points</div></div>
+      <div class="stat-box"><div class="stat-val" id="statClose">--</div><div class="stat-lbl">Closure (mm)</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Level Book (Rise &amp; Fall Method)</h2>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Point</th><th>BS</th><th>IS</th><th>FS</th><th>Rise</th><th>Fall</th><th>RL (m)</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="anim-preview">
+      <canvas data-anim="level" width="800" height="300"></canvas>
+      <div class="al">Level Survey Demo</div>
+    </div>
+  </div>
+  <div class="info-card full-width">
+    <h3>&#127891; How to Use This Calculator</h3>
+    <p>Enter <strong>BS (Backsight)</strong> — the first reading taken to a known benchmark or turning point. Enter <strong>FS (Foresight)</strong> — the last reading before moving the instrument. Enter <strong>IS (Intermediate Sight)</strong> for intermediate points. The calculator automatically computes Rise &amp; Fall and Reduced Levels in <strong>EGM2008 orthometric heights</strong> as required by Dubai Municipality. Closure error should be less than <strong>±12√K mm</strong> (where K = distance in km) for Class C surveys accepted by DM.</p>
+    <p style="margin-top:10px">Sky TerraEye uses Leica digital levels achieving <strong>±0.3mm/km</strong> accuracy for all level surveys in Dubai. Need a professional level survey? <a href="https://wa.me/971503091162" target="_blank">WhatsApp us</a> from <strong>AED 800</strong>.</p>
+  </div>
+</div>
+<div style="position:fixed;bottom:22px;right:18px;z-index:9999">
+  <a href="https://wa.me/971503091162?text=Hello%20I%20need%20a%20level%20survey%20in%20Dubai" target="_blank" style="width:50px;height:50px;background:#25D366;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(37,211,102,.5);text-decoration:none">
+    <svg viewBox="0 0 24 24" fill="white" width="26" height="26"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  </a>
+</div>
+<script src="/survey_anims.js"></script>
+<script>
+var rows=[];
+function addRow(){
+  var pt=document.getElementById('ptid').value||'P'+(rows.length+1);
+  var bs=parseFloat(document.getElementById('bs').value)||null;
+  var is_=parseFloat(document.getElementById('is_').value)||null;
+  var fs=parseFloat(document.getElementById('fs').value)||null;
+  var rl0=parseFloat(document.getElementById('rl0').value)||null;
+  var firstRL=rows.length===0&&rl0?rl0:null;
+  rows.push({pt,bs,is_,fs,rl0:firstRL});
+  compute();
+  document.getElementById('ptid').value='P'+(rows.length+1);
+  ['bs','is_','fs','rl0'].forEach(function(id){document.getElementById(id).value='';});
+}
+function compute(){
+  var tbody=document.getElementById('tbody');tbody.innerHTML='';
+  var rl=rows[0]&&rows[0].rl0?rows[0].rl0:5.000;
+  var hpc=rows[0]&&rows[0].bs?rl+rows[0].bs:null;
+  var lastRL=rl,prevReading=null;
+  var sumBS=0,sumFS=0,sumRise=0,sumFall=0;
+  rows.forEach(function(r,i){
+    var rise='',fall='',riseVal=null,fallVal=null;
+    if(prevReading!==null){
+      var cur=r.is_!==null?r.is_:(r.fs!==null?r.fs:(r.bs!==null?r.bs:null));
+      if(cur!==null){
+        var diff=prevReading-cur;
+        if(diff>0){rise=diff.toFixed(3);riseVal=diff;sumRise+=diff;}
+        else{fall=Math.abs(diff).toFixed(3);fallVal=Math.abs(diff);sumFall+=Math.abs(diff);}
+        lastRL+=(riseVal||0)-(fallVal||0);
+      }
+    }
+    prevReading=r.is_!==null?r.is_:(r.fs!==null?r.fs:(r.bs!==null?r.bs:null));
+    if(r.bs)sumBS+=r.bs;
+    if(r.fs)sumFS+=r.fs;
+    var tr=document.createElement('tr');
+    if(i===rows.length-1)tr.className='closure-row';
+    tr.innerHTML='<td>'+r.pt+'</td><td>'+(r.bs?r.bs.toFixed(3):'')+'</td><td>'+(r.is_?r.is_.toFixed(3):'')+'</td><td>'+(r.fs?r.fs.toFixed(3):'')+'</td><td class="rise">'+rise+'</td><td class="fall">'+fall+'</td><td class="rl-cell">'+lastRL.toFixed(3)+'</td>';
+    tbody.appendChild(tr);
+  });
+  var closure=(sumBS-sumFS-(sumRise-sumFall));
+  document.getElementById('statPts').textContent=rows.length;
+  document.getElementById('statClose').textContent=rows.length>1?(closure*1000).toFixed(1):'--';
+}
+function clearAll(){rows=[];compute();document.getElementById('statClose').textContent='--';document.getElementById('statPts').textContent='0';}
+</script>
+</body>
+</html>
