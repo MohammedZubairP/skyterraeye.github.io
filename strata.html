@@ -1159,11 +1159,12 @@ input,select{font-family:inherit}
   <!-- Quick toggle buttons -->
   <div class="ib-sect" style="gap:3px">
     <select class="ib-btn" id="ib-xhair-size" title="Crosshair arm size"
-      onchange="ST.crosshairPct=parseInt(this.value);render()" style="font-size:9px;padding:1px 3px;cursor:pointer">
-      <option value="5">XHair: S</option>
-      <option value="15" selected>XHair: M</option>
-      <option value="30">XHair: L</option>
-      <option value="50">XHair: XL</option>
+      onchange="ST.crosshairPct=parseInt(this.value);window.drawCrosshair&&(typeof renderImmediate==='function'?renderImmediate():render())"
+      style="font-size:9px;padding:1px 3px;cursor:pointer">
+      <option value="5">XHair: 5%</option>
+      <option value="15" selected>XHair: 15%</option>
+      <option value="30">XHair: 30%</option>
+      <option value="50">XHair: 50%</option>
       <option value="100">XHair: Full</option>
     </select>
     <button class="ib-btn on" id="ib-ortho" onclick="toggleOrtho()" title="Ortho mode — constrain to 0/45/90° (F8)">⊢ ORTHO</button>
@@ -1699,8 +1700,11 @@ function drawCrosshair() {
   const {x,y} = ST.mouse;
 
   // Crosshair config — adjustable via ST.crosshairPct (0-100, default 50 = half screen)
-  const pct  = (ST.crosshairPct !== undefined ? ST.crosshairPct : 5) / 100;
-  const gap  = ST.crosshairGap || 6;       // gap around pickbox (px)
+  // Read from dropdown if present
+  var xhSel = document.getElementById('ib-xhair-size');
+  if (xhSel && xhSel.value) ST.crosshairPct = parseInt(xhSel.value) || ST.crosshairPct || 15;
+  const pct  = ((ST.crosshairPct !== undefined && ST.crosshairPct > 0) ? ST.crosshairPct : 15) / 100;
+  const gap  = ST.crosshairGap || 10;      // gap around pickbox — shows system cursor
   const armLen = Math.min(W, H) * pct;     // arm length proportional to screen
 
   // Tool-specific color
@@ -1733,10 +1737,11 @@ function drawCrosshair() {
   ctx.moveTo(x, y + gap);    ctx.lineTo(x, y + armLen);
   ctx.stroke();
 
-  // ── Pickbox square ──
+  // ── Pickbox square (subtle - system cursor shows here) ──
   const pb = 4;
-  ctx.strokeStyle = tc; ctx.lineWidth = 1;
+  ctx.strokeStyle = tc; ctx.lineWidth = 0.7; ctx.globalAlpha = 0.5;
   ctx.strokeRect(x - pb, y - pb, pb*2, pb*2);
+  ctx.globalAlpha = 1;
 
   // ── Snap marker ──
   if (window._snapPt) {
@@ -1766,7 +1771,7 @@ function drawCrosshair() {
   }
 
   // Hide system cursor
-  canvas.style.cursor='none';
+  canvas.style.cursor='crosshair'; // system cursor hidden — crosshair only
 }
 
 // Export drawCrosshair to window so patches can override it
@@ -3440,7 +3445,10 @@ function T(tool) {
     canvas.style.cursor='crosshair';
     if(tool==='offset') {
       ST.opState={type:'offset',dist:null,base:null};
-      setMsg('Click entity to offset — then enter distance  |  ESC=cancel');
+      // Show offset distance input immediately
+      var ibDist0 = document.getElementById('ibDist');
+      if (ibDist0) { ibDist0.value=''; ibDist0.placeholder='offset distance…'; ibDist0.focus(); }
+      setMsg('OFFSET — type distance then click entity  |  or click entity then type distance  |  ESC=cancel');
     } else {
       // Check if anything is selected — if yes, start op immediately; if not, allow selecting first
       const sels=ST.entities.filter(e=>e.selected);
@@ -3465,7 +3473,7 @@ function T(tool) {
   ST.polyPts=null; ST.opState=null;
   const tip=document.getElementById('entTip');if(tip)tip.style.display='none';
   updateToolUI(tool);
-  canvas.style.cursor='none'; // Use custom crosshair for all tools
+  // cursor managed by drawCrosshair
   const msgs={
     select:'Click to select — drag right=window, drag left=crossing  |  SHIFT=add  CTRL+A=all',
     line:'Click start point  |  Chain continues — right-click or ESC to stop',
@@ -3671,7 +3679,13 @@ function updatePropPanel(){
     case'rect':   html=pi('X',e.x,'x')+pi('Y',e.y,'y')+pi('Width',e.w,'w')+pi('Height',e.h,'h')+pv('Area',Math.abs(e.w*e.h));break;
     case'ellipse':html=pi('CX',e.cx,'cx')+pi('CY',e.cy,'cy')+pi('RadiusX',e.rx,'rx')+pi('RadiusY',e.ry,'ry');break;
     case'text':   html=pi('X',e.x,'x')+pi('Y',e.y,'y')+pi('Height',e.sz,'sz');break;
-    case'polyline':html=pv('Points',(e.pts||[]).length)+pv('Closed',e.closed?'Yes':'No');break;
+    case'polyline':{
+      var pPts=(e.pts||[]).length;
+      var pLen=0;
+      if(e.pts&&pPts>=2){for(var pii=0;pii<pPts-1;pii++)pLen+=Math.hypot(e.pts[pii+1].x-e.pts[pii].x,e.pts[pii+1].y-e.pts[pii].y);}
+      html=pv('Points',pPts)+pv('Length',pLen.toFixed(3)+' '+ST.units)+(e.closed?pv('Closed','Yes'):'')+
+        (e._contourElev!==undefined?pi('Elevation',e._contourElev,'_contourElev'):'')+(e.elevation!==undefined&&e._contourElev===undefined?pi('Elevation',e.elevation,'elevation'):'');
+      break;}
     case'arc':    html=pi('CX',e.cx,'cx')+pi('CY',e.cy,'cy')+pi('Radius',e.r,'r')+pi('StartAngle',e.sa,'sa')+pi('EndAngle',e.ea,'ea');break;
     default: html=pv('Type',e.type);
   }
@@ -14960,9 +14974,9 @@ console.log('[AllFeaturesPatch v2] OSNAP ✓  Map sync ✓  Export ✓  Props �
       sat:  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}),
       topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17}),
     };
-    tileLayers.osm.addTo(_map);
+    tileLayers.gsat.addTo(_map);
     _map._tileLayers = tileLayers;
-    _map._currentBase = 'osm';
+    _map._currentBase = 'gsat';
 
     // Layer switcher buttons in map corner
     var ctrl = document.createElement('div');
@@ -19785,34 +19799,49 @@ window.loadXrefImage = function(input, idx) {
     img.onload = function() {
       var imgDef = (ST.imgDefs || [])[idx];
       // Place image at drawing extents or world origin if no position data
-      var minX2 = 0, minY2 = 0, maxX2 = 1000, maxY2 = 1000;
+      // Determine placement coordinates
+      var minX2, minY2, maxX2, maxY2;
       if (imgDef && imgDef.minX !== undefined) {
+        // Use DXF-defined image position
         minX2 = imgDef.minX; minY2 = imgDef.minY;
         maxX2 = imgDef.maxX; maxY2 = imgDef.maxY;
-      } else if (ST.dxfExtents) {
-        minX2 = ST.dxfExtents.minX; minY2 = ST.dxfExtents.minY;
-        maxX2 = ST.dxfExtents.maxX; maxY2 = ST.dxfExtents.maxY;
-      } else if (ST.entities.length > 0) {
-        // Use current view bounds
-        var canvas4 = document.getElementById('cad');
-        if (canvas4) {
-          var W4=canvas4.width, H4=canvas4.height;
-          var tl4=s2w(0,0), br4=s2w(W4,H4);
-          minX2=Math.min(tl4.x,br4.x); minY2=Math.min(tl4.y,br4.y);
-          maxX2=Math.max(tl4.x,br4.x); maxY2=Math.max(tl4.y,br4.y);
+      } else {
+        // Use drawing extents (most likely match for orthophoto XREF)
+        var xs = [], ys = [];
+        ST.entities.forEach(function(e) {
+          if (e.x1!==undefined){xs.push(e.x1,e.x2);ys.push(e.y1,e.y2);}
+          else if (e.cx!==undefined){xs.push(e.cx);ys.push(e.cy);}
+          else if (e.x!==undefined){xs.push(e.x);ys.push(e.y);}
+          if (e.pts) e.pts.forEach(function(p){xs.push(p.x);ys.push(p.y);});
+        });
+        if (xs.length >= 2) {
+          minX2=Math.min.apply(null,xs); minY2=Math.min.apply(null,ys);
+          maxX2=Math.max.apply(null,xs); maxY2=Math.max.apply(null,ys);
+        } else {
+          // Fallback: current view area
+          var c4=document.getElementById('cad');
+          if (c4) {
+            var tl4=s2w(0,0),br4=s2w(c4.width,c4.height);
+            minX2=Math.min(tl4.x,br4.x); minY2=Math.min(tl4.y,br4.y);
+            maxX2=Math.max(tl4.x,br4.x); maxY2=Math.max(tl4.y,br4.y);
+          } else { minX2=0;minY2=0;maxX2=1000;maxY2=1000; }
         }
       }
-      if (statusEl && !imgDef) statusEl.textContent = '✓ Loaded (placed at view)';
+      if (statusEl) { statusEl.textContent='✓ Loaded'; statusEl.style.color='#4eff91'; }
+      // Get custom filename if provided
+      var nameEl = document.getElementById('xrefName_'+idx);
+      var fname = nameEl ? nameEl.value : (img.filename || 'image');
       ST.imgOverlays = ST.imgOverlays || [];
+      var ovIdx = ST.imgOverlays.length;
       ST.imgOverlays.push({
-        img: img,
-        minX: minX2, minY: minY2,
-        maxX: maxX2, maxY: maxY2,
-        opacity: 0.85,
+        img: img, idx: ovIdx, filename: fname,
+        minX: minX2, minY: minY2, maxX: maxX2, maxY: maxY2,
+        opacity: 0.85, _origAspect: img.naturalWidth / Math.max(img.naturalHeight,1)
       });
-      if (statusEl) { statusEl.textContent = '✓ Loaded'; statusEl.style.color='#4eff91'; }
-      render && render();
-      toast('Image overlay added', 'ok');
+      if (typeof renderImmediate==='function') renderImmediate(); else render && render();
+      toast('Image loaded: '+fname+' — use XREFMANAGER to adjust position', 'ok');
+      // Open XREF manager after load
+      setTimeout(function() { window.openXrefManager && window.openXrefManager(); }, 400);
     };
     img.src = ev.target.result;
   };
@@ -23588,6 +23617,15 @@ document.addEventListener('keydown', function(ev) {
 // Apply numeric scale from DIST input field
 var _origIbDistEnter = window.ibDistEnter;
 window.ibDistEnter = function(val) {
+  // Handle offset distance
+  if (ST.opState && ST.opState.type==='offset') {
+    var d2 = parseFloat(val);
+    if (!isNaN(d2) && d2 > 0) {
+      ST.opState.dist = d2;
+      setMsg && setMsg('OFFSET: '+d2+' '+ST.units+' — now click entity to offset, then click which side');
+      return;
+    }
+  }
   if (ST.opState && ST.opState.type==='scale' && ST.opState.base) {
     var f = parseFloat(val);
     if (isNaN(f)||f<=0) { toast('Invalid scale factor','warn'); return; }
@@ -24770,8 +24808,9 @@ window.updatePropPanel = function() {
     var gf = document.getElementById('geoFields');
     if (!gf) return;
 
-    // Don't duplicate if already extended
-    if (gf.querySelector('.prop-xyz-ext')) return;
+    // Remove old extension first, then rebuild
+    var oldExt = gf.querySelector('.prop-xyz-ext');
+    if (oldExt) oldExt.remove();
 
     var ext = document.createElement('div');
     ext.className = 'prop-xyz-ext';
@@ -25954,6 +25993,397 @@ setTimeout(function(){
 },600);
 
 })(); // end StrataComprehensive
+
+
+// ██████████████████████████████████████████████████████████████
+//  STRATA XREF MANAGER + MAP FIXES + EXTRAS
+// ██████████████████████████████████████████████████████████████
+(function StrataXrefMapExtras() {
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+// 1. XREF IMAGE MANAGER — adjust, remove, reposition images
+// ═══════════════════════════════════════════════════════════
+window.openXrefManager = function() {
+  var existing = document.getElementById('moXrefMgr'); if (existing) existing.remove();
+  var overlays = ST.imgOverlays || [];
+  var div = document.createElement('div');
+  div.id = 'moXrefMgr'; div.className = 'mo';
+
+  var rows = overlays.length ? overlays.map(function(o, i) {
+    return [
+      '<div style="background:var(--bg2);border:1px solid var(--sep);border-radius:8px;padding:10px 12px;margin-bottom:8px">',
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">',
+      '<span style="font-size:20px">🖼</span>',
+      '<div style="flex:1"><div style="font-size:10px;font-weight:700;color:var(--t);font-family:IBM Plex Mono">',
+      (o.filename||('Image '+(i+1))),
+      '</div><div style="font-size:8px;color:var(--m)">',
+      Math.round(o.maxX-o.minX)+'×'+Math.round(o.maxY-o.minY)+' world units | opacity: '+Math.round((o.opacity||0.85)*100)+'%',
+      '</div></div>',
+      '<button onclick="removeXrefImage('+i+')" style="background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);color:#ff4466;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:9px;font-family:IBM Plex Mono">✕ Remove</button>',
+      '</div>',
+      '<div class="fr">',
+      '<div class="fg"><label class="fl">Min X</label><input type="number" class="fi" id="xrmX1_'+i+'" value="'+o.minX.toFixed(2)+'" onkeydown="event.stopPropagation()"></div>',
+      '<div class="fg"><label class="fl">Min Y</label><input type="number" class="fi" id="xrmY1_'+i+'" value="'+o.minY.toFixed(2)+'" onkeydown="event.stopPropagation()"></div>',
+      '<div class="fg"><label class="fl">Max X</label><input type="number" class="fi" id="xrmX2_'+i+'" value="'+o.maxX.toFixed(2)+'" onkeydown="event.stopPropagation()"></div>',
+      '<div class="fg"><label class="fl">Max Y</label><input type="number" class="fi" id="xrmY2_'+i+'" value="'+o.maxY.toFixed(2)+'" onkeydown="event.stopPropagation()"></div>',
+      '</div>',
+      '<div class="fr" style="margin-top:6px">',
+      '<div class="fg"><label class="fl">Opacity %</label><input type="range" min="10" max="100" value="'+Math.round((o.opacity||0.85)*100)+'" oninput="updateXrefOpacity('+i+',this.value/100)" style="flex:1"></div>',
+      '<div class="fg" style="flex:0.5"><button class="btn s" onclick="applyXrefBounds('+i+')">✓ Apply</button></div>',
+      '<div class="fg" style="flex:0.5"><button class="btn s" onclick="fitXrefToDrawing('+i+')">⊞ Fit</button></div>',
+      '</div>',
+      '</div>'
+    ].join('');
+  }).join('') : '<div style="color:var(--m);font-size:11px;text-align:center;padding:20px">No images loaded. Import a DXF with XREF images or use IMAGE command.</div>';
+
+  div.innerHTML = '<div class="modal w" style="max-width:560px">'
+    + '<div class="mh"><div class="mh-t"><span class="i">🖼</span>XREF Image Manager</div>'
+    + '<span class="mc" id="xrefMgrClose">✕</span></div>'
+    + '<div class="mb">' + rows + '</div>'
+    + '<div class="mf">'
+    + '<button class="btn s" id="xrefMgrClose2">Close</button>'
+    + '<label class="btn" style="cursor:pointer">📂 Load Image <input type="file" accept="image/*" style="display:none" onchange="loadNewXrefImage(this.files[0])"></label>'
+    + '</div></div>';
+  document.body.appendChild(div);
+  setTimeout(function() {
+    var c1=document.getElementById('xrefMgrClose'),c2=document.getElementById('xrefMgrClose2');
+    if(c1) c1.onclick=function(){closeMo('moXrefMgr');};
+    if(c2) c2.onclick=function(){closeMo('moXrefMgr');};
+  }, 10);
+  openMo('moXrefMgr');
+};
+
+window.removeXrefImage = function(idx) {
+  ST.imgOverlays = (ST.imgOverlays||[]).filter(function(_,i){return i!==idx;});
+  closeMo('moXrefMgr');
+  if(typeof renderImmediate==='function') renderImmediate(); else render&&render();
+  toast&&toast('Image removed','ok');
+  setTimeout(function(){openXrefManager();},100);
+};
+
+window.applyXrefBounds = function(idx) {
+  var o = (ST.imgOverlays||[])[idx]; if (!o) return;
+  o.minX = parseFloat((document.getElementById('xrmX1_'+idx)||{}).value||o.minX);
+  o.minY = parseFloat((document.getElementById('xrmY1_'+idx)||{}).value||o.minY);
+  o.maxX = parseFloat((document.getElementById('xrmX2_'+idx)||{}).value||o.maxX);
+  o.maxY = parseFloat((document.getElementById('xrmY2_'+idx)||{}).value||o.maxY);
+  if(typeof renderImmediate==='function') renderImmediate(); else render&&render();
+  toast&&toast('Image bounds updated','ok');
+};
+
+window.fitXrefToDrawing = function(idx) {
+  var o = (ST.imgOverlays||[])[idx]; if (!o) return;
+  var xs=[],ys=[];
+  ST.entities.forEach(function(e){
+    if(e.x1!==undefined){xs.push(e.x1,e.x2);ys.push(e.y1,e.y2);}
+    else if(e.cx!==undefined){xs.push(e.cx);ys.push(e.cy);}
+    else if(e.x!==undefined){xs.push(e.x);ys.push(e.y);}
+    if(e.pts)e.pts.forEach(function(p){xs.push(p.x);ys.push(p.y);});
+  });
+  if(xs.length<2){toast&&toast('No entities to fit to','warn');return;}
+  o.minX=Math.min.apply(null,xs); o.minY=Math.min.apply(null,ys);
+  o.maxX=Math.max.apply(null,xs); o.maxY=Math.max.apply(null,ys);
+  closeMo('moXrefMgr');
+  if(typeof renderImmediate==='function') renderImmediate(); else render&&render();
+  toast&&toast('Image fitted to drawing extents','ok');
+  setTimeout(function(){openXrefManager();},100);
+};
+
+window.updateXrefOpacity = function(idx, val) {
+  var o = (ST.imgOverlays||[])[idx]; if (!o) return;
+  o.opacity = parseFloat(val)||0.85;
+  if(typeof renderImmediate==='function') renderImmediate(); else render&&render();
+};
+
+window.loadNewXrefImage = function(file) {
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var img = new Image();
+    img.onload = function() {
+      // Use drawing extents or prompt
+      var xs=[],ys=[];
+      ST.entities.forEach(function(e){
+        if(e.x1!==undefined){xs.push(e.x1,e.x2);ys.push(e.y1,e.y2);}
+        else if(e.cx!==undefined){xs.push(e.cx);ys.push(e.cy);}
+        else if(e.x!==undefined){xs.push(e.x);ys.push(e.y);}
+        if(e.pts)e.pts.forEach(function(p){xs.push(p.x);ys.push(p.y);});
+      });
+      var minX,minY,maxX,maxY;
+      if(xs.length>=2){
+        minX=Math.min.apply(null,xs);minY=Math.min.apply(null,ys);
+        maxX=Math.max.apply(null,xs);maxY=Math.max.apply(null,ys);
+      } else {
+        var c=document.getElementById('cad');
+        if(c){var tl=s2w(0,0),br=s2w(c.width,c.height);minX=Math.min(tl.x,br.x);minY=Math.min(tl.y,br.y);maxX=Math.max(tl.x,br.x);maxY=Math.max(tl.y,br.y);}
+        else{minX=0;minY=0;maxX=1000;maxY=1000;}
+      }
+      ST.imgOverlays = ST.imgOverlays||[];
+      ST.imgOverlays.push({img:img,filename:file.name,minX:minX,minY:minY,maxX:maxX,maxY:maxY,opacity:0.85});
+      closeMo('moXrefMgr');
+      if(typeof renderImmediate==='function') renderImmediate(); else render&&render();
+      toast&&toast('Image loaded — use XREFMANAGER to adjust position','ok');
+      setTimeout(function(){openXrefManager();},200);
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+// ═══════════════════════════════════════════════════════════
+// 2. MAP LAYER SWITCHER — clean panel attached to map corner
+// ═══════════════════════════════════════════════════════════
+function addMapLayerButtons() {
+  // Add Google layer buttons to the existing map controls div
+  setTimeout(function() {
+    var mapDiv = document.getElementById('mapDiv');
+    if (!mapDiv || document.getElementById('mapLayerBtns')) return;
+
+    var ctrlDiv = document.createElement('div');
+    ctrlDiv.id = 'mapLayerBtns';
+    ctrlDiv.style.cssText = 'position:absolute;top:8px;left:8px;z-index:1000;display:flex;flex-direction:column;gap:4px;';
+
+    var layers = [
+      {key:'gsat', label:'🛰 Google Sat', active:true},
+      {key:'ghyb', label:'🗺 Hybrid'},
+      {key:'gmap', label:'🗺 G.Maps'},
+      {key:'osm',  label:'📍 OSM'},
+      {key:'topo', label:'⛰ Topo'},
+    ];
+
+    layers.forEach(function(l) {
+      var b = document.createElement('button');
+      b.id = 'mlbtn-'+l.key;
+      b.textContent = l.label;
+      b.style.cssText = 'padding:4px 9px;font-size:9px;font-family:IBM Plex Mono,monospace;font-weight:600;background:'+(l.active?'rgba(31,168,217,.5)':'rgba(6,14,26,.85)')+';border:1px solid rgba(31,168,217,.3);color:white;cursor:pointer;border-radius:4px;text-align:left;transition:background .15s;';
+      b.onclick = function() {
+        if (typeof window._map !== 'undefined' && window._map) {
+          var _map2 = window._map;
+          if (_map2._tileLayers) {
+            Object.values(_map2._tileLayers).forEach(function(tl){ try{_map2.removeLayer(tl);}catch(e){} });
+            if (_map2._tileLayers[l.key]) {
+              _map2._tileLayers[l.key].addTo(_map2);
+              _map2._currentBase = l.key;
+            } else {
+              // Dynamically add layer if not exists
+              var urls = {
+                gsat:'https://mt{s}.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}',
+                ghyb:'https://mt{s}.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}',
+                gmap:'https://mt{s}.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}',
+                osm:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                topo:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+              };
+              if (urls[l.key] && typeof L !== 'undefined') {
+                var opts = {maxZoom:22};
+                if (l.key.startsWith('g')) opts.subdomains = '0123';
+                var newLayer = L.tileLayer(urls[l.key], opts).addTo(_map2);
+                _map2._tileLayers[l.key] = newLayer;
+                _map2._currentBase = l.key;
+              }
+            }
+          } else if (typeof setMapLayer === 'function') {
+            setMapLayer(l.key);
+          }
+        }
+        // Update button styles
+        document.querySelectorAll('[id^="mlbtn-"]').forEach(function(btn){
+          btn.style.background='rgba(6,14,26,.85)';
+        });
+        b.style.background='rgba(31,168,217,.5)';
+        toast&&toast('Map: '+l.label,'ok');
+      };
+      ctrlDiv.appendChild(b);
+    });
+
+    mapDiv.appendChild(ctrlDiv);
+  }, 1500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 3. CONTOUR AUTO-TAG — ensure imported DXF contours get elevation
+// ═══════════════════════════════════════════════════════════
+// When DXF is imported, scan for layer names like "Contour_100" etc and set elevation
+var _origParseDXFContour = window.parseDXF;
+window.parseDXF = function(txt, filename) {
+  if (typeof _origParseDXFContour === 'function') _origParseDXFContour(txt, filename);
+  // Post-process: tag entities on contour layers with elevation
+  setTimeout(function() {
+    var contourLayerRe = /contour|elev|topo|DTM|niveau|isoline/i;
+    var elevFromLayerName = /(\d+(\.\d+)?)/;
+    var tagged = 0;
+    ST.entities.forEach(function(e) {
+      if (e._contourElev !== undefined) return; // already tagged
+      var lay = ST.layers.find(function(l){return l.id===e.layer;});
+      if (!lay) return;
+      if (contourLayerRe.test(lay.name||'')) {
+        var m = lay.name.match(elevFromLayerName);
+        if (m) {
+          var elev = parseFloat(m[1]);
+          if (!isNaN(elev)) {
+            e._contourElev = elev; e.elevation = elev; e._z = elev;
+            // Major contour if divisible by 5
+            e._contourType = (Math.round(elev) % 5 === 0) ? 'major' : 'minor';
+            tagged++;
+          }
+        }
+      }
+      // Also check text entities for elevation values near contour lines
+      if (e.type === 'text' && e.text) {
+        var tv = parseFloat(e.text);
+        if (!isNaN(tv) && tv > -100 && tv < 9000) {
+          e._z = tv; e.elevation = tv;
+        }
+      }
+    });
+    if (tagged > 0) {
+      console.log('[Strata] Tagged '+tagged+' contour entities with elevation from layer name');
+      toast&&toast('Tagged '+tagged+' contour entities with elevation values','ok');
+    }
+  }, 1500);
+};
+
+// ═══════════════════════════════════════════════════════════
+// 4. FIXED OFFSET — click-on-entity-then-type-distance
+// ═══════════════════════════════════════════════════════════
+// Override offset tool to match AutoCAD flow:
+// 1. OFFSET → type distance in input → press Enter
+// 2. Click entity → click side → creates offset
+// Keep going until ESC
+var _isOffsetActive = false;
+
+// Override T('offset') via CAD_ACTIONS
+if (typeof CAD_ACTIONS !== 'undefined') {
+  var _origOffset = CAD_ACTIONS.offset || function(){};
+  CAD_ACTIONS.offset = function() {
+    // Focus the distance input field immediately
+    var ib = document.getElementById('ibDist');
+    if (ib) {
+      ib.value = '';
+      ib.placeholder = 'offset distance…';
+      ib.focus();
+      ib.select();
+    }
+    // Call original
+    if (typeof T === 'function') T('offset');
+    setMsg && setMsg('OFFSET — type distance in DIST field then Enter, then click entity, then click side | ESC=done');
+    toast && toast('Type offset distance, then click entity, then click which side', 'ok');
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// 5. REGISTER XREF MANAGER COMMAND
+// ═══════════════════════════════════════════════════════════
+if (typeof CAD_COMMANDS !== 'undefined') {
+  CAD_COMMANDS['XREFMANAGER'] = 'xrefmanager';
+  CAD_COMMANDS['XREF'] = 'xrefmanager';
+  CAD_COMMANDS['XR'] = 'xrefmanager';
+  CAD_COMMANDS['XREFMGR'] = 'xrefmanager';
+  CAD_COMMANDS['IMAGEMANAGER'] = 'xrefmanager';
+  CAD_COMMANDS['IMGMGR'] = 'xrefmanager';
+  CAD_COMMANDS['XCLIP'] = 'xrefmanager';
+}
+if (typeof CAD_ACTIONS !== 'undefined') {
+  CAD_ACTIONS['xrefmanager'] = function() { window.openXrefManager(); };
+}
+
+// ═══════════════════════════════════════════════════════════
+// 6. CURSOR: ensure drawCrosshair is never stale
+// ═══════════════════════════════════════════════════════════
+// Re-export on every render cycle to prevent stale reference
+var _cadCanvas = document.getElementById('cad');
+if (_cadCanvas) {
+  _cadCanvas.addEventListener('mousemove', function() {
+    // Keep window.drawCrosshair pointing to the latest version
+    if (!window.drawCrosshair || window.drawCrosshair._v !== 'pro') {
+      // Rebuild the crosshair function
+      window.drawCrosshair = function() {
+        var cad2 = document.getElementById('cad'); if (!cad2) return;
+        var ctx2 = cad2.getContext('2d');
+        var W2=cad2.width, H2=cad2.height;
+        var mouse = ST.mouse || {x:W2/2, y:H2/2};
+        var x=mouse.x, y=mouse.y;
+
+        // Read size from dropdown
+        var xhSel = document.getElementById('ib-xhair-size');
+        var pctVal = xhSel ? parseInt(xhSel.value)||15 : (ST.crosshairPct||15);
+        var pct = pctVal / 100;
+        var armLen = Math.min(W2,H2) * pct;
+        var gap = 10; // slightly larger gap so system crosshair is visible
+
+        var toolColors = {
+          move:'#F5BE18',copy:'#a78bfa',rotate:'#ff9060',scale:'#4eff91',
+          stretch:'#ff4466',offset:'#1FA8D9',trim:'#ff4466',extend:'#ff9060',
+          line:'rgba(255,255,255,.8)',polyline:'rgba(255,255,255,.8)',
+          polygon:'#4eff91',boundary:'#4eff91',acawall:'rgba(255,255,255,.7)',
+        };
+        var col = (ST.opState && toolColors[ST.opState.type]) || toolColors[ST.tool] || 'rgba(31,168,217,.85)';
+
+        ctx2.save();
+        // Faint full-screen guide
+        ctx2.strokeStyle='rgba(31,168,217,.05)'; ctx2.lineWidth=0.5;
+        ctx2.beginPath(); ctx2.moveTo(x,0); ctx2.lineTo(x,H2); ctx2.moveTo(0,y); ctx2.lineTo(W2,y); ctx2.stroke();
+
+        // Main arms
+        ctx2.strokeStyle=col; ctx2.lineWidth=1; ctx2.setLineDash([]);
+        ctx2.beginPath();
+        ctx2.moveTo(x-armLen,y); ctx2.lineTo(x-gap,y);
+        ctx2.moveTo(x+gap,y);   ctx2.lineTo(x+armLen,y);
+        ctx2.moveTo(x,y-armLen); ctx2.lineTo(x,y-gap);
+        ctx2.moveTo(x,y+gap);   ctx2.lineTo(x,y+armLen);
+        ctx2.stroke();
+
+        // Pickbox (subtle - system cursor shows here)
+        ctx2.strokeStyle=col; ctx2.lineWidth=0.7; ctx2.globalAlpha=0.5;
+        ctx2.strokeRect(x-4,y-4,8,8);
+        ctx2.globalAlpha=1;
+
+        // Snap marker
+        if (window._snapPt) {
+          var ss=w2s(window._snapPt.x,window._snapPt.y);
+          var sc={endpoint:'#F5BE18',midpoint:'#4eff91',center:'#1FA8D9',intersection:'#ff4466',nearest:'#FF8C00'}[window._snapPt.type]||'#F5BE18';
+          ctx2.strokeStyle=sc; ctx2.lineWidth=2;
+          if(window._snapPt.type==='endpoint') ctx2.strokeRect(ss.x-5,ss.y-5,10,10);
+          else if(window._snapPt.type==='midpoint'){ctx2.beginPath();ctx2.moveTo(ss.x,ss.y-6);ctx2.lineTo(ss.x+5,ss.y+4);ctx2.lineTo(ss.x-5,ss.y+4);ctx2.closePath();ctx2.stroke();}
+          else{ctx2.beginPath();ctx2.arc(ss.x,ss.y,5,0,Math.PI*2);ctx2.stroke();}
+          ctx2.fillStyle=sc;ctx2.font='bold 8px IBM Plex Mono';ctx2.textAlign='left';
+          ctx2.fillText((window._snapPt.type||'').toUpperCase(),ss.x+8,ss.y-6);
+        }
+        ctx2.restore();
+        cad2.style.cursor='crosshair'; // hide OS arrow, show custom crosshair only
+      };
+      window.drawCrosshair._v = 'pro';
+    }
+  }, false);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 7. INIT
+// ═══════════════════════════════════════════════════════════
+setTimeout(function() {
+  addMapLayerButtons();
+  console.log('[StrataXrefMapExtras] XREF Manager ✓ Map layer buttons ✓ Contour auto-tag ✓ Cursor fix ✓');
+}, 1200);
+
+// Also add XREFMANAGER to toolbar
+setTimeout(function() {
+  // Add XREF button to the toolbar
+  var xrefArea = document.querySelector('[onclick*="tlLoad"]') || document.querySelector('.tb[title*="XREF"]');
+  if (!xrefArea) return;
+  // Find the INSERT tab
+  var insertRib = document.getElementById('rib-INSERT');
+  if (!insertRib) return;
+  var btn = document.createElement('button');
+  btn.className = 'rb';
+  btn.title = 'XREF Image Manager (XREFMANAGER)';
+  btn.innerHTML = '<span class="rb-i">🖼</span>XREF MGR';
+  btn.onclick = function() { openXrefManager(); };
+  btn.style.cssText = 'background:rgba(78,255,145,.08);border-color:rgba(78,255,145,.3);';
+  var firstGroup = insertRib.querySelector('.rg');
+  if (firstGroup) firstGroup.appendChild(btn);
+}, 900);
+
+})(); // end StrataXrefMapExtras
 
 </script>
 
