@@ -1582,6 +1582,9 @@ var _mapMode = 'draw';
 var _mapLayer = 'osm';
 // Map tile layer URLs — must be declared before _initMap/setMapLayer use them
 var _mapLayers = {
+  gsat: 'https://mt{s}.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}',
+  ghyb: 'https://mt{s}.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}',
+  gmap: 'https://mt{s}.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}',
   osm:  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   sat:  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   topo: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
@@ -2889,68 +2892,74 @@ function applyOp(wp){
   // Phase A: type distance in DIST field
   // Phase B: click the entity to offset
   // Phase C: click WHICH SIDE → offset placed exactly that distance
+  // ── BUFFER / OFFSET — equal distance ALL sides ─────────────────────
   if(op.type==='offset'){
-    if(!op._pendingEnt){
-      // Phase B: click entity
-      const tol=14/ST.zoom;
-      let found=null;
-      for(let i=ST.entities.length-1;i>=0;i--){
-        const e=ST.entities[i];
-        if(!layVisible(e.layer)) continue;
-        if(ptHitsEnt(wp.x,wp.y,e,tol)){ found=e; break; }
+    // Ensure distance is set
+    if(!op.dist||op.dist<=0){
+      const ibEl=document.getElementById('ibDist');
+      const typed=ibEl?parseFloat(ibEl.value):NaN;
+      if(!isNaN(typed)&&typed>0){ op.dist=typed; }
+      else {
+        const ans=prompt('Buffer distance ('+ST.units+') - equal all sides:','1000');
+        if(ans===null){ ST.opState=null; return; }
+        op.dist=Math.abs(parseFloat(ans)||1000);
       }
-      if(!found){ toast('Click a line, polyline, circle or arc to offset','warn'); return; }
-      op._pendingEnt=found;
-      if(!op.dist||op.dist<=0){
-        const ibEl=document.getElementById('ibDist');
-        const typed=ibEl?parseFloat(ibEl.value):NaN;
-        if(!isNaN(typed)&&typed>0){ op.dist=typed; }
-        else{
-          const ans=prompt('Offset distance ('+ST.units+'):','1000');
-          if(ans===null){ op._pendingEnt=null; return; }
-          op.dist=Math.abs(parseFloat(ans)||1000);
-        }
-      }
-      setMsg('OFFSET '+op.dist.toFixed(2)+' '+ST.units+' — click the SIDE to offset towards | ESC=cancel');
+      const ibEl2=document.getElementById('ibDist');
+      if(ibEl2){ibEl2.value=op.dist;ibEl2.placeholder=op.dist+' '+ST.units;}
+    }
+
+    // Click to pick entity
+    const tol2=14/ST.zoom;
+    let found=null;
+    for(let bi=ST.entities.length-1;bi>=0;bi--){
+      const e=ST.entities[bi];
+      if(!layVisible(e.layer)) continue;
+      if(ptHitsEnt(wp.x,wp.y,e,tol2)){ found=e; break; }
+    }
+    if(!found){
+      toast('Click entity to buffer (line/polyline/circle/arc)','warn');
+      setMsg('BUFFER '+op.dist.toFixed(2)+' '+ST.units+' — click entity | ESC=cancel');
       return;
     }
-    // Phase C: click side
-    const ent=op._pendingEnt, dist=op.dist;
-    let sign=1;
-    if(ent.type==='line'){
-      const dx=ent.x2-ent.x1,dy=ent.y2-ent.y1;
-      sign=((wp.x-ent.x1)*dy-(wp.y-ent.y1)*dx)>0?1:-1;
-    } else if(ent.type==='polyline' && ent.pts && ent.pts.length>=2) {
-      if (ent.closed && ent.pts.length >= 3) {
-        // Determine winding (same as offsetEnt)
-        var area2=0, pp=ent.pts, nn=pp.length;
-        for(var ii2=0;ii2<nn;ii2++){var jj2=(ii2+1)%nn;area2+=pp[ii2].x*pp[jj2].y-pp[jj2].x*pp[ii2].y;}
-        var windSign2=area2>0?1:-1;
-        // Centroid
-        var cx2=0,cy2=0;pp.forEach(function(p){cx2+=p.x;cy2+=p.y;});cx2/=nn;cy2/=nn;
-        // Click outside centroid in winding direction = outward = positive
-        var dcx=wp.x-cx2,dcy=wp.y-cy2;
-        // For CCW (windSign2=1): outward normal already points away from centroid
-        // Click farther from centroid than average vertex = outside = positive
-        var avgR=0;pp.forEach(function(p){avgR+=Math.hypot(p.x-cx2,p.y-cy2);});avgR/=nn;
-        var clickR=Math.hypot(dcx,dcy);
-        sign = clickR > avgR ? 1 : -1;
-      } else {
-        var p1=ent.pts[0], p2=ent.pts[Math.min(1,ent.pts.length-1)];
-        sign=((wp.x-p1.x)*(p2.y-p1.y)-(wp.y-p1.y)*(p2.x-p1.x))>0?1:-1;
+
+    const dist=op.dist;
+    pushUndo();
+
+    if(found.type==='line'){
+      // Line: rectangle buffer on both sides
+      const dx=found.x2-found.x1,dy=found.y2-found.y1,l=Math.hypot(dx,dy)||1;
+      const nx=-dy/l*dist,ny=dx/l*dist;
+      ST.entities.push({_id:++ST._eid,type:'polyline',closed:true,selected:true,_isBuffer:true,
+        layer:found.layer,pts:[
+          {x:found.x1+nx,y:found.y1+ny},{x:found.x2+nx,y:found.y2+ny},
+          {x:found.x2-nx,y:found.y2-ny},{x:found.x1-nx,y:found.y1-ny}]});
+    } else if(found.type==='polyline'&&found.pts&&found.pts.length>=2){
+      // Polyline: outer buffer (always outward)
+      const outer=offsetEnt(found, dist);
+      if(outer){outer._id=++ST._eid;outer.selected=true;outer._isBuffer=true;ST.entities.push(outer);}
+      // Closed polygon: add inner buffer too
+      if(found.closed&&found.pts.length>=3){
+        const inner=offsetEnt(found,-dist);
+        if(inner){
+          let ia=0;
+          for(let ii3=0;ii3<inner.pts.length;ii3++){const jj3=(ii3+1)%inner.pts.length;ia+=inner.pts[ii3].x*inner.pts[jj3].y-inner.pts[jj3].x*inner.pts[ii3].y;}
+          if(Math.abs(ia)/2>dist*dist){inner._id=++ST._eid;inner.selected=false;inner._isBuffer=true;ST.entities.push(inner);}
+        }
       }
-    }else if(ent.type==='circle'||ent.type==='arc'){
-      sign=Math.hypot(wp.x-ent.cx,wp.y-ent.cy)>ent.r?1:-1;
+    } else if(found.type==='circle'){
+      const ne=Object.assign({},found,{_id:++ST._eid,r:found.r+dist,selected:true,_isBuffer:true});
+      ST.entities.push(ne);
+    } else if(found.type==='arc'){
+      const ne=Object.assign({},found,{_id:++ST._eid,r:Math.max(0.001,found.r+dist),selected:true,_isBuffer:true});
+      ST.entities.push(ne);
+    } else {
+      toast('Buffer: unsupported entity type — use line/polyline/circle/arc','warn'); return;
     }
-    const ne=offsetEnt(ent,dist*sign);
-    if(ne){
-      pushUndo(); ne._id=++ST._eid; ne.selected=true; ST.entities.push(ne);
-      invalidateSpatialIndex&&invalidateSpatialIndex();
-      if(typeof renderImmediate==='function') renderImmediate(); else render();
-      toast('Offset '+dist.toFixed(2)+' '+ST.units,'ok');
-    }else toast('Cannot offset this entity type','warn');
-    op._pendingEnt=null;
-    setMsg('OFFSET '+dist.toFixed(2)+' '+ST.units+' — click next entity | ESC=done');
+
+    invalidateSpatialIndex&&invalidateSpatialIndex();
+    if(typeof renderImmediate==='function') renderImmediate(); else render();
+    toast('Buffer '+dist.toFixed(2)+' '+ST.units+' created on all sides','ok');
+    setMsg('BUFFER '+dist.toFixed(2)+' '+ST.units+' — click another entity | ESC=done');
     return;
   }
 
@@ -3603,60 +3612,50 @@ function delSel() {
   const sels = ST.entities.filter(e => e.selected);
   if (!sels.length) { toast('Nothing selected','warn'); return; }
 
-  // Save undo snapshot BEFORE mutating
-  try { if (typeof pushUndo==='function') pushUndo('delete'); } catch(e){}
+  try { if (typeof pushUndo==='function') pushUndo('delete'); } catch(e2){}
 
-  // Remove entities from array
+  // Remove entities - filter by ID for safety
   const delIds = new Set(sels.map(e=>e._id));
   ST.entities = ST.entities.filter(e => !delIds.has(e._id));
 
-  // Clear ALL state that might re-draw old entities
-  ST.ghostEnt      = null;
-  ST.opState       = null;
-  ST.startPt       = null;
-  ST.drawing       = false;
-  ST._polyPts      = [];
-  ST._polyCursorWP = null;
+  // Wipe all cached/ghost state
+  ST.ghostEnt=null; ST.opState=null; ST.startPt=null;
+  ST.drawing=false; ST._polyPts=[]; ST._polyCursorWP=null;
 
-  // Hide gizmo DOM overlay immediately
-  var gizmoEl = document.getElementById('rotScaleGizmo') || document.getElementById('gizmoBox');
-  if (gizmoEl) gizmoEl.style.display = 'none';
-  if (typeof hideRotateScaleGizmo === 'function') hideRotateScaleGizmo();
+  // Hide DOM gizmo overlays
+  document.querySelectorAll('#rotScaleGizmo,#gizmoBox,[id^="gh-"]').forEach(function(el){el.style.display='none';});
+  if (typeof hideRotateScaleGizmo==='function') hideRotateScaleGizmo();
 
-  // Update prop panel (no render inside)
-  const sc = document.getElementById('selCount');
-  if (sc) sc.style.display = 'none';
+  // Update count display
+  var sc=document.getElementById('selCount'); if(sc) sc.style.display='none';
 
-  const d = sels.length;
-  toast(d + ' deleted', 'ok');
-  setMsg(d + ' deleted');
+  toast(sels.length+' deleted','ok');
+  setMsg(sels.length+' deleted');
 
-  // Force rebuild spatial index from new ST.entities NOW
-  try {
-    if (typeof rebuildIndex === 'function') { _indexDirty=false; rebuildIndex(); }
-    else if (typeof invalidateSpatialIndex === 'function') invalidateSpatialIndex();
-  } catch(e) {}
+  // Mark spatial index dirty
+  if (typeof invalidateSpatialIndex==='function') invalidateSpatialIndex();
 
-  // BYPASS all render wrappers — call _doRender directly if available
-  var cad2 = document.getElementById('cad');
-  if (cad2) {
-    var ctx3 = cad2.getContext('2d');
-    ctx3.clearRect(0, 0, cad2.width, cad2.height);
-    ctx3.fillStyle = (typeof ST!=='undefined'&&ST.bgColor) ? ST.bgColor : '#060E1A';
-    ctx3.fillRect(0, 0, cad2.width, cad2.height);
+  // ── DIRECT CANVAS WIPE ────────────────────────────────────────
+  // Don't go through any RAF/render wrapper — wipe the canvas pixel by pixel
+  var cadEl = document.getElementById('cad');
+  if (cadEl) {
+    var dctx = cadEl.getContext('2d');
+    dctx.clearRect(0,0,cadEl.width,cadEl.height);
+    if (!window._mapActive) {
+      dctx.fillStyle = ST.bgColor||'#060E1A';
+      dctx.fillRect(0,0,cadEl.width,cadEl.height);
+    }
+    // Draw grid if enabled
+    if (ST.grid && typeof drawGrid==='function') drawGrid();
   }
 
-  // Cancel ALL queued RAFs
-  if (typeof _rafId!=='undefined' && _rafId) { cancelAnimationFrame(_rafId); _rafId=null; }
-  if (typeof _renderPending!=='undefined') _renderPending=false;
-
-  // Draw directly — bypass window.render chain entirely
-  if (typeof _doRender==='function') {
-    _doRender();
-    // Cancel any RAF that _doRender might have queued
-    if (typeof _rafId!=='undefined' && _rafId) { cancelAnimationFrame(_rafId); _rafId=null; }
-  } else if (typeof renderImmediate==='function') {
+  // Use renderImmediate (exported from StrataProEngine) to redraw entities
+  if (typeof renderImmediate==='function') {
     renderImmediate();
+    // Second pass to catch any RAF that sneaked in
+    setTimeout(function(){
+      if (typeof renderImmediate==='function') renderImmediate();
+    }, 50);
   }
 }
 
@@ -9447,6 +9446,32 @@ function utmToWgs84(easting, northing, crsKey) {
 
 // ══ MULTI-FORMAT EXPORT ══════════════════════════════════════════════
 function openExportModal() {
+  // Add 'selected only' checkbox if not present
+  var selOnlyDiv = document.getElementById('exportSelOnly');
+  if (!selOnlyDiv) {
+    var expMo = document.getElementById('moExport');
+    if (expMo) {
+      var selDiv = document.createElement('div');
+      selDiv.id = 'exportSelOnly';
+      selDiv.style.cssText = 'padding:6px 0;display:flex;align-items:center;gap:8px;font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--t)';
+      var selCount = ST.entities.filter(function(e){return e.selected;}).length;
+      selDiv.innerHTML = '<label style="display:flex;align-items:center;gap:6px;cursor:pointer">'
+        + '<input type="checkbox" id="exportOnlySelected" style="accent-color:var(--b)"'+(selCount>0?' checked':'')+' >'
+        + '<span>Export selected only</span>'
+        + '<span style="color:var(--m)">('+(selCount||ST.entities.length)+' entities)</span>'
+        + '</label>'
+        + '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-left:12px">'
+        + '<input type="checkbox" id="exportWithAttrs" checked>'
+        + '<span>Include attributes</span></label>';
+      var mb = expMo.querySelector('.mb');
+      if (mb) mb.insertBefore(selDiv, mb.firstChild);
+    }
+  } else {
+    // Update count
+    var selCount2 = ST.entities.filter(function(e){return e.selected;}).length;
+    var inp = document.getElementById('exportOnlySelected');
+    if (inp) inp.checked = selCount2 > 0;
+  }
   // Rebuild layer list
   const layList = document.getElementById('exportLayerList');
   if(layList) {
@@ -12494,8 +12519,12 @@ function toggleMap(){
     div.style.display='block';
     ST.bgColor='rgba(0,0,0,0.02)';
     if(!_map) _initMap();
+    // Switch to Google Satellite after init
+    if (_map && _map._tileLayers && _map._tileLayers.gsat) {
+      setTimeout(function() { setMapLayer('gsat'); }, 200);
+    }
     if(btn) btn.classList.add('on');
-    if(ibBtn) ibBtn.textContent='🗺 Map ON';
+    if(ibBtn) ibBtn.textContent='🛰 Map ON';
     // Show map control buttons
     const ibMode=document.getElementById('ibBtnMapMode');
     if(ibMode) ibMode.style.display='';
@@ -19964,6 +19993,11 @@ window.loadXrefImage = function(input, idx) {
   var reader = new FileReader();
   reader.onload = function(ev) {
     var img = new Image();
+    img.onerror = function() {
+      var statusEl2 = document.getElementById('xrefStatus_'+idx);
+      if (statusEl2) { statusEl2.textContent='⚠ Load failed'; statusEl2.style.color='#ff4466'; }
+      toast('Image load failed — try a different format (JPG/PNG/WebP)', 'err');
+    };
     img.onload = function() {
       var imgDef = (ST.imgDefs || [])[idx];
       // Place image at drawing extents or world origin if no position data
