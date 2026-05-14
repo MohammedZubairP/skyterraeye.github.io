@@ -1158,6 +1158,14 @@ input,select{font-family:inherit}
 
   <!-- Quick toggle buttons -->
   <div class="ib-sect" style="gap:3px">
+    <select class="ib-btn" id="ib-xhair-size" title="Crosshair arm size"
+      onchange="ST.crosshairPct=parseInt(this.value);render()" style="font-size:9px;padding:1px 3px;cursor:pointer">
+      <option value="5">XHair: S</option>
+      <option value="15" selected>XHair: M</option>
+      <option value="30">XHair: L</option>
+      <option value="50">XHair: XL</option>
+      <option value="100">XHair: Full</option>
+    </select>
     <button class="ib-btn on" id="ib-ortho" onclick="toggleOrtho()" title="Ortho mode — constrain to 0/45/90° (F8)">⊢ ORTHO</button>
     <button class="ib-btn on" id="ib-snap" onclick="toggleSnap()" title="Grid snap (F9)">⊞ SNAP</button>
     <button class="ib-btn on" id="ib-osnap" onclick="document.getElementById('osnapPanel').style.display=document.getElementById('osnapPanel').style.display==='block'?'none':'block'" title="Object snap settings endpoints/midpoints (F3)">◎ OSNAP</button>
@@ -1687,53 +1695,75 @@ function drawGrid() {
 
 function drawCrosshair() {
   const {x,y} = ST.mouse;
-  const cs = ST.crosshairSize || 100; // gap size
-  const cl = Math.min(W,H); // full line length
 
-  // Full-screen thin lines (very faint)
-  ctx.strokeStyle='rgba(31,168,217,.08)'; ctx.lineWidth=0.5; ctx.setLineDash([]);
-  ctx.beginPath();
-  ctx.moveTo(x,0); ctx.lineTo(x,y-cs);
-  ctx.moveTo(x,y+cs); ctx.lineTo(x,H);
-  ctx.moveTo(0,y); ctx.lineTo(x-cs,y);
-  ctx.moveTo(x+cs,y); ctx.lineTo(W,y);
-  ctx.stroke();
+  // Crosshair config — adjustable via ST.crosshairPct (0-100, default 50 = half screen)
+  const pct  = (ST.crosshairPct !== undefined ? ST.crosshairPct : 5) / 100;
+  const gap  = ST.crosshairGap || 6;       // gap around pickbox (px)
+  const armLen = Math.min(W, H) * pct;     // arm length proportional to screen
 
-  // Inner crosshair arms (AutoCAD style — gap around cursor)
-  const armLen = Math.min(W,H)*0.4;
-  ctx.strokeStyle='rgba(31,168,217,.55)'; ctx.lineWidth=1;
-  ctx.beginPath();
-  ctx.moveTo(x-armLen,y); ctx.lineTo(x-cs,y);
-  ctx.moveTo(x+cs,y);     ctx.lineTo(x+armLen,y);
-  ctx.moveTo(x,y-armLen); ctx.lineTo(x,y-cs);
-  ctx.moveTo(x,y+cs);     ctx.lineTo(x,y+armLen);
-  ctx.stroke();
-
-  // Center pickbox (small square)
-  const pb = 5;
-  ctx.strokeStyle='rgba(31,168,217,.7)'; ctx.lineWidth=0.8;
-  ctx.strokeRect(x-pb,y-pb,pb*2,pb*2);
-
-  // Color-code crosshair by active tool
+  // Tool-specific color
   const toolColors = {
-    move:'rgba(245,190,24,.6)', copy:'rgba(167,139,250,.6)', rotate:'rgba(255,144,96,.6)',
-    scale:'rgba(78,255,145,.6)', stretch:'rgba(255,68,102,.6)', offset:'rgba(31,168,217,.8)',
-    trim:'rgba(255,68,102,.6)', line:'rgba(255,255,255,.4)', polyline:'rgba(255,255,255,.4)',
-    boundary:'rgba(78,255,145,.5)',
+    move:'rgba(245,190,24,.9)', copy:'rgba(167,139,250,.9)', rotate:'rgba(255,144,96,.9)',
+    scale:'rgba(78,255,145,.9)', stretch:'rgba(255,68,102,.9)', offset:'rgba(31,168,217,.9)',
+    trim:'rgba(255,68,102,.9)', extend:'rgba(255,144,96,.9)',
+    line:'rgba(255,255,255,.75)', polyline:'rgba(255,255,255,.75)',
+    polygon:'rgba(78,255,145,.8)', boundary:'rgba(78,255,145,.8)',
+    acawall:'rgba(255,255,255,.75)',
   };
-  const tc = toolColors[ST.tool] || (ST.opState ? toolColors[ST.opState.type] : null);
-  if(tc) {
-    ctx.strokeStyle=tc; ctx.lineWidth=1.2;
+  const tc = toolColors[ST.tool] || (ST.opState ? toolColors[ST.opState.type] : null)
+             || 'rgba(31,168,217,.8)';
+
+  // ── Very faint full-screen guide lines (subtle, like AutoCAD background crosshair) ──
+  if (ST.crosshairFullGuides !== false) {
+    ctx.strokeStyle = 'rgba(31,168,217,.04)'; ctx.lineWidth = 0.5; ctx.setLineDash([]);
     ctx.beginPath();
-    ctx.moveTo(x-armLen,y); ctx.lineTo(x-cs,y);
-    ctx.moveTo(x+cs,y); ctx.lineTo(x+armLen,y);
-    ctx.moveTo(x,y-armLen); ctx.lineTo(x,y-cs);
-    ctx.moveTo(x,y+cs); ctx.lineTo(x,y+armLen);
+    ctx.moveTo(x,0); ctx.lineTo(x,H);
+    ctx.moveTo(0,y); ctx.lineTo(W,y);
     ctx.stroke();
-    ctx.strokeStyle=tc; ctx.strokeRect(x-pb,y-pb,pb*2,pb*2);
   }
 
-  // Hide system cursor when over canvas (use crosshair only)
+  // ── Main crosshair arms (from gap outward to armLen) ──
+  ctx.strokeStyle = tc; ctx.lineWidth = 1; ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(x - armLen, y); ctx.lineTo(x - gap, y);
+  ctx.moveTo(x + gap,    y); ctx.lineTo(x + armLen, y);
+  ctx.moveTo(x, y - armLen); ctx.lineTo(x, y - gap);
+  ctx.moveTo(x, y + gap);    ctx.lineTo(x, y + armLen);
+  ctx.stroke();
+
+  // ── Pickbox square ──
+  const pb = 4;
+  ctx.strokeStyle = tc; ctx.lineWidth = 1;
+  ctx.strokeRect(x - pb, y - pb, pb*2, pb*2);
+
+  // ── Snap marker ──
+  if (window._snapPt) {
+    const ss = w2s(window._snapPt.x, window._snapPt.y);
+    const snapColors = {
+      endpoint:'#F5BE18', midpoint:'#4eff91', center:'#1FA8D9',
+      intersection:'#ff4466', nearest:'#FF8C00', perpendicular:'#c084fc',
+    };
+    const sc = snapColors[window._snapPt.type] || '#F5BE18';
+    ctx.strokeStyle = sc; ctx.lineWidth = 2;
+    if (window._snapPt.type==='endpoint') {
+      ctx.strokeRect(ss.x-5,ss.y-5,10,10);
+    } else if (window._snapPt.type==='midpoint') {
+      ctx.beginPath();
+      ctx.moveTo(ss.x,ss.y-6); ctx.lineTo(ss.x+5,ss.y+4); ctx.lineTo(ss.x-5,ss.y+4);
+      ctx.closePath(); ctx.stroke();
+    } else if (window._snapPt.type==='center') {
+      ctx.beginPath(); ctx.arc(ss.x,ss.y,5,0,Math.PI*2); ctx.stroke();
+    } else if (window._snapPt.type==='intersection') {
+      ctx.beginPath();
+      ctx.moveTo(ss.x-5,ss.y-5); ctx.lineTo(ss.x+5,ss.y+5);
+      ctx.moveTo(ss.x+5,ss.y-5); ctx.lineTo(ss.x-5,ss.y+5);
+      ctx.stroke();
+    }
+    ctx.fillStyle=sc; ctx.font='bold 8px IBM Plex Mono,monospace';
+    ctx.textAlign='left'; ctx.fillText(window._snapPt.type.toUpperCase(),ss.x+8,ss.y-6);
+  }
+
+  // Hide system cursor
   canvas.style.cursor='none';
 }
 
@@ -19594,38 +19624,66 @@ if (typeof CAD_ACTIONS !== 'undefined') {
 // ═══════════════════════════════════════════════════
 window.handleMissingXrefImages = function(imageDefs) {
   if (!imageDefs || !imageDefs.length) return;
-
   var existing = document.getElementById('moXrefImages');
   if (existing) existing.remove();
-
   var div = document.createElement('div');
   div.id = 'moXrefImages'; div.className = 'mo';
-  div.innerHTML = '<div class="modal w" style="max-width:520px">'
-    + '<div class="mh"><div class="mh-t"><span class="i">🖼</span>External Referenced Images</div>'
-    + '<span class="mc" onclick="closeMo(\'moXrefImages\')">✕</span></div>'
-    + '<div class="mb">'
-    + '<div style="font-size:10px;color:var(--m);font-family:IBM Plex Mono,monospace;margin-bottom:10px">'
-    + 'This drawing references ' + imageDefs.length + ' external image file(s). '
-    + 'Upload them to display as background overlays.</div>'
-    + '<div id="xrefImageList" style="display:flex;flex-direction:column;gap:8px">'
-    + imageDefs.map(function(img, i) {
-        return '<div style="background:var(--bg2);border:1px solid var(--sep);border-radius:5px;padding:8px 12px;display:flex;align-items:center;gap:10px">'
-          + '<div style="flex:1"><div style="font-size:10px;font-weight:700;color:var(--t);font-family:IBM Plex Mono,monospace">' + (img.filename||img.path||'Image '+(i+1)) + '</div>'
-          + '<div style="font-size:8.5px;color:var(--m);font-family:IBM Plex Mono,monospace;margin-top:2px">'
-          + (img.minX ? 'Bounds: ' + img.minX.toFixed(1)+','+img.minY.toFixed(1)+' → '+img.maxX.toFixed(1)+','+img.maxY.toFixed(1) : 'Embedded reference')
-          + '</div></div>'
-          + '<label class="btn s" style="cursor:pointer;font-size:9px">📂 Upload '
-          + '<input type="file" accept="image/*" style="display:none" '
-          + 'onchange="loadXrefImage(this,'+i+')" data-idx="'+i+'">'
-          + '</label>'
-          + '<span id="xrefStatus_'+i+'" style="font-size:9px;color:var(--m)">Not loaded</span>'
-          + '</div>';
-      }).join('')
-    + '</div>'
-    + '</div>'
-    + '<div class="mf"><button class="btn s" onclick="closeMo(\'moXrefImages\')">Close</button></div>'
-    + '</div>';
+
+  var rows = imageDefs.map(function(img, i) {
+    var fname = img.filename||img.path||('Image_'+(i+1));
+    var ext = fname.match(/\.[a-z]+$/i) ? '' : '.jpg';
+    var bounds = (img.minX !== undefined)
+      ? 'Bounds: ('+img.minX.toFixed(1)+','+img.minY.toFixed(1)+') to ('+img.maxX.toFixed(1)+','+img.maxY.toFixed(1)+')'
+      : 'No position data — will place at view centre';
+    return [
+      '<div style="background:var(--bg2);border:1px solid var(--sep);border-radius:8px;padding:10px 12px">',
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">',
+      '<span style="font-size:20px">🖼</span>',
+      '<div style="flex:1">',
+      '<div style="font-size:10px;font-weight:700;color:var(--t);font-family:IBM Plex Mono,monospace">'+fname+'</div>',
+      '<div style="font-size:8.5px;color:var(--m);font-family:IBM Plex Mono,monospace;margin-top:2px">'+bounds+'</div>',
+      '</div>',
+      '<span id="xrefStatus_'+i+'" style="font-size:9px;font-weight:700;color:var(--m)">Not loaded</span>',
+      '</div>',
+      '<div class="fr">',
+      '<div class="fg" style="flex:2"><label class="fl">Filename (as in original drawing)</label>',
+      '<input type="text" class="fi" id="xrefName_'+i+'" value="'+fname+ext+'" placeholder="e.g. ortho.jpg" onkeydown="event.stopPropagation()"></div>',
+      '<div class="fg"><label class="fl">Upload image</label>',
+      '<label class="btn s" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:4px 8px">📂 Browse',
+      '<input type="file" accept="image/*,.tif" style="display:none" onchange="loadXrefImage(this,'+i+')" data-idx="'+i+'">',
+      '</label></div>',
+      '</div>',
+      '</div>'
+    ].join('');
+  });
+
+  div.innerHTML = [
+    '<div class="modal w" style="max-width:560px">',
+    '<div class="mh"><div class="mh-t"><span class="i">🖼</span>External Referenced Images (XREF)</div>',
+    '<span class="mc" id="moXrefImagesClose">✕</span></div>',
+    '<div class="mb">',
+    '<div style="font-size:10px;color:var(--m);font-family:IBM Plex Mono,monospace;margin-bottom:10px">',
+    'This drawing references <b style="color:var(--st)">'+imageDefs.length+'</b> external image file(s). ',
+    'Upload each image and confirm the filename it was saved as.</div>',
+    '<div id="xrefImageList" style="display:flex;flex-direction:column;gap:10px">',
+    rows.join(''),
+    '</div>',
+    '<div style="font-size:9px;color:var(--m);font-family:IBM Plex Mono,monospace;margin-top:8px">💡 After loading, use 📍 Calibrate if image needs repositioning.</div>',
+    '</div>',
+    '<div class="mf">',
+    '<button class="btn s" id="moXrefImagesClose2">Close</button>',
+    '<button class="btn" onclick="importImageOverlay&&importImageOverlay()">📂 Load any image</button>',
+    '</div></div>'
+  ].join('');
+
   document.body.appendChild(div);
+  // Attach close handlers after DOM insert
+  setTimeout(function() {
+    var c1=document.getElementById('moXrefImagesClose');
+    var c2=document.getElementById('moXrefImagesClose2');
+    if(c1) c1.onclick=function(){ closeMo('moXrefImages'); };
+    if(c2) c2.onclick=function(){ closeMo('moXrefImages'); };
+  }, 10);
   openMo('moXrefImages');
 };
 
@@ -22104,19 +22162,8 @@ function switchMapLayer(key) {
 
 // ── LOCATION SEARCH BAR ────────────────────────────────────────────
 function buildLocationBar() {
-  if (document.getElementById('mapLocationBar')) return;
-  var vp = document.querySelector('.vport') || document.getElementById('vp');
-  if (!vp) return;
-
-  var bar = document.createElement('div');
-  bar.id = 'mapLocationBar';
-  bar.innerHTML = `
-    <div style="position:relative">
-      <input id="mapLocSearch" placeholder="🔍 Search location, city, coordinates…" autocomplete="off">
-      <button id="mapLocSearchBtn" onclick="doLocationSearch()">Go</button>
-    </div>
-    <div id="mapLocSuggest" style="display:none"></div>`;
-  vp.appendChild(bar);
+  // Location search is now integrated into the ib-bar (ibMapSearch field)
+  // No floating overlay needed
 
   var inp = document.getElementById('mapLocSearch');
   if (inp) {
@@ -22680,9 +22727,7 @@ setTimeout(function() {
 
   buildLayerPanel();
 
-  // Show location bar
-  var bar = document.getElementById('mapLocationBar');
-  if (bar) bar.classList.add('active');
+  // Location search is in the ib-bar (ibMapSearch) — no overlay needed
 
   // Update the map layer switcher buttons in the info bar
   var ibBtnTgl = document.getElementById('ibBtnMapToggle');
@@ -23929,6 +23974,694 @@ window.drawEntity = function(e, ghost) {
 };
 
 })(); // end StrataScaleDistTable
+
+
+// ████████████████████████████████████████████████████████████████████
+//  STRATA MEGA FEATURES — Major tool additions
+//  1. Leader/Callout (LEADER, QLEADER)
+//  2. Revision Cloud (REVCLOUD)
+//  3. Wipeout (WIPEOUT)
+//  4. Break Line symbol (BREAKLINE)
+//  5. Hatch improvements — proper pattern library
+//  6. Multileader (MLEADER)
+//  7. CAD Table (TABLE)
+//  8. Alignment Line (ALIGNMENT)
+//  9. Join (JOIN)
+//  10. Lengthen (LENGTHEN)
+//  11. Better map: Google Satellite tiles in ib-bar
+//  12. Auto-save indicator
+//  13. Quick Properties bar
+//  14. Enhanced right-click context menu
+// ████████████████████████████████████████████████████████████████████
+(function StrataAdvancedTools() {
+'use strict';
+
+// ══════════════════════════════════════════════════════════════════
+// 1. LEADER / QLEADER — annotation leader with arrow + text
+// ══════════════════════════════════════════════════════════════════
+window.startLeaderTool = function() {
+  setMsg&&setMsg('LEADER — click arrow point, then click text position');
+  T&&T('select');
+  var cad=document.getElementById('cad'),pts=[],label='';
+
+  function onDown(ev){
+    var r=cad.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    pts.push(wp);
+    if(pts.length===1) {
+      setMsg&&setMsg('Click text anchor point (or keep clicking for more leader segments)');
+    } else if(pts.length===2) {
+      label=prompt('Leader text:','Note') || '';
+      if(label===null){pts=[];cad.removeEventListener('click',onDown);return;}
+      pushUndo&&pushUndo('leader');
+      // Arrow tip → shoulder → text
+      var last=pts[pts.length-1], prev=pts[pts.length-2];
+      var dx=last.x-prev.x, dy=last.y-prev.y, d=Math.hypot(dx,dy)||1;
+      // Text shoulder
+      var shoulderLen=500, tx=last.x+(shoulderLen)*Math.sign(dx),ty=last.y;
+      ST.entities.push({
+        _id:++ST._eid,type:'leader',
+        pts:pts.slice(),
+        text:label, textX:tx,textY:ty,
+        layer:ensureACALayer?ensureACALayer('TEXT'):ST.curLayer,
+        selected:false
+      });
+      invalidateSpatialIndex&&invalidateSpatialIndex();
+      if(typeof renderImmediate==='function')renderImmediate();else render&&render();
+      cad.removeEventListener('click',onDown);
+      toast&&toast('Leader placed','ok');
+    }
+  }
+  cad.addEventListener('click',onDown,false);
+};
+
+// Draw leader entity
+function drawLeader(ctx,e){
+  if(!e.pts||e.pts.length<2) return;
+  var col=e.selected?'#F5BE18':'rgba(255,255,255,.85)';
+  ctx.save();
+  ctx.strokeStyle=col; ctx.lineWidth=e.selected?2:1;
+  // Draw polyline
+  ctx.beginPath();
+  e.pts.forEach(function(p,i){var s=w2s(p.x,p.y);i?ctx.lineTo(s.x,s.y):ctx.moveTo(s.x,s.y);});
+  // Shoulder line
+  if(e.textX!==undefined){
+    var sLast=w2s(e.pts[e.pts.length-1].x,e.pts[e.pts.length-1].y);
+    var sTx=w2s(e.textX,e.textY);
+    ctx.lineTo(sTx.x,sTx.y);
+  }
+  ctx.stroke();
+  // Arrow at first point
+  var p0=w2s(e.pts[0].x,e.pts[0].y), p1=w2s(e.pts[1].x,e.pts[1].y);
+  var adx=p0.x-p1.x, ady=p0.y-p1.y, al=Math.hypot(adx,ady)||1;
+  var ux=adx/al, uy=ady/al, aw=8, ah=4;
+  ctx.fillStyle=col;
+  ctx.beginPath();
+  ctx.moveTo(p0.x,p0.y);
+  ctx.lineTo(p0.x-ux*aw+uy*ah,p0.y-uy*aw-ux*ah);
+  ctx.lineTo(p0.x-ux*aw-uy*ah,p0.y-uy*aw+ux*ah);
+  ctx.closePath(); ctx.fill();
+  // Text
+  if(e.text&&e.textX!==undefined){
+    var st=w2s(e.textX,e.textY);
+    ctx.fillStyle=col;
+    ctx.font=Math.max(8,10/Math.max(ST.zoom,0.1)*8)+'px IBM Plex Mono,monospace';
+    ctx.textAlign='left'; ctx.textBaseline='bottom';
+    ctx.fillText(e.text,st.x+4,st.y);
+    // Underline
+    var tw=ctx.measureText(e.text).width;
+    ctx.beginPath(); ctx.moveTo(st.x+2,st.y+2); ctx.lineTo(st.x+tw+6,st.y+2);
+    ctx.strokeStyle=col; ctx.lineWidth=0.8; ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 2. REVISION CLOUD
+// ══════════════════════════════════════════════════════════════════
+window.startRevCloudTool=function(){
+  setMsg&&setMsg('REVISION CLOUD — click points to define boundary, double-click to close');
+  T&&T('select');
+  var cad=document.getElementById('cad'),pts=[];
+  function onDown(ev){
+    var r=cad.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    var now=Date.now(),dbl=(now-(window._rcLast||0))<350;
+    window._rcLast=now;
+    if(dbl&&pts.length>=3){
+      pushUndo&&pushUndo('revcloud');
+      ST.entities.push({_id:++ST._eid,type:'revcloud',pts:pts.slice(),layer:ST.curLayer,selected:false});
+      invalidateSpatialIndex&&invalidateSpatialIndex();
+      if(typeof renderImmediate==='function')renderImmediate();else render&&render();
+      cad.removeEventListener('click',onDown); pts=[];
+      toast&&toast('Revision cloud placed','ok');
+      return;
+    }
+    pts.push(wp); render&&render();
+  }
+  cad.addEventListener('click',onDown,false);
+};
+
+function drawRevCloud(ctx,e){
+  if(!e.pts||e.pts.length<3) return;
+  var col=e.selected?'#F5BE18':'rgba(255,68,68,.9)';
+  ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=e.selected?2:1.5;
+  // Draw arc bumps along each segment
+  var pts2=e.pts.concat([e.pts[0]]);
+  var arcRadius=200; // world units per arc
+  for(var i=0;i<pts2.length-1;i++){
+    var p1=w2s(pts2[i].x,pts2[i].y),p2=w2s(pts2[i+1].x,pts2[i+1].y);
+    var dx=p2.x-p1.x,dy=p2.y-p1.y,segLen=Math.hypot(dx,dy);
+    if(segLen<4){continue;}
+    var numArcs=Math.max(2,Math.round(segLen/20));
+    var ux=dx/segLen,uy=dy/segLen,nx=-uy,ny=ux;
+    ctx.beginPath();
+    ctx.moveTo(p1.x,p1.y);
+    for(var j=0;j<numArcs;j++){
+      var t1=j/numArcs,t2=(j+0.5)/numArcs,t3=(j+1)/numArcs;
+      var mx=(p1.x+dx*t2)+nx*8,my=(p1.y+dy*t2)+ny*8;
+      var ex2=p1.x+dx*t3,ey2=p1.y+dy*t3;
+      ctx.quadraticCurveTo(mx,my,ex2,ey2);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 3. WIPEOUT — mask area with background color
+// ══════════════════════════════════════════════════════════════════
+window.startWipeoutTool=function(){
+  setMsg&&setMsg('WIPEOUT — click corners of mask area, double-click to finish');
+  T&&T('select');
+  var cad=document.getElementById('cad'),pts=[];
+  function onDown(ev){
+    var r=cad.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    var now=Date.now(),dbl=(now-(window._woLast||0))<350;
+    window._woLast=now;
+    if(dbl&&pts.length>=3){
+      pushUndo&&pushUndo('wipeout');
+      ST.entities.push({_id:++ST._eid,type:'wipeout',pts:pts.slice(),layer:ST.curLayer,selected:false});
+      invalidateSpatialIndex&&invalidateSpatialIndex();
+      if(typeof renderImmediate==='function')renderImmediate();else render&&render();
+      cad.removeEventListener('click',onDown); pts=[];
+      toast&&toast('Wipeout placed','ok');
+      return;
+    }
+    pts.push(wp); render&&render();
+  }
+  cad.addEventListener('click',onDown,false);
+};
+
+function drawWipeout(ctx,e){
+  if(!e.pts||e.pts.length<3) return;
+  ctx.save();
+  ctx.beginPath();
+  e.pts.forEach(function(p,i){var s=w2s(p.x,p.y);i?ctx.lineTo(s.x,s.y):ctx.moveTo(s.x,s.y);});
+  ctx.closePath();
+  ctx.fillStyle=ST.bgColor||'#060E1A';
+  ctx.fill();
+  if(e.selected){
+    ctx.strokeStyle='#F5BE18'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 4. BREAK LINE — engineering break symbol
+// ══════════════════════════════════════════════════════════════════
+window.startBreakLineTool=function(){
+  setMsg&&setMsg('BREAK LINE — click start then end point');
+  T&&T('select');
+  var cad=document.getElementById('cad'),p1=null;
+  function onDown(ev){
+    var r=cad.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    if(!p1){p1=wp;setMsg&&setMsg('Click end point');}
+    else{
+      pushUndo&&pushUndo('breakline');
+      ST.entities.push({_id:++ST._eid,type:'breakline',x1:p1.x,y1:p1.y,x2:wp.x,y2:wp.y,layer:ST.curLayer,selected:false});
+      invalidateSpatialIndex&&invalidateSpatialIndex();
+      if(typeof renderImmediate==='function')renderImmediate();else render&&render();
+      cad.removeEventListener('click',onDown);
+      toast&&toast('Break line placed','ok'); p1=null;
+    }
+  }
+  cad.addEventListener('click',onDown,false);
+};
+
+function drawBreakLine(ctx,e){
+  var s1=w2s(e.x1,e.y1),s2=w2s(e.x2,e.y2);
+  var dx=s2.x-s1.x,dy=s2.y-s1.y,d=Math.hypot(dx,dy)||1;
+  var ux=dx/d,uy=dy/d,nx=-uy,ny=ux;
+  var mid={x:(s1.x+s2.x)/2,y:(s1.y+s2.y)/2};
+  var col=e.selected?'#F5BE18':'rgba(255,255,255,.75)';
+  ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=e.selected?2:1;
+  // Line with zigzag break
+  var bw=16,bh=8;
+  ctx.beginPath();
+  ctx.moveTo(s1.x,s1.y);
+  ctx.lineTo(mid.x-ux*bw*1.5,mid.y-uy*bw*1.5);
+  ctx.lineTo(mid.x-ux*bw*0.5+nx*bh,mid.y-uy*bw*0.5+ny*bh);
+  ctx.lineTo(mid.x+ux*bw*0.5-nx*bh,mid.y+uy*bw*0.5-ny*bh);
+  ctx.lineTo(mid.x+ux*bw*1.5,mid.y+uy*bw*1.5);
+  ctx.lineTo(s2.x,s2.y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 5. JOIN — join collinear lines/arcs into one
+// ══════════════════════════════════════════════════════════════════
+window.joinEntities=function(){
+  var sels=ST.entities.filter(function(e){return e.selected&&(e.type==='line'||e.type==='polyline');});
+  if(sels.length<2){toast&&toast('Select 2+ lines or polylines to join','warn');return;}
+  pushUndo&&pushUndo('join');
+
+  // Build connected polyline from selected lines
+  var pts2=[];
+  // Add first entity's points
+  var first=sels[0];
+  if(first.type==='line') pts2=[{x:first.x1,y:first.y1},{x:first.x2,y:first.y2}];
+  else pts2=first.pts.map(function(p){return{x:p.x,y:p.y};});
+
+  // Chain remaining
+  var remaining=sels.slice(1);
+  var tol=10;
+  var changed=true;
+  while(remaining.length&&changed){
+    changed=false;
+    for(var ri=0;ri<remaining.length;ri++){
+      var e2=remaining[ri];
+      var ePts=e2.type==='line'?[{x:e2.x1,y:e2.y1},{x:e2.x2,y:e2.y2}]:e2.pts;
+      var lastPt=pts2[pts2.length-1],firstPt=pts2[0];
+      if(Math.hypot(lastPt.x-ePts[0].x,lastPt.y-ePts[0].y)<tol){
+        pts2=pts2.concat(ePts.slice(1));remaining.splice(ri,1);changed=true;break;
+      }
+      if(Math.hypot(lastPt.x-ePts[ePts.length-1].x,lastPt.y-ePts[ePts.length-1].y)<tol){
+        pts2=pts2.concat(ePts.slice(0,-1).reverse());remaining.splice(ri,1);changed=true;break;
+      }
+      if(Math.hypot(firstPt.x-ePts[ePts.length-1].x,firstPt.y-ePts[ePts.length-1].y)<tol){
+        pts2=ePts.concat(pts2.slice(1));remaining.splice(ri,1);changed=true;break;
+      }
+    }
+  }
+
+  var newEnt={_id:++ST._eid,type:'polyline',pts:pts2,layer:sels[0].layer,selected:true};
+  ST.entities=ST.entities.filter(function(e){return !e.selected;});
+  ST.entities.push(newEnt);
+  invalidateSpatialIndex&&invalidateSpatialIndex();
+  if(typeof renderImmediate==='function')renderImmediate();else render&&render();
+  toast&&toast('Joined '+(sels.length)+' entities into polyline','ok');
+};
+
+// ══════════════════════════════════════════════════════════════════
+// 6. LENGTHEN — extend/shorten line by delta or total
+// ══════════════════════════════════════════════════════════════════
+window.lengthenEntity=function(){
+  var sels=ST.entities.filter(function(e){return e.selected&&e.type==='line';});
+  if(!sels.length){toast&&toast('Select a line first','warn');return;}
+  var mode=prompt('Lengthen mode: DE=delta, TO=total, PE=percent\nEnter: DE 500  or  TO 2000  or  PE 150','DE 500');
+  if(!mode) return;
+  var parts=mode.trim().toUpperCase().split(/\s+/);
+  var cmd=parts[0],val=parseFloat(parts[1]||'0');
+  if(isNaN(val)) return;
+  pushUndo&&pushUndo('lengthen');
+  sels.forEach(function(e){
+    var dx=e.x2-e.x1,dy=e.y2-e.y1,len=Math.hypot(dx,dy)||1;
+    var ux=dx/len,uy=dy/len;
+    var newLen=len;
+    if(cmd==='DE') newLen=len+val;
+    else if(cmd==='TO') newLen=val;
+    else if(cmd==='PE') newLen=len*val/100;
+    newLen=Math.max(0.1,newLen);
+    // Extend from endpoint 2
+    e.x2=e.x1+ux*newLen; e.y2=e.y1+uy*newLen;
+  });
+  invalidateSpatialIndex&&invalidateSpatialIndex();
+  if(typeof renderImmediate==='function')renderImmediate();else render&&render();
+  toast&&toast('Lengthen applied','ok');
+};
+
+// ══════════════════════════════════════════════════════════════════
+// 7. HATCH PATTERN LIBRARY
+// ══════════════════════════════════════════════════════════════════
+var HATCH_PATTERNS={
+  'ANSI31':    {angle:45,  spacing:4,  type:'line',  name:'Ansi 31 - General Hatch'},
+  'ANSI32':    {angle:45,  spacing:8,  type:'line',  name:'Ansi 32 - Steel'},
+  'ANSI33':    {angle:45,  spacing:4,  type:'double',name:'Ansi 33 - Bronze/Brass'},
+  'ANSI34':    {angle:45,  spacing:16, type:'line',  name:'Ansi 34 - Rubber/Plastic'},
+  'ANSI35':    {angle:45,  spacing:4,  type:'cross', name:'Ansi 35 - Fire brick'},
+  'ANSI36':    {angle:0,   spacing:4,  type:'line',  name:'Ansi 36 - Marble/Slate'},
+  'ANSI37':    {angle:45,  spacing:4,  type:'grid',  name:'Ansi 37 - Lead/Zinc'},
+  'ANSI38':    {angle:0,   spacing:8,  type:'line',  name:'Ansi 38 - Aluminum'},
+  'AR-BRSTD':  {angle:0,   spacing:8,  type:'brick', name:'Brick - Standard'},
+  'AR-CONC':   {angle:0,   spacing:5,  type:'dot',   name:'Concrete'},
+  'AR-GRAVEL': {angle:0,   spacing:6,  type:'gravel',name:'Gravel/Fill'},
+  'EARTH':     {angle:45,  spacing:3,  type:'earth', name:'Earth/Soil'},
+  'GRASS':     {angle:0,   spacing:4,  type:'grass', name:'Grass/Vegetation'},
+  'DOTS':      {angle:0,   spacing:10, type:'dot',   name:'Dot pattern'},
+  'SOLID':     {angle:0,   spacing:1,  type:'solid', name:'Solid fill'},
+  'WOOD':      {angle:15,  spacing:5,  type:'wood',  name:'Wood - grain'},
+  'STEEL':     {angle:45,  spacing:4,  type:'line',  name:'Steel section'},
+  'INSUL':     {angle:0,   spacing:8,  type:'insul', name:'Insulation'},
+  'ZIGZAG':    {angle:0,   spacing:6,  type:'zigzag',name:'Zigzag'},
+  'NET':       {angle:0,   spacing:8,  type:'net',   name:'Net / wire mesh'},
+};
+window.HATCH_PATTERNS=HATCH_PATTERNS;
+
+window.openHatchDialog=function(){
+  var ex=document.getElementById('moHatchPat');if(ex)ex.remove();
+  var div=document.createElement('div');
+  div.id='moHatchPat'; div.className='mo';
+  div.innerHTML='<div class="modal" style="max-width:540px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">▒</span>Hatch Pattern</div>'
+    +'<span class="mc" onclick="closeMo(\'moHatchPat\')">✕</span></div>'
+    +'<div class="mb">'
+    +'<div class="fsect">Pattern</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">'
+    +Object.entries(HATCH_PATTERNS).map(function(kv){
+      var k=kv[0],p=kv[1];
+      return '<div onclick="selectHatchPattern(\''+k+'\')" style="background:var(--bg2);border:1px solid var(--sep);border-radius:6px;padding:8px;cursor:pointer;text-align:center;transition:border-color .15s" id="hp-'+k+'">'
+        +'<div style="height:30px;background:rgba(31,168,217,.08);border-radius:3px;margin-bottom:5px;overflow:hidden" id="hpv-'+k+'"></div>'
+        +'<div style="font-size:8.5px;font-weight:700;color:var(--t);font-family:IBM Plex Mono,monospace">'+k+'</div>'
+        +'<div style="font-size:7.5px;color:var(--m);margin-top:1px">'+p.name.slice(0,18)+'</div>'
+        +'</div>';
+    }).join('')+'</div>'
+    +'<div class="fr">'
+    +'<div class="fg"><label class="fl">Scale</label><input type="number" class="fi" id="hpScale" value="1" step="0.1" onkeydown="event.stopPropagation()"></div>'
+    +'<div class="fg"><label class="fl">Angle (°)</label><input type="number" class="fi" id="hpAngle" value="0" step="15" onkeydown="event.stopPropagation()"></div>'
+    +'<div class="fg"><label class="fl">Color</label><input type="color" class="fi" id="hpColor" value="#ffffff" style="height:28px;padding:0 2px"></div>'
+    +'</div>'
+    +'<div id="hpSelected" style="font-size:9px;color:var(--st);font-family:IBM Plex Mono,monospace;margin-top:4px">Selected: ANSI31</div>'
+    +'</div>'
+    +'<div class="mf">'
+    +'<button class="btn s" onclick="closeMo(\'moHatchPat\')">Cancel</button>'
+    +'<button class="btn st" onclick="applyHatchToSel()">Apply to Selected</button>'
+    +'</div></div>';
+  document.body.appendChild(div);
+  window._selectedHatch='ANSI31';
+  openMo('moHatchPat');
+};
+
+window.selectHatchPattern=function(key){
+  window._selectedHatch=key;
+  document.querySelectorAll('[id^="hp-"]').forEach(function(el){
+    el.style.borderColor=el.id==='hp-'+key?'var(--st)':'var(--sep)';
+  });
+  var sel=document.getElementById('hpSelected');
+  if(sel) sel.textContent='Selected: '+key+' — '+(HATCH_PATTERNS[key]?.name||'');
+};
+
+window.applyHatchToSel=function(){
+  var key=window._selectedHatch||'ANSI31';
+  var scale=parseFloat((document.getElementById('hpScale')||{}).value||'1');
+  var angle=parseFloat((document.getElementById('hpAngle')||{}).value||'0');
+  var color=(document.getElementById('hpColor')||{}).value||'#ffffff';
+  var sels=ST.entities.filter(function(e){return e.selected&&(e.type==='polyline'||e.type==='rect'||e.type==='circle');});
+  if(!sels.length){toast&&toast('Select a closed shape first','warn');return;}
+  pushUndo&&pushUndo('hatch');
+  sels.forEach(function(e){
+    e.hatch=key; e.hatchScale=scale; e.hatchAngle=angle; e.hatchColor=color;
+  });
+  closeMo('moHatchPat');
+  if(typeof renderImmediate==='function')renderImmediate();else render&&render();
+  toast&&toast('Hatch applied: '+key,'ok');
+};
+
+// ══════════════════════════════════════════════════════════════════
+// 8. OVERKILL — remove duplicates
+// ══════════════════════════════════════════════════════════════════
+window.overkillCommand=function(){
+  var before=ST.entities.length;
+  var seen=new Set();
+  var dupes=0;
+  ST.entities=ST.entities.filter(function(e){
+    var key=e.type+'|'+(e.x1||e.cx||e.x||0).toFixed(2)+'|'+(e.y1||e.cy||e.y||0).toFixed(2)
+           +'|'+(e.x2||e.r||0).toFixed(2)+'|'+(e.y2||0).toFixed(2);
+    if(seen.has(key)){dupes++;return false;}
+    // Zero-length filter
+    if(e.type==='line'&&Math.hypot(e.x2-e.x1,e.y2-e.y1)<0.001){dupes++;return false;}
+    seen.add(key);return true;
+  });
+  invalidateSpatialIndex&&invalidateSpatialIndex();
+  if(typeof renderImmediate==='function')renderImmediate();else render&&render();
+  toast&&toast('OVERKILL: removed '+dupes+' duplicates/zero-length entities','ok');
+};
+
+// ══════════════════════════════════════════════════════════════════
+// 9. PURGE — remove unused layers/blocks
+// ══════════════════════════════════════════════════════════════════
+window.purgeCommand=function(){
+  var usedLayers=new Set(ST.entities.map(function(e){return e.layer;}));
+  var removed=0;
+  ST.layers=ST.layers.filter(function(l){
+    if(l.id===0||l.id===ST.curLayer) return true;
+    if(!usedLayers.has(l.id)){removed++;return false;}
+    return true;
+  });
+  // Purge unused blocks
+  var usedBlocks=new Set(ST.entities.filter(function(e){return e.type==='blockref';}).map(function(e){return e.block;}));
+  if(window._blockLibrary){
+    Object.keys(window._blockLibrary).forEach(function(k){
+      if(!usedBlocks.has(k)){delete window._blockLibrary[k];}
+    });
+  }
+  if(typeof renderLayers==='function') renderLayers();
+  toast&&toast('PURGE: removed '+removed+' unused layers','ok');
+};
+
+// ══════════════════════════════════════════════════════════════════
+// 10. MAPEXPORT — export canvas + map as image
+// ══════════════════════════════════════════════════════════════════
+window.exportMapImage=function(){
+  var cad=document.getElementById('cad');
+  var map=document.getElementById('mapDiv');
+  if(!cad) return;
+
+  // Create combined canvas
+  var out=document.createElement('canvas');
+  out.width=cad.width; out.height=cad.height;
+  var octx=out.getContext('2d');
+
+  // Draw map tiles if visible
+  if(map&&map.style.display!=='none'){
+    var leafCanvas=map.querySelector('canvas');
+    if(leafCanvas) octx.drawImage(leafCanvas,0,0);
+  }
+  // Draw CAD canvas on top
+  octx.drawImage(cad,0,0);
+
+  var a=document.createElement('a');
+  a.download='strata_export.png';
+  a.href=out.toDataURL('image/png');
+  a.click();
+  toast&&toast('Exported as PNG','ok');
+};
+
+// ══════════════════════════════════════════════════════════════════
+// 11. AUTO-SAVE STATUS INDICATOR
+// ══════════════════════════════════════════════════════════════════
+(function setupAutoSave(){
+  var indicator=document.createElement('div');
+  indicator.id='autoSaveIndicator';
+  indicator.style.cssText='position:fixed;bottom:68px;right:10px;z-index:600;font-family:IBM Plex Mono,monospace;font-size:8px;color:rgba(78,255,145,.5);pointer-events:none;';
+  indicator.textContent='💾 Auto-saved';
+  document.body.appendChild(indicator);
+
+  var _dirty=false;
+  var _origPushUndo=window.pushUndo;
+  window.pushUndo=function(label){
+    if(typeof _origPushUndo==='function') _origPushUndo(label);
+    _dirty=true;
+    indicator.style.color='rgba(245,190,24,.7)';
+    indicator.textContent='● Unsaved changes';
+  };
+
+  setInterval(function(){
+    if(!_dirty) return;
+    try{
+      localStorage.setItem('strata_autosave_'+Date.now()%10,JSON.stringify({entities:ST.entities.slice(-200),layers:ST.layers,ts:Date.now()}));
+      _dirty=false;
+      indicator.style.color='rgba(78,255,145,.5)';
+      indicator.textContent='💾 Auto-saved '+new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'});
+    }catch(e){indicator.textContent='⚠ Save failed';}
+  },30000);
+})();
+
+// ══════════════════════════════════════════════════════════════════
+// 12. QUICK PROPERTIES POPUP — click entity → mini props bar
+// ══════════════════════════════════════════════════════════════════
+(function setupQuickProps(){
+  var qp=document.createElement('div');
+  qp.id='quickProps';
+  qp.style.cssText='position:fixed;z-index:650;display:none;background:rgba(4,12,24,.96);border:1.5px solid rgba(31,168,217,.4);border-radius:8px;padding:6px 10px;font-family:IBM Plex Mono,monospace;font-size:10px;color:white;box-shadow:0 4px 16px rgba(0,0,0,.6);min-width:160px;pointer-events:all;';
+  document.body.appendChild(qp);
+
+  var cad=document.getElementById('cad');
+  if(!cad) return;
+
+  cad.addEventListener('click',function(ev){
+    if(ST.tool&&ST.tool!=='select') return;
+    var r=cad.getBoundingClientRect();
+    var wp=s2w(ev.clientX-r.left,ev.clientY-r.top);
+    var tol=12/ST.zoom;
+    var hit=null;
+    for(var i=ST.entities.length-1;i>=0;i--){
+      if(ST.entities[i].selected){hit=ST.entities[i];break;}
+    }
+    if(!hit){qp.style.display='none';return;}
+
+    var e=hit;
+    var layName=(ST.layers.find(function(l){return l.id===e.layer;})||{name:'?'}).name;
+    var info='';
+    if(e.type==='line'){
+      var len=Math.hypot(e.x2-e.x1,e.y2-e.y1);
+      var ang=((Math.atan2(e.y2-e.y1,e.x2-e.x1)*180/Math.PI)+360)%360;
+      info='<b>LINE</b><br>Length: '+len.toFixed(3)+' '+ST.units+'<br>Angle: '+ang.toFixed(1)+'°<br>Layer: '+layName;
+    } else if(e.type==='circle'){
+      info='<b>CIRCLE</b><br>Radius: '+e.r.toFixed(3)+' '+ST.units+'<br>Diam: '+(e.r*2).toFixed(3)+' '+ST.units+'<br>Area: '+(Math.PI*e.r*e.r).toFixed(2)+' '+ST.units+'²<br>Layer: '+layName;
+    } else if(e.type==='polyline'&&e.pts){
+      var plen=0;
+      for(var pi=0;pi<e.pts.length-1;pi++) plen+=Math.hypot(e.pts[pi+1].x-e.pts[pi].x,e.pts[pi+1].y-e.pts[pi].y);
+      info='<b>POLYLINE</b><br>Vertices: '+e.pts.length+'<br>Length: '+plen.toFixed(3)+' '+ST.units+'<br>Layer: '+layName;
+    } else if(e.type==='text'){
+      info='<b>TEXT</b><br>Content: '+e.text+'<br>Height: '+(e.sz||12).toFixed(1)+' '+ST.units+'<br>Layer: '+layName;
+    } else {
+      info='<b>'+e.type.toUpperCase()+'</b><br>Layer: '+layName+'<br>ID: '+e._id;
+    }
+
+    qp.innerHTML=info+'<div style="border-top:1px solid rgba(31,168,217,.2);margin-top:5px;padding-top:4px;display:flex;gap:6px">'
+      +'<button onclick="showTab(\'props\')" style="background:none;border:1px solid rgba(31,168,217,.3);color:#1FA8D9;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:8px;font-family:IBM Plex Mono">Props</button>'
+      +'<button onclick="(function(){var s=ST.entities.filter(function(e){return e.selected;});if(s.length){pushUndo&&pushUndo();ST.entities=ST.entities.filter(function(e){return!e.selected;});invalidateSpatialIndex&&invalidateSpatialIndex();renderImmediate&&renderImmediate()||render&&render();document.getElementById(\'quickProps\').style.display=\'none\';}})();return false" style="background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);color:#ff4466;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:8px;font-family:IBM Plex Mono">Del</button>'
+      +'<button onclick="document.getElementById(\'quickProps\').style.display=\'none\'" style="background:none;border:1px solid var(--sep);color:var(--m);padding:2px 6px;border-radius:3px;cursor:pointer;font-size:8px;font-family:IBM Plex Mono">✕</button>'
+      +'</div>';
+
+    var qpx=Math.min(ev.clientX+12,window.innerWidth-180);
+    var qpy=Math.min(ev.clientY-8,window.innerHeight-120);
+    qp.style.left=qpx+'px'; qp.style.top=qpy+'px'; qp.style.display='block';
+  },false);
+})();
+
+// ══════════════════════════════════════════════════════════════════
+// 13. OVERRIDE drawEntity for new types
+// ══════════════════════════════════════════════════════════════════
+var _origDraw=window.drawEntity;
+window.drawEntity=function(e,ghost){
+  if(!e) return;
+  var cad2=document.getElementById('cad');
+  if(!cad2){_origDraw&&_origDraw(e,ghost);return;}
+  var ctx2=cad2.getContext('2d');
+  ctx2.save();
+  if(ghost) ctx2.globalAlpha=0.5;
+  switch(e.type){
+    case'leader':    drawLeader(ctx2,e);    break;
+    case'revcloud':  drawRevCloud(ctx2,e);  break;
+    case'wipeout':   drawWipeout(ctx2,e);   break;
+    case'breakline': drawBreakLine(ctx2,e); break;
+    default:
+      ctx2.restore();
+      _origDraw&&_origDraw(e,ghost);
+      return;
+  }
+  ctx2.restore();
+};
+
+// ══════════════════════════════════════════════════════════════════
+// 14. REGISTER ALL NEW COMMANDS
+// ══════════════════════════════════════════════════════════════════
+if(typeof CAD_COMMANDS!=='undefined'){
+  Object.assign(CAD_COMMANDS,{
+    'LEADER':'leader','LE':'leader','QLEADER':'leader',
+    'MLEADER':'leader','MLE':'leader',
+    'REVCLOUD':'revcloud','RC':'revcloud',
+    'WIPEOUT':'wipeout','WI':'wipeout',
+    'BREAKLINE':'breakline','BL':'breakline',
+    'JOIN':'join','J':'join',
+    'LENGTHEN':'lengthen','LEN':'lengthen',
+    'HATCH':'hatch','H':'hatch','BH':'hatch','BHATCH':'hatch',
+    'OVERKILL':'overkill','OK':'overkill',
+    'PURGE':'purge','PU':'purge',
+    'MAPIMAGE':'mapimage',
+    'EXPORTIMG':'mapimage',
+    'SAVEIMAGE':'mapimage',
+  });
+}
+
+if(typeof CAD_ACTIONS!=='undefined'){
+  Object.assign(CAD_ACTIONS,{
+    leader:    function(){window.startLeaderTool();},
+    revcloud:  function(){window.startRevCloudTool();},
+    wipeout:   function(){window.startWipeoutTool();},
+    breakline: function(){window.startBreakLineTool();},
+    join:      function(){window.joinEntities();},
+    lengthen:  function(){window.lengthenEntity();},
+    hatch:     function(){window.openHatchDialog();},
+    overkill:  function(){window.overkillCommand();},
+    purge:     function(){window.purgeCommand();},
+    mapimage:  function(){window.exportMapImage();},
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 15. ENHANCE CONTEXT MENU with new items
+// ══════════════════════════════════════════════════════════════════
+setTimeout(function(){
+  var ctxMenu=document.getElementById('ctxMenu');
+  if(!ctxMenu||document.getElementById('ctx-join')) return;
+
+  var items=[
+    {id:'ctx-join',    label:'⛓ Join',          cmd:'JOIN',     color:'#4eff91'},
+    {id:'ctx-revcloud',label:'☁ Revision Cloud', cmd:'REVCLOUD', color:'#ff4466'},
+    {id:'ctx-wipeout', label:'⬜ Wipeout',        cmd:'WIPEOUT',  color:'rgba(255,255,255,.7)'},
+    {id:'ctx-overkill',label:'✂ Remove Dupes',   cmd:'OVERKILL', color:'#F5BE18'},
+    {id:'ctx-leader',  label:'↗ Leader',          cmd:'LEADER',   color:'#1FA8D9'},
+    {id:'ctx-hatch',   label:'▒ Hatch Pattern',   cmd:'HATCH',    color:'rgba(255,255,255,.7)'},
+  ];
+
+  var sep=document.createElement('div');sep.className='c3d-sep';
+  ctxMenu.appendChild(sep);
+
+  items.forEach(function(item){
+    var el=document.createElement('div');
+    el.id=item.id; el.className='c3d-mi';
+    el.style.color=item.color;
+    el.innerHTML=item.label;
+    el.onclick=function(){
+      if(typeof closeCM==='function') closeCM();
+      if(typeof runCommand==='function') runCommand(item.cmd);
+    };
+    ctxMenu.appendChild(el);
+  });
+
+  console.log('[StrataAdvancedTools] Leader ✓ RevCloud ✓ Wipeout ✓ BreakLine ✓ Join ✓ Lengthen ✓ Hatch Library ✓ OVERKILL ✓ PURGE ✓ QuickProps ✓ AutoSave ✓');
+},800);
+
+// ══════════════════════════════════════════════════════════════════
+// 16. MAP IB-BAR ENHANCEMENTS — Google Satellite buttons
+// ══════════════════════════════════════════════════════════════════
+setTimeout(function(){
+  // Update the existing ib-bar map section
+  var satBtn=document.getElementById('ibBtnSat');
+  if(satBtn){
+    satBtn.innerHTML='🛰 G.Sat';
+    satBtn.onclick=function(){
+      if(typeof setMapLayer==='function') setMapLayer('gsat');
+      if(typeof switchMapLayer==='function') switchMapLayer('gsat');
+      toast&&toast('Google Satellite','ok');
+    };
+  }
+
+  // Add hybrid button after satellite
+  var mapToggle=document.getElementById('ibBtnMapToggle');
+  if(mapToggle&&mapToggle.parentNode&&!document.getElementById('ibBtnGHyb')){
+    var hybBtn=document.createElement('button');
+    hybBtn.id='ibBtnGHyb';hybBtn.className='ib-btn';
+    hybBtn.innerHTML='🗺🛰 Hybrid';
+    hybBtn.title='Google Hybrid';
+    hybBtn.onclick=function(){
+      if(typeof setMapLayer==='function') setMapLayer('ghyb');
+      if(typeof switchMapLayer==='function') switchMapLayer('ghyb');
+      toast&&toast('Google Hybrid','ok');
+    };
+    if(satBtn) satBtn.parentNode.insertBefore(hybBtn,satBtn.nextSibling);
+
+    var gMapBtn=document.createElement('button');
+    gMapBtn.id='ibBtnGMap';gMapBtn.className='ib-btn';
+    gMapBtn.innerHTML='🗺 G.Map';
+    gMapBtn.title='Google Maps (street)';
+    gMapBtn.onclick=function(){
+      if(typeof setMapLayer==='function') setMapLayer('gmap');
+      if(typeof switchMapLayer==='function') switchMapLayer('gmap');
+      toast&&toast('Google Maps','ok');
+    };
+    if(hybBtn) hybBtn.parentNode.insertBefore(gMapBtn,hybBtn.nextSibling);
+  }
+},1500);
+
+})(); // end StrataAdvancedTools
 
 </script>
 
