@@ -2630,53 +2630,63 @@ function offsetEnt(e, d) {
     case 'rect':     ne.x=e.x-d; ne.y=e.y-d; ne.w=e.w+2*d; ne.h=e.h+2*d; break;
     case 'polyline': {
       if (!e.pts || e.pts.length < 2) return null;
-      const pts = e.pts;
-      const n2  = pts.length;
-      const closed2 = !!e.closed;
-      const newPts = [];
+      const pts = e.pts, n2 = pts.length, closed2 = !!e.closed;
 
-      for (let i = 0; i < n2; i++) {
-        let nx = 0, ny = 0;
+      if (closed2 && n2 >= 3) {
+        // CLOSED POLYGON: edge-offset then intersect adjacent offset edges
+        // 1. Determine winding (CW or CCW) to set normal direction
+        let area2 = 0;
+        for (let i=0; i<n2; i++) {
+          const j=(i+1)%n2;
+          area2 += pts[i].x*pts[j].y - pts[j].x*pts[i].y;
+        }
+        // area2>0 = CCW, area2<0 = CW
+        // For CCW: left normal = outward; for CW: left normal = inward → flip d
+        const windSign = area2 > 0 ? 1 : -1;
 
-        // Segment BEFORE this vertex
-        const iPrev = closed2 ? (i - 1 + n2) % n2 : i - 1;
-        if (closed2 || i > 0) {
-          const dxb = pts[i].x - pts[iPrev].x;
-          const dyb = pts[i].y - pts[iPrev].y;
-          const lb  = Math.hypot(dxb, dyb) || 1;
-          // Inward normal of this segment
-          nx += -dyb / lb;
-          ny +=  dxb / lb;
+        // 2. Build offset edges
+        const offEdges = [];
+        for (let i=0; i<n2; i++) {
+          const j=(i+1)%n2;
+          const dx=pts[j].x-pts[i].x, dy=pts[j].y-pts[i].y;
+          const len=Math.hypot(dx,dy)||1;
+          // Left normal (for CCW polygon = outward)
+          const nx=-dy/len*d*windSign, ny=dx/len*d*windSign;
+          offEdges.push({
+            x1:pts[i].x+nx, y1:pts[i].y+ny,
+            x2:pts[j].x+nx, y2:pts[j].y+ny
+          });
         }
 
-        // Segment AFTER this vertex
-        const iNext = closed2 ? (i + 1) % n2 : i + 1;
-        if (closed2 || i < n2 - 1) {
-          const dxa = pts[iNext].x - pts[i].x;
-          const dya = pts[iNext].y - pts[i].y;
-          const la  = Math.hypot(dxa, dya) || 1;
-          nx += -dya / la;
-          ny +=  dxa / la;
+        // 3. Intersect adjacent offset edges to find new vertices
+        const newPts = [];
+        for (let i=0; i<n2; i++) {
+          const eA=offEdges[(i-1+n2)%n2], eB=offEdges[i];
+          // Line-line intersection of eA and eB
+          const dx1=eA.x2-eA.x1, dy1=eA.y2-eA.y1;
+          const dx2=eB.x2-eB.x1, dy2=eB.y2-eB.y1;
+          const denom=dx1*dy2-dy1*dx2;
+          if (Math.abs(denom)<1e-10) {
+            // Parallel edges — use midpoint of endpoints
+            newPts.push({x:(eA.x2+eB.x1)/2, y:(eA.y2+eB.y1)/2});
+          } else {
+            const t=((eB.x1-eA.x1)*dy2-(eB.y1-eA.y1)*dx2)/denom;
+            newPts.push({x:eA.x1+t*dx1, y:eA.y1+t*dy1});
+          }
         }
-
-        // Normalise — miter length correction for corners
-        const nlen = Math.hypot(nx, ny) || 1;
-        const ux = nx / nlen, uy = ny / nlen;
-        // Miter limit: prevent very sharp corners from exploding
-        let miterLen = 1;
-        if (closed2 || (i > 0 && i < n2 - 1)) {
-          // Dot product of the two unit normals gives cos(half-angle)
-          // miterLen = 1 / sin(half-angle) ≈ 1/nlen when averaged
-          miterLen = Math.min(d === 0 ? 1 : Math.abs(d) * 4, 1 / Math.max(0.2, nlen / 2));
+        ne.pts=newPts; ne.closed=true;
+      } else {
+        // OPEN POLYLINE: simple per-vertex normal average
+        const newPts=[];
+        for (let i=0; i<n2; i++) {
+          let nx=0, ny=0;
+          if (i<n2-1){const dx=pts[i+1].x-pts[i].x,dy=pts[i+1].y-pts[i].y,l=Math.hypot(dx,dy)||1;nx+=-dy/l;ny+=dx/l;}
+          if (i>0){const dx=pts[i].x-pts[i-1].x,dy=pts[i].y-pts[i-1].y,l=Math.hypot(dx,dy)||1;nx+=-dy/l;ny+=dx/l;}
+          const nl=Math.hypot(nx,ny)||1;
+          newPts.push({x:pts[i].x+nx/nl*d, y:pts[i].y+ny/nl*d});
         }
-
-        newPts.push({
-          x: pts[i].x + ux * d,
-          y: pts[i].y + uy * d
-        });
+        ne.pts=newPts; ne.closed=false;
       }
-      ne.pts   = newPts;
-      ne.closed = closed2;
       break;
     }
     case 'acawall':  ne.wallWidth = Math.max(1, (e.wallWidth||200)+2*d); break;
@@ -2911,16 +2921,19 @@ function applyOp(wp){
       sign=((wp.x-ent.x1)*dy-(wp.y-ent.y1)*dx)>0?1:-1;
     } else if(ent.type==='polyline' && ent.pts && ent.pts.length>=2) {
       if (ent.closed && ent.pts.length >= 3) {
-        // For closed polygon: check if click is inside (offset inward=-1) or outside (+1)
-        // Use ray-casting point-in-polygon
-        var inside = false;
-        var px=wp.x, py=wp.y;
-        for (var ii=0,jj=ent.pts.length-1; ii<ent.pts.length; jj=ii++) {
-          var xi=ent.pts[ii].x, yi=ent.pts[ii].y;
-          var xj=ent.pts[jj].x, yj=ent.pts[jj].y;
-          if (((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi)+xi)) inside=!inside;
-        }
-        sign = inside ? -1 : 1;
+        // Determine winding (same as offsetEnt)
+        var area2=0, pp=ent.pts, nn=pp.length;
+        for(var ii2=0;ii2<nn;ii2++){var jj2=(ii2+1)%nn;area2+=pp[ii2].x*pp[jj2].y-pp[jj2].x*pp[ii2].y;}
+        var windSign2=area2>0?1:-1;
+        // Centroid
+        var cx2=0,cy2=0;pp.forEach(function(p){cx2+=p.x;cy2+=p.y;});cx2/=nn;cy2/=nn;
+        // Click outside centroid in winding direction = outward = positive
+        var dcx=wp.x-cx2,dcy=wp.y-cy2;
+        // For CCW (windSign2=1): outward normal already points away from centroid
+        // Click farther from centroid than average vertex = outside = positive
+        var avgR=0;pp.forEach(function(p){avgR+=Math.hypot(p.x-cx2,p.y-cy2);});avgR/=nn;
+        var clickR=Math.hypot(dcx,dcy);
+        sign = clickR > avgR ? 1 : -1;
       } else {
         var p1=ent.pts[0], p2=ent.pts[Math.min(1,ent.pts.length-1)];
         sign=((wp.x-p1.x)*(p2.y-p1.y)-(wp.y-p1.y)*(p2.x-p1.x))>0?1:-1;
@@ -3428,7 +3441,10 @@ document.addEventListener('keydown',ev=>{
     return;
   }
   // DELETE
-  if(ev.key==='Delete'||ev.key==='Backspace'){ev.preventDefault();delSel();return;}
+  if(ev.key==='Delete'||ev.key==='Backspace'){
+    if(ev.target&&(ev.target.tagName==='INPUT'||ev.target.tagName==='TEXTAREA'||ev.target.tagName==='SELECT')) return;
+    ev.preventDefault(); delSel(); return;
+  }
   // F-Keys
   if(ev.key==='F1'){ev.preventDefault();openMo('moShortcuts');return;}
   if(ev.key==='F2'){ev.preventDefault();showTab('layers');return;}
@@ -3586,47 +3602,60 @@ function delSel() {
   const sels = ST.entities.filter(e => e.selected);
   if (!sels.length) { toast('Nothing selected','warn'); return; }
 
-  // Snapshot for undo BEFORE mutating entities
-  if (typeof pushUndo === 'function') pushUndo('delete');
+  // Save undo snapshot BEFORE mutating
+  try { if (typeof pushUndo==='function') pushUndo('delete'); } catch(e){}
 
-  // Remove deleted entities
-  ST.entities = ST.entities.filter(e => !e.selected);
+  // Remove entities from array
+  const delIds = new Set(sels.map(e=>e._id));
+  ST.entities = ST.entities.filter(e => !delIds.has(e._id));
 
-  // Wipe ALL ghost/gizmo/operation state
-  ST.ghostEnt   = null;
-  ST.opState    = null;
-  ST.startPt    = null;
-  ST.drawing    = false;
-  ST._polyPts   = [];
+  // Clear ALL state that might re-draw old entities
+  ST.ghostEnt      = null;
+  ST.opState       = null;
+  ST.startPt       = null;
+  ST.drawing       = false;
+  ST._polyPts      = [];
   ST._polyCursorWP = null;
+
+  // Hide gizmo DOM overlay immediately
+  var gizmoEl = document.getElementById('rotScaleGizmo') || document.getElementById('gizmoBox');
+  if (gizmoEl) gizmoEl.style.display = 'none';
   if (typeof hideRotateScaleGizmo === 'function') hideRotateScaleGizmo();
 
-  // Update UI
-  updateSel();
+  // Update prop panel (no render inside)
+  const sc = document.getElementById('selCount');
+  if (sc) sc.style.display = 'none';
+
   const d = sels.length;
   toast(d + ' deleted', 'ok');
   setMsg(d + ' deleted');
 
-  // Nuke the spatial index — force full rebuild
-  if (typeof invalidateSpatialIndex === 'function') invalidateSpatialIndex();
+  // Force rebuild spatial index from new ST.entities NOW
+  try {
+    if (typeof rebuildIndex === 'function') { _indexDirty=false; rebuildIndex(); }
+    else if (typeof invalidateSpatialIndex === 'function') invalidateSpatialIndex();
+  } catch(e) {}
 
-  // Cancel any pending RAF, then force-draw the new state immediately
+  // BYPASS all render wrappers — call _doRender directly if available
   var cad2 = document.getElementById('cad');
   if (cad2) {
-    // Wipe canvas NOW before RAF can fire
-    var ctx2 = cad2.getContext('2d');
-    ctx2.clearRect(0, 0, cad2.width, cad2.height);
-    ctx2.fillStyle = ST.bgColor || '#060E1A';
-    ctx2.fillRect(0, 0, cad2.width, cad2.height);
+    var ctx3 = cad2.getContext('2d');
+    ctx3.clearRect(0, 0, cad2.width, cad2.height);
+    ctx3.fillStyle = (typeof ST!=='undefined'&&ST.bgColor) ? ST.bgColor : '#060E1A';
+    ctx3.fillRect(0, 0, cad2.width, cad2.height);
   }
 
-  // Then call renderImmediate to redraw cleanly
-  if (typeof renderImmediate === 'function') {
+  // Cancel ALL queued RAFs
+  if (typeof _rafId!=='undefined' && _rafId) { cancelAnimationFrame(_rafId); _rafId=null; }
+  if (typeof _renderPending!=='undefined') _renderPending=false;
+
+  // Draw directly — bypass window.render chain entirely
+  if (typeof _doRender==='function') {
+    _doRender();
+    // Cancel any RAF that _doRender might have queued
+    if (typeof _rafId!=='undefined' && _rafId) { cancelAnimationFrame(_rafId); _rafId=null; }
+  } else if (typeof renderImmediate==='function') {
     renderImmediate();
-    // Second pass after 16ms to ensure RAF wrapper doesn't re-add ghosts
-    setTimeout(function() { renderImmediate(); }, 20);
-  } else {
-    render(); render();
   }
 }
 
@@ -17965,7 +17994,7 @@ window.render = function() {
   if (!ST.tool || ST.tool === 'select') {
     var sels = ST.entities ? ST.entities.filter(function(e){return e.selected;}) : [];
     if (sels.length > 0) {
-      setTimeout(showRotateScaleGizmo, 0);
+      if(ST.entities&&ST.entities.some(function(e){return e.selected;})) setTimeout(showRotateScaleGizmo,0);
     } else {
       hideRotateScaleGizmo && hideRotateScaleGizmo();
     }
@@ -20020,11 +20049,9 @@ document.addEventListener('keydown', function(ev) {
     if (ev.key === 'a') { ev.preventDefault(); ST.entities.forEach(function(e){e.selected=true;}); render && render(); toast('All selected','ok'); return; }
   }
   if (ev.key === 'Delete' || ev.key === 'Backspace') {
-    var dels = ST.entities.filter(function(e){return e.selected;});
-    if (dels.length) {
-      ev.preventDefault();
-      delSel(); // use the main delSel which has proper cleanup
-    }
+    if (ev.target && (ev.target.tagName==='INPUT'||ev.target.tagName==='TEXTAREA')) return;
+    ev.preventDefault();
+    delSel();
   }
 }, false);
 
