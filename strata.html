@@ -2853,6 +2853,78 @@ function _distToEnt(pt, e) {
   return 50;
 }
 
+
+// ── FORCE RENDER: bypasses RAF, draws directly from ST.entities ─────────
+window._forceRender = function() {
+  var cad2 = document.getElementById('cad');
+  if (!cad2) return;
+  var ctx2 = cad2.getContext('2d');
+  var W2 = cad2.width, H2 = cad2.height;
+
+  // Cancel any pending RAF
+  if (typeof _rafId !== 'undefined' && _rafId) {
+    cancelAnimationFrame(_rafId); _rafId = null;
+  }
+  if (typeof _renderPending !== 'undefined') _renderPending = false;
+
+  // Clear
+  ctx2.clearRect(0, 0, W2, H2);
+  if (!window._mapActive) {
+    ctx2.fillStyle = ST.bgColor || '#060E1A';
+    ctx2.fillRect(0, 0, W2, H2);
+  }
+
+  // Draw grid
+  if (ST.grid && typeof drawGrid === 'function') try { drawGrid(); } catch(e) {}
+
+  // Draw image overlays
+  if (ST.imgOverlays && ST.imgOverlays.length) {
+    ST.imgOverlays.forEach(function(o) {
+      if (!o.img || !o.img.complete || o.img.naturalWidth === 0) return;
+      var a = w2s(o.minX, o.minY), b = w2s(o.maxX, o.maxY);
+      var sx = Math.min(a.x,b.x), sy = Math.min(a.y,b.y);
+      var sw = Math.abs(b.x-a.x), sh = Math.abs(b.y-a.y);
+      if (sw < 1 || sh < 1) return;
+      ctx2.save(); ctx2.globalAlpha = o.opacity || 0.85;
+      ctx2.drawImage(o.img, sx, sy, sw, sh);
+      ctx2.restore();
+    });
+  }
+
+  // Draw ALL entities directly from ST.entities (no spatial index)
+  var layVis = typeof layVisible === 'function' ? layVisible : function() { return true; };
+  var de = typeof window.drawEntity === 'function' ? window.drawEntity : (typeof drawEntity === 'function' ? drawEntity : null);
+  if (de) {
+    // Fill pass
+    ST.entities.forEach(function(e) {
+      if (e && layVis(e.layer)) {
+        try { if (['hatch-poly','hatch','solid-quad'].indexOf(e.type) >= 0) de(e, false); } catch(err) {}
+      }
+    });
+    // Main pass
+    ST.entities.forEach(function(e) {
+      if (e && layVis(e.layer)) {
+        try { if (['hatch-poly','hatch','solid-quad'].indexOf(e.type) < 0) de(e, false); } catch(err) {}
+      }
+    });
+    // Selection highlights
+    ST.entities.forEach(function(e) {
+      if (e && e.selected && layVis(e.layer)) {
+        try {
+          var sp = w2s(e.cx||e.x1||e.x||0, e.cy||e.y1||e.y||0);
+          ctx2.strokeStyle = '#F5BE18'; ctx2.lineWidth = 0.5;
+          ctx2.setLineDash([3,3]);
+          ctx2.beginPath(); ctx2.arc(sp.x, sp.y, 4, 0, Math.PI*2); ctx2.stroke();
+          ctx2.setLineDash([]);
+        } catch(err2) {}
+      }
+    });
+  }
+
+  // Draw crosshair
+  if (typeof window.drawCrosshair === 'function') try { window.drawCrosshair(); } catch(e) {}
+};
+
 // ── UNDO / REDO ────────────────────────────────────────────────────
 // Safe JSON stringify — strips circular DOM refs (_imgObj, _domEl, etc.)
 function safeJSON(obj) {
@@ -3783,20 +3855,22 @@ function delSel() {
     if (ST.grid && typeof drawGrid==='function') drawGrid();
   }
 
-  // Cancel all pending renders and redraw clean
+  // Cancel RAF + use _forceRender (direct, no spatial index) for guaranteed clean draw
   if (typeof _rafId!=='undefined' && _rafId) { cancelAnimationFrame(_rafId); _rafId=null; }
   if (typeof _renderPending!=='undefined') _renderPending=false;
-  
-  if (typeof renderImmediate==='function') {
-    renderImmediate();
-    // Double-pass: catches any setTimeout/RAF that fires after
-    setTimeout(function(){
-      if (typeof renderImmediate==='function') renderImmediate();
-      // Ensure gizmo is hidden after both passes
+
+  if (typeof window._forceRender === 'function') {
+    window._forceRender();
+    setTimeout(function() {
+      if (typeof _rafId!=='undefined' && _rafId) { cancelAnimationFrame(_rafId); _rafId=null; }
+      window._forceRender();
       document.querySelectorAll('#rotScaleGizmo,#gizmoBox,[id^="gh-"]').forEach(function(el){
         el.style.display='none';
       });
     }, 30);
+  } else if (typeof renderImmediate==='function') {
+    renderImmediate();
+    setTimeout(function(){ renderImmediate(); }, 30);
   }
 }
 
@@ -16447,8 +16521,9 @@ function _doRender() {
     visible = ST.entities; // fallback to all entities
   }
   // Always include all entities as fallback if spatial index is empty but entities exist
-  if(visible.length === 0 && ST.entities.length > 0) {
-    visible = ST.entities.filter(function(e){ return true; });
+  // Always use ST.entities directly — most reliable approach
+  if (visible.length === 0 || !visible.length) {
+    visible = ST.entities.slice();
   }
   _entitiesDrawn  = 0;
   _entitiesCulled = ST.entities.length - visible.length;
