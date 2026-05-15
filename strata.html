@@ -3639,7 +3639,7 @@ document.addEventListener('keydown',ev=>{
     if(ST.drawing){ ST.drawing=false;ST.startPt=null;ST.pts=[];ST.polyPts=null;setMsg('ESC — ready'); }
     else if(ST.opState){ ST.opState=null;setMsg('Cancelled'); }
     else if(ST.tool!=='select'){ T('select'); }
-    else { deselectAll(); }
+    else { deselectAll(); if(typeof window.clearGripOverlay==='function') window.clearGripOverlay(); }
     const ov=document.getElementById('measOverlay');if(ov)ov.style.display='none';
     ST.measurePts=[];
     hideSelBox(); render(); return;
@@ -10622,6 +10622,9 @@ function importImageFile(f) {
         _imgObj: img,
         layer: layId, selected: false
       });
+      // Invalidate spatial index so RAF render path includes the new image entity
+      if (typeof invalidateSpatialIndex === 'function') invalidateSpatialIndex();
+      if (typeof rebuildIndex === 'function') { try { rebuildIndex(); } catch(e2) {} }
       render();
       toast('Image imported: ' + f.name + ' (' + img.width + '×' + img.height + 'px)', 'ok');
     };
@@ -10635,11 +10638,18 @@ let _origDrawEntity_img = drawEntity;
 drawEntity = function(e, ghost) {
   if(e.type === 'image') {
     if(!e._imgObj) {
-      // Lazy-load
-      const img = new Image();
-      img.onload = () => { e._imgObj = img; render(); };
-      img.src = e.src;
-      return;
+      if(!e._loading && e.src) {
+        e._loading = true;
+        var _lazyImg = new Image();
+        _lazyImg.onload = function() {
+          e._imgObj = _lazyImg; e._loading = false;
+          if (typeof invalidateSpatialIndex === 'function') invalidateSpatialIndex();
+          if (typeof render === 'function') render();
+        };
+        _lazyImg.onerror = function() { e._loading = false; };
+        _lazyImg.src = e.src;
+      }
+      return; // skip draw this frame; will re-render when img loads
     }
     const p = w2s(e.x, e.y);
     const w2 = e.w * ST.zoom, h2 = e.h * ST.zoom;
@@ -14465,7 +14475,15 @@ console.log('[Civil 3D] Feature set loaded: Toolspace, Layer Manager, MAP comman
         target.value = '';
         box.style.display = 'none';
         ST.drawing=false; ST.startPt=null; ST.opState=null;
+        ST.offPreview=null; ST.ghostEnt=null;
         if (window.CMD) { CMD.active=null; CMD.phase=0; }
+        // Deselect all entities — stopPropagation() above means the primary
+        // ESC handler on document never fires, so we must deselect here.
+        if (typeof deselectAll === 'function') deselectAll();
+        else ST.entities && ST.entities.forEach(function(e){e.selected=false;});
+        // Clear grip overlay and render
+        if (typeof window.clearGripOverlay === 'function') window.clearGripOverlay();
+        if (typeof render === 'function') render();
         if (typeof setMsg==='function') setMsg('ESC — ready');
         var cad = document.getElementById('cad');
         if (cad) cad.focus();
@@ -20404,6 +20422,8 @@ window.importImageOverlay = function(file, wx, wy, scale) {
         maxX: cx5 + iw/2, maxY: cy5 + ih/2,
         opacity: 0.85, filename: file.name,
       });
+      if (typeof invalidateSpatialIndex === 'function') invalidateSpatialIndex();
+      if (typeof rebuildIndex === 'function') { try { rebuildIndex(); } catch(e2) {} }
       render && render();
       toast('Image "'+file.name+'" added at view center — drag to reposition', 'ok');
     };
