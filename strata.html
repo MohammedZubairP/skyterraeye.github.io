@@ -2923,6 +2923,12 @@ window._forceRender = function() {
 
   // Draw crosshair
   if (typeof window.drawCrosshair === 'function') try { window.drawCrosshair(); } catch(e) {}
+
+  // Sync grip overlay with current selection state
+  if (typeof window.clearGripOverlay === 'function') {
+    var _hasGrippedSel = ST.entities && ST.entities.some(function(e){return e.selected&&e.pts;});
+    if (!_hasGrippedSel) window.clearGripOverlay();
+  }
 };
 
 // ── UNDO / REDO ────────────────────────────────────────────────────
@@ -3130,14 +3136,15 @@ function applyOp(wp){
       sign=((wp.x-ent.x1)*ldy-(wp.y-ent.y1)*ldx)>0?1:-1;
     } else if(ent.type==='polyline'&&ent.pts&&ent.pts.length>=2){
       if(ent.closed&&ent.pts.length>=3){
-        // For closed polygon: outside centroid=outward(+1), inside=-1
-        var cx3=0,cy3=0,nn3=ent.pts.length;
-        ent.pts.forEach(function(p){cx3+=p.x;cy3+=p.y;});
-        cx3/=nn3; cy3/=nn3;
-        var avgR3=0;
-        ent.pts.forEach(function(p){avgR3+=Math.hypot(p.x-cx3,p.y-cy3);});
-        avgR3/=nn3;
-        sign=Math.hypot(wp.x-cx3,wp.y-cy3)>avgR3?1:-1;
+        // Use proper ray-cast point-in-polygon test (works for any shape, not just convex).
+        // offsetEnt convention: d>0 = inward, d<0 = outward (winding-aware).
+        // So: click outside → d<0 → sign=-1; click inside → d>0 → sign=+1.
+        var _pip=false,_pp=ent.pts,_pn=_pp.length;
+        for(var _pi=0,_pj=_pn-1;_pi<_pn;_pj=_pi++){
+          var _xi=_pp[_pi].x,_yi=_pp[_pi].y,_xj=_pp[_pj].x,_yj=_pp[_pj].y;
+          if(((_yi>wp.y)!==(_yj>wp.y))&&(wp.x<(_xj-_xi)*(wp.y-_yi)/(_yj-_yi)+_xi)) _pip=!_pip;
+        }
+        sign=_pip?1:-1;
       } else {
         var pp0=ent.pts[0],pp1=ent.pts[Math.min(1,ent.pts.length-1)];
         sign=((wp.x-pp0.x)*(pp1.y-pp0.y)-(wp.y-pp0.y)*(pp1.x-pp0.x))>0?1:-1;
@@ -3824,9 +3831,14 @@ function delSel() {
   const delIds = new Set(sels.map(e=>e._id));
   ST.entities = ST.entities.filter(e => !delIds.has(e._id));
 
-  // Wipe all cached/ghost state
+  // Wipe all cached/ghost state (including offset preview and vertex grips)
   ST.ghostEnt=null; ST.opState=null; ST.startPt=null;
   ST.drawing=false; ST._polyPts=[]; ST._polyCursorWP=null;
+  ST.offPreview=null;
+  // Clear vertex grip overlay immediately — _forceRender bypasses window.render
+  // so the grip squares would otherwise linger on the DOM after deletion
+  if (typeof window.clearGripOverlay === 'function') window.clearGripOverlay();
+  else { var _go = document.getElementById('gripOverlay'); if (_go) _go.innerHTML = ''; }
 
   // Hide DOM gizmo overlays
   document.querySelectorAll('#rotScaleGizmo,#gizmoBox,[id^="gh-"]').forEach(function(el){el.style.display='none';});
@@ -3859,9 +3871,14 @@ function delSel() {
   if (typeof _rafId!=='undefined' && _rafId) { cancelAnimationFrame(_rafId); _rafId=null; }
   if (typeof _renderPending!=='undefined') _renderPending=false;
 
+  // Force rebuild spatial index NOW so next _doRender uses clean data
+  if (typeof rebuildIndex === 'function') {
+    try { rebuildIndex(); } catch(e2) {}
+  }
   if (typeof window._forceRender === 'function') {
     window._forceRender();
     setTimeout(function() {
+      if (typeof rebuildIndex === 'function') { try { rebuildIndex(); } catch(e2) {} }
       if (typeof _rafId!=='undefined' && _rafId) { cancelAnimationFrame(_rafId); _rafId=null; }
       window._forceRender();
       document.querySelectorAll('#rotScaleGizmo,#gizmoBox,[id^="gh-"]').forEach(function(el){
@@ -5999,7 +6016,14 @@ document.addEventListener('keydown', ev => {
 
       case 'polyline': {
         if (!e.pts || e.pts.length < 2) return null;
-        // Offset each segment and compute mitre/bevel joints
+        // For CLOSED polylines delegate to the original offsetEnt which correctly
+        // uses winding-aware per-edge normals and line–line intersection at every
+        // vertex (including the wrap-around first/last joint). The code below only
+        // handles open polylines reliably.
+        if (e.closed && e.pts.length >= 3) {
+          return _origOffsetEnt ? _origOffsetEnt(e, d) : null;
+        }
+        // OPEN polyline: offset each segment and compute mitre/bevel joints
         const pts = e.pts;
         const outPts = [];
         for (let i = 0; i < pts.length - 1; i++) {
@@ -16515,15 +16539,22 @@ function _doRender() {
     try { rebuildIndex(); } catch(e2) { _indexDirty = false; }
   }
   var visible;
-  try {
-    visible = queryVisibleEntities(vb.minX, vb.minY, vb.maxX, vb.maxY);
-  } catch(e2) {
-    visible = ST.entities; // fallback to all entities
-  }
-  // Always include all entities as fallback if spatial index is empty but entities exist
-  // Always use ST.entities directly — most reliable approach
-  if (visible.length === 0 || !visible.length) {
+  var _indexWasRebuilt = false;
+  if (typeof _indexDirty !== 'undefined' && _indexDirty) {
+    // If index was dirty, use ST.entities directly for this frame — guarantees
+    // deleted/added entities are reflected immediately (no stale index data).
     visible = ST.entities.slice();
+    _indexWasRebuilt = true;
+  } else {
+    try {
+      visible = queryVisibleEntities(vb.minX, vb.minY, vb.maxX, vb.maxY);
+    } catch(e2) {
+      visible = ST.entities.slice(); // fallback to all entities on error
+    }
+    // Safety: if index returns nothing but entities exist, use full list
+    if (!visible || visible.length === 0) {
+      visible = ST.entities.slice();
+    }
   }
   _entitiesDrawn  = 0;
   _entitiesCulled = ST.entities.length - visible.length;
@@ -18341,10 +18372,8 @@ setTimeout(function() {
   var _baseRender3 = window.render;
   window.render = function() {
     if (typeof _baseRender3 === 'function') _baseRender3();
-    // Only draw grips if entities exist and are selected
-    if (ST.entities && ST.entities.some(function(e){return e.selected&&e.pts;})) {
-      drawGrips();
-    }
+    // Always call drawGrips — it clears the overlay when nothing is selected
+    drawGrips();
   };
 
   function drawGrips() {
@@ -18421,6 +18450,8 @@ setTimeout(function() {
     var ov = document.getElementById('gripOverlay');
     if (ov) ov.innerHTML = '';
   }
+  // Expose globally so delSel / _forceRender can clear grips directly
+  window.clearGripOverlay = clearGripOverlay;
 })();
 
 
@@ -23643,7 +23674,10 @@ window.setMsg = function(msg) {
   // Show the most relevant part near cursor
   var short = msg.split('|')[0].trim();
   if (short.length > 60) short = short.slice(0,60)+'…';
-  if (_cmdEcho && short && ST.tool) {
+  // Terminal feedback messages should NOT appear as cursor echoes — only in the status bar.
+  // These are result/status notifications, not interactive command prompts.
+  var _terminalMsg = /^(cancelled|operation cancelled|drawing cancelled|command cancelled|esc |nothing selected|[0-9]+ deleted|[0-9]+ copied|[0-9]+ pasted|moved|rotated|scaled|undo|redo|trimmed|stretched|mirrored|offset [0-9]|polyline done|spline drawn|polygon:|ready)/i;
+  if (_cmdEcho && short && ST.tool && !_terminalMsg.test(short)) {
     _cmdEcho.textContent = short;
     _cmdEcho.style.display = 'block';
     // Position below the dynamic input
@@ -23656,8 +23690,11 @@ window.setMsg = function(msg) {
       _cmdEcho.style.top  = (cy+80)+'px';
     }
     clearTimeout(_cmdEcho._timer);
-    _cmdEcho._timer = setTimeout(function(){ if(_cmdEcho&&!ST.tool) _cmdEcho.style.display='none'; },4000);
-  } else if (_cmdEcho && !ST.tool) {
+    // Always hide after timeout regardless of tool state
+    _cmdEcho._timer = setTimeout(function(){ if(_cmdEcho) _cmdEcho.style.display='none'; },3000);
+  } else if (_cmdEcho) {
+    // Hide echo immediately for terminal messages or when no tool is active
+    clearTimeout(_cmdEcho._timer);
     _cmdEcho.style.display = 'none';
   }
 };
