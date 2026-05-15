@@ -46,7 +46,7 @@ input,select{font-family:inherit}
 .sh-row b{color:var(--t);min-width:60px;font-size:8px}
 
 
-/* ── OPERATION INPUT PANEL (AutoCAD-style) ── */
+/* ── OPERATION INPUT PANEL (Strata-style) ── */
 #opPanel{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
   background:#050F1C;border:1px solid var(--b);border-radius:6px;padding:10px 14px;
   display:none;z-index:500;box-shadow:0 4px 24px rgba(0,0,0,.8);min-width:320px;
@@ -620,7 +620,7 @@ input,select{font-family:inherit}
         </div>
       </div>
     </div>
-    <!-- CIVIL 3D — Matching Autodesk Civil 3D 2022 -->
+    <!-- CIVIL 3D — Matching Strata Civil 3D 2022 -->
     <div class="mb-grp">
       <span class="mb-grp-lbl" style="color:rgba(245,190,24,.6)">CIVIL 3D</span>
       <div class="mb-item"><button class="mb-btn" style="color:var(--g)">Ground Data ▾</button>
@@ -1236,7 +1236,7 @@ input,select{font-family:inherit}
       <div class="impz" id="impZone" onclick="document.getElementById('fileIn').click()" ondragover="e=>{e.preventDefault();this.classList.add('dov')}" ondragleave="this.classList.remove('dov')" ondrop="impDrop(event)">
         <div style="font-size:30px;margin-bottom:6px;color:var(--st)">📐</div>
         <div style="font-size:14px;font-weight:800;color:var(--t);font-family:'Syne',sans-serif;margin-bottom:4px" id="impName">Drop or Click to Import</div>
-        <div style="font-size:11px;color:var(--m)">Supports AutoCAD DXF (ASCII) and SVG</div>
+        <div style="font-size:11px;color:var(--m)">Supports DXF (ASCII) (ASCII) and SVG</div>
         <div class="fmt-row">
           <span class="fmt" title="Native">.DXF ✓</span>
           <span class="fmt" title="Native">.SVG ✓</span>
@@ -1248,7 +1248,7 @@ input,select{font-family:inherit}
       <div class="fsect">Import Options</div>
       <div class="fr">
         <div class="fg"><label class="fl">Drawing Units</label><select class="fs" id="impUnits"><option value="mm">Millimetres (mm)</option><option value="m">Metres (m)</option><option value="in">Inches (in)</option><option value="ft">Feet (ft)</option></select></div>
-        <div class="fg"><label class="fl">AutoCAD Version</label><select class="fs"><option>AutoCAD 2024</option><option>AutoCAD 2020</option><option>AutoCAD 2018</option><option>AutoCAD 2013</option></select></div>
+        <div class="fg"><label class="fl">Strata CAD Version</label><select class="fs"><option>Strata CAD 2024</option><option>Strata CAD 2020</option><option>Strata CAD 2018</option><option>Strata CAD 2013</option></select></div>
       </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap">
         <label class="fck"><input type="checkbox" checked id="impAllLyr"> All layers</label>
@@ -1305,9 +1305,9 @@ input,select{font-family:inherit}
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px">
           <button class="btn" onclick="openDwgConvertUrl('oda')" style="font-size:9px;padding:4px 9px">ODA File Converter (Free desktop)</button>
           <button class="btn" onclick="openDwgConvertUrl('cc')" style="font-size:9px;padding:4px 9px">CloudConvert Web</button>
-          <button class="btn" onclick="openDwgConvertUrl('autodesk')" style="font-size:9px;padding:4px 9px">Autodesk Viewer</button>
+          <button class="btn" onclick="openDwgConvertUrl('viewer')" style="font-size:9px;padding:4px 9px">SkyTerraEye Viewer</button>
         </div>
-        <div style="font-size:8.5px;color:var(--m);font-family:'IBM Plex Mono',monospace">In AutoCAD: File → Save As → AutoCAD 2013 DXF (*.dxf) → drag into Strata</div>
+        <div style="font-size:8.5px;color:var(--m);font-family:'IBM Plex Mono',monospace">In Strata CAD: File → Save As → Strata CAD 2013 DXF (*.dxf) → drag into Strata</div>
       </div>
     </div>
     <div class="mf">
@@ -1404,13 +1404,13 @@ input,select{font-family:inherit}
       <div class="fsect">Format</div>
       <div class="oc-g">
         <div class="oc sel" onclick="selCard(this)"><div class="oc-i">📄</div><div class="oc-t">DXF</div><div class="oc-d">Exchange format</div></div>
-        <div class="oc" onclick="selCard(this)"><div class="oc-i">📄</div><div class="oc-t">DWG</div><div class="oc-d">AutoCAD native</div></div>
+        <div class="oc" onclick="selCard(this)"><div class="oc-i">📄</div><div class="oc-t">DWG</div><div class="oc-d">Strata CAD native</div></div>
         <div class="oc" onclick="selCard(this)"><div class="oc-i">🖨️</div><div class="oc-t">PDF / Plot</div><div class="oc-d">Print-ready</div></div>
         <div class="oc" onclick="selCard(this)"><div class="oc-i">🖼️</div><div class="oc-t">SVG / PNG</div><div class="oc-d">Image export</div></div>
         <div class="oc" onclick="selCard(this)"><div class="oc-i">🏗️</div><div class="oc-t">IFC</div><div class="oc-d">BIM format</div></div>
         <div class="oc" onclick="selCard(this)"><div class="oc-i">📊</div><div class="oc-t">CSV / Excel</div><div class="oc-d">Attribute data</div></div>
       </div>
-      <div class="fr"><div class="fg"><label class="fl">Version</label><select class="fs"><option>AutoCAD 2024</option><option>AutoCAD 2018</option><option>AutoCAD 2013</option></select></div><div class="fg"><label class="fl">Scale</label><select class="fs"><option>1:1</option><option>1:50</option><option>1:100</option><option>1:500</option></select></div></div>
+      <div class="fr"><div class="fg"><label class="fl">Version</label><select class="fs"><option>Strata CAD 2024</option><option>Strata CAD 2018</option><option>Strata CAD 2013</option></select></div><div class="fg"><label class="fl">Scale</label><select class="fs"><option>1:1</option><option>1:50</option><option>1:100</option><option>1:500</option></select></div></div>
       <label class="fck"><input type="checkbox" checked> Include all layers</label>
       <label class="fck"><input type="checkbox" checked> Include blocks and attributes</label>
     </div>
@@ -1658,7 +1658,11 @@ function render() {
     ST.imgOverlays.forEach(o=>{
       const a=w2s(o.minX,o.minY),b=w2s(o.maxX,o.maxY);
       const sx=Math.min(a.x,b.x),sy=Math.min(a.y,b.y),sw=Math.abs(b.x-a.x),sh=Math.abs(b.y-a.y);
-      if(sw>=1&&sh>=1&&o.img) ctx.drawImage(o.img,sx,sy,sw,sh);
+      if(sw>=1&&sh>=1&&o.img&&o.img.complete&&o.img.naturalWidth>0){
+        ctx.save(); ctx.globalAlpha=o.opacity||0.85;
+        ctx.drawImage(o.img,sx,sy,sw,sh);
+        ctx.restore();
+      }
     });
     ctx.restore();
   }
@@ -1724,7 +1728,7 @@ function drawCrosshair() {
   const tc = toolColors[ST.tool] || (ST.opState ? toolColors[ST.opState.type] : null)
              || 'rgba(31,168,217,.8)';
 
-  // ── Very faint full-screen guide lines (subtle, like AutoCAD background crosshair) ──
+  // ── Very faint full-screen guide lines (subtle, like Strata background crosshair) ──
   if (ST.crosshairFullGuides !== false) {
     ctx.strokeStyle = 'rgba(31,168,217,.04)'; ctx.lineWidth = 0.5; ctx.setLineDash([]);
     ctx.beginPath();
@@ -1787,7 +1791,7 @@ function layVisible(lid) {
   return l ? (l.vis && !l.frz && !l.dis) : true;
 }
 
-// ACI (AutoCAD Color Index) → hex for entity-level color override
+// ACI (Strata CAD Color Index) → hex for entity-level color override
 const _ACI=['#000000','#FF0000','#FFFF00','#00FF00','#00FFFF','#0000FF','#FF00FF','#FFFFFF',
   '#808080','#C0C0C0','#FF0000','#FF8080','#CC0000','#CC6666','#990000','#994C4C','#7F0000',
   '#7F3F3F','#4C0000','#4C2626','#FF4000','#FF9F80','#CC3300','#CC7F66','#992600','#995F4C',
@@ -2238,6 +2242,32 @@ function drawOpPreview(wp) {
     });
   }
 
+  // ── MIRROR live ghost preview ──────────────────────────────────────
+  if(op.type==='mirror' && op.base) {
+    var mirP1=op.base, mirP2=wp;
+    ctx.setLineDash([]); ctx.globalAlpha=1;
+    // Draw extended mirror axis line
+    var ms1=w2s(mirP1.x,mirP1.y), ms2=w2s(mirP2.x,mirP2.y);
+    var axDx=ms2.x-ms1.x, axDy=ms2.y-ms1.y, axLen=Math.hypot(axDx,axDy)||1;
+    var axEx=axDx/axLen*Math.max(W,H)*2, axEy=axDy/axLen*Math.max(W,H)*2;
+    ctx.strokeStyle='rgba(245,190,24,.8)'; ctx.lineWidth=1.2; ctx.setLineDash([8,5]);
+    ctx.beginPath();
+    ctx.moveTo(ms1.x-axEx,ms1.y-axEy); ctx.lineTo(ms1.x+axEx,ms1.y+axEy);
+    ctx.stroke(); ctx.setLineDash([]);
+    // First-point dot
+    ctx.fillStyle='#F5BE18';
+    ctx.beginPath(); ctx.arc(ms1.x,ms1.y,4,0,Math.PI*2); ctx.fill();
+    // Mirrored ghost entities
+    var mLen=Math.hypot(mirP2.x-mirP1.x,mirP2.y-mirP1.y);
+    if(mLen>0.01){
+      ctx.globalAlpha=0.45; ctx.setLineDash([5,3]);
+      ctx.strokeStyle='#4eff91'; ctx.fillStyle='rgba(78,255,145,.3)';
+      ctx.lineWidth=1.5;
+      sels.forEach(function(se){ drawEntity(mirrorEnt(se,mirP1,mirP2),true); });
+      ctx.setLineDash([]); ctx.globalAlpha=1;
+    }
+  }
+
   ctx.restore();
   ctx.globalAlpha = 1;
   ctx.setLineDash([]);
@@ -2612,12 +2642,93 @@ function mirrorEnt(e,p1,p2) {
     case 'line':    {const a=mirPt(e.x1,e.y1),b=mirPt(e.x2,e.y2);ne.x1=a.x;ne.y1=a.y;ne.x2=b.x;ne.y2=b.y;break;}
     case 'circle':  case 'arc': case 'ellipse': {const c=mirPt(e.cx,e.cy);ne.cx=c.x;ne.cy=c.y;break;}
     case 'rect':    {const p=mirPt(e.x,e.y);ne.x=p.x;ne.y=p.y;ne.w=-e.w;break;}
-    case 'text':    {const p=mirPt(e.x,e.y);ne.x=p.x;ne.y=p.y;break;}
+    case 'text':    {
+      const p=mirPt(e.x,e.y);ne.x=p.x;ne.y=p.y;
+      // Mirror text angle across the axis angle
+      const axAng=Math.atan2(p2.y-p1.y,p2.x-p1.x);
+      const tAng=(e.angle||0)*Math.PI/180;
+      const refAng=2*axAng-tAng;
+      ne.angle=refAng*180/Math.PI;
+      break;}
     case 'polyline':{ne.pts=(e.pts||[]).map(p=>{const m=mirPt(p.x,p.y);return{x:m.x,y:m.y};});break;}
     case 'hatch-poly': case 'solid-quad': case 'hatch':{ne.pts=(e.pts||[]).map(p=>{const m=mirPt(p.x,p.y);return{x:m.x,y:m.y};});break;}
     case 'hatch-dot':{const m=mirPt(e.x,e.y);ne.x=m.x;ne.y=m.y;break;}
+    case 'blockref':{
+      const bp=mirPt(e.x,e.y);ne.x=bp.x;ne.y=bp.y;
+      const axAng2=Math.atan2(p2.y-p1.y,p2.x-p1.x);
+      const rAng=(e.rotation||0)*Math.PI/180;
+      ne.rotation=(2*axAng2-rAng)*180/Math.PI;
+      break;}
+    case 'attdef':{const ap=mirPt(e.x,e.y);ne.x=ap.x;ne.y=ap.y;break;}
   }
   return ne;
+}
+
+// Mirror erase-source prompt — shown after second axis point
+function _showMirrorErasePrompt(sels, p1, p2, op) {
+  // Remove existing
+  var ex=document.getElementById('mirrorErasePrompt'); if(ex) ex.remove();
+
+  var div=document.createElement('div');
+  div.id='mirrorErasePrompt';
+  div.style.cssText='position:fixed;z-index:1200;background:rgba(4,12,24,.97);'
+    +'border:2px solid rgba(31,168,217,.5);border-radius:8px;padding:12px 16px;'
+    +'font-family:IBM Plex Mono,monospace;font-size:11px;color:white;'
+    +'box-shadow:0 8px 32px rgba(0,0,0,.7);min-width:220px;'
+    +'top:50%;left:50%;transform:translate(-50%,-50%);';
+
+  div.innerHTML='<div style="font-size:10px;color:rgba(255,255,255,.6);margin-bottom:10px">'
+    +'Erase source objects?</div>'
+    +'<div style="display:flex;gap:8px;justify-content:center">'
+    +'<button id="mirrorYesBtn" class="btn" style="min-width:80px;font-size:11px">Yes</button>'
+    +'<button id="mirrorNoBtn" class="btn st" style="min-width:80px;font-size:11px">No</button>'
+    +'</div>';
+
+  document.body.appendChild(div);
+
+  function doMirror(eraseSource) {
+    div.remove();
+    pushUndo&&pushUndo('mirror');
+    var mirLen=Math.hypot(p2.x-p1.x,p2.y-p1.y);
+    if(mirLen<0.001){toast&&toast('Mirror axis too short','warn');ST.opState=null;return;}
+
+    // Create mirrored copies
+    var mirrored=sels.map(function(se){
+      var ne=mirrorEnt(se,p1,p2);
+      ne._id=++ST._eid; ne.selected=true;
+      return ne;
+    });
+
+    if(eraseSource){
+      // Delete originals, keep mirrored
+      var selIds=new Set(sels.map(function(e){return e._id;}));
+      ST.entities=ST.entities.filter(function(e){return!selIds.has(e._id);});
+      mirrored.forEach(function(me){me.selected=false; ST.entities.push(me);});
+      toast&&toast('Mirror: source deleted, '+mirrored.length+' obj(s) created','ok');
+    } else {
+      // Keep both
+      sels.forEach(function(se){se.selected=false;});
+      mirrored.forEach(function(me){ST.entities.push(me);});
+      toast&&toast('Mirror: '+mirrored.length+' obj(s) mirrored (original kept)','ok');
+    }
+
+    ST.opState=null; ST.offPreview=null;
+    invalidateSpatialIndex&&invalidateSpatialIndex();
+    if(typeof renderImmediate==='function') renderImmediate(); else render&&render();
+    setMsg&&setMsg('Mirror complete  |  '+sels.length+' object(s)');
+  }
+
+  document.getElementById('mirrorYesBtn').onclick=function(){doMirror(true);};
+  document.getElementById('mirrorNoBtn').onclick=function(){doMirror(false);};
+
+  // Keyboard shortcut Y/N
+  function onKey(ev){
+    if(ev.target&&(ev.target.tagName==='INPUT'||ev.target.tagName==='TEXTAREA')) return;
+    var k=ev.key.toUpperCase();
+    if(k==='Y'){doMirror(true);document.removeEventListener('keydown',onKey);}
+    else if(k==='N'||k==='ENTER'||k==='ESCAPE'){doMirror(false);document.removeEventListener('keydown',onKey);}
+  }
+  document.addEventListener('keydown',onKey,false);
 }
 
 function offsetEnt(e, d) {
@@ -2888,78 +2999,100 @@ function applyOp(wp){
   const op=ST.opState;
   if(!op) return;
 
-  // ── OFFSET — 3-phase AutoCAD workflow ────────────────────────────
+  // ── OFFSET — 3-phase Strata workflow ────────────────────────────
   // Phase A: type distance in DIST field
   // Phase B: click the entity to offset
   // Phase C: click WHICH SIDE → offset placed exactly that distance
   // ── BUFFER / OFFSET — equal distance ALL sides ─────────────────────
   if(op.type==='offset'){
-    // Ensure distance is set
-    if(!op.dist||op.dist<=0){
-      const ibEl=document.getElementById('ibDist');
-      const typed=ibEl?parseFloat(ibEl.value):NaN;
-      if(!isNaN(typed)&&typed>0){ op.dist=typed; }
-      else {
-        const ans=prompt('Buffer distance ('+ST.units+') - equal all sides:','1000');
-        if(ans===null){ ST.opState=null; return; }
-        op.dist=Math.abs(parseFloat(ans)||1000);
+    // ── STRATA OFFSET: Type distance → click entity → click side ──────
+    // Step 1: ensure distance is set (type in DIST field or prompt)
+    if(!op.dist || op.dist<=0){
+      var ibEl=document.getElementById('ibDist');
+      var typed=ibEl?parseFloat(ibEl.value):NaN;
+      if(!isNaN(typed)&&typed>0){
+        op.dist=typed;
+        setMsg('OFFSET '+op.dist.toFixed(2)+' '+ST.units+' — click entity to offset | ESC=done');
+      } else {
+        var ans=prompt('Specify offset distance ('+ST.units+'):','500');
+        if(ans===null){ ST.opState=null; T('select'); return; }
+        op.dist=Math.abs(parseFloat(ans)||500);
+        var ibEl2=document.getElementById('ibDist');
+        if(ibEl2){ibEl2.value=op.dist; ibEl2.placeholder=op.dist+' '+ST.units;}
+        setMsg('OFFSET '+op.dist.toFixed(2)+' '+ST.units+' — click entity | ESC=done');
       }
-      const ibEl2=document.getElementById('ibDist');
-      if(ibEl2){ibEl2.value=op.dist;ibEl2.placeholder=op.dist+' '+ST.units;}
+      toast('OFFSET: '+op.dist.toFixed(2)+' '+ST.units+' — click entity, then click side','ok');
+      return; // wait for entity click
     }
 
-    // Click to pick entity
-    const tol2=14/ST.zoom;
-    let found=null;
-    for(let bi=ST.entities.length-1;bi>=0;bi--){
-      const e=ST.entities[bi];
-      if(!layVisible(e.layer)) continue;
-      if(ptHitsEnt(wp.x,wp.y,e,tol2)){ found=e; break; }
-    }
-    if(!found){
-      toast('Click entity to buffer (line/polyline/circle/arc)','warn');
-      setMsg('BUFFER '+op.dist.toFixed(2)+' '+ST.units+' — click entity | ESC=cancel');
+    var dist=op.dist;
+
+    // Step 2: if no pending entity, pick one
+    if(!op._pendingEnt){
+      var tol2=14/ST.zoom;
+      var found=null;
+      for(var bi=ST.entities.length-1;bi>=0;bi--){
+        var e2=ST.entities[bi];
+        if(!layVisible(e2.layer)) continue;
+        if(ptHitsEnt(wp.x,wp.y,e2,tol2)){found=e2;break;}
+      }
+      if(!found){
+        toast('Click an entity to offset (line/polyline/circle/arc)','warn');
+        return;
+      }
+      op._pendingEnt=found;
+      setMsg('OFFSET '+dist.toFixed(2)+' '+ST.units+' — click the SIDE to offset towards | ESC=cancel');
+      // Show live preview on next mousemove via ST.offPreview
+      ST.offPreview=found;
       return;
     }
 
-    const dist=op.dist;
-    pushUndo();
+    // Step 3: click indicates which side → create offset on that side only
+    var ent=op._pendingEnt;
+    ST.offPreview=null;
 
-    if(found.type==='line'){
-      // Line: rectangle buffer on both sides
-      const dx=found.x2-found.x1,dy=found.y2-found.y1,l=Math.hypot(dx,dy)||1;
-      const nx=-dy/l*dist,ny=dx/l*dist;
-      ST.entities.push({_id:++ST._eid,type:'polyline',closed:true,selected:true,_isBuffer:true,
-        layer:found.layer,pts:[
-          {x:found.x1+nx,y:found.y1+ny},{x:found.x2+nx,y:found.y2+ny},
-          {x:found.x2-nx,y:found.y2-ny},{x:found.x1-nx,y:found.y1-ny}]});
-    } else if(found.type==='polyline'&&found.pts&&found.pts.length>=2){
-      // Polyline: outer buffer (always outward)
-      const outer=offsetEnt(found, dist);
-      if(outer){outer._id=++ST._eid;outer.selected=true;outer._isBuffer=true;ST.entities.push(outer);}
-      // Closed polygon: add inner buffer too
-      if(found.closed&&found.pts.length>=3){
-        const inner=offsetEnt(found,-dist);
-        if(inner){
-          let ia=0;
-          for(let ii3=0;ii3<inner.pts.length;ii3++){const jj3=(ii3+1)%inner.pts.length;ia+=inner.pts[ii3].x*inner.pts[jj3].y-inner.pts[jj3].x*inner.pts[ii3].y;}
-          if(Math.abs(ia)/2>dist*dist){inner._id=++ST._eid;inner.selected=false;inner._isBuffer=true;ST.entities.push(inner);}
-        }
+    // Determine side sign from click position
+    var sign=1;
+    if(ent.type==='line'){
+      var ldx=ent.x2-ent.x1, ldy=ent.y2-ent.y1;
+      sign=((wp.x-ent.x1)*ldy-(wp.y-ent.y1)*ldx)>0?1:-1;
+    } else if(ent.type==='polyline'&&ent.pts&&ent.pts.length>=2){
+      if(ent.closed&&ent.pts.length>=3){
+        // For closed polygon: outside centroid=outward(+1), inside=-1
+        var cx3=0,cy3=0,nn3=ent.pts.length;
+        ent.pts.forEach(function(p){cx3+=p.x;cy3+=p.y;});
+        cx3/=nn3; cy3/=nn3;
+        var avgR3=0;
+        ent.pts.forEach(function(p){avgR3+=Math.hypot(p.x-cx3,p.y-cy3);});
+        avgR3/=nn3;
+        sign=Math.hypot(wp.x-cx3,wp.y-cy3)>avgR3?1:-1;
+      } else {
+        var pp0=ent.pts[0],pp1=ent.pts[Math.min(1,ent.pts.length-1)];
+        sign=((wp.x-pp0.x)*(pp1.y-pp0.y)-(wp.y-pp0.y)*(pp1.x-pp0.x))>0?1:-1;
       }
-    } else if(found.type==='circle'){
-      const ne=Object.assign({},found,{_id:++ST._eid,r:found.r+dist,selected:true,_isBuffer:true});
-      ST.entities.push(ne);
-    } else if(found.type==='arc'){
-      const ne=Object.assign({},found,{_id:++ST._eid,r:Math.max(0.001,found.r+dist),selected:true,_isBuffer:true});
-      ST.entities.push(ne);
-    } else {
-      toast('Buffer: unsupported entity type — use line/polyline/circle/arc','warn'); return;
+    } else if(ent.type==='circle'||ent.type==='arc'){
+      sign=Math.hypot(wp.x-ent.cx,wp.y-ent.cy)>ent.r?1:-1;
+    } else if(ent.type==='rect'){
+      var rcx=ent.x+ent.w/2, rcy=ent.y+ent.h/2;
+      sign=(Math.abs(wp.x-rcx)>Math.abs(ent.w/2)||Math.abs(wp.y-rcy)>Math.abs(ent.h/2))?1:-1;
     }
 
-    invalidateSpatialIndex&&invalidateSpatialIndex();
-    if(typeof renderImmediate==='function') renderImmediate(); else render();
-    toast('Buffer '+dist.toFixed(2)+' '+ST.units+' created on all sides','ok');
-    setMsg('BUFFER '+dist.toFixed(2)+' '+ST.units+' — click another entity | ESC=done');
+    var ne=offsetEnt(ent, dist*sign);
+    if(ne){
+      pushUndo&&pushUndo();
+      ne._id=++ST._eid; ne.selected=false;
+      ST.entities.push(ne);
+      invalidateSpatialIndex&&invalidateSpatialIndex();
+      if(typeof renderImmediate==='function') renderImmediate(); else render&&render();
+      toast('Offset '+dist.toFixed(2)+' '+ST.units,'ok');
+    } else {
+      toast('Cannot offset this entity type','warn');
+    }
+
+    // Reset pending entity — stay in offset mode, same distance
+    // User can now click another entity or another side of the same entity
+    op._pendingEnt=null;
+    setMsg('OFFSET '+dist.toFixed(2)+' '+ST.units+' — click entity | Enter=new dist | ESC=done');
     return;
   }
 
@@ -2969,7 +3102,7 @@ function applyOp(wp){
   // Phase 1: capture base point
   if(!op.base){
     op.base=wp;
-    const m={move:'Base set — click destination',copy:'Base set — click where to copy',rotate:'Center set — click reference direction',scale:'Base set — click reference distance',mirror:'First axis point set — click second point'};
+    const m={move:'Base set — click destination',copy:'Base set — click where to copy',rotate:'Center set — click reference direction',scale:'Base set — click reference distance',mirror:'MIRROR — click second point of mirror line  |  ESC=cancel'};
     setMsg((m[op.type]||'Click second point')+'  |  ESC=cancel');
     return;
   }
@@ -2981,7 +3114,7 @@ function applyOp(wp){
     ST.entities=ST.entities.map(e=>e.selected?translateEnt(e,dx,dy):e);
     const dist=Math.hypot(dx,dy).toFixed(3), ang=((Math.atan2(dy,dx)*180/Math.PI+360)%360).toFixed(1);
     toast('Moved '+sels.length+' obj — dist:'+dist+' '+ST.units+' ang:'+ang+'°','ok');
-    // Keep op active for chaining (like AutoCAD — click again to move more)
+    // Keep op active for chaining (like Strata — click again to move more)
     op.base=null; op.refPt=null;
     setMsg('Moved — click again for base point  |  TAB=enter distance  |  ESC=done');
   }
@@ -3029,11 +3162,12 @@ function applyOp(wp){
     op.refPt=null;
   }
   else if(op.type==='mirror'){
-    pushUndo();
-    ST.entities=ST.entities.map(e=>e.selected?mirrorEnt(e,op.base,wp):e);
-    toast('Mirrored '+sels.length+' object(s)','ok');
-    setMsg('Mirrored  |  ESC=deselect');
-    ST.opState=null;
+    // Phase 1: op.base already set as first axis point
+    // Phase 2: wp = second axis point → show "Erase source?" dialog
+    op.refPt=wp;
+    var sels2=ST.entities.filter(function(e){return e.selected;});
+    if(!sels2.length){ ST.opState=null; return; }
+    _showMirrorErasePrompt(sels2, op.base, wp, op);
   }
   else if(op.type==='stretch'){
     if(!op.refPt){
@@ -3234,7 +3368,7 @@ canvas.addEventListener('mousedown',ev=>{
     } else {
       const done=commitEntity(owp);
       if(done){
-        // Line tool stays active for chaining (like AutoCAD)
+        // Line tool stays active for chaining (like Strata)
         if(ST.tool==='line'){
           ST.startPt=owp; // chain from last endpoint
           setMsg('Next point (click) — ESC or right-click to end line');
@@ -3322,7 +3456,7 @@ canvas.addEventListener('mouseup',ev=>{
       ST.tool=ST.opState.type;
       updateToolUI(ST.tool);
       canvas.style.cursor='crosshair';
-      const msgs={move:'Base point? Click it  |  ESC=cancel',copy:'Base point? Click it  |  ESC=cancel',rotate:'Rotation center? Click it  |  ESC=cancel',scale:'Scale base? Click it  |  ESC=cancel',mirror:'First mirror axis point  |  ESC=cancel'};
+      const msgs={move:'Base point? Click it  |  ESC=cancel',copy:'Base point? Click it  |  ESC=cancel',rotate:'Rotation center? Click it  |  ESC=cancel',scale:'Scale base? Click it  |  ESC=cancel',mirror:'MIRROR — click first point of mirror line  |  ESC=cancel'};
       setMsg(msgs[ST.opState.type]||'Click base point  |  ESC=cancel');
     } else if(n>0){
       setMsg(n+' selected  |  M=move  CO=copy  RO=rotate  SC=scale  DEL=delete  SPACE=repeat  ESC=deselect');
@@ -3431,7 +3565,7 @@ document.addEventListener('keydown',ev=>{
     ST.measurePts=[];
     hideSelBox(); render(); return;
   }
-  // SPACE = close polyline OR repeat last command (like AutoCAD)
+  // SPACE = close polyline OR repeat last command (like Strata)
   if(ev.key===' '&&!ev.ctrlKey){
     ev.preventDefault();
     if(ST.tool==='polyline'||ST.tool==='boundary') { commitPolyline(); return; }
@@ -3507,7 +3641,7 @@ document.addEventListener('keydown',ev=>{
   if(k==='-'||k==='_'){zoomBy(0.8);return;}
   
   // If it's a printable character and no tool is in progress → focus command line
-  // This makes typing work like AutoCAD: just start typing and it goes to cmdline
+  // This makes typing work like Strata: just start typing and it goes to cmdline
   if(ev.key.length === 1 && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
     const cmd = document.getElementById('cmdInput');
     if(cmd && document.activeElement !== cmd) {
@@ -3649,13 +3783,20 @@ function delSel() {
     if (ST.grid && typeof drawGrid==='function') drawGrid();
   }
 
-  // Use renderImmediate (exported from StrataProEngine) to redraw entities
+  // Cancel all pending renders and redraw clean
+  if (typeof _rafId!=='undefined' && _rafId) { cancelAnimationFrame(_rafId); _rafId=null; }
+  if (typeof _renderPending!=='undefined') _renderPending=false;
+  
   if (typeof renderImmediate==='function') {
     renderImmediate();
-    // Second pass to catch any RAF that sneaked in
+    // Double-pass: catches any setTimeout/RAF that fires after
     setTimeout(function(){
       if (typeof renderImmediate==='function') renderImmediate();
-    }, 50);
+      // Ensure gizmo is hidden after both passes
+      document.querySelectorAll('#rotScaleGizmo,#gizmoBox,[id^="gh-"]').forEach(function(el){
+        el.style.display='none';
+      });
+    }, 30);
   }
 }
 
@@ -3915,7 +4056,7 @@ function vpDrop(ev){ev.preventDefault();const dz=document.getElementById('dz');i
  */
 
 // ─── DWG HANDLING NOTE ──────────────────────────────────────────────
-// DWG is Autodesk's proprietary binary format. For a production system:
+// DWG is SkyTerraEye's proprietary binary format. For a production system:
 //
 //  SERVER-SIDE (recommended):
 //    Option A: ODA File Converter CLI (free, open source)
@@ -3926,8 +4067,8 @@ function vpDrop(ev){ev.preventDefault();const dz=document.getElementById('dz');i
 //      FreeCAD can be scripted: freecad --headless convert.py
 //
 //    Option C: Cloud API
-//      Autodesk Platform Services (APS/Forge) Model Derivative API
-//      https://aps.autodesk.com/developer/overview/model-derivative
+//      SkyTerraEye Platform Services (APS/Forge) Model Derivative API
+//      (External model derivative service)
 //
 //  BROWSER-ONLY (limited):
 //    Option D: libredwg WASM build (experimental, partial support)
@@ -3948,7 +4089,7 @@ class DXFImporter {
   }
 
   constructor() {
-    // ── ACI (AutoCAD Color Index) → hex, full 256-color palette ──
+    // ── ACI (Strata CAD Color Index) → hex, full 256-color palette ──
     this.ACI = [
       '#000000','#FF0000','#FFFF00','#00FF00','#00FFFF','#0000FF','#FF00FF','#FFFFFF',
       '#808080','#C0C0C0','#FF0000','#FF8080','#CC0000','#CC6666','#990000','#994C4C',
@@ -4365,7 +4506,7 @@ class DXFImporter {
           const ne = this._deepClone(be);
           ne._id = ++this._eid;
           ne.selected = false;
-          // Inherit insert layer if entity is on layer '0' (AutoCAD convention)
+          // Inherit insert layer if entity is on layer '0' (Strata CAD convention)
           if ((ne._layerName || '0') === '0') ne.layer = e.layer;
 
           switch (ne.type) {
@@ -4628,7 +4769,7 @@ class DXFImporter {
 
       // ── SOLID / TRACE (filled quadrilateral) ─────────────────────
       case 'SOLID': case 'TRACE': {
-        // AutoCAD vertex order for SOLID: 10,11,13,12 (Z-pattern, not sequential)
+        // Strata CAD vertex order for SOLID: 10,11,13,12 (Z-pattern, not sequential)
         const pts = [
           { x:gf('10'), y:gf('20') }, { x:gf('11'), y:gf('21') },
           { x:gf('13'), y:gf('23') }, { x:gf('12'), y:gf('22') },
@@ -5109,10 +5250,10 @@ document.addEventListener('keydown', ev => {
 });
 
 
-// ── CAD PARITY PATCH (AutoCAD behavior) ─────────────────────────────
+// ── CAD PARITY PATCH (Strata CAD behavior) ─────────────────────────────
 /**
  * ═══════════════════════════════════════════════════════════════════
- *  STRATA CAD — AUTOCAD PARITY PATCH
+ *  STRATA CAD — COMMAND PARITY PATCH
  *
  *  MISSING FEATURES IDENTIFIED:
  *  ─────────────────────────────
@@ -5148,10 +5289,10 @@ document.addEventListener('keydown', ev => {
  */
 
 // ══════════════════════════════════════════════════════════════════
-//  1. COMMAND STATE MACHINE — AutoCAD-style multi-step prompts
+//  1. COMMAND STATE MACHINE — Strata-style multi-step prompts
 // ══════════════════════════════════════════════════════════════════
 
-// Replace the basic runCommand with a full AutoCAD-style state machine
+// Replace the basic runCommand with a full Strata-style state machine
 (function() {
   // Command state: tracks current command phase
   const CMD = {
@@ -5162,7 +5303,7 @@ document.addEventListener('keydown', ev => {
     histIdx: -1
   };
 
-  // Prompt for each command phase — mirrors AutoCAD output
+  // Prompt for each command phase — mirrors Strata CAD output
   const PROMPTS = {
     LINE:    ['Specify first point: ', 'Specify next point or [Undo]: '],
     PLINE:   ['Specify start point: ', 'Specify next point or [Arc/Undo]: '],
@@ -5199,7 +5340,7 @@ document.addEventListener('keydown', ev => {
   // Patch cmdKey to support:
   // - Up/Down arrow for command history
   // - Full multi-step command prompts  
-  // - Space bar repeats last command (AutoCAD behavior)
+  // - Space bar repeats last command (Strata CAD behavior)
   const _prevCmdKey = window.cmdKey;
   window.cmdKey = function(ev) {
     const inp = document.getElementById('cmdInput');
@@ -5235,7 +5376,7 @@ document.addEventListener('keydown', ev => {
     ev.preventDefault();
     inp.value = '';
 
-    // Space on empty = repeat last command (AutoCAD behavior)
+    // Space on empty = repeat last command (Strata CAD behavior)
     if (!raw) {
       if (ev.key === ' ' || ev.key === 'Enter') {
         if (ST.tool === 'polyline') { commitPolyline(); return; }
@@ -5846,10 +5987,10 @@ document.addEventListener('keydown', ev => {
 
 
 // ══════════════════════════════════════════════════════════════════
-//  4. DDPTYPE — Point display style (like AutoCAD)
+//  4. DDPTYPE — Point display style (like Strata)
 // ══════════════════════════════════════════════════════════════════
 (function() {
-  // AutoCAD PDMODE values:
+  // Strata CAD PDMODE values:
   // 0=dot, 1=none, 2=+, 3=×, 4=short line up
   // 32=circle, 33=circle+dot, 34=circle+x, 35=circle+cross, 36=circle+line
   // 64=square, 65=square+dot, 66=square+x, 67=square+cross
@@ -5999,7 +6140,7 @@ document.addEventListener('keydown', ev => {
 //     Center, Perpendicular, Nearest, Tangent, Quadrant
 // ══════════════════════════════════════════════════════════════════
 (function() {
-  // OSNAP modes (bitmask like AutoCAD)
+  // OSNAP modes (bitmask like Strata)
   const OSNAP = {
     ENDPOINT:     1,
     MIDPOINT:     2,
@@ -6026,7 +6167,7 @@ document.addEventListener('keydown', ev => {
     quadrant:     { color:'#44ffee', shape:'diamond',  label:'QUA' },
   };
 
-  // Override snapPoint with full AutoCAD-accurate OSNAP
+  // Override snapPoint with full Strata CAD-accurate OSNAP
   window.snapPoint = function(sx, sy) {
     const wp = s2w(sx, sy);
     if (!ST.osnap) {
@@ -6510,7 +6651,7 @@ document.addEventListener('keydown', ev => {
     });
 
     if (!allIxPts.length) {
-      // No intersections — fall back to delete (AutoCAD also deletes in this case)
+      // No intersections — fall back to delete (Strata CAD also deletes in this case)
       pushUndo(); ST.entities.splice(targetIdx, 1);
       render(); toast('Trimmed (no boundary found — erased)', 'ok'); return;
     }
@@ -6590,7 +6731,7 @@ document.addEventListener('keydown', ev => {
   window.applyDynValue = function(raw) {
     if (!raw) return;
 
-    // AutoCAD @distance<bearing format (e.g. @50.5<N45E or @100<45)
+    // Strata CAD @distance<bearing format (e.g. @50.5<N45E or @100<45)
     // Also: N45°30'E  or  N45.5E or  45.5<90  or  @100<N30E
     const atBearing = raw.match(/^@?(\d+\.?\d*)<([NSns]?\d+[°\s\d'.]*[EWew]?)/);
     if (atBearing) {
@@ -6791,7 +6932,7 @@ document.addEventListener('keydown', ev => {
   }
 })();
 
-console.log('[Strata CAD Patch] AutoCAD parity features loaded ✓');
+console.log('[Strata CAD Patch] Strata CAD parity features loaded ✓');
 console.log('  ✓ Command state machine (multi-step prompts, history)');
 console.log('  ✓ STRETCH — crossing window vertex selection');
 console.log('  ✓ OFFSET — full polyline/arc/ellipse support');
@@ -7141,7 +7282,7 @@ var CAD_COMMANDS = (function() {
     'DCE':'dimcenter',
     // Color
     'COLOUR':'color',
-    // Extra shortcuts matching AutoCAD
+    // Extra shortcuts matching Strata CAD
     'DIMRAD':'dim-radius','DIMANG':'dim-angular','DIMDIA':'dim-diameter',
     'DIMALIGNED':'dim-lin','DIMLINEAR':'dim-lin',
     'DIMEDIT':'dimedit','DIMSTYLE':'dimstyle','DDIM':'dimstyle','DST':'dimstyle',
@@ -7318,7 +7459,7 @@ var CAD_COMMANDS = (function() {
 Object.assign(CAD_COMMANDS, {
   // DDPTYPE
   'DDPTYPE':'ddptype','DDP':'ddptype','PDMODE':'ddptype',
-  // AutoCAD parity
+  // Strata CAD parity
   'LENGTHEN':'lengthen','LEN':'lengthen',
   'MEASURE':'measure',
   'DIVIDE':'div','DIV':'div',
@@ -7651,7 +7792,7 @@ window.cmdKey = function(ev) {
 
 // wireCmdInput removed — StrataFinalWire handles this
 
-// ── AutoCAD-style: any printable key while canvas focused → cmd ───
+// ── Strata-style: any printable key while canvas focused → cmd ───
 document.addEventListener('keydown', function(ev) {
   const tag = document.activeElement?.tagName?.toLowerCase();
   if (tag==='input'||tag==='textarea'||tag==='select') return;
@@ -9039,10 +9180,10 @@ window.cmdKey=function(ev){
 //  DWG IMPORTER — Reads binary DWG files directly in browser
 // ════════════════════════════════════════════════════════════════════
 const DWG_VERSIONS = {
-  'AC1009':'AutoCAD R12','AC1012':'AutoCAD R13','AC1014':'AutoCAD R14',
-  'AC1015':'AutoCAD 2000','AC1018':'AutoCAD 2004','AC1021':'AutoCAD 2007',
-  'AC1024':'AutoCAD 2010','AC1027':'AutoCAD 2013','AC1032':'AutoCAD 2018',
-  'AC1035':'AutoCAD 2023','AC1037':'AutoCAD 2025'
+  'AC1009':'Strata CAD R12','AC1012':'Strata CAD R13','AC1014':'Strata CAD R14',
+  'AC1015':'Strata CAD 2000','AC1018':'Strata CAD 2004','AC1021':'Strata CAD 2007',
+  'AC1024':'Strata CAD 2010','AC1027':'Strata CAD 2013','AC1032':'Strata CAD 2018',
+  'AC1035':'Strata CAD','AC1037':'Strata CAD 2025'
 };
 
 let _dwgFile = null;
@@ -9132,7 +9273,7 @@ function parseDWGBinary(bytes, filename) {
   const ents = [];
   const layerMap = {};  // name → layer id
 
-  // Full ACI 256-color palette (AutoCAD standard)
+  // Full ACI 256-color palette (Strata CAD standard)
   const ACI = [
     '#000000','#FF0000','#FFFF00','#00FF00','#00FFFF','#0000FF','#FF00FF','#FFFFFF',
     '#808080','#C0C0C0','#FF0000','#FF8080','#CC0000','#CC6666','#990000','#994C4C',
@@ -9199,7 +9340,7 @@ function parseDWGBinary(bytes, filename) {
   // DWG stores LAYER table in the header/tables area as ASCII
   // Pattern: layer name is a null-terminated string, preceded by its ACI color byte
   const SKIP_WORDS = new Set(['PNG','IHDR','PLTE','IDAT','IEND','BMP','DIB',
-    'AutoCAD','Autodesk','AcAd','ACAD','SHX','TTF','NULL','TRUE','FALSE',
+    'Strata CAD','SkyTerraEye','AcAd','ACAD','SHX','TTF','NULL','TRUE','FALSE',
     'BLOCK','TABLE','LAYER','ENTITIES','HEADER','SECTION','ENDSEC','EOF',
     'BYLAYER','BYBLOCK','CONTINUOUS','STANDARD','MODEL','PAPER']);
 
@@ -9286,7 +9427,7 @@ function openDwgConvertUrl(service) {
   const urls = {
     oda: 'https://www.opendesign.com/guestfiles/oda_file_converter',
     cc: 'https://cloudconvert.com/dwg-to-dxf',
-    autodesk: 'https://viewer.autodesk.com'
+    viewer: 'https://viewer.autodesk.com'
   };
   window.open(urls[service]||urls.oda, '_blank');
 }
@@ -9625,7 +9766,7 @@ function exportPDF() {
       <div style="margin-top:12px;padding:10px;background:rgba(31,168,217,.07);border:1px solid rgba(31,168,217,.2);border-radius:5px">
         <div style="font-size:9px;font-weight:800;color:var(--b);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Best Solution: Bind XREFs Before Export</div>
         <div style="font-size:9.5px;color:var(--m);line-height:1.7">
-          In <b style="color:var(--t)">AutoCAD / DWG TrueView:</b><br>
+          In <b style="color:var(--t)">Strata CAD / DWG TrueView:</b><br>
           &nbsp;1. Open the DWG file<br>
           &nbsp;2. Type <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--g)">XREF</code> → right-click each reference → <b style="color:var(--t)">Bind</b> → <b>Insert</b><br>
           &nbsp;3. Save → re-export as DXF → import here<br><br>
@@ -9787,7 +9928,7 @@ function exportPDF() {
             <option value="shp">ESRI Shapefile (.shp)</option>
             <option value="geojson">GeoJSON (.geojson)</option>
             <option value="kml">KML (.kml)</option>
-            <option value="dxf">AutoCAD DXF</option>
+            <option value="dxf">DXF</option>
             <option value="csv">CSV with coordinates</option>
             <option value="dwg">DWG (via CloudConvert)</option>
           </select>
@@ -10830,7 +10971,7 @@ ibApply = function() {
 
 
 // ════════════════════════════════════════════════════════════════════
-//  OPERATION INPUT PANEL — AutoCAD-style inline value entry
+//  OPERATION INPUT PANEL — Strata-style inline value entry
 // ════════════════════════════════════════════════════════════════════
 
 function showOpPanel(title, fields, hint, onApply) {
@@ -12316,7 +12457,7 @@ function showXrefWarning(filename, xrefNames, xrefStats, loadedCount) {
     }).join('') +
     `<div style="margin-top:8px;padding:8px 10px;background:rgba(245,190,24,.07);border:1px solid rgba(245,190,24,.25);border-radius:4px;font-size:9.5px;color:var(--m);line-height:1.6">
       <b style="color:var(--g)">💡 How to get XREF files:</b> Ask the file provider for ALL linked DWG files. Convert each to DXF and upload them here.<br>
-      Or in AutoCAD: type <b>XREF</b> → right-click each → <b>Bind</b> → re-export DXF. This embeds all XREFs into one file.
+      Or in Strata: type <b>XREF</b> → right-click each → <b>Bind</b> → re-export DXF. This embeds all XREFs into one file.
     </div>`;
   }
   setMsg(`${filename}: ${loadedCount} entities + ${xrefNames.length} missing XREFs`);
@@ -12352,7 +12493,7 @@ function mergeXrefDxf(txt, xfilename) {
   renderLayers(); setTimeout(()=>zoomExt(),100);
   toast(`XREF: ${xfilename} — ${resolved} entities added`, resolved>0?'ok':'warn');
   setMsg(`Drawing + XREF: ${ST.entities.length} total entities`);
-  if (!resolved) toast('Tip: In AutoCAD type XREF → Bind all → re-export DXF (this embeds XREFs)', 'warn');
+  if (!resolved) toast('Tip: In Strata CAD type XREF → Bind all → re-export DXF (this embeds XREFs)', 'warn');
 }
 
 function showDxfDiag(filename,entCount,imgPaths,tileBounds,isCivil){
@@ -12367,7 +12508,7 @@ function showDxfDiag(filename,entCount,imgPaths,tileBounds,isCivil){
     '<div class="diag-row">🖼 '+imgPaths.length+' external image files not embedded (need PNG tiles)</div>':'')+(
     isCivil?'<div class="diag-row">🏗 Civil 3D proxy objects may not fully import</div>':'');
   if(fixes) fixes.innerHTML=isCivil?
-    '<div class="diag-fix"><div class="diag-fix-title">Export as standard DXF from Civil 3D</div><div class="diag-fix-body">Use AECCEXPORTTOAUTOCAD command in Civil 3D to convert proxy objects to standard DXF entities.</div></div>':'';
+    '<div class="diag-fix"><div class="diag-fix-title">Export as standard DXF from Civil 3D</div><div class="diag-fix-body">Use the Civil 3D export command to convert proxy objects to standard DXF entities.</div></div>':'';
   setMsg(filename+': '+entCount+' entities'+(isCivil?' [Civil 3D]':''));
   openMo('moDxfDiag');
 }
@@ -12483,18 +12624,18 @@ function _initMap() {
     preferCanvas: true,
   }).setView([defaultLat, defaultLng], defaultZoom);
 
-  // Base layers using _mapLayers config
+  // Base layers — Google Satellite + fallbacks
+  const gsatOpts={maxZoom:22,maxNativeZoom:20,subdomains:'0123',attribution:'Google'};
   const layers = {
-    osm:  L.tileLayer(_mapLayers.osm,  { maxZoom: 22, attribution: '© OpenStreetMap contributors' }),
-    sat:  L.tileLayer(_mapLayers.sat,  { maxZoom: 22, attribution: '© Esri World Imagery' }),
-    topo: L.tileLayer(_mapLayers.topo, { maxZoom: 17, attribution: '© OpenTopoMap' }),
+    gsat: L.tileLayer(_mapLayers.gsat||'https://mt{s}.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}', gsatOpts),
+    ghyb: L.tileLayer(_mapLayers.ghyb||'https://mt{s}.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}', gsatOpts),
+    gmap: L.tileLayer(_mapLayers.gmap||'https://mt{s}.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}', gsatOpts),
+    osm:  L.tileLayer(_mapLayers.osm, { maxZoom:22, attribution:'© OSM' }),
+    sat:  L.tileLayer(_mapLayers.sat, { maxZoom:21, attribution:'© Esri' }),
+    topo: L.tileLayer(_mapLayers.topo, { maxZoom:17, attribution:'© OTM' }),
   };
-
-  // Add default layer
-  const startLayer = _mapLayer || 'osm';
-  (layers[startLayer] || layers.osm).addTo(_map);
-
-  // Store layer refs for switching
+  layers.gsat.addTo(_map);
+  _mapLayer = 'gsat';
   _map._tileLayers = layers;
 
   // Click handler: if in 'draw' mode, pass clicks to CAD canvas
@@ -12808,7 +12949,7 @@ T=function(tool){
   _T_preOffset(tool);
 };
 
-// ── Selection box (AutoCAD style blue/green) ─────────────────────
+// ── Selection box (Strata style blue/green) ─────────────────────
 function showSelBox(sx,sy,mx,my){
   let box=document.getElementById('selBox');
   if(!box){
@@ -13255,7 +13396,7 @@ window.runCommand = function(rawCmd) {
 
 // wireInput removed - replaced by StrataFinalWire below
 
-// ── Any printable key → focus command line (AutoCAD style) ────────
+// ── Any printable key → focus command line (Strata style) ────────
 document.addEventListener('keydown', function(ev) {
   var tag = document.activeElement && document.activeElement.tagName.toLowerCase();
   if (tag==='input'||tag==='textarea'||tag==='select') return;
@@ -13313,7 +13454,7 @@ window.showDwgGuide = function(file) {
     var ver = '';
     for (var i=0;i<6;i++) ver += String.fromCharCode(bytes[i]);
     var VN = {'AC1009':'R12','AC1012':'R13','AC1014':'R14','AC1015':'2000','AC1018':'2004','AC1021':'2007','AC1024':'2010','AC1027':'2013','AC1032':'2018','AC1035':'2023','AC1037':'2025'};
-    var verName = 'AutoCAD ' + (VN[ver] || ver);
+    var verName = 'Strata CAD ' + (VN[ver] || ver);
     var sizeMB  = (file.size/1048576).toFixed(1);
     var isOld   = ver < 'AC1027';
     el.innerHTML = buildDwgModal(file.name, verName, sizeMB, isOld);
@@ -13357,8 +13498,8 @@ function buildDwgModal(name, verName, sizeMB, isOld) {
     +'</div>'
     +'<details style="margin-bottom:10px"><summary style="font-size:9px;color:var(--m);cursor:pointer;font-family:IBM Plex Mono,monospace">⚠ Why is geometry missing from my DWG?</summary>'
     +'<div style="font-size:9px;color:var(--m);line-height:1.8;padding:8px 0">'
-    +'<b style="color:var(--t)">1. XREFs</b> — External reference files. In AutoCAD: type XREF → Bind All → Insert, then re-export DXF.<br>'
-    +'<b style="color:var(--t)">2. Civil 3D proxy</b> — Run <code style="background:var(--bg2);padding:1px 5px;border-radius:2px">AECCEXPORTTOAUTOCAD</code> in Civil 3D before exporting.<br>'
+    +'<b style="color:var(--t)">1. XREFs</b> — External reference files. In Strata CAD: type XREF → Bind All → Insert, then re-export DXF.<br>'
+    +'<b style="color:var(--t)">2. Civil 3D proxy</b> — Run <code style="background:var(--bg2);padding:1px 5px;border-radius:2px">Export to DXF</code> in Civil 3D before exporting.<br>'
     +'<b style="color:var(--t)">3. Frozen layers</b> — Run <code style="background:var(--bg2);padding:1px 5px;border-radius:2px">LAYTHW</code> first to thaw all layers.<br>'
     +'<b style="color:var(--t)">4. ODA gives best results</b> — Free desktop converter handles most edge cases.'
     +'</div></details>'
@@ -13465,7 +13606,7 @@ function parseDWGBinaryV2(bytes, filename) {
   }
   function inS(o){return skip.some(function(r){return o>=r[0]&&o<=r[1];});}
 
-  var SKIPW=new Set(['NULL','TRUE','FALSE','BLOCK','TABLE','LAYER','ENTITIES','HEADER','SECTION','ENDSEC','EOF','BYLAYER','BYBLOCK','CONTINUOUS','STANDARD','MODEL','PAPER','AutoCAD','Autodesk','ACAD']);
+  var SKIPW=new Set(['NULL','TRUE','FALSE','BLOCK','TABLE','LAYER','ENTITIES','HEADER','SECTION','ENDSEC','EOF','BYLAYER','BYBLOCK','CONTINUOUS','STANDARD','MODEL','PAPER','Strata CAD','SkyTerraEye','ACAD']);
   var buf='';
   for(var si=256;si<Math.min(65536,len);si++){
     if(inS(si)){buf='';continue;}
@@ -13947,7 +14088,7 @@ Object.assign(CAD_ACTIONS, {
   mapexport:    function() { openMo('moMapExport'); },
   mapiinsert:   function() { openMo('moImport'); toast('MAPIINSERT — use Import for raster/vector data','ok'); },
   mapabout:     function() { toast('Strata CAD v2.0 — Sky TerraEye | Civil 3D compatible browser CAD','ok'); },
-  map2010:      function() { toast('MAP2010COMPATIBLE — DXF export targets AutoCAD 2010 format','ok'); },
+  map2010:      function() { toast('MAP2010COMPATIBLE — DXF export targets Strata CAD 2010 format','ok'); },
   map2sdf:      function() { if(typeof exportShapefileCSV==='function') exportShapefileCSV(ST.entities); else toast('MAP2SDF — use MAPEXPORT for format options','ok'); },
   map3dgrid:    function() { toast('MAP3DGRIDPERCENT — 3D grid display setting','ok'); },
   mapadmin:     function() { openMo('moSettings'); toast('MAPADMIN — Drawing administration settings','ok'); },
@@ -14293,7 +14434,7 @@ console.log('[Civil 3D] Feature set loaded: Toolspace, Layer Manager, MAP comman
     handleKey(ev);
   };
 
-  // AutoCAD style: any printable key while canvas focused → cmdInput
+  // Strata style: any printable key while canvas focused → cmdInput
   document.addEventListener('keydown', function(ev) {
     if (ev.ctrlKey||ev.altKey||ev.metaKey) return;
     var tag = (document.activeElement||{}).tagName||'';
@@ -14469,7 +14610,7 @@ setTimeout(function() {
 
 
 // ══════════════════════════════════════════════════════════════════
-// 2.  OSNAP — full AutoCAD-accurate with visual labels
+// 2.  OSNAP — full Strata CAD-accurate with visual labels
 //     Shows: Endpoint, Midpoint, Center, Intersection, Nearest
 // ══════════════════════════════════════════════════════════════════
 
@@ -15752,7 +15893,7 @@ window.deleteEntityAttr = function(id, key) {
 
 
 // ══════════════════════════════════════════════════════════════
-// 10. BLOCKS — Create, Insert, Edit (AutoCAD style)
+// 10. BLOCKS — Create, Insert, Edit (Strata style)
 // ══════════════════════════════════════════════════════════════
 
 // Block library storage
@@ -17242,7 +17383,7 @@ window.importDWGFile = function(file) {
           <div style="margin-top:8px;padding:8px;background:rgba(255,68,102,.08);border:1px solid rgba(255,68,102,.2);border-radius:4px;line-height:1.6">
             <b style="color:#ff4466">Fallback options:</b><br>
             1. Use ODA File Converter (free) → convert to DXF → re-import<br>
-            2. In AutoCAD/Civil 3D: AECCEXPORTTOAUTOCAD → Save as DXF R2010<br>
+            2. In StraStrata Civil 3D: Export → Save as DXF R2010<br>
             3. Check that DWG server is running: <code>python3 server.py</code>
           </div>
         `;
@@ -17388,7 +17529,7 @@ window.openDWGImportDialog = function() {
             <div style="font-size:28px;margin-bottom:6px">📐</div>
             <div style="font-size:11px;font-weight:700;color:var(--t)">Drop DWG or DXF file here</div>
             <div style="font-size:9.5px;color:var(--m);margin-top:4px">or click to browse</div>
-            <div style="font-size:8.5px;color:#556;margin-top:6px">Supports AutoCAD R12 through 2023 · Max 500MB</div>
+            <div style="font-size:8.5px;color:#556;margin-top:6px">Supports Strata CAD R12 through 2023 · Max 500MB</div>
           </div>
           <input type="file" id="dwgFileInput" accept=".dwg,.dxf" style="display:none"
             onchange="if(this.files[0]){closeMo('moDwgImport');importDWGFile(this.files[0]);}">
@@ -17412,7 +17553,7 @@ window.openDWGImportDialog = function() {
           <summary style="font-size:9px;color:var(--m);cursor:pointer;font-family:IBM Plex Mono,monospace">▶ Why is geometry missing? (Civil 3D tips)</summary>
           <div style="font-size:9px;color:var(--m);line-height:1.8;padding:8px 0">
             <b style="color:var(--t)">1. XREFs</b> — In Civil 3D: XREF → Bind All → Insert → re-save<br>
-            <b style="color:var(--t)">2. Civil 3D objects</b> — Run <code style="background:var(--bg2);padding:0 4px">AECCEXPORTTOAUTOCAD</code> before saving<br>
+            <b style="color:var(--t)">2. Civil 3D objects</b> — Run <code style="background:var(--bg2);padding:0 4px">Export to DXF</code> before saving<br>
             <b style="color:var(--t)">3. Best method</b> — Install ODA File Converter (free) for lossless conversion<br>
             <b style="color:var(--t)">4. Proxy entities</b> — Set PROXYSHOW=1 or explode proxies before export
           </div>
@@ -17934,7 +18075,7 @@ if (typeof CAD_ACTIONS !== 'undefined') {
 }
 
 // ═══════════════════════════════════════════════════════
-// 6. MORE CIVIL 3D / AUTOCAD TOOLS
+// 6. MORE CIVIL 3D TOOLS
 // ═══════════════════════════════════════════════════════
 if (typeof CAD_COMMANDS !== 'undefined') {
   Object.assign(CAD_COMMANDS, {
@@ -20169,7 +20310,7 @@ if (typeof CAD_COMMANDS !== 'undefined') CAD_COMMANDS['IMAGEATTACH'] = 'image';
 if (typeof CAD_ACTIONS !== 'undefined') CAD_ACTIONS['image'] = function() { importImageOverlay(); };
 
 // ████████████████████████████████████████████████████████████████████
-//  STRATA ACA ENGINE — AutoCAD Architecture features from User Guide
+//  STRATA ACA ENGINE — Strata Architecture features from User Guide
 //  Based on: ACA 2011 User Guide (4090 pages)
 //  Implements: Walls, Doors, Windows, Stairs, Rooms, Grid, Slab,
 //              Roof, Structural Members, Schedules, AEC Dimensions
@@ -20336,7 +20477,7 @@ var DOOR_STYLES = {
 };
 
 function drawDoorSymbol(ctx, e) {
-  if (e.type !== 'acadoor') return;
+  if (e.type !== 'strataoor') return;
   var w = e.width || 900, h = e.height || 2100;
   var x = e.x, y = e.y, ang = (e.angle||0)*Math.PI/180;
   var sp = w2s(x,y);
@@ -20646,7 +20787,7 @@ function drawStructMember(ctx, e) {
 // 7. COLUMN GRID — Chapter 33-34
 // ═══════════════════════════════════════════════════════════════════
 function drawColumnGrid(ctx, e) {
-  if (e.type !== 'acadgrid') return;
+  if (e.type !== 'stratagrid') return;
   var col=e.selected?'#F5BE18':'#FF00FF';
   ctx.save();
   ctx.strokeStyle=col; ctx.lineWidth=0.5; ctx.setLineDash([8,4]);
@@ -20864,7 +21005,7 @@ function drawSectionMark(ctx, e) {
 // ═══════════════════════════════════════════════════════════════════
 window.generateSchedule = function(scheduleType) {
   var types = {
-    door:   {entityType:'acadoor',    title:'Door Schedule',   cols:['Mark','Width','Height','Style','Material','Fire Rating']},
+    door:   {entityType:'strataoor',    title:'Door Schedule',   cols:['Mark','Width','Height','Style','Material','Fire Rating']},
     window: {entityType:'acawindow',  title:'Window Schedule', cols:['Mark','Width','Height','Style','Glass','Quantity']},
     room:   {entityType:'acaroom',    title:'Room Schedule',   cols:['Number','Name','Area (m²)','Perimeter','Floor','Finish']},
     column: {entityType:'acastruct',  title:'Column Schedule', cols:['Mark','Section','Height','Material','Notes']},
@@ -20937,12 +21078,12 @@ window.drawEntity = function(e, ghost) {
 
   switch(e.type) {
     case 'acawall':    drawACAWall(ctx2, e);    break;
-    case 'acadoor':    drawDoorSymbol(ctx2, e); break;
+    case 'strataoor':    drawDoorSymbol(ctx2, e); break;
     case 'acawindow':  drawWindowSymbol(ctx2,e);break;
     case 'acastair':   drawStairSymbol(ctx2, e);break;
     case 'acaroof':    drawRoofSymbol(ctx2, e); break;
     case 'acastruct':  drawStructMember(ctx2,e);break;
-    case 'acadgrid':   drawColumnGrid(ctx2, e); break;
+    case 'stratagrid':   drawColumnGrid(ctx2, e); break;
     case 'acaslab':
     case 'acaroom':    drawFloorSlab(ctx2, e);  break;
     case 'aecdim':     drawAECDimension(ctx2,e);break;
@@ -21056,7 +21197,7 @@ if (typeof CAD_COMMANDS !== 'undefined') {
     'WALLSTYLE':'wallstyle',
     'WALLCONVERT':'acaconvert',
     // Door/Window/Opening
-    'ACADOOR':'acadoor','DOOR':'acadoor','DR':'acadoor',
+    'ACADOOR':'strataoor','DOOR':'strataoor','DR':'strataoor',
     'ACAWINDOW':'acawindow','WINDOW':'acawindow','WIN':'acawindow',
     'ACAOPENING':'acaopening','OPENING':'acaopening',
     // Stair/Railing
@@ -21066,7 +21207,7 @@ if (typeof CAD_COMMANDS !== 'undefined') {
     'ACACOLUMN':'acacolumn','COLUMN':'acacolumn','COL':'acacolumn',
     'ACABEAM':'acabeam','BEAM':'acabeam','BM':'acabeam',
     // Grid
-    'ACADGRID':'acadgrid','CLGRID':'acadgrid','COLGRID':'acadgrid',
+    'ACADGRID':'stratagrid','CLGRID':'stratagrid','COLGRID':'stratagrid',
     // Slab/Roof/Spaces
     'ACASLAB':'acaslab','SLAB':'acaslab',
     'ACAROOF':'acaroof','ROOF':'acaroof',
@@ -21093,14 +21234,14 @@ if (typeof CAD_ACTIONS !== 'undefined') {
   Object.assign(CAD_ACTIONS, {
     acawall:   function(){ startACAWallTool(); },
     wallstyle: function(){ openWallStyleDialog(); },
-    acadoor:   function(){ startACADoorTool(); },
+    strataoor:   function(){ startACADoorTool(); },
     acawindow: function(){ startACAWindowTool(); },
     acaopening:function(){ startACAOpeningTool(); },
     acastair:  function(){ startACAStairTool(); },
     acarailing:function(){ toast('RAILING — select stair or path first','ok'); },
     acacolumn: function(){ startACAColumnTool(); },
     acabeam:   function(){ startACABeamTool(); },
-    acadgrid:  function(){ openColumnGridDialog(); },
+    stratagrid:  function(){ openColumnGridDialog(); },
     acaslab:   function(){ startACASlabTool(); },
     acaroof:   function(){ startACASlabTool('roof'); },
     acaroom:   function(){ startACASlabTool('room'); },
@@ -21250,7 +21391,7 @@ window.placeDoor = function() {
     var r=cad6.getBoundingClientRect();
     var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
     pushUndo&&pushUndo('place door');
-    ST.entities.push({_id:++ST._eid,type:'acadoor',x:wp.x,y:wp.y,width:w,height:h,doorStyle:style,mark:mark,angle:0,layer:ensureACALayer('DOOR'),selected:false});
+    ST.entities.push({_id:++ST._eid,type:'strataoor',x:wp.x,y:wp.y,width:w,height:h,doorStyle:style,mark:mark,angle:0,layer:ensureACALayer('DOOR'),selected:false});
     invalidateSpatialIndex&&invalidateSpatialIndex();
     render&&render();
     cad6.removeEventListener('click',onPlace);
@@ -21286,7 +21427,7 @@ function startACAOpeningTool() {
     var r=cad8.getBoundingClientRect();
     var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
     pushUndo&&pushUndo('opening');
-    ST.entities.push({_id:++ST._eid,type:'acadoor',x:wp.x,y:wp.y,width:1000,height:2400,doorStyle:'Sliding',mark:'OP'+ST._eid,angle:0,layer:ensureACALayer('DOOR'),selected:false,_opening:true});
+    ST.entities.push({_id:++ST._eid,type:'strataoor',x:wp.x,y:wp.y,width:1000,height:2400,doorStyle:'Sliding',mark:'OP'+ST._eid,angle:0,layer:ensureACALayer('DOOR'),selected:false,_opening:true});
     invalidateSpatialIndex&&invalidateSpatialIndex();
     render&&render();
     cad8.removeEventListener('click',onPlace);
@@ -21468,7 +21609,7 @@ function startACATagTool() {
     var wp=s2w(ev.clientX-r.left,ev.clientY-r.top);
     var tol=20/ST.zoom;
     var hit=ST.entities.find(function(e){
-      if(['acadoor','acawindow','acastruct','acastair','acaroom','acaslab'].indexOf(e.type)<0) return false;
+      if(['strataoor','acawindow','acastruct','acastair','acaroom','acaslab'].indexOf(e.type)<0) return false;
       var ex=e.x||e.x1||0, ey=e.y||e.y1||0;
       return Math.hypot(wp.x-ex,wp.y-ey)<tol*10;
     });
@@ -21524,7 +21665,7 @@ window.placeColumnGrid = function() {
     var r=cad16.getBoundingClientRect();
     var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
     pushUndo&&pushUndo('column grid');
-    ST.entities.push({_id:++ST._eid,type:'acadgrid',x:wp.x,y:wp.y,xCount:xc,xSpacing:xs,yCount:yc,ySpacing:ys,layer:ensureACALayer('GRID'),selected:false});
+    ST.entities.push({_id:++ST._eid,type:'stratagrid',x:wp.x,y:wp.y,xCount:xc,xSpacing:xs,yCount:yc,ySpacing:ys,layer:ensureACALayer('GRID'),selected:false});
     invalidateSpatialIndex&&invalidateSpatialIndex();
     render&&render();
     cad16.removeEventListener('click',onPlace);
@@ -23068,9 +23209,9 @@ setTimeout(function() {
 
 
 // ████████████████████████████████████████████████████████████████████
-//  STRATA PRO UX — AutoCAD-style cursor, dynamic input, TORIENT
+//  STRATA PRO UX — Strata-style cursor, dynamic input, TORIENT
 //  Implements the "Pro" features shown in the video:
-//  1. Full-screen AutoCAD crosshair
+//  1. Full-screen Strata CAD crosshair
 //  2. Dynamic input tooltip near cursor (coords, distance, angle)
 //  3. TORIENT — orient text to most readable angle
 //  4. Command echo inline near cursor
@@ -23274,8 +23415,8 @@ if (canvas) {
   });
 }
 
-// ── FULL-SCREEN AUTOCAD-STYLE CROSSHAIR ───────────────────────────────
-// Patch the drawCrosshair function to make it more like AutoCAD
+// ── FULL-SCREEN STRATA CROSSHAIR ───────────────────────────────
+// Patch the drawCrosshair function to make it more like Strata
 var _origDrawCrosshair = window.drawCrosshair;
 window.drawCrosshair = function() {
   var cad = document.getElementById('cad');
@@ -23287,7 +23428,7 @@ window.drawCrosshair = function() {
 
   ctx2.save();
 
-  // ── Full-screen guide lines (very faint, like AutoCAD background crosshair) ──
+  // ── Full-screen guide lines (very faint, like Strata background crosshair) ──
   ctx2.strokeStyle = 'rgba(31,168,217,.07)';
   ctx2.lineWidth = 0.5;
   ctx2.setLineDash([]);
@@ -23298,7 +23439,7 @@ window.drawCrosshair = function() {
 
   // ── Gap size (pickbox zone) ──
   var gap = 6;
-  // ── Cross arms go full width/height (AutoCAD Pro style) ──
+  // ── Cross arms go full width/height (Strata CAD Pro style) ──
   ctx2.strokeStyle = 'rgba(31,168,217,.65)';
   ctx2.lineWidth = 1;
   ctx2.beginPath();
@@ -23359,7 +23500,7 @@ window.drawCrosshair = function() {
 };
 
 // ── TORIENT COMMAND ────────────────────────────────────────────────────
-// Orient text entities to be "Most Readable" (like AutoCAD TORIENT)
+// Orient text entities to be "Most Readable" (like Strata TORIENT)
 window.torientCommand = function(mode) {
   mode = mode || 'mostreadable'; // 'mostreadable' | 'horizontal' | 'angle'
 
@@ -23376,7 +23517,7 @@ window.torientCommand = function(mode) {
     if (mode === 'horizontal') {
       e.angle = 0;
     } else if (mode === 'mostreadable') {
-      // AutoCAD Most Readable: text should read left-to-right or bottom-to-top
+      // Strata CAD Most Readable: text should read left-to-right or bottom-to-top
       // Normalize to 0-360
       a = ((a % 360) + 360) % 360;
       // If text is flipped (90-270 range means it reads right-to-left or upside down)
@@ -23403,7 +23544,7 @@ window.torientCommand = function(mode) {
 };
 
 // ── COMMAND PROMPT ECHO near cursor ──────────────────────────────────
-// When a command is active, show prompt near cursor (like AutoCAD dynamic prompt)
+// When a command is active, show prompt near cursor (like Strata dynamic prompt)
 var _cmdEcho = null;
 
 function updateCmdEcho() {
@@ -23524,7 +23665,7 @@ if (typeof CAD_COMMANDS !== 'undefined') {
     'TCENTER':'tcenter',    // Center text horizontally
     'THORIZ':'thoriz',      // Horizontal text
     'TVERT':'tvert',        // Vertical text
-    // AutoCAD shorthand
+    // Strata CAD shorthand
     'TO':'torient',
     // Selection & display
     'WHOHAS':'whohas',
@@ -23651,7 +23792,7 @@ setTimeout(function() {
   var torBtn = document.createElement('button');
   torBtn.className = 'stbtn';
   torBtn.textContent = 'TORIENT';
-  torBtn.title = 'Orient text to Most Readable (like AutoCAD TORIENT)';
+  torBtn.title = 'Orient text to Most Readable (like Strata TORIENT)';
   torBtn.style.cssText = 'font-size:7px;';
   torBtn.onclick = function() { window.torientCommand('mostreadable'); };
   extra.insertBefore(torBtn, extra.firstChild);
@@ -23664,7 +23805,7 @@ setTimeout(function() {
 
 // ████████████████████████████████████████████████████████████████████
 //  STRATA — SCALE (Copy+Reference) + DIST + Civil 3D Point Table
-//  From Video 1: AutoCAD SCALE command tutorial
+//  From Video 1: Strata SCALE command tutorial
 //  From Video 2: Civil 3D PNEZD Point Table Creation
 // ████████████████████████████████████████████████████████████████████
 (function StrataScaleDistTable() {
@@ -23864,7 +24005,7 @@ window.ibDistEnter = function(val) {
 };
 
 // ═══════════════════════════════════════════════════════════════════
-//  2. DIST COMMAND — Distance + Angle like AutoCAD DIST
+//  2. DIST COMMAND — Distance + Angle like Strata DIST
 //     Shows: Distance, Angle in XY, Delta X, Delta Y, Delta Z
 // ═══════════════════════════════════════════════════════════════════
 window.startDIST = function() {
@@ -25794,14 +25935,14 @@ window.calcEarthworks=function(){
   // ARCHITECTURE (ACA)
   var acaCmds = {
     'WALL':'acawall','WALLADD':'acawall','WA':'acawall','W_':'acawall',
-    'DOOR':'acadoor','DR':'acadoor','DOORADD':'acadoor',
+    'DOOR':'strataoor','DR':'strataoor','DOORADD':'strataoor',
     'WINDOW':'acawindow','WIN':'acawindow','WI_':'acawindow',
     'OPENING':'acaopening','OP_':'acaopening',
     'STAIR':'acastair','ST_':'acastair','STAADD':'acastair',
     'RAILING':'acarailing','RL':'acarailing',
     'COLUMN':'acacolumn','COL':'acacolumn',
     'BEAM':'acabeam','BM':'acabeam',
-    'COLGRID':'acadgrid','COLUMNGRID':'acadgrid','CG':'acadgrid',
+    'COLGRID':'stratagrid','COLUMNGRID':'stratagrid','CG':'stratagrid',
     'SLAB':'acaslab','SL_':'acaslab',
     'ROOF':'acaroof','RF':'acaroof',
     'ROOM':'acaroom','RM':'acaroom','SPACE':'acaspace',
@@ -26465,7 +26606,7 @@ window.parseDXF = function(txt, filename) {
 // ═══════════════════════════════════════════════════════════
 // 4. FIXED OFFSET — click-on-entity-then-type-distance
 // ═══════════════════════════════════════════════════════════
-// Override offset tool to match AutoCAD flow:
+// Override offset tool to match Strata CAD flow:
 // 1. OFFSET → type distance in input → press Enter
 // 2. Click entity → click side → creates offset
 // Keep going until ESC
@@ -26604,6 +26745,2097 @@ setTimeout(function() {
 
 })(); // end StrataXrefMapExtras
 
+
+// ████████████████████████████████████████████████████████████████
+//  STRATA — BLOCKS WITH ATTRIBUTES
+//  ATTDEF + BLOCK + EATTEDIT exactly as shown in the video
+// ████████████████████████████████████████████████████████████████
+(function StrataBlockAttribs() {
+'use strict';
+
+// ─────────────────────────────────────────────────────────────
+// CSS
+// ─────────────────────────────────────────────────────────────
+var sty = document.createElement('style');
+sty.textContent = `
+.attrib-dialog .mo-hdr{background:#2d5a1b;color:#fff;padding:8px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:11px;}
+.attrib-dialog .mo-hdr span{font-size:16px;}
+.att-grid{width:100%;border-collapse:collapse;font-size:10px;font-family:'IBM Plex Mono',monospace;margin:6px 0;}
+.att-grid th{background:var(--bg2);padding:5px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--m);border-bottom:1px solid var(--sep);}
+.att-grid td{padding:4px 8px;border-bottom:1px solid rgba(255,255,255,.04);}
+.att-grid tr.active td{background:rgba(31,168,217,.12);color:#1FA8D9;}
+.att-grid tr:hover td{background:rgba(255,255,255,.04);cursor:pointer;}
+.att-val-row{display:flex;align-items:center;gap:8px;margin-top:8px;background:var(--bg2);border-radius:6px;padding:8px;}
+.att-val-row label{font-size:10px;color:var(--m);font-family:'IBM Plex Mono',monospace;min-width:38px;}
+.att-val-inp{flex:1;background:var(--bg3,#111);border:1.5px solid rgba(31,168,217,.4);border-radius:5px;padding:5px 8px;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none;}
+.att-val-inp:focus{border-color:#1FA8D9;}
+.att-tabs{display:flex;border-bottom:1px solid var(--sep);margin-bottom:8px;}
+.att-tab{padding:5px 14px;font-size:10px;font-family:'IBM Plex Mono',monospace;cursor:pointer;color:var(--m);border-bottom:2px solid transparent;}
+.att-tab.active{color:#1FA8D9;border-bottom-color:#1FA8D9;}
+.chk-row{display:flex;align-items:center;gap:6px;padding:2px 0;font-size:10px;color:var(--t);font-family:'IBM Plex Mono',monospace;}
+.chk-row input[type=checkbox]{accent-color:#1FA8D9;}
+`;
+document.head.appendChild(sty);
+
+// ─────────────────────────────────────────────────────────────
+// 1. ATTDEF — Attribute Definition dialog
+// ─────────────────────────────────────────────────────────────
+window.openAttdefDialog = function() {
+  var ex = document.getElementById('moAttdef'); if(ex) ex.remove();
+  var div = document.createElement('div');
+  div.id = 'moAttdef'; div.className = 'mo attrib-dialog';
+  div.innerHTML = `
+<div class="modal" style="max-width:480px">
+  <div class="mo-hdr"><span>A</span> Attribute Definition</div>
+  <div class="mb">
+    <div class="fr" style="gap:14px">
+      <!-- Left: Mode -->
+      <div class="fg" style="flex:0.9">
+        <div class="fsect">Mode</div>
+        <label class="chk-row"><input type="checkbox" id="attInvisible"> Invisible</label>
+        <label class="chk-row"><input type="checkbox" id="attConstant"> Constant</label>
+        <label class="chk-row"><input type="checkbox" id="attVerify"> Verify</label>
+        <label class="chk-row"><input type="checkbox" id="attPreset"> Preset</label>
+        <label class="chk-row"><input type="checkbox" id="attLockPos" checked> Lock position</label>
+        <label class="chk-row"><input type="checkbox" id="attMultiLine"> Multiple lines</label>
+        <div style="height:10px"></div>
+        <div class="fsect">Insertion Point</div>
+        <label class="chk-row"><input type="checkbox" id="attSpecifyOnScreen" checked> Specify on-screen</label>
+        <div class="fr" style="gap:4px;margin-top:4px">
+          <div class="fg"><label class="fl" style="font-size:8px">X</label><input type="number" class="fi" id="attX" value="0.00" onkeydown="event.stopPropagation()"></div>
+          <div class="fg"><label class="fl" style="font-size:8px">Y</label><input type="number" class="fi" id="attY" value="0.00" onkeydown="event.stopPropagation()"></div>
+          <div class="fg"><label class="fl" style="font-size:8px">Z</label><input type="number" class="fi" id="attZ" value="0.00" onkeydown="event.stopPropagation()"></div>
+        </div>
+        <label class="chk-row" style="margin-top:6px"><input type="checkbox" id="attAlign"> Align below previous attribute definition</label>
+      </div>
+      <!-- Right: Attribute + Text Settings -->
+      <div class="fg" style="flex:1.2">
+        <div class="fsect">Attribute</div>
+        <label class="fl">Tag</label>
+        <input type="text" class="fi" id="attTag" placeholder="e.g. 01" onkeydown="event.stopPropagation()" style="font-family:'IBM Plex Mono',monospace;text-transform:uppercase">
+        <label class="fl" style="margin-top:6px">Prompt</label>
+        <input type="text" class="fi" id="attPrompt" placeholder="e.g. Enter value" onkeydown="event.stopPropagation()">
+        <label class="fl" style="margin-top:6px">Default</label>
+        <input type="text" class="fi" id="attDefault" placeholder="default value" onkeydown="event.stopPropagation()">
+        <div class="fsect" style="margin-top:10px">Text Settings</div>
+        <label class="fl">Justification</label>
+        <select class="fs" id="attJustify" onkeydown="event.stopPropagation()">
+          <option>Left</option><option>Align</option><option>Fit</option>
+          <option>Center</option><option>Middle</option><option>Right</option>
+          <option>Top left</option><option>Top center</option><option>Top right</option>
+          <option>Middle left</option><option value="Middle center">Middle center</option>
+          <option>Middle right</option><option>Bottom left</option>
+          <option>Bottom center</option><option>Bottom right</option>
+        </select>
+        <label class="fl" style="margin-top:6px">Text style</label>
+        <select class="fs" id="attStyle" onkeydown="event.stopPropagation()">
+          <option>Standard</option><option>Arial</option><option>Romans</option>
+          <option>Simplex</option><option>Italic</option><option>Annotative</option>
+        </select>
+        <label class="chk-row" style="margin-top:4px"><input type="checkbox" id="attAnnotative"> Annotative</label>
+        <div class="fr" style="gap:6px;margin-top:4px">
+          <div class="fg"><label class="fl" style="font-size:8px">Text height</label>
+            <input type="number" class="fi" id="attHeight" value="75.00" onkeydown="event.stopPropagation()"></div>
+          <div class="fg"><label class="fl" style="font-size:8px">Rotation</label>
+            <input type="number" class="fi" id="attRotation" value="0.00" onkeydown="event.stopPropagation()"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mf">
+    <button class="btn s" id="attCancelBtn">Cancel</button>
+    <button class="btn" onclick="applyAttdef()">OK</button>
+    <button class="btn s" onclick="helpAttdef()">Help</button>
+  </div>
+</div>`;
+  document.body.appendChild(div);
+  setTimeout(function(){
+    var c=document.getElementById('attCancelBtn');
+    if(c) c.onclick=function(){closeMo('moAttdef');};
+  },10);
+  openMo('moAttdef');
+  setTimeout(function(){ var t=document.getElementById('attTag'); if(t) t.focus(); },200);
+};
+
+window.applyAttdef = function() {
+  var tag     = (document.getElementById('attTag')||{}).value||'ATTR';
+  var prompt  = (document.getElementById('attPrompt')||{}).value||tag;
+  var defVal  = (document.getElementById('attDefault')||{}).value||'';
+  var height  = parseFloat((document.getElementById('attHeight')||{}).value||75);
+  var rotation= parseFloat((document.getElementById('attRotation')||{}).value||0);
+  var justify = (document.getElementById('attJustify')||{}).value||'Left';
+  var invisible=(document.getElementById('attInvisible')||{}).checked||false;
+  var constant =(document.getElementById('attConstant')||{}).checked||false;
+  var specify  =(document.getElementById('attSpecifyOnScreen')||{}).checked!==false;
+
+  if (!tag.trim()) { alert('Tag is required'); return; }
+  tag = tag.toUpperCase().replace(/\s/g,'_');
+
+  closeMo('moAttdef');
+
+  var attDef = {
+    type:'attdef', tag, prompt, default:defVal, height, rotation,
+    justify, invisible, constant, layer:ST.curLayer, selected:false
+  };
+
+  if (specify) {
+    // Click to place on drawing
+    setMsg && setMsg('ATTDEF — click to place attribute "'+tag+'" | ESC=cancel');
+    toast && toast('Click to place attribute: '+tag,'ok');
+    var cad = document.getElementById('cad');
+    function onClick(ev) {
+      var r=cad.getBoundingClientRect();
+      var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+      _placeAttdef(attDef, wp.x, wp.y);
+      cad.removeEventListener('click', onClick);
+    }
+    cad.addEventListener('click', onClick, false);
+  } else {
+    var x=parseFloat((document.getElementById('attX')||{}).value||0);
+    var y=parseFloat((document.getElementById('attY')||{}).value||0);
+    _placeAttdef(attDef, x, y);
+  }
+};
+
+function _placeAttdef(attDef, x, y) {
+  pushUndo && pushUndo('attdef');
+  var ent = Object.assign({}, attDef, {
+    _id:++ST._eid, x, y,
+    text: attDef.tag, // displayed as tag name
+    sz: attDef.height, _isAttdef:true, selected:false
+  });
+  ST.entities.push(ent);
+  invalidateSpatialIndex && invalidateSpatialIndex();
+  if(typeof renderImmediate==='function') renderImmediate(); else render&&render();
+  toast && toast('Attribute "'+attDef.tag+'" placed','ok');
+}
+
+// ─────────────────────────────────────────────────────────────
+// 2. BLOCK DEFINITION dialog (enhanced)
+// ─────────────────────────────────────────────────────────────
+window.openBlockDefDialog = function() {
+  var ex=document.getElementById('moBlockDef'); if(ex) ex.remove();
+  var sels=ST.entities.filter(function(e){return e.selected;});
+  var div=document.createElement('div');
+  div.id='moBlockDef'; div.className='mo attrib-dialog';
+  div.innerHTML=`
+<div class="modal" style="max-width:520px">
+  <div class="mo-hdr"><span>B</span> Block Definition</div>
+  <div class="mb">
+    <label class="fl">Name</label>
+    <div style="display:flex;gap:6px">
+      <input type="text" class="fi" id="blkName" placeholder="Block name…" onkeydown="event.stopPropagation()" style="font-family:'IBM Plex Mono',monospace">
+      <select class="fs" style="flex:0.5" id="blkNameList" onchange="document.getElementById('blkName').value=this.value" onkeydown="event.stopPropagation()">
+        <option value="">-- existing --</option>
+        ${Object.keys(window._blockLibrary||{}).map(function(k){return '<option>'+k+'</option>';}).join('')}
+      </select>
+    </div>
+
+    <div class="fr" style="gap:14px;margin-top:10px">
+      <!-- Base point -->
+      <div class="fg">
+        <div class="fsect">Base point</div>
+        <label class="chk-row"><input type="checkbox" id="blkSpecBP" checked> Specify On-screen</label>
+        <button class="btn s" id="blkPickBtn" style="margin:4px 0;font-size:10px" onclick="pickBlockBasePoint()">📍 Pick point</button>
+        <div class="fr" style="gap:4px;margin-top:4px">
+          <div class="fg"><label class="fl" style="font-size:8px">X</label><input type="number" class="fi" id="blkBX" value="0.00" onkeydown="event.stopPropagation()"></div>
+          <div class="fg"><label class="fl" style="font-size:8px">Y</label><input type="number" class="fi" id="blkBY" value="0.00" onkeydown="event.stopPropagation()"></div>
+          <div class="fg"><label class="fl" style="font-size:8px">Z</label><input type="number" class="fi" id="blkBZ" value="0.00" onkeydown="event.stopPropagation()"></div>
+        </div>
+      </div>
+      <!-- Objects -->
+      <div class="fg">
+        <div class="fsect">Objects</div>
+        <label class="chk-row"><input type="checkbox" id="blkSpecObj" checked> Specify On-screen</label>
+        <button class="btn s" id="blkSelBtn" style="margin:4px 0;font-size:10px" onclick="selectBlockObjects()">✚ Select objects</button>
+        <div id="blkSelCount" style="font-size:9px;color:var(--m);margin-top:4px;font-family:'IBM Plex Mono',monospace">${sels.length} objects selected</div>
+        <label class="chk-row" style="margin-top:6px"><input type="radio" name="blkObjMode" value="retain"> Retain</label>
+        <label class="chk-row"><input type="radio" name="blkObjMode" value="convert" checked> Convert to block</label>
+        <label class="chk-row"><input type="radio" name="blkObjMode" value="delete"> Delete</label>
+      </div>
+      <!-- Behavior -->
+      <div class="fg">
+        <div class="fsect">Behavior</div>
+        <label class="chk-row"><input type="checkbox" id="blkAnnotative"> Annotative</label>
+        <label class="chk-row"><input type="checkbox" id="blkMatchOrient"> Match block orientation to layout</label>
+        <label class="chk-row"><input type="checkbox" id="blkScaleUniform" checked> Scale uniformly</label>
+        <label class="chk-row"><input type="checkbox" id="blkAllowExplode" checked> Allow exploding</label>
+        <div class="fsect" style="margin-top:8px">Settings</div>
+        <label class="fl">Block unit</label>
+        <select class="fs" id="blkUnit" onkeydown="event.stopPropagation()"><option selected>Millimeters</option><option>Meters</option><option>Inches</option><option>Unitless</option></select>
+        <label class="fl" style="margin-top:4px"><a href="#" onclick="return false" style="color:var(--st);font-size:10px">Hyperlink…</a></label>
+      </div>
+    </div>
+
+    <label class="fl" style="margin-top:8px">Description</label>
+    <textarea class="fi" id="blkDesc" rows="2" style="resize:none;font-family:'IBM Plex Mono',monospace;font-size:10px" onkeydown="event.stopPropagation()"></textarea>
+    <label class="chk-row" style="margin-top:6px"><input type="checkbox" id="blkOpenEditor"> Open in block editor</label>
+  </div>
+  <div class="mf">
+    <button class="btn s" id="blkCancelBtn">Cancel</button>
+    <button class="btn" onclick="applyBlockDef()">OK</button>
+    <button class="btn s">Help</button>
+  </div>
+</div>`;
+  document.body.appendChild(div);
+  setTimeout(function(){
+    var c=document.getElementById('blkCancelBtn');
+    if(c) c.onclick=function(){closeMo('moBlockDef');};
+  },10);
+  openMo('moBlockDef');
+  setTimeout(function(){var n=document.getElementById('blkName');if(n)n.focus();},200);
+};
+
+window.pickBlockBasePoint = function() {
+  closeMo('moBlockDef');
+  setMsg&&setMsg('BLOCK — click base point');
+  var cad=document.getElementById('cad');
+  function onClick(ev){
+    var r=cad.getBoundingClientRect();
+    var wp=snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+    cad.removeEventListener('click',onClick);
+    // Store and re-open dialog
+    window._blkBasePoint={x:wp.x,y:wp.y};
+    openBlockDefDialog();
+    setTimeout(function(){
+      var bx=document.getElementById('blkBX'),by=document.getElementById('blkBY');
+      if(bx) bx.value=wp.x.toFixed(2);
+      if(by) by.value=wp.y.toFixed(2);
+      var c=document.getElementById('blkSpecBP'); if(c) c.checked=false;
+    },200);
+  }
+  cad.addEventListener('click',onClick,false);
+};
+
+window.selectBlockObjects = function() {
+  closeMo('moBlockDef');
+  setMsg&&setMsg('BLOCK — select objects then press Enter');
+  toast&&toast('Select objects for block, then press Enter','ok');
+  // After Enter, re-open dialog
+  function onKey(ev){
+    if(ev.key==='Enter'){
+      document.removeEventListener('keydown',onKey);
+      var sels=ST.entities.filter(function(e){return e.selected;});
+      openBlockDefDialog();
+      setTimeout(function(){
+        var sc=document.getElementById('blkSelCount');
+        if(sc) sc.textContent=sels.length+' objects selected';
+        var c=document.getElementById('blkSpecObj'); if(c) c.checked=false;
+      },200);
+    }
+    if(ev.key==='Escape') document.removeEventListener('keydown',onKey);
+  }
+  document.addEventListener('keydown',onKey,false);
+};
+
+window.applyBlockDef = function() {
+  var name=(document.getElementById('blkName')||{}).value||'BLOCK1';
+  name=name.trim().toUpperCase();
+  if(!name){alert('Block name is required');return;}
+
+  var bx=parseFloat((document.getElementById('blkBX')||{}).value||0);
+  var by=parseFloat((document.getElementById('blkBY')||{}).value||0);
+  if(window._blkBasePoint){bx=window._blkBasePoint.x;by=window._blkBasePoint.y;window._blkBasePoint=null;}
+
+  var mode='convert';
+  document.querySelectorAll('[name=blkObjMode]').forEach(function(r){if(r.checked)mode=r.value;});
+  var sels=ST.entities.filter(function(e){return e.selected;});
+
+  if(!sels.length){
+    toast&&toast('No objects selected for block','warn');
+    // Still create block def from all entities
+    sels=ST.entities.slice();
+  }
+
+  // Collect attribute defs from selection
+  var attdefs=sels.filter(function(e){return e._isAttdef;});
+  var geomEnts=sels.filter(function(e){return !e._isAttdef;});
+
+  // Build block entity list (relative to base point)
+  var blockEnts=sels.map(function(e){
+    var ne=JSON.parse(JSON.stringify(e));
+    // Translate to be relative to base point
+    function shift(x,y){return{x:x-bx,y:y-by};}
+    if(ne.type==='line'){var s=shift(ne.x1,ne.y1),s2=shift(ne.x2,ne.y2);ne.x1=s.x;ne.y1=s.y;ne.x2=s2.x;ne.y2=s2.y;}
+    else if(ne.type==='polyline'&&ne.pts){ne.pts=ne.pts.map(function(p){return{x:p.x-bx,y:p.y-by};});}
+    else if(ne.type==='circle'||ne.type==='arc'){ne.cx-=bx;ne.cy-=by;}
+    else if(ne.type==='text'||ne.type==='attdef'){ne.x-=bx;ne.y-=by;}
+    else if(ne.x!==undefined){ne.x-=bx;ne.y-=by;}
+    return ne;
+  });
+
+  // Collect attributes: {tag, prompt, default, ...}
+  var attrs=attdefs.map(function(a){return{tag:a.tag,prompt:a.prompt,default:a.default||'',height:a.height||75,rotation:a.rotation||0,justify:a.justify||'Left',invisible:a.invisible||false,x:a.x-bx,y:a.y-by};});
+
+  // Save to block library
+  window._blockLibrary = window._blockLibrary||{};
+  window._blockLibrary[name]={
+    name, baseX:bx, baseY:by, entities:blockEnts, attribs:attrs,
+    desc:(document.getElementById('blkDesc')||{}).value||''
+  };
+
+  // Handle mode
+  pushUndo&&pushUndo('block def');
+  if(mode==='delete'||mode==='convert'){
+    var selIds=new Set(sels.map(function(e){return e._id;}));
+    ST.entities=ST.entities.filter(function(e){return!selIds.has(e._id);});
+  }
+  if(mode==='convert'){
+    // Insert the block reference at base point
+    ST.entities.push({
+      _id:++ST._eid,type:'blockref',block:name,
+      x:bx,y:by,sx:1,sy:1,rotation:0,
+      attrValues:{},
+      layer:ST.curLayer,selected:true
+    });
+  }
+
+  invalidateSpatialIndex&&invalidateSpatialIndex();
+  closeMo('moBlockDef');
+  if(typeof renderImmediate==='function') renderImmediate(); else render&&render();
+  toast&&toast('Block "'+name+'" defined ('+sels.length+' objects)','ok');
+};
+
+// ─────────────────────────────────────────────────────────────
+// 3. EATTEDIT — Enhanced Attribute Editor
+// ─────────────────────────────────────────────────────────────
+window.openEattedit = function(blockrefEnt) {
+  // If no entity passed, select one from drawing
+  if(!blockrefEnt){
+    var sels=ST.entities.filter(function(e){return e.selected&&e.type==='blockref';});
+    if(!sels.length){
+      setMsg&&setMsg('EATTEDIT — click a block to edit attributes');
+      toast&&toast('Click a block reference to edit its attributes','ok');
+      var cad=document.getElementById('cad');
+      function onClick(ev){
+        var r=cad.getBoundingClientRect();
+        var wp=s2w(ev.clientX-r.left,ev.clientY-r.top);
+        var tol=14/ST.zoom;
+        var found=null;
+        for(var i=ST.entities.length-1;i>=0;i--){
+          var e=ST.entities[i];
+          if(e.type==='blockref'&&ptHitsEnt(wp.x,wp.y,e,tol)){found=e;break;}
+        }
+        cad.removeEventListener('click',onClick);
+        if(found) openEattedit(found);
+        else toast&&toast('No block found at click point','warn');
+      }
+      cad.addEventListener('click',onClick,false);
+      return;
+    }
+    blockrefEnt=sels[0];
+  }
+
+  var blk=window._blockLibrary&&window._blockLibrary[blockrefEnt.block];
+  if(!blk){toast&&toast('Block "'+blockrefEnt.block+'" not found in library','warn');return;}
+
+  var attribs=blk.attribs||[];
+  if(!attribs.length){toast&&toast('This block has no attributes','warn');return;}
+
+  // Merge saved values
+  var vals=blockrefEnt.attrValues||{};
+  var attRows=attribs.map(function(a){
+    return {tag:a.tag,prompt:a.prompt,value:vals[a.tag]!==undefined?vals[a.tag]:a.default||''};
+  });
+  var selRow=0;
+
+  var ex=document.getElementById('moEattedit');if(ex)ex.remove();
+  var div=document.createElement('div');
+  div.id='moEattedit';div.className='mo attrib-dialog';
+
+  function buildGrid(){
+    return attRows.map(function(r,i){
+      return '<tr class="'+(i===selRow?'active':'')+'" onclick="eatteditSelectRow('+i+')">'
+        +'<td>'+r.tag+'</td><td>'+r.prompt+'</td>'
+        +'<td><input type="text" value="'+r.value+'" '
+        +'onchange="eatteditRowChange('+i+',this.value)" '
+        +'onclick="event.stopPropagation()" '
+        +'onkeydown="event.stopPropagation()" '
+        +'style="background:transparent;border:none;color:inherit;width:100%;font-family:\'IBM Plex Mono\',monospace;font-size:10px;outline:none"></td>'
+        +'</tr>';
+    }).join('');
+  }
+
+  div.innerHTML=`
+<div class="modal" style="max-width:440px">
+  <div class="mo-hdr"><span>A</span> Enhanced Attribute Editor</div>
+  <div class="mb">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div>
+        <span style="font-size:9px;color:var(--m);font-family:'IBM Plex Mono',monospace">Block: </span>
+        <span style="font-size:10px;font-weight:700;color:var(--t)">${blockrefEnt.block}</span>
+      </div>
+      <button class="btn s" style="font-size:9px" onclick="eatteditSelectBlock()">Select block ▷</button>
+    </div>
+    <div style="font-size:9px;color:var(--m);font-family:'IBM Plex Mono',monospace;margin-bottom:4px">Tag: <b style="color:var(--t)" id="eatActiveTag">${attRows[0]?.tag||''}</b></div>
+
+    <div class="att-tabs">
+      <div class="att-tab active">Attribute</div>
+      <div class="att-tab">Text Options</div>
+      <div class="att-tab">Properties</div>
+    </div>
+
+    <table class="att-grid">
+      <thead><tr><th>Tag</th><th>Prompt</th><th>Value</th></tr></thead>
+      <tbody id="eatTableBody">${buildGrid()}</tbody>
+    </table>
+
+    <div class="att-val-row">
+      <label>Value</label>
+      <input type="text" class="att-val-inp" id="eatValueInput"
+        value="${attRows[0]?.value||''}"
+        onkeydown="if(event.key==='Enter'){eatteditApplyValue();event.stopPropagation();}else event.stopPropagation()"
+        oninput="eatteditUpdateFromInput(this.value)">
+    </div>
+  </div>
+  <div class="mf">
+    <button class="btn s" onclick="eatteditApply(${blockrefEnt._id})">Apply</button>
+    <button class="btn st" onclick="eatteditOK(${blockrefEnt._id})">OK</button>
+    <button class="btn s" id="eatCancelBtn">Cancel</button>
+    <button class="btn s">Help</button>
+  </div>
+</div>`;
+  document.body.appendChild(div);
+  setTimeout(function(){
+    var c=document.getElementById('eatCancelBtn');
+    if(c) c.onclick=function(){closeMo('moEattedit');};
+  },10);
+
+  // Store state for callbacks
+  window._eatState={attRows,blockrefId:blockrefEnt._id,selRow};
+  openMo('moEattedit');
+};
+
+window.eatteditSelectRow = function(i) {
+  if(!window._eatState) return;
+  window._eatState.selRow=i;
+  var rows=document.querySelectorAll('#eatTableBody tr');
+  rows.forEach(function(r,ri){r.className=ri===i?'active':'';});
+  var vi=document.getElementById('eatValueInput');
+  if(vi) vi.value=window._eatState.attRows[i].value||'';
+  var at=document.getElementById('eatActiveTag');
+  if(at) at.textContent=window._eatState.attRows[i].tag;
+};
+
+window.eatteditRowChange = function(i, val) {
+  if(window._eatState) window._eatState.attRows[i].value=val;
+  if(window._eatState && window._eatState.selRow===i){
+    var vi=document.getElementById('eatValueInput');
+    if(vi) vi.value=val;
+  }
+};
+
+window.eatteditUpdateFromInput = function(val) {
+  if(!window._eatState) return;
+  var i=window._eatState.selRow;
+  window._eatState.attRows[i].value=val;
+  // Update inline input in table
+  var row=document.querySelectorAll('#eatTableBody tr')[i];
+  if(row){var inp=row.querySelector('input');if(inp)inp.value=val;}
+};
+
+window.eatteditApplyValue = function() {
+  window.eatteditApply(window._eatState&&window._eatState.blockrefId);
+};
+
+window.eatteditApply = function(blockrefId) {
+  if(!window._eatState) return;
+  var ent=ST.entities.find(function(e){return e._id===blockrefId;});
+  if(!ent) return;
+  ent.attrValues=ent.attrValues||{};
+  window._eatState.attRows.forEach(function(r){ent.attrValues[r.tag]=r.value;});
+  invalidateSpatialIndex&&invalidateSpatialIndex();
+  if(typeof renderImmediate==='function') renderImmediate(); else render&&render();
+  toast&&toast('Attributes applied','ok');
+};
+
+window.eatteditOK = function(blockrefId) {
+  window.eatteditApply(blockrefId);
+  closeMo('moEattedit');
+};
+
+window.eatteditSelectBlock = function() {
+  closeMo('moEattedit');
+  setMsg&&setMsg('EATTEDIT — click a block to edit');
+  var cad=document.getElementById('cad');
+  function onClick(ev){
+    var r=cad.getBoundingClientRect();
+    var wp=s2w(ev.clientX-r.left,ev.clientY-r.top);
+    var tol=14/ST.zoom;
+    var found=null;
+    for(var i=ST.entities.length-1;i>=0;i--){
+      var e=ST.entities[i];
+      if(e.type==='blockref'&&ptHitsEnt(wp.x,wp.y,e,tol)){found=e;break;}
+    }
+    cad.removeEventListener('click',onClick);
+    if(found) openEattedit(found);
+  }
+  cad.addEventListener('click',onClick,false);
+};
+
+// ─────────────────────────────────────────────────────────────
+// 4. DRAW BLOCK REFERENCES (with attribute text)
+// ─────────────────────────────────────────────────────────────
+var _origDrawEntity=window.drawEntity;
+window.drawEntity=function(e,ghost){
+  if(e && e.type==='blockref'){
+    var blk=window._blockLibrary&&window._blockLibrary[e.block];
+    if(!blk){_origDrawEntity&&_origDrawEntity(e,ghost);return;}
+    var cad2=document.getElementById('cad');
+    if(!cad2){_origDrawEntity&&_origDrawEntity(e,ghost);return;}
+    var ctx2=cad2.getContext('2d');
+    ctx2.save();
+    if(ghost) ctx2.globalAlpha=0.5;
+    var sx=e.sx||1,sy=e.sy||1;
+    var rot=(e.rotation||0)*Math.PI/180;
+    var sp=w2s(e.x,e.y);
+    ctx2.translate(sp.x,sp.y);
+    if(rot!==0) ctx2.rotate(-rot);
+    ctx2.scale(sx,sy);
+
+    // Draw geometry entities
+    blk.entities.forEach(function(be){
+      if(be._isAttdef) return; // skip attdefs
+      var te=JSON.parse(JSON.stringify(be));
+      // Translate from block-relative to screen
+      function ts(wx,wy){return w2s(e.x+wx*sx,e.y+wy*sy);}
+      // Use the normal drawEntity for each sub-entity by temporarily positioning
+      // Instead, draw directly here for performance
+      _drawBlockEnt(ctx2,be,e,sx,sy,ghost);
+    });
+
+    ctx2.setTransform(1,0,0,1,0,0);
+
+    // Draw attribute values
+    var vals=e.attrValues||{};
+    (blk.attribs||[]).forEach(function(a){
+      if(a.invisible) return;
+      var val=vals[a.tag]!==undefined?vals[a.tag]:(a.default||a.tag);
+      var wp2=w2s(e.x+(a.x||0)*sx, e.y+(a.y||0)*sy);
+      ctx2.save();
+      ctx2.fillStyle=e.selected?'#F5BE18':'#4eff91';
+      var fs=Math.max(8,(a.height||75)*ST.zoom*0.013);
+      ctx2.font='bold '+fs+'px IBM Plex Mono,monospace';
+      ctx2.textAlign=_justToAlign(a.justify||'Left');
+      ctx2.textBaseline='middle';
+      ctx2.fillText(val,wp2.x,wp2.y);
+      ctx2.restore();
+    });
+
+    // Selection highlight
+    if(e.selected){
+      ctx2.strokeStyle='#F5BE18';ctx2.lineWidth=1;
+      var sp2=w2s(e.x,e.y);
+      ctx2.strokeRect(sp2.x-8,sp2.y-8,16,16);
+    }
+    ctx2.restore();
+  } else if(e && e.type==='attdef'){
+    // Draw attribute definition tag (shown during editing)
+    var cad3=document.getElementById('cad');
+    if(!cad3){_origDrawEntity&&_origDrawEntity(e,ghost);return;}
+    var ctx3=cad3.getContext('2d');
+    var sp3=w2s(e.x,e.y);
+    ctx3.save();
+    if(ghost)ctx3.globalAlpha=0.5;
+    ctx3.fillStyle=e.selected?'#F5BE18':'rgba(31,168,217,.8)';
+    var fs3=Math.max(8,(e.sz||75)*ST.zoom*0.013);
+    ctx3.font='italic bold '+fs3+'px IBM Plex Mono,monospace';
+    ctx3.textAlign='left';ctx3.textBaseline='middle';
+    ctx3.fillText(e.tag||e.text||'ATT',sp3.x,sp3.y);
+    // Dashed underline
+    ctx3.strokeStyle=ctx3.fillStyle;ctx3.lineWidth=0.8;ctx3.setLineDash([3,2]);
+    var tw=ctx3.measureText(e.tag||e.text||'ATT').width;
+    ctx3.beginPath();ctx3.moveTo(sp3.x,sp3.y+fs3/2);ctx3.lineTo(sp3.x+tw,sp3.y+fs3/2);ctx3.stroke();
+    ctx3.setLineDash([]);
+    ctx3.restore();
+  } else {
+    _origDrawEntity&&_origDrawEntity(e,ghost);
+  }
+};
+
+function _drawBlockEnt(ctx2,be,blkRef,sx,sy,ghost){
+  var col=blkRef.selected?'#F5BE18':(be.color||'rgba(255,255,255,.8)');
+  ctx2.strokeStyle=col;ctx2.lineWidth=1;
+  if(ghost)ctx2.globalAlpha=0.5;
+  var ex=blkRef.x,ey=blkRef.y;
+  if(be.type==='line'){
+    var s1=w2s(ex+be.x1*sx,ey+be.y1*sy),s2=w2s(ex+be.x2*sx,ey+be.y2*sy);
+    ctx2.beginPath();ctx2.moveTo(s1.x,s1.y);ctx2.lineTo(s2.x,s2.y);ctx2.stroke();
+  } else if(be.type==='circle'){
+    var sc=w2s(ex+be.cx*sx,ey+be.cy*sy);
+    var sr=be.r*sx*ST.zoom;
+    ctx2.beginPath();ctx2.arc(sc.x,sc.y,sr,0,Math.PI*2);ctx2.stroke();
+  } else if(be.type==='arc'){
+    var sa=w2s(ex+be.cx*sx,ey+be.cy*sy);
+    var sar=be.r*sx*ST.zoom;
+    ctx2.beginPath();ctx2.arc(sa.x,sa.y,sar,be.startAngle||0,be.endAngle||Math.PI*2);ctx2.stroke();
+  } else if(be.type==='polyline'&&be.pts){
+    ctx2.beginPath();
+    be.pts.forEach(function(p,i){
+      var sp=w2s(ex+p.x*sx,ey+p.y*sy);
+      i?ctx2.lineTo(sp.x,sp.y):ctx2.moveTo(sp.x,sp.y);
+    });
+    if(be.closed)ctx2.closePath();
+    ctx2.stroke();
+  } else if(be.type==='text'){
+    var stt=w2s(ex+(be.x||0)*sx,ey+(be.y||0)*sy);
+    ctx2.fillStyle=col;
+    var fsb=Math.max(8,(be.sz||be.height||12)*ST.zoom);
+    ctx2.font='bold '+fsb+'px IBM Plex Mono,monospace';
+    ctx2.textAlign='left';ctx2.textBaseline='middle';
+    ctx2.fillText(be.text||'',stt.x,stt.y);
+  }
+}
+
+function _justToAlign(j){
+  j=(j||'Left').toLowerCase();
+  if(j.includes('center')) return 'center';
+  if(j.includes('right')) return 'right';
+  return 'left';
+}
+
+// ─────────────────────────────────────────────────────────────
+// 5. COMMANDS
+// ─────────────────────────────────────────────────────────────
+if(typeof CAD_COMMANDS!=='undefined'){
+  Object.assign(CAD_COMMANDS,{
+    'ATT':'attdef','ATTDEF':'attdef','DDATTDEF':'attdef',
+    'EATTEDIT':'eattedit','ATTEDIT':'eattedit','ATE':'eattedit','DDATTE':'eattedit',
+    'B':'block','BLOCK':'block','BMAKE':'block',
+    'BEDIT':'blockedit','BE':'blockedit',
+    'ATTOUT':'attout','ATTIN':'attin','BATTMAN':'battman',
+    'ATTDISP':'attdisp','ATTSYNC':'attsync',
+  });
+}
+if(typeof CAD_ACTIONS!=='undefined'){
+  Object.assign(CAD_ACTIONS,{
+    attdef:    function(){openAttdefDialog();},
+    eattedit:  function(){openEattedit();},
+    blockedit: function(){
+      var sels=ST.entities.filter(function(e){return e.selected&&e.type==='blockref';});
+      if(sels.length) openEattedit(sels[0]);
+      else toast&&toast('Select a block reference first','warn');
+    },
+    attout:    function(){
+      // Export attributes to CSV
+      var rows=['Block,Tag,Prompt,Value'];
+      ST.entities.forEach(function(e){
+        if(e.type==='blockref'&&e.attrValues){
+          Object.entries(e.attrValues).forEach(function(kv){
+            rows.push(e.block+','+kv[0]+',,'+kv[1]);
+          });
+        }
+      });
+      var b=new Blob([rows.join('\r\n')],{type:'text/csv'});
+      var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='attributes.csv';a.click();
+      toast&&toast('Attributes exported to CSV','ok');
+    },
+    attdisp:   function(){
+      ST._attribVisible=!ST._attribVisible;
+      if(typeof renderImmediate==='function') renderImmediate(); else render&&render();
+      toast&&toast('Attribute display: '+(ST._attribVisible?'ON':'OFF'),'ok');
+    },
+  });
+}
+
+// Double-click blockref → open EATTEDIT
+setTimeout(function(){
+  var cad=document.getElementById('cad');
+  if(!cad) return;
+  cad.addEventListener('dblclick',function(ev){
+    if(ST.tool&&ST.tool!=='select') return;
+    var r=cad.getBoundingClientRect();
+    var wp=s2w(ev.clientX-r.left,ev.clientY-r.top);
+    var tol=14/ST.zoom;
+    for(var i=ST.entities.length-1;i>=0;i--){
+      var e=ST.entities[i];
+      if(e.type==='blockref'&&ptHitsEnt(wp.x,wp.y,e,tol)){
+        openEattedit(e);
+        return;
+      }
+    }
+  },false);
+
+  console.log('[StrataBlockAttribs] ATTDEF ✓  BLOCK ✓  EATTEDIT ✓');
+},600);
+
+})(); // end StrataBlockAttribs
+
+
+// ████████████████████████████████████████████████████████████████
+//  STRATA — ROTATE (Copy+Reference) + MOVE/STRETCH exact dist
+//  Based on videos 1 & 2 — exact Strata workflow
+// ████████████████████████████████████████████████████████████████
+(function StrataRotateStretch() {
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+// 1. ROTATE — rewrite applyOp to match Strata CAD video workflow
+//    Flow: base pt → drag to preview → type angle / C=copy / R=ref
+// ═══════════════════════════════════════════════════════════════
+
+// Patch the rotate section inside applyOp
+// We override this at runtime by hooking into mouse events
+var cad = document.getElementById('cad');
+if (!cad) return;
+
+// Key handler for Copy/Reference while rotating
+document.addEventListener('keydown', function(ev) {
+  if (!ST.opState || ST.opState.type !== 'rotate') return;
+  if (ev.target && (ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA')) return;
+
+  var k = ev.key.toUpperCase();
+
+  if (k === 'C' && ST.opState.base) {
+    ev.preventDefault();
+    ST.opState.copyMode = !ST.opState.copyMode;
+    toast && toast('Rotate ' + (ST.opState.copyMode ? 'COPY mode ON' : 'Copy mode OFF'), 'ok');
+    setMsg && setMsg('ROTATE base set — drag to angle | [C]=copy:' + (ST.opState.copyMode?'ON':'OFF') + ' [R]=reference | ESC=cancel');
+    _showRotateModeHint();
+  }
+
+  if (k === 'R' && ST.opState.base && !ST.opState.refMode) {
+    ev.preventDefault();
+    ST.opState.refMode = true;
+    ST.opState.refPhase = 1; // 1=pick first ref pt, 2=pick second ref pt
+    _showRotateModeHint();
+    setMsg && setMsg('ROTATE Reference — click first point of reference angle');
+    toast && toast('ROTATE Reference: pick 2 points for reference angle', 'ok');
+  }
+}, false);
+
+// Show rotate mode hint near cursor
+function _showRotateModeHint() {
+  var el = document.getElementById('rotateModeHint');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'rotateModeHint';
+    el.style.cssText = 'position:fixed;z-index:800;background:rgba(4,12,24,.9);border:1px solid rgba(31,168,217,.4);'
+      +'border-radius:6px;padding:5px 10px;font-family:IBM Plex Mono,monospace;font-size:10px;color:white;'
+      +'box-shadow:0 3px 12px rgba(0,0,0,.5);display:none;white-space:nowrap;';
+    document.body.appendChild(el);
+  }
+  if (!ST.opState || ST.opState.type !== 'rotate') { el.style.display='none'; return; }
+  var parts = [];
+  if (ST.opState.copyMode) parts.push('<span style="color:#4eff91">✓ COPY</span>');
+  if (ST.opState.refMode) parts.push('<span style="color:#F5BE18">✓ REFERENCE</span>');
+  if (!parts.length) {
+    parts.push('<span style="color:rgba(255,255,255,.5)">C=Copy  R=Reference</span>');
+  }
+  el.innerHTML = parts.join(' | ');
+  el.style.display = 'block';
+  // Position near the base point on screen
+  if (ST.opState.base && typeof w2s==='function') {
+    var sp = w2s(ST.opState.base.x, ST.opState.base.y);
+    var r = cad.getBoundingClientRect();
+    el.style.left = Math.min(r.left+sp.x+10, window.innerWidth-220)+'px';
+    el.style.top  = Math.max(r.top+sp.y-35, 0)+'px';
+  }
+  // Hide when rotate done
+  setTimeout(function() {
+    if (!ST.opState || ST.opState.type !== 'rotate') el.style.display='none';
+  }, 3000);
+}
+
+// Rotate mode mousemove: update hint position and show dynamic angle input
+cad.addEventListener('mousemove', function(ev) {
+  var op = ST.opState;
+  if (!op || op.type !== 'rotate') {
+    var hint = document.getElementById('rotateModeHint');
+    if (hint) hint.style.display = 'none';
+    return;
+  }
+  if (!op.base) return;
+
+  // Update hint position
+  _showRotateModeHint();
+
+  // Show angle in dynamic input (near cursor)
+  var r2 = cad.getBoundingClientRect();
+  var wp = s2w(ev.clientX-r2.left, ev.clientY-r2.top);
+
+  if (op.refPt && !op.refMode) {
+    // Live rotation angle from refPt to cursor
+    var ang = Math.atan2(wp.y-op.base.y, wp.x-op.base.x)
+              - Math.atan2(op.refPt.y-op.base.y, op.refPt.x-op.base.x);
+    var angDeg = (ang * 180 / Math.PI + 360) % 360;
+
+    // Update ibAng with current angle
+    var ibAng = document.getElementById('ibAng');
+    if (ibAng && document.activeElement !== ibAng) {
+      ibAng.value = angDeg.toFixed(1);
+      ibAng.placeholder = angDeg.toFixed(1) + '°';
+    }
+  }
+}, false);
+
+// Patch rotate apply to support Copy + Reference modes
+var _origApplyOp = window.applyOp;
+window.applyOp = function(wp) {
+  var op = ST.opState;
+  if (!op || op.type !== 'rotate') { _origApplyOp && _origApplyOp(wp); return; }
+
+  var sels = ST.entities.filter(function(e){ return e.selected; });
+  if (!sels.length) { toast && toast('Nothing selected','warn'); return; }
+
+  // Phase 1: set base point
+  if (!op.base) {
+    op.base = wp;
+    op.refPt = null;
+    // Show reference direction hint: first click after base is the "zero angle" reference
+    setMsg && setMsg('ROTATE base set — drag/click to set angle | C=Copy | R=Reference | ESC=cancel');
+    _showRotateModeHint();
+    return;
+  }
+
+  // Reference mode phase handling
+  if (op.refMode) {
+    if (op.refPhase === 1) {
+      // First ref point
+      op.refPt1 = wp;
+      op.refPhase = 2;
+      setMsg && setMsg('ROTATE Reference — click second point of reference angle');
+      return;
+    }
+    if (op.refPhase === 2) {
+      // Second ref point — reference angle is now defined
+      op.refPt2 = wp;
+      op.refPhase = 3;
+      var refAng = Math.atan2(op.refPt2.y-op.refPt1.y, op.refPt2.x-op.refPt1.x);
+      op.referenceAngle = refAng;
+      setMsg && setMsg('ROTATE Reference — type new angle or drag | ESC=cancel');
+      var ibAng2 = document.getElementById('ibAng');
+      if (ibAng2) { ibAng2.value=''; ibAng2.placeholder='new angle°…'; ibAng2.focus(); }
+      return;
+    }
+    if (op.refPhase === 3) {
+      // New angle click
+      var newAng = Math.atan2(wp.y-op.base.y, wp.x-op.base.x);
+      var delta = newAng - (op.referenceAngle || 0);
+      _applyRotation(sels, op, delta);
+      return;
+    }
+  }
+
+  // Normal mode: refPt = reference direction, next click = angle
+  if (!op.refPt) {
+    op.refPt = wp;
+    setMsg && setMsg('ROTATE: click to set angle | type degrees in ANG field | C=Copy | R=Reference');
+    return;
+  }
+
+  // Apply rotation
+  var ang = Math.atan2(wp.y-op.base.y, wp.x-op.base.x)
+            - Math.atan2(op.refPt.y-op.base.y, op.refPt.x-op.base.x);
+  _applyRotation(sels, op, ang);
+};
+
+function _applyRotation(sels, op, ang) {
+  pushUndo && pushUndo('rotate');
+  if (op.copyMode) {
+    // Keep originals, create rotated copies
+    sels.forEach(function(e){ e.selected = false; });
+    var copies = sels.map(function(e) {
+      var ne = rotateEnt(JSON.parse(JSON.stringify(e)), op.base, ang);
+      ne._id = ++ST._eid; ne.selected = true;
+      return ne;
+    });
+    copies.forEach(function(c){ ST.entities.push(c); });
+    toast && toast('Rotated copy: ' + (ang*180/Math.PI).toFixed(1) + '°', 'ok');
+  } else {
+    ST.entities = ST.entities.map(function(e){
+      return e.selected ? rotateEnt(e, op.base, ang) : e;
+    });
+    toast && toast('Rotated ' + (ang*180/Math.PI).toFixed(1) + '°', 'ok');
+  }
+
+  invalidateSpatialIndex && invalidateSpatialIndex();
+  if (typeof renderImmediate==='function') renderImmediate(); else render && render();
+
+  // Reset for chaining
+  op.refPt = null;
+  op.refMode = false; op.refPhase = 0;
+  op.copyMode = op.copyMode; // keep copy mode on for repeated ops
+  setMsg && setMsg('ROTATE — click base again | C=toggle copy | ESC=done');
+
+  var hint = document.getElementById('rotateModeHint');
+  if (hint) hint.style.display='none';
+}
+
+// Input field Enter for rotate angle
+var ibAng = document.getElementById('ibAng');
+if (ibAng) {
+  ibAng.addEventListener('keydown', function(ev) {
+    if (ev.key !== 'Enter') return;
+    var val = parseFloat(this.value);
+    if (isNaN(val)) return;
+    var op2 = ST.opState;
+    if (!op2 || op2.type !== 'rotate' || !op2.base) return;
+    ev.preventDefault();
+    var angRad = val * Math.PI / 180;
+    var sels2 = ST.entities.filter(function(e){ return e.selected; });
+    if (!sels2.length) return;
+
+    if (op2.refMode && op2.refPhase === 3) {
+      var delta2 = angRad - (op2.referenceAngle || 0);
+      _applyRotation(sels2, op2, delta2);
+    } else {
+      // Direct angle from base point
+      _applyRotation(sels2, op2, angRad);
+    }
+    this.value = '';
+  }, false);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 2. MOVE — exact distance support
+//    Type "500" in DIST field → moves 500 units toward cursor direction
+//    "@500,0" style → displacement
+// ═══════════════════════════════════════════════════════════════
+var ibDist = document.getElementById('ibDist');
+if (ibDist) {
+  ibDist.addEventListener('keydown', function(ev) {
+    if (ev.key !== 'Enter') return;
+    var val = this.value.trim();
+    if (!val) return;
+    var op3 = ST.opState;
+    if (!op3 || (op3.type !== 'move' && op3.type !== 'copy')) return;
+    if (!op3.base) return;
+
+    ev.preventDefault();
+    var sels3 = ST.entities.filter(function(e){ return e.selected; });
+    if (!sels3.length) return;
+
+    var dx = 0, dy = 0;
+
+    // Parse @dx,dy format
+    if (val.startsWith('@')) {
+      var parts = val.slice(1).split(',');
+      dx = parseFloat(parts[0]) || 0;
+      dy = parseFloat(parts[1]) || 0;
+    } else {
+      // Plain number = move in direction of current cursor from base
+      var dist3 = parseFloat(val);
+      if (!isNaN(dist3) && ST.mouse) {
+        var wp3 = s2w(ST.mouse.x, ST.mouse.y);
+        var ddx = wp3.x - op3.base.x, ddy = wp3.y - op3.base.y;
+        var dl3 = Math.hypot(ddx, ddy) || 1;
+        dx = ddx/dl3 * dist3;
+        dy = ddy/dl3 * dist3;
+      }
+    }
+
+    pushUndo && pushUndo(op3.type);
+    if (op3.type === 'move') {
+      ST.entities = ST.entities.map(function(e) {
+        if (!e.selected) return e;
+        return translateEnt(JSON.parse(JSON.stringify(e)), dx, dy);
+      });
+    } else {
+      // Copy
+      var copies3 = sels3.map(function(e) {
+        var ne = translateEnt(JSON.parse(JSON.stringify(e)), dx, dy);
+        ne._id = ++ST._eid; ne.selected = true;
+        return ne;
+      });
+      sels3.forEach(function(e){ e.selected = false; });
+      copies3.forEach(function(c){ ST.entities.push(c); });
+    }
+    invalidateSpatialIndex && invalidateSpatialIndex();
+    if (typeof renderImmediate==='function') renderImmediate(); else render && render();
+    toast && toast((op3.type==='copy'?'Copied':'Moved')+' Δ('+dx.toFixed(1)+','+dy.toFixed(1)+')', 'ok');
+    this.value = '';
+    ST.opState = null;
+  }, false);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 3. DYNAMIC INPUT ANGLE BOX near cursor during rotate
+//    Shows a blue input box next to cursor with current angle
+// ═══════════════════════════════════════════════════════════════
+(function setupRotateDynInput() {
+  var dynAng = document.createElement('div');
+  dynAng.id = 'dynAngBox';
+  dynAng.style.cssText = 'position:fixed;z-index:710;display:none;pointer-events:none;';
+  dynAng.innerHTML = '<div style="background:rgba(4,12,24,.95);border:1.5px solid rgba(31,168,217,.6);'
+    +'border-radius:5px;padding:4px 10px;font-family:IBM Plex Mono,monospace;font-size:11px;color:#1FA8D9;'
+    +'font-weight:700;box-shadow:0 2px 10px rgba(0,0,0,.5);white-space:nowrap">'
+    +'<span id="dynAngVal">0.0°</span></div>';
+  document.body.appendChild(dynAng);
+
+  cad.addEventListener('mousemove', function(ev) {
+    var op4 = ST.opState;
+    if (!op4 || op4.type !== 'rotate' || !op4.base || !op4.refPt) {
+      dynAng.style.display = 'none'; return;
+    }
+    var r4 = cad.getBoundingClientRect();
+    var wp4 = s2w(ev.clientX-r4.left, ev.clientY-r4.top);
+    var ang4 = Math.atan2(wp4.y-op4.base.y, wp4.x-op4.base.x)
+               - Math.atan2(op4.refPt.y-op4.base.y, op4.refPt.x-op4.base.x);
+    var deg = ((ang4 * 180 / Math.PI) + 360) % 360;
+
+    var angEl = document.getElementById('dynAngVal');
+    if (angEl) angEl.textContent = deg.toFixed(2) + '°';
+
+    // Position near cursor
+    var px = ev.clientX + 18;
+    var py = ev.clientY - 35;
+    if (px + 90 > window.innerWidth) px = ev.clientX - 100;
+    dynAng.style.left = px + 'px';
+    dynAng.style.top  = py + 'px';
+    dynAng.style.display = 'block';
+  }, false);
+
+  cad.addEventListener('mouseleave', function() {
+    dynAng.style.display = 'none';
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// 4. EXTEND COMMAND — proper fence/click-to-extend
+// ═══════════════════════════════════════════════════════════════
+window.startExtendTool = function() {
+  setMsg && setMsg('EXTEND — click boundary edges then Enter, then click lines to extend | ESC=cancel');
+  toast && toast('EXTEND: click boundary → Enter → click lines to extend', 'ok');
+
+  var boundaries = [], phase = 'boundary';
+  var cad2 = document.getElementById('cad');
+
+  function onDown(ev) {
+    var r5 = cad2.getBoundingClientRect();
+    var wp5 = snapPoint(ev.clientX-r5.left, ev.clientY-r5.top);
+    var tol5 = 14/ST.zoom;
+
+    if (phase === 'boundary') {
+      // Select boundary entity
+      for (var i=ST.entities.length-1; i>=0; i--) {
+        var e5 = ST.entities[i];
+        if (!layVisible(e5.layer)) continue;
+        if (ptHitsEnt(wp5.x, wp5.y, e5, tol5)) {
+          boundaries.push(e5);
+          var bc = boundaries.length;
+          toast && toast('Boundary '+bc+' selected | Enter to extend', 'ok');
+          setMsg && setMsg('EXTEND: '+bc+' boundary edge(s) — click more or Enter to extend | ESC=cancel');
+          return;
+        }
+      }
+    } else if (phase === 'extend') {
+      // Extend the clicked line to the nearest boundary
+      for (var j=ST.entities.length-1; j>=0; j--) {
+        var e6 = ST.entities[j];
+        if (!layVisible(e6.layer)) continue;
+        if (boundaries.includes(e6)) continue;
+        if (ptHitsEnt(wp5.x, wp5.y, e6, tol5)) {
+          _extendLineToBoundary(e6, wp5, boundaries);
+          return;
+        }
+      }
+    }
+  }
+
+  function onKey(ev) {
+    if (ev.key === 'Escape') { cad2.removeEventListener('click',onDown); document.removeEventListener('keydown',onKey); boundaries=[]; return; }
+    if (ev.key === 'Enter') {
+      if (phase === 'boundary') {
+        phase = 'extend';
+        // If no boundaries selected, use all visible entities as boundaries
+        if (!boundaries.length) boundaries = ST.entities.filter(function(e){ return layVisible(e.layer); });
+        setMsg && setMsg('EXTEND: click lines to extend | Undo=U | ESC=exit');
+        toast && toast('Now click lines to extend to the boundary', 'ok');
+      }
+    }
+    if (ev.key.toUpperCase() === 'U' && phase === 'extend') { undo && undo(); }
+  }
+
+  cad2.addEventListener('click', onDown, false);
+  document.addEventListener('keydown', onKey, false);
+};
+
+function _extendLineToBoundary(ent, clickPt, boundaries) {
+  if (ent.type !== 'line' && !(ent.type === 'polyline' && ent.pts)) return;
+
+  // Find nearest endpoint to click point
+  var isLine = ent.type === 'line';
+  var pts6 = isLine ? [{x:ent.x1,y:ent.y1},{x:ent.x2,y:ent.y2}] : ent.pts;
+  var nearIdx = 0, nearDist = Infinity;
+  pts6.forEach(function(p,i) {
+    var d = Math.hypot(p.x-clickPt.x, p.y-clickPt.y);
+    if (d < nearDist) { nearDist=d; nearIdx=i; }
+  });
+
+  // Extend that endpoint toward each boundary
+  var ep = pts6[nearIdx];
+  var ep2 = pts6[nearIdx===0?pts6.length-1:0]; // other endpoint
+  var dirX = ep.x-ep2.x, dirY = ep.y-ep2.y;
+  var dirLen = Math.hypot(dirX,dirY)||1;
+  dirX/=dirLen; dirY/=dirLen;
+
+  // Find closest intersection with any boundary
+  var bestT = Infinity, bestPt = null;
+  boundaries.forEach(function(b) {
+    if (b._id === ent._id) return;
+    var bPts = b.type==='line' ? [{x:b.x1,y:b.y1},{x:b.x2,y:b.y2}] : (b.pts||[]);
+    for (var bi=0; bi<bPts.length-1; bi++) {
+      var r6=bPts[bi],s=bPts[bi+1];
+      // Line-line intersection: ent endpoint extending in dir vs boundary segment
+      var t = _lineIntersectT(ep,{x:ep.x+dirX*1e6,y:ep.y+dirY*1e6},r6,s);
+      if (t!==null && t>0.001 && t<bestT) { bestT=t; bestPt={x:ep.x+dirX*t,y:ep.y+dirY*t}; }
+    }
+  });
+
+  if (!bestPt) { toast&&toast('No boundary intersection found','warn'); return; }
+
+  pushUndo && pushUndo('extend');
+  var ne7 = JSON.parse(JSON.stringify(ent));
+  if (isLine) {
+    if (nearIdx===0){ne7.x1=bestPt.x;ne7.y1=bestPt.y;} else {ne7.x2=bestPt.x;ne7.y2=bestPt.y;}
+  } else {
+    ne7.pts[nearIdx] = {x:bestPt.x,y:bestPt.y};
+  }
+  var idx7 = ST.entities.findIndex(function(e){return e._id===ent._id;});
+  if (idx7>=0) ST.entities[idx7]=ne7;
+  invalidateSpatialIndex&&invalidateSpatialIndex();
+  if(typeof renderImmediate==='function') renderImmediate(); else render&&render();
+  toast&&toast('Extended','ok');
+}
+
+function _lineIntersectT(p1,p2,p3,p4) {
+  var d1x=p2.x-p1.x,d1y=p2.y-p1.y,d2x=p4.x-p3.x,d2y=p4.y-p3.y;
+  var cross=d1x*d2y-d1y*d2x;
+  if(Math.abs(cross)<1e-10) return null;
+  var t=((p3.x-p1.x)*d2y-(p3.y-p1.y)*d2x)/cross;
+  var u=((p3.x-p1.x)*d1y-(p3.y-p1.y)*d1x)/cross;
+  if(u<-0.001||u>1.001) return null;
+  return t;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 5. COMMANDS
+// ═══════════════════════════════════════════════════════════════
+if (typeof CAD_COMMANDS !== 'undefined') {
+  Object.assign(CAD_COMMANDS, {
+    'EX':'extend','EXTEND':'extend','EXT':'extend',
+  });
+}
+if (typeof CAD_ACTIONS !== 'undefined') {
+  Object.assign(CAD_ACTIONS, {
+    extend: function() { window.startExtendTool(); },
+  });
+}
+
+setTimeout(function(){
+  console.log('[StrataRotateStretch] Rotate(Copy+Ref) ✓ Move(exact) ✓ Extend ✓ DynInput ✓');
+}, 500);
+
+})(); // end StrataRotateStretch
+
+
+// ████████████████████████████████████████████████████████████████
+//  STRATA — EXPLODE + COPY (multiple) + NCOPY
+//  Exactly as shown in the video
+// ████████████████████████████████████████████████████████████████
+(function StrataExplodeCopyNCopy() {
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+// 1. ENHANCED EXPLODE — handles blockref + all entity types
+// ═══════════════════════════════════════════════════════════════
+window.doExplodeSelected = function() {
+  var sels = ST.entities.filter(function(e){ return e.selected; });
+  if (!sels.length) {
+    toast && toast('Select objects to explode first','warn');
+    return;
+  }
+
+  pushUndo && pushUndo('explode');
+  var newEnts = [];
+  var exploded = 0;
+
+  sels.forEach(function(e) {
+    var lay = e.layer || ST.curLayer;
+    var col = e.color;
+
+    if (e.type === 'blockref') {
+      // ── Explode block reference into its geometry ──
+      var blk = window._blockLibrary && window._blockLibrary[e.block];
+      if (blk && blk.entities && blk.entities.length) {
+        var sx = e.sx || 1, sy = e.sy || 1;
+        var rot = (e.rotation || 0) * Math.PI / 180;
+        function xfPt(lx, ly) {
+          // Rotate then translate
+          var rx = lx * Math.cos(rot) - ly * Math.sin(rot);
+          var ry = lx * Math.sin(rot) + ly * Math.cos(rot);
+          return { x: e.x + rx * sx, y: e.y + ry * sy };
+        }
+        blk.entities.forEach(function(be) {
+          if (be._isAttdef) return; // skip attdefs
+          var ne = JSON.parse(JSON.stringify(be));
+          ne._id = ++ST._eid;
+          ne.layer = be.layer !== undefined ? be.layer : lay;
+          ne.selected = false;
+          // Transform coordinates from block-local to world
+          if (ne.type === 'line') {
+            var p1 = xfPt(ne.x1, ne.y1), p2 = xfPt(ne.x2, ne.y2);
+            ne.x1=p1.x; ne.y1=p1.y; ne.x2=p2.x; ne.y2=p2.y;
+          } else if (ne.type === 'circle' || ne.type === 'arc') {
+            var c = xfPt(ne.cx, ne.cy);
+            ne.cx=c.x; ne.cy=c.y; ne.r=(ne.r||0)*sx;
+          } else if (ne.type === 'polyline' && ne.pts) {
+            ne.pts = ne.pts.map(function(p){ return xfPt(p.x, p.y); });
+          } else if (ne.type === 'text') {
+            var tp = xfPt(ne.x, ne.y);
+            ne.x=tp.x; ne.y=tp.y;
+            ne.angle = (ne.angle || 0) + (e.rotation || 0);
+          } else if (ne.x !== undefined) {
+            var gp = xfPt(ne.x, ne.y);
+            ne.x=gp.x; ne.y=gp.y;
+          }
+          newEnts.push(ne);
+        });
+        // Also add attribute values as text entities
+        if (blk.attribs && e.attrValues) {
+          blk.attribs.forEach(function(a) {
+            var val = e.attrValues[a.tag] !== undefined ? e.attrValues[a.tag] : (a.default||'');
+            if (a.invisible || !val) return;
+            var ap = xfPt(a.x || 0, a.y || 0);
+            newEnts.push({
+              _id:++ST._eid, type:'text',
+              x:ap.x, y:ap.y, text:val,
+              sz:a.height||75, height:a.height||75,
+              angle:(a.rotation||0)+(e.rotation||0),
+              layer:lay, selected:false
+            });
+          });
+        }
+        exploded++;
+      }
+    }
+
+    else if (e.type === 'polyline' && e.pts && e.pts.length >= 2) {
+      for (var i=0; i<e.pts.length-1; i++) {
+        newEnts.push({_id:++ST._eid,type:'line',
+          x1:e.pts[i].x,y1:e.pts[i].y,x2:e.pts[i+1].x,y2:e.pts[i+1].y,
+          layer:lay,color:col,selected:false});
+      }
+      if (e.closed)
+        newEnts.push({_id:++ST._eid,type:'line',
+          x1:e.pts[e.pts.length-1].x,y1:e.pts[e.pts.length-1].y,
+          x2:e.pts[0].x,y2:e.pts[0].y,layer:lay,color:col,selected:false});
+      exploded++;
+    }
+
+    else if (e.type === 'rect') {
+      var x2=e.x+e.w, y2=e.y+e.h;
+      [[e.x,e.y,x2,e.y],[x2,e.y,x2,y2],[x2,y2,e.x,y2],[e.x,y2,e.x,e.y]].forEach(function(c){
+        newEnts.push({_id:++ST._eid,type:'line',x1:c[0],y1:c[1],x2:c[2],y2:c[3],layer:lay,color:col,selected:false});
+      });
+      exploded++;
+    }
+
+    else if (e.type === 'polygon') {
+      var n=e.sides||6, r=e.r||10;
+      for (var pi=0; pi<n; pi++) {
+        var a0=(pi/n)*Math.PI*2-Math.PI/2, a1=((pi+1)/n)*Math.PI*2-Math.PI/2;
+        newEnts.push({_id:++ST._eid,type:'line',
+          x1:e.cx+r*Math.cos(a0),y1:e.cy+r*Math.sin(a0),
+          x2:e.cx+r*Math.cos(a1),y2:e.cy+r*Math.sin(a1),
+          layer:lay,color:col,selected:false});
+      }
+      exploded++;
+    }
+
+    else if (e.type === 'ellipse') {
+      // Approximate ellipse with 36 line segments
+      var segs = 36;
+      for (var ei=0; ei<segs; ei++) {
+        var ea0=ei/segs*Math.PI*2, ea1=(ei+1)/segs*Math.PI*2;
+        newEnts.push({_id:++ST._eid,type:'line',
+          x1:e.cx+(e.rx||50)*Math.cos(ea0),y1:e.cy+(e.ry||30)*Math.sin(ea0),
+          x2:e.cx+(e.rx||50)*Math.cos(ea1),y2:e.cy+(e.ry||30)*Math.sin(ea1),
+          layer:lay,color:col,selected:false});
+      }
+      exploded++;
+    }
+
+    else if (e.type === 'circle' || e.type === 'arc') {
+      // Keep as-is (circles/arcs explode to themselves in Strata)
+      var nc = Object.assign({}, e, {_id:++ST._eid, selected:false});
+      newEnts.push(nc);
+      exploded++;
+    }
+
+    else if (e.type === 'dim-lin' || e.type === 'aecdim') {
+      // Explode dimension to lines + text
+      // Just keep as individual line entities
+      var dn = Object.assign({}, e, {_id:++ST._eid, selected:false});
+      newEnts.push(dn);
+      exploded++;
+    }
+
+    else {
+      // Can't explode — keep as-is
+      toast && toast('Cannot explode '+e.type+' — skipped','warn');
+    }
+  });
+
+  // Remove selected entities
+  var selIds = new Set(sels.map(function(e){ return e._id; }));
+  ST.entities = ST.entities.filter(function(e){ return !selIds.has(e._id); });
+  ST.entities.push.apply(ST.entities, newEnts);
+
+  invalidateSpatialIndex && invalidateSpatialIndex();
+  if (typeof renderImmediate==='function') renderImmediate(); else render && render();
+  toast && toast('EXPLODE: '+exploded+' object(s) → '+newEnts.length+' entities', 'ok');
+  setMsg && setMsg('Exploded '+exploded+' objects into '+newEnts.length+' entities');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 2. COPY — Multiple mode with Array/Exit/Undo options
+// ═══════════════════════════════════════════════════════════════
+var _origCopyApply = null;
+
+// Override copy in applyOp to show Multiple mode + prompt
+function enhanceCopyOp() {
+  // Patch the copy section of applyOp
+  var cad = document.getElementById('cad');
+  if (!cad) return;
+
+  // After copy, show the multiple mode options prompt
+  cad.addEventListener('mousedown', function(ev) {
+    var op = ST.opState;
+    if (!op || op.type !== 'copy' || !op.base) return;
+    // We'll intercept the copy result below
+  }, true); // capture phase
+
+  // Show current settings when copy starts
+  var _origT = window.T;
+  window.T = function(tool) {
+    if (_origT) _origT(tool);
+    if (tool === 'copy') {
+      setTimeout(function() {
+        setMsg && setMsg('COPY — Current settings: Copy mode = Multiple\nSelect objects or specify base point | ESC=cancel');
+        toast && toast('COPY: click base point, then click destinations (multiple). ESC to exit.', 'ok');
+      }, 50);
+    }
+  };
+}
+
+// Patch copy in applyOp to show Undo/Exit options
+(function patchCopyApplyOp() {
+  var originalApplyOp = window.applyOp;
+  window.applyOp = function(wp) {
+    var op = ST.opState;
+    if (op && op.type === 'copy' && op.base) {
+      var sels = ST.entities.filter(function(e){ return e.selected; });
+      if (sels.length > 0) {
+        pushUndo && pushUndo('copy');
+        var dx=wp.x-op.base.x, dy=wp.y-op.base.y;
+        var copies = sels.map(function(e){
+          var ne = JSON.parse(JSON.stringify(e));
+          ne = translateEnt ? translateEnt(ne, dx, dy) : ne;
+          ne._id = ++ST._eid; ne.selected = true;
+          return ne;
+        });
+        sels.forEach(function(e){ e.selected = false; });
+        ST.entities.push.apply(ST.entities, copies);
+        // Don't reset base — stay in copy mode for multiple placements
+        op.base = wp;
+        invalidateSpatialIndex && invalidateSpatialIndex();
+        if (typeof renderImmediate==='function') renderImmediate(); else render && render();
+        setMsg && setMsg('COPY — click to place another copy | [U]=Undo last | ESC=exit');
+        toast && toast('Copy placed — click for another | ESC=done', 'ok');
+        return;
+      }
+    }
+    if (originalApplyOp) originalApplyOp(wp);
+  };
+})();
+
+// U key to undo last copy while in copy mode
+document.addEventListener('keydown', function(ev) {
+  if (ev.target && (ev.target.tagName==='INPUT'||ev.target.tagName==='TEXTAREA')) return;
+  var op = ST.opState;
+  if (!op || op.type !== 'copy') return;
+  if (ev.key.toUpperCase() === 'U') {
+    ev.preventDefault();
+    if (typeof undo==='function') undo();
+    else { pushUndo&&pushUndo; if(ST._undoStack&&ST._undoStack.length) { var s=ST._undoStack.pop(); if(s&&s.state&&s.state.entities) ST.entities=s.state.entities; invalidateSpatialIndex&&invalidateSpatialIndex(); if(typeof renderImmediate==='function') renderImmediate(); } }
+    toast && toast('Undo last copy', 'ok');
+  }
+}, false);
+
+enhanceCopyOp();
+
+// ═══════════════════════════════════════════════════════════════
+// 3. NCOPY — Copy nested objects FROM INSIDE a block
+//    Without exploding the block
+// ═══════════════════════════════════════════════════════════════
+window.startNCopy = function() {
+  setMsg && setMsg('NCOPY — click a nested object inside a block to copy it | ESC=cancel');
+  toast && toast('NCOPY: click entity INSIDE a block to copy it out', 'ok');
+
+  var cad = document.getElementById('cad');
+  var phase = 'select'; // select → base → place
+  var selectedNested = null;
+  var basePoint = null;
+  var copies = [];
+
+  function onDown(ev) {
+    var r = cad.getBoundingClientRect();
+    var wp = s2w(ev.clientX-r.left, ev.clientY-r.top);
+    var tol = 18 / ST.zoom;
+
+    if (phase === 'select') {
+      // Find a blockref that contains this point
+      var foundBlock = null, foundEntIdx = -1;
+      for (var i=ST.entities.length-1; i>=0; i--) {
+        var e = ST.entities[i];
+        if (e.type !== 'blockref') continue;
+        var blk = window._blockLibrary && window._blockLibrary[e.block];
+        if (!blk || !blk.entities) continue;
+
+        // Check if click is near any entity in this block
+        var sx=e.sx||1, sy=e.sy||1, rot=(e.rotation||0)*Math.PI/180;
+        for (var j=0; j<blk.entities.length; j++) {
+          var be = blk.entities[j];
+          if (be._isAttdef) continue;
+          // Transform block entity to world
+          var wbe = _transformBlockEnt(be, e.x, e.y, sx, sy, rot);
+          if (wbe && ptHitsEnt(wp.x, wp.y, wbe, tol)) {
+            foundBlock = e; foundEntIdx = j;
+            break;
+          }
+        }
+        if (foundBlock) break;
+      }
+
+      if (!foundBlock) {
+        toast && toast('Click INSIDE a block. No nested entity found at cursor.','warn');
+        return;
+      }
+
+      var blk2 = window._blockLibrary[foundBlock.block];
+      var be2 = blk2.entities[foundEntIdx];
+      var sx2=foundBlock.sx||1, sy2=foundBlock.sy||1, rot2=(foundBlock.rotation||0)*Math.PI/180;
+      selectedNested = _transformBlockEnt(be2, foundBlock.x, foundBlock.y, sx2, sy2, rot2);
+      selectedNested._sourceBlock = foundBlock.block;
+      selectedNested._sourceIdx = foundEntIdx;
+
+      phase = 'base';
+      setMsg && setMsg('NCOPY: nested entity selected — click base point | ESC=cancel');
+      toast && toast('Nested entity found! Click base point to copy.','ok');
+      return;
+    }
+
+    if (phase === 'base') {
+      basePoint = wp;
+      phase = 'place';
+      setMsg && setMsg('NCOPY: click destination to place copy | [ESC]=done');
+      return;
+    }
+
+    if (phase === 'place') {
+      // Place copy at destination
+      var dx2 = wp.x - basePoint.x, dy2 = wp.y - basePoint.y;
+      var ne = JSON.parse(JSON.stringify(selectedNested));
+      // Translate by displacement
+      ne = translateEnt ? translateEnt(ne, dx2, dy2) : ne;
+      ne._id = ++ST._eid;
+      ne.selected = true;
+      delete ne._sourceBlock; delete ne._sourceIdx;
+      pushUndo && pushUndo('ncopy');
+      ST.entities.push(ne);
+      copies.push(ne);
+      invalidateSpatialIndex && invalidateSpatialIndex();
+      if (typeof renderImmediate==='function') renderImmediate(); else render && render();
+      toast && toast('Nested copy placed! Click for another or ESC to exit.','ok');
+      setMsg && setMsg('NCOPY: click to place another copy | ESC=done');
+    }
+  }
+
+  function onKey(ev) {
+    if (ev.key === 'Escape') {
+      cad.removeEventListener('click', onDown);
+      document.removeEventListener('keydown', onKey);
+      phase='select'; selectedNested=null; basePoint=null;
+      setMsg && setMsg('NCOPY done — '+copies.length+' copy/copies placed');
+    }
+  }
+
+  cad.addEventListener('click', onDown, false);
+  document.addEventListener('keydown', onKey, false);
+};
+
+// Helper: transform a block entity to world coordinates
+function _transformBlockEnt(be, bx, by, sx, sy, rot) {
+  var ne = JSON.parse(JSON.stringify(be));
+  function xfPt(lx, ly) {
+    var rx = lx * Math.cos(rot) - ly * Math.sin(rot);
+    var ry = lx * Math.sin(rot) + ly * Math.cos(rot);
+    return { x: bx + rx*sx, y: by + ry*sy };
+  }
+  try {
+    if (ne.type === 'line') {
+      var p1=xfPt(ne.x1,ne.y1), p2=xfPt(ne.x2,ne.y2);
+      ne.x1=p1.x;ne.y1=p1.y;ne.x2=p2.x;ne.y2=p2.y;
+    } else if (ne.type === 'circle'||ne.type === 'arc') {
+      var c=xfPt(ne.cx,ne.cy); ne.cx=c.x;ne.cy=c.y;ne.r=(ne.r||0)*sx;
+    } else if (ne.type === 'polyline'&&ne.pts) {
+      ne.pts = ne.pts.map(function(p){ return xfPt(p.x,p.y); });
+    } else if (ne.x !== undefined) {
+      var gp=xfPt(ne.x,ne.y); ne.x=gp.x;ne.y=gp.y;
+    }
+  } catch(e) { return null; }
+  return ne;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 4. COMMANDS
+// ═══════════════════════════════════════════════════════════════
+if (typeof CAD_COMMANDS !== 'undefined') {
+  Object.assign(CAD_COMMANDS, {
+    'X':'explode','EXPLODE':'explode','EXP':'explode',
+    'NCOPY':'ncopy','NC':'ncopy',
+  });
+}
+if (typeof CAD_ACTIONS !== 'undefined') {
+  Object.assign(CAD_ACTIONS, {
+    explode: function() { window.doExplodeSelected(); },
+    ncopy:   function() { window.startNCopy(); },
+  });
+}
+
+// Double-click to explode block
+setTimeout(function(){
+  var cad = document.getElementById('cad');
+  if (!cad) return;
+  cad.addEventListener('dblclick', function(ev) {
+    var op = ST.opState;
+    if (op) return;
+    var sels = ST.entities.filter(function(e){ return e.selected&&e.type==='blockref'; });
+    if (sels.length) {
+      // Show option: explode or edit attributes
+      var ans = confirm('Explode this block into individual entities?\n(Cancel to edit attributes instead)');
+      if (ans) window.doExplodeSelected();
+      else if (typeof openEattedit === 'function') openEattedit(sels[0]);
+    }
+  }, false);
+
+  console.log('[StrataExplodeCopyNCopy] EXPLODE ✓  COPY(multiple) ✓  NCOPY ✓');
+}, 500);
+
+})(); // end StrataExplodeCopyNCopy
+
+
+// ████████████████████████████████████████████████████████████████
+//  STRATA — BASICS FEATURES from Strata Basics Training Video
+//  1. Welcome / Start Drawing screen
+//  2. COMMANDLINE / COMMANDLINEHIDE toggle
+//  3. OSNAP right-click context menu (all snap modes)
+//  4. Workspace switcher
+//  5. New from Template dialog
+//  6. Save As with title bar filename
+//  7. Coordinate display improvements
+//  8. STATUS BAR OSNAP/DYN/SNAP toggles like Strata
+// ████████████████████████████████████████████████████████████████
+(function StrataBasicsFeatures() {
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+// 1. WELCOME SCREEN — shows on first load / new drawing
+// ═══════════════════════════════════════════════════════════════
+window.openWelcomeScreen = function() {
+  var ex = document.getElementById('moWelcome'); if(ex) ex.remove();
+  var recentRaw = [];
+  try { recentRaw = JSON.parse(localStorage.getItem('strata_recent_files')||'[]'); } catch(e){}
+
+  var div = document.createElement('div');
+  div.id = 'moWelcome'; div.className = 'mo';
+  div.style.cssText += ';background:rgba(0,0,0,.85)';
+
+  var recentHTML = recentRaw.slice(0,5).map(function(r) {
+    return '<div class="wc-recent" onclick="closeWelcomeAndLoad(\''+r.name+'\')" style="cursor:pointer;padding:8px;border-radius:6px;border:1px solid var(--sep);margin-bottom:6px;display:flex;gap:10px;align-items:center;transition:background .15s" onmouseover="this.style.background=\'rgba(31,168,217,.1)\'" onmouseout="this.style.background=\'\'">'
+      +'<span style="font-size:24px">📄</span>'
+      +'<div><div style="font-size:10px;font-weight:700;color:var(--t)">'+r.name+'</div>'
+      +'<div style="font-size:8px;color:var(--m)">'+r.date+'</div></div>'
+      +'</div>';
+  }).join('') || '<div style="font-size:10px;color:var(--m);text-align:center;padding:16px">No recent files</div>';
+
+  div.innerHTML = '<div class="modal" style="max-width:700px;min-height:420px;background:var(--bg1)">'
+    +'<div class="mo-hdr" style="background:linear-gradient(135deg,#1a3a5c,#0d2137);border-bottom:1px solid rgba(31,168,217,.2)"><div class="mh-t" style="color:white;font-size:14px">🏗 SkyTerraEye Strata</div><span class="mc" id="wcClose">✕</span></div>'
+    +'<div class="mb" style="padding:20px">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">'
+
+    // Column 1: Get Started
+    +'<div>'
+    +'<div class="fsect" style="font-size:10px;color:#1FA8D9;margin-bottom:10px">Get Started</div>'
+    +'<div onclick="startNewDrawing()" style="background:var(--bg2);border:1px solid rgba(31,168,217,.3);border-radius:8px;padding:14px;cursor:pointer;text-align:center;margin-bottom:8px;transition:all .15s" onmouseover="this.style.borderColor=\'#1FA8D9\'" onmouseout="this.style.borderColor=\'rgba(31,168,217,.3)\'">'
+    +'<div style="font-size:32px">📐</div>'
+    +'<div style="font-size:11px;font-weight:700;color:var(--t);margin-top:6px">Start Drawing</div>'
+    +'<div style="font-size:9px;color:var(--m)">Open blank canvas</div>'
+    +'</div>'
+    +'<div onclick="openNewFromTemplate()" style="background:var(--bg2);border:1px solid var(--sep);border-radius:6px;padding:8px;cursor:pointer;font-size:10px;color:var(--t);display:flex;gap:8px;align-items:center;margin-bottom:5px" onmouseover="this.style.background=\'rgba(31,168,217,.08)\'" onmouseout="this.style.background=\'var(--bg2)\'">📋 New from Template…</div>'
+    +'<div onclick="document.getElementById(\'fileInput\')&&document.getElementById(\'fileInput\').click()" style="background:var(--bg2);border:1px solid var(--sep);border-radius:6px;padding:8px;cursor:pointer;font-size:10px;color:var(--t);display:flex;gap:8px;align-items:center;margin-bottom:5px" onmouseover="this.style.background=\'rgba(31,168,217,.08)\'" onmouseout="this.style.background=\'var(--bg2)\'">📂 Open Files…</div>'
+    +'</div>'
+
+    // Column 2: Recent Documents
+    +'<div>'
+    +'<div class="fsect" style="font-size:10px;color:#1FA8D9;margin-bottom:10px">Recent Documents</div>'
+    +recentHTML
+    +'</div>'
+
+    // Column 3: Connect / Info
+    +'<div>'
+    +'<div class="fsect" style="font-size:10px;color:#1FA8D9;margin-bottom:10px">Connect</div>'
+    +'<div style="background:var(--bg2);border:1px solid var(--sep);border-radius:8px;padding:12px;font-size:9px;color:var(--m)">'
+    +'<div style="font-weight:700;color:var(--t);font-size:10px;margin-bottom:4px">Welcome to Strata</div>'
+    +'<div>SkyTerraEye Professional CAD</div>'
+    +'<div style="margin-top:6px;color:var(--m)">Version 2025.1</div>'
+    +'<div style="margin-top:8px;padding:6px;background:rgba(31,168,217,.08);border-radius:4px;font-size:8px">'
+    +'<div>📦 ~2,000 commands</div><div>🗺 Google Maps integrated</div><div>⛰ Elevation Profile</div>'
+    +'<div>📐 Full DXF/DWG support</div>'
+    +'</div></div>'
+
+    +'<div style="margin-top:12px">'
+    +'<div class="fsect" style="font-size:9px;color:var(--m);margin-bottom:6px">Quick Start Tips</div>'
+    +'<div style="font-size:9px;color:var(--m);line-height:1.7">'
+    +'L = Line | PL = Polyline | C = Circle<br>RO = Rotate | SC = Scale | MI = Mirror<br>O = Offset | TR = Trim | EX = Extend<br>Z = Zoom Extents | ESC = Cancel<br>Ctrl+Z = Undo | Space = Repeat cmd'
+    +'</div></div>'
+    +'</div>'
+    +'</div>'
+
+    +'<div style="display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:10px;border-top:1px solid var(--sep)">'
+    +'<label style="display:flex;align-items:center;gap:6px;font-size:9px;color:var(--m);cursor:pointer">'
+    +'<input type="checkbox" id="wcDontShow"> Don\'t show on startup</label>'
+    +'<div style="flex:1"></div>'
+    +'<button class="btn st" onclick="startNewDrawing()">Start Drawing</button>'
+    +'</div>'
+    +'</div></div>';
+
+  document.body.appendChild(div);
+  setTimeout(function(){
+    var c=document.getElementById('wcClose');
+    if(c) c.onclick=function(){
+      var dontShow=document.getElementById('wcDontShow');
+      if(dontShow&&dontShow.checked) localStorage.setItem('strata_no_welcome','1');
+      closeMo('moWelcome');
+    };
+  },10);
+  openMo('moWelcome');
+};
+
+window.startNewDrawing = function() {
+  closeMo('moWelcome');
+  if(ST.entities&&ST.entities.length>0){
+    if(!confirm('Start a new drawing? Current drawing will be cleared.')) return;
+  }
+  if(typeof pushUndo==='function') pushUndo('new');
+  ST.entities=[]; ST._eid=0;
+  if(typeof invalidateSpatialIndex==='function') invalidateSpatialIndex();
+  if(typeof renderImmediate==='function') renderImmediate(); else render&&render();
+  document.title='SkyTerraEye Strata — New Drawing';
+  toast&&toast('New drawing started','ok');
+};
+
+// Show welcome on load (unless disabled)
+setTimeout(function(){
+  if(localStorage.getItem('strata_no_welcome')==='1') return;
+  if(typeof openMo==='function') openWelcomeScreen();
+},1000);
+
+// ═══════════════════════════════════════════════════════════════
+// 2. COMMANDLINE TOGGLE
+// ═══════════════════════════════════════════════════════════════
+window.toggleCommandLine = function() {
+  var cmdArea = document.getElementById('cmdArea') || document.querySelector('.cmd-area,.cmd-bar,.cmdbar');
+  if (!cmdArea) {
+    // Find it by looking at the parent of cmdInput
+    var inp = document.getElementById('cmdInput');
+    if (inp) cmdArea = inp.closest('.cbar,.cmdbar,#cmdBar,[class*="cmd"]') || inp.parentElement;
+  }
+  if (!cmdArea) { toast&&toast('Command line area not found','warn'); return; }
+  var hidden = cmdArea.style.display === 'none';
+  cmdArea.style.display = hidden ? '' : 'none';
+  toast&&toast('Command line: '+(hidden?'Visible':'Hidden'), 'ok');
+  setMsg&&setMsg('Command line '+(hidden?'shown':'hidden')+' — COMMANDLINE to toggle');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 3. OSNAP RIGHT-CLICK CONTEXT MENU
+// ═══════════════════════════════════════════════════════════════
+var OSNAP_MODES = [
+  {key:'endpoint',    label:'Endpoint',     icon:'□', desc:'Snaps to nearest endpoint of an arc, line, or polyline'},
+  {key:'midpoint',    label:'Midpoint',     icon:'△', desc:'Snaps to midpoint of lines and arcs'},
+  {key:'center',      label:'Center',       icon:'○', desc:'Snaps to center of circle, arc, or ellipse'},
+  {key:'node',        label:'Node',         icon:'✕', desc:'Snaps to a point object'},
+  {key:'quadrant',    label:'Quadrant',     icon:'◇', desc:'Snaps to 0°, 90°, 180°, 270° of circle/arc'},
+  {key:'intersection',label:'Intersection', icon:'✖', desc:'Snaps to intersection of two objects'},
+  {key:'extension',   label:'Extension',    icon:'━', desc:'Snaps along the extension of a line or arc'},
+  {key:'insertion',   label:'Insertion',    icon:'⊕', desc:'Snaps to insertion point of text/block'},
+  {key:'perpendicular',label:'Perpendicular',icon:'⊾',desc:'Snaps to perpendicular on a line/arc'},
+  {key:'tangent',     label:'Tangent',      icon:'◯', desc:'Snaps to tangent of circle or arc'},
+  {key:'nearest',     label:'Nearest',      icon:'◈', desc:'Snaps to nearest point on object'},
+  {key:'parallel',    label:'Parallel',     icon:'∥', desc:'Snaps parallel to selected line'},
+];
+
+// Store enabled osnap modes
+if (!ST.osnapModes) ST.osnapModes = {endpoint:true, midpoint:true, center:true, intersection:true, nearest:false};
+
+window.openOsnapMenu = function(ev) {
+  ev && ev.preventDefault && ev.preventDefault();
+  var existing = document.getElementById('osnapCtxMenu'); if(existing) existing.remove();
+
+  var div = document.createElement('div');
+  div.id = 'osnapCtxMenu';
+  div.style.cssText = 'position:fixed;z-index:2000;background:rgba(4,12,24,.98);border:1.5px solid rgba(31,168,217,.4);'
+    +'border-radius:10px;padding:8px;min-width:260px;box-shadow:0 8px 32px rgba(0,0,0,.7);font-family:IBM Plex Mono,monospace;';
+
+  var html = '<div style="font-size:9px;font-weight:700;color:#1FA8D9;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(31,168,217,.2)">OBJECT SNAP SETTINGS</div>';
+
+  html += OSNAP_MODES.map(function(m) {
+    var checked = ST.osnapModes[m.key] !== false && ST.osnapModes[m.key] !== undefined ? (ST.osnapModes[m.key]===true) : false;
+    return '<label style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:5px;cursor:pointer;transition:background .1s" '
+      +'onmouseover="this.style.background=\'rgba(31,168,217,.1)\'" onmouseout="this.style.background=\'\'">'
+      +'<input type="checkbox" id="osnap_'+m.key+'" '+(checked?'checked':'')+' style="accent-color:#1FA8D9" '
+      +'onchange="ST.osnapModes[\''+m.key+'\']=this.checked;toast(\'OSNAP \'+\''+m.label+'\'+\': \'+(this.checked?\'ON\':\'OFF\'),\'ok\')">'
+      +'<span style="color:rgba(245,190,24,.8);font-size:12px;min-width:18px">'+m.icon+'</span>'
+      +'<span style="font-size:10px;color:var(--t,white)">'+m.label+'</span>'
+      +'<span style="font-size:8px;color:var(--m,rgba(255,255,255,.4));margin-left:auto">'+m.key+'</span>'
+      +'</label>';
+  }).join('');
+
+  html += '<div style="border-top:1px solid rgba(31,168,217,.2);margin-top:8px;padding-top:8px;display:flex;gap:6px;flex-wrap:wrap">'
+    +'<button onclick="Object.keys(ST.osnapModes).forEach(function(k){ST.osnapModes[k]=true});document.querySelectorAll(\'[id^=osnap_]\').forEach(function(i){i.checked=true});toast(\'All OSNAP ON\',\'ok\')" '
+    +'style="background:rgba(31,168,217,.15);border:1px solid rgba(31,168,217,.3);color:#1FA8D9;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:IBM Plex Mono,monospace;font-size:9px">Select All</button>'
+    +'<button onclick="Object.keys(ST.osnapModes).forEach(function(k){ST.osnapModes[k]=false});document.querySelectorAll(\'[id^=osnap_]\').forEach(function(i){i.checked=false});toast(\'All OSNAP OFF\',\'ok\')" '
+    +'style="background:rgba(255,255,255,.05);border:1px solid var(--sep,rgba(255,255,255,.1));color:rgba(255,255,255,.6);padding:3px 8px;border-radius:4px;cursor:pointer;font-family:IBM Plex Mono,monospace;font-size:9px">Clear All</button>'
+    +'<button onclick="document.getElementById(\'osnapCtxMenu\').remove()" '
+    +'style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:16px;margin-left:auto;padding:0 4px">✕</button>'
+    +'</div>';
+
+  div.innerHTML = html;
+
+  // Position near the click
+  var x = ev ? ev.clientX : 400, y = ev ? ev.clientY : 400;
+  if (x + 280 > window.innerWidth) x = window.innerWidth - 285;
+  if (y + 400 > window.innerHeight) y = window.innerHeight - 405;
+  div.style.left = x + 'px'; div.style.top = y + 'px';
+  document.body.appendChild(div);
+
+  // Close on outside click
+  setTimeout(function(){
+    document.addEventListener('click', function onOut(ev2) {
+      if (!div.contains(ev2.target)) { div.remove(); document.removeEventListener('click',onOut); }
+    });
+  }, 100);
+};
+
+// Hook right-click on OSNAP button
+setTimeout(function(){
+  var osnap = document.getElementById('ib-osnap') || document.getElementById('ibOsnap') ||
+              document.querySelector('[id*="snp"],[id*="osnap"],[title*="snap" i]');
+  if (osnap) {
+    osnap.addEventListener('contextmenu', function(ev) {
+      ev.preventDefault(); openOsnapMenu(ev);
+    }, false);
+    // Also allow shift+click
+    osnap.addEventListener('click', function(ev) {
+      if (ev.shiftKey) { ev.preventDefault(); openOsnapMenu(ev); }
+    }, false);
+  }
+  // Find "OSNAP" text button in status bar
+  document.querySelectorAll('.stbtn,.ib-btn').forEach(function(btn) {
+    if (btn.textContent && /OSNAP|osnap|snap/i.test(btn.textContent)) {
+      btn.addEventListener('contextmenu', function(ev){ ev.preventDefault(); openOsnapMenu(ev); }, false);
+    }
+  });
+},1000);
+
+// ═══════════════════════════════════════════════════════════════
+// 4. WORKSPACE SWITCHER
+// ═══════════════════════════════════════════════════════════════
+var WORKSPACES = [
+  {id:'drafting', name:'2D Drafting & Annotation', desc:'Standard 2D drawing workspace with full ribbon', icon:'📐'},
+  {id:'3d_basics', name:'3D Basics', desc:'Basic 3D modeling tools', icon:'📦'},
+  {id:'3d_model', name:'3D Modeling', desc:'Full 3D modeling workspace', icon:'🏗'},
+  {id:'classic', name:'Strata Classic', desc:'Old-style toolbars (no ribbon)', icon:'🔧'},
+  {id:'civil', name:'Civil 3D', desc:'Survey and civil engineering tools', icon:'🏔'},
+];
+
+window.openWorkspaceSwitcher = function() {
+  var ex=document.getElementById('moWorkspace'); if(ex) ex.remove();
+  var cur = localStorage.getItem('strata_workspace') || 'drafting';
+  var div = document.createElement('div');
+  div.id = 'moWorkspace'; div.className = 'mo';
+  div.innerHTML = '<div class="modal" style="max-width:420px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">⚙</span>Workspace Settings</div>'
+    +'<span class="mc" id="wsClose">✕</span></div>'
+    +'<div class="mb">'
+    +'<div class="fsect">Workspace</div>'
+    +'<div style="display:flex;flex-direction:column;gap:6px">'
+    +WORKSPACES.map(function(ws) {
+      return '<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid '
+        +(ws.id===cur?'rgba(31,168,217,.4)':'var(--sep)')+';cursor:pointer;transition:all .15s;background:'
+        +(ws.id===cur?'rgba(31,168,217,.08)':'transparent')
+        +'" id="ws_'+ws.id+'" onclick="applyWorkspace(\''+ws.id+'\')">'
+        +'<input type="radio" name="workspace" value="'+ws.id+'" '+(ws.id===cur?'checked':'')+' style="accent-color:#1FA8D9">'
+        +'<span style="font-size:18px">'+ws.icon+'</span>'
+        +'<div><div style="font-size:10px;font-weight:700;color:var(--t)">'+ws.name+'</div>'
+        +'<div style="font-size:8px;color:var(--m)">'+ws.desc+'</div></div>'
+        +'</label>';
+    }).join('')
+    +'</div>'
+    +'<div class="fsect" style="margin-top:10px">Workspace Options</div>'
+    +'<label class="fck"><input type="checkbox" id="wsAutoSave" '+(localStorage.getItem('strata_ws_autosave')!=='0'?'checked':'')+' onchange="localStorage.setItem(\'strata_ws_autosave\',this.checked?\'1\':\'0\')"> Automatically save workspace changes</label>'
+    +'<label class="fck"><input type="checkbox" id="wsDisplay" checked> Display workspace label in status bar</label>'
+    +'</div>'
+    +'<div class="mf"><button class="btn s" id="wsCancelBtn">Cancel</button>'
+    +'<button class="btn st" onclick="applyWorkspace(document.querySelector(\'[name=workspace]:checked\')?.value||\'drafting\');closeMo(\'moWorkspace\')">Save Current As…</button></div>'
+    +'</div>';
+  document.body.appendChild(div);
+  setTimeout(function(){
+    var c=document.getElementById('wsClose');if(c)c.onclick=function(){closeMo('moWorkspace');};
+    var c2=document.getElementById('wsCancelBtn');if(c2)c2.onclick=function(){closeMo('moWorkspace');};
+  },10);
+  openMo('moWorkspace');
+};
+
+window.applyWorkspace = function(wsId) {
+  localStorage.setItem('strata_workspace', wsId);
+  var ws = WORKSPACES.find(function(w){return w.id===wsId;}) || WORKSPACES[0];
+
+  // Update radio
+  document.querySelectorAll('[name=workspace]').forEach(function(r){r.checked=(r.value===wsId);});
+  document.querySelectorAll('[id^=ws_]').forEach(function(el){
+    var isActive = el.id === 'ws_'+wsId;
+    el.style.borderColor = isActive ? 'rgba(31,168,217,.4)' : 'var(--sep)';
+    el.style.background = isActive ? 'rgba(31,168,217,.08)' : '';
+  });
+
+  // Apply workspace UI changes
+  if (wsId === 'classic') {
+    // Classic: hide ribbon, show toolbars
+    var ribbon = document.querySelector('.ribbon,.rib');
+    if (ribbon) ribbon.style.height = '32px'; // compact
+  } else {
+    var ribbon2 = document.querySelector('.ribbon,.rib');
+    if (ribbon2) ribbon2.style.height = '';
+  }
+
+  // Update status bar workspace label
+  var wsLabel = document.getElementById('wsStatusLabel');
+  if (!wsLabel) {
+    wsLabel = document.createElement('span');
+    wsLabel.id = 'wsStatusLabel';
+    wsLabel.style.cssText = 'font-size:8px;font-family:IBM Plex Mono,monospace;color:var(--m);margin-left:4px;';
+    var sb = document.querySelector('.statbar,.status-bar');
+    if (sb) sb.appendChild(wsLabel);
+  }
+  if (wsLabel) wsLabel.textContent = ws.name;
+
+  closeMo('moWorkspace');
+  toast&&toast('Workspace: '+ws.name,'ok');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 5. NEW FROM TEMPLATE
+// ═══════════════════════════════════════════════════════════════
+var TEMPLATES = [
+  {name:'strata',          desc:'Standard 2D drawing (metric mm)',      type:'mm',  icon:'📐'},
+  {name:'stratalt',        desc:'Strata LT template',       type:'mm',  icon:'📋'},
+  {name:'Civil Engineering (Metric)',  desc:'Civil engineering – metric', type:'m',   icon:'🏔'},
+  {name:'Architectural (Metric)', desc:'Architectural mm',    type:'mm',  icon:'🏛'},
+  {name:'Electrical (Metric)',    desc:'Electrical engineering',  type:'mm',  icon:'⚡'},
+  {name:'Mechanical (Metric)',    desc:'Mechanical engineering',  type:'mm',  icon:'⚙'},
+  {name:'Manufacturing',        desc:'Manufacturing (inches)',   type:'in',  icon:'🏭'},
+  {name:'MEP (Metric)',           desc:'MEP engineering',         type:'mm',  icon:'🔧'},
+  {name:'strataISO',       desc:'International Standards (ISO)',        type:'mm',  icon:'🌐'},
+  {name:'Blank (A4)',    desc:'Blank A4 sheet (297×210mm)',          type:'mm',  icon:'📄'},
+  {name:'Blank (A3)',    desc:'Blank A3 sheet (420×297mm)',          type:'mm',  icon:'📄'},
+  {name:'Blank (A1)',    desc:'Blank A1 sheet (841×594mm)',          type:'mm',  icon:'📄'},
+];
+
+window.openNewFromTemplate = function() {
+  closeMo('moWelcome');
+  var ex=document.getElementById('moTemplate');if(ex)ex.remove();
+  var sel = TEMPLATES[0];
+  var div = document.createElement('div');
+  div.id='moTemplate'; div.className='mo';
+  div.innerHTML = '<div class="modal w" style="max-width:580px">'
+    +'<div class="mh"><div class="mh-t"><span class="i">📋</span>Select Template</div><span class="mc" id="tmplClose">✕</span></div>'
+    +'<div class="mb">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:360px;overflow-y:auto">'
+    +TEMPLATES.map(function(t,i) {
+      return '<div id="tmpl_'+i+'" onclick="selectTemplate('+i+')" '
+        +'style="background:var(--bg2);border:1.5px solid '+(i===0?'rgba(31,168,217,.5)':'var(--sep)')+';border-radius:8px;'
+        +'padding:10px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .15s" '
+        +'onmouseover="this.style.background=\'rgba(31,168,217,.06)\'" onmouseout="this.style.background=\'var(--bg2)\'">'
+        +'<span style="font-size:20px">'+t.icon+'</span>'
+        +'<div><div style="font-size:10px;font-weight:700;color:var(--t)">'+t.name+'</div>'
+        +'<div style="font-size:8px;color:var(--m)">'+t.desc+'</div></div>'
+        +'</div>';
+    }).join('')
+    +'</div>'
+    +'<div id="tmplPreview" style="margin-top:10px;padding:8px;background:var(--bg2);border-radius:6px;font-size:9px;color:var(--m);min-height:36px">'
+    +'Template: strata | Units: mm | Standard 2D drawing</div>'
+    +'</div>'
+    +'<div class="mf"><button class="btn s" id="tmplCancelBtn">Cancel</button>'
+    +'<button class="btn st" onclick="applyTemplate(window._selectedTemplateIdx||0)">Open</button></div>'
+    +'</div>';
+  document.body.appendChild(div);
+  window._selectedTemplateIdx = 0;
+  setTimeout(function(){
+    var c=document.getElementById('tmplClose');if(c)c.onclick=function(){closeMo('moTemplate');};
+    var c2=document.getElementById('tmplCancelBtn');if(c2)c2.onclick=function(){closeMo('moTemplate');};
+  },10);
+  openMo('moTemplate');
+};
+
+window.selectTemplate = function(idx) {
+  window._selectedTemplateIdx = idx;
+  var t = TEMPLATES[idx];
+  document.querySelectorAll('[id^=tmpl_]').forEach(function(el,i){
+    el.style.borderColor = i===idx ? 'rgba(31,168,217,.5)' : 'var(--sep)';
+  });
+  var prev = document.getElementById('tmplPreview');
+  if(prev) prev.textContent = 'Template: '+t.name+' | Units: '+t.type+' | '+t.desc;
+};
+
+window.applyTemplate = function(idx) {
+  var t = TEMPLATES[idx];
+  closeMo('moTemplate');
+  // Apply units
+  if(t.type==='m') ST.units='m';
+  else if(t.type==='in') ST.units='in';
+  else ST.units='mm';
+  // Clear drawing
+  if(typeof pushUndo==='function') pushUndo('new');
+  ST.entities=[]; ST._eid=0;
+  // Set scale/limits based on template
+  if(t.name.includes('A4')){ST.zoom=0.8;ST.panX=0;ST.panY=0;}
+  if(typeof invalidateSpatialIndex==='function') invalidateSpatialIndex();
+  if(typeof renderImmediate==='function') renderImmediate(); else render&&render();
+  document.title = 'SkyTerraEye Strata — '+t.name;
+  toast&&toast('New drawing from template: '+t.name,'ok');
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 6. SAVE AS — updates title bar with filename
+// ═══════════════════════════════════════════════════════════════
+var _origOpenExportModal = window.openExportModal;
+window.openExportModal = function() {
+  if (typeof _origOpenExportModal === 'function') _origOpenExportModal();
+  // Add filename field if not present
+  setTimeout(function(){
+    var modal = document.getElementById('moExport');
+    if (!modal || modal.querySelector('#exportFilename')) return;
+    var mb = modal.querySelector('.mb');
+    if (!mb) return;
+    var fnRow = document.createElement('div');
+    fnRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px;background:var(--bg2);border-radius:6px;';
+    fnRow.innerHTML = '<span style="font-size:9px;color:var(--m);font-family:IBM Plex Mono,monospace;min-width:60px">Filename</span>'
+      +'<input type="text" id="exportFilename" class="fi" value="'+(window._currentFilename||'MY DRAWING')+'" '
+      +'placeholder="Drawing filename…" onkeydown="event.stopPropagation()" style="flex:1;font-family:IBM Plex Mono,monospace">';
+    mb.insertBefore(fnRow, mb.firstChild);
+  }, 150);
+};
+
+// Update title bar when file is saved
+var _origSaveProject = window.saveProject;
+window.saveProject = function() {
+  var fn = document.getElementById('exportFilename');
+  if (fn && fn.value) {
+    window._currentFilename = fn.value;
+    document.title = 'SkyTerraEye Strata — '+fn.value;
+    _saveToRecent(fn.value);
+  }
+  if (typeof _origSaveProject === 'function') _origSaveProject();
+};
+
+function _saveToRecent(name) {
+  var recent = [];
+  try { recent = JSON.parse(localStorage.getItem('strata_recent_files')||'[]'); } catch(e){}
+  recent = recent.filter(function(r){return r.name!==name;});
+  recent.unshift({name:name, date:new Date().toLocaleDateString()});
+  recent = recent.slice(0,10);
+  try { localStorage.setItem('strata_recent_files',JSON.stringify(recent)); } catch(e){}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 7. COORDINATE DISPLAY improvements
+// ═══════════════════════════════════════════════════════════════
+// Enhanced coord display in status bar (updates more reliably)
+var coordX = document.getElementById('xCoord') || document.querySelector('[id*="xCoord"],[id*="coordX"]');
+var coordY = document.getElementById('yCoord') || document.querySelector('[id*="yCoord"],[id*="coordY"]');
+
+var cad = document.getElementById('cad');
+if (cad) {
+  cad.addEventListener('mousemove', function(ev) {
+    if (!coordX && !coordY) {
+      coordX = document.getElementById('xCoord');
+      coordY = document.getElementById('yCoord');
+    }
+    var r = cad.getBoundingClientRect();
+    var wp = s2w(ev.clientX-r.left, ev.clientY-r.top);
+    var xv = wp.x.toFixed(3), yv = wp.y.toFixed(3);
+    if (coordX) coordX.textContent = xv;
+    if (coordY) coordY.textContent = yv;
+    // Also update any coordinate display spans
+    var span = document.getElementById('statCoords');
+    if (span) span.textContent = 'X '+xv+' Y '+yv;
+  }, false);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 8. COMMANDS
+// ═══════════════════════════════════════════════════════════════
+if (typeof CAD_COMMANDS !== 'undefined') {
+  Object.assign(CAD_COMMANDS, {
+    'COMMANDLINE':'commandline','COMMANDLINEHIDE':'commandlinehide',
+    'CLI':'commandline','CLIHIDE':'commandlinehide',
+    'WORKSPACE':'workspace','WSCURRENT':'workspace','WS':'workspace',
+    'WSAVE':'workspace','WSRESTORE':'workspace',
+    'WELCOME':'welcome','START':'welcome',
+    'DDOSNAP':'osnapsettings','OSNAPSETTINGS':'osnapsettings',
+    'NEW':'newdrawing','QNEW':'newdrawing',
+    'SAVEAS':'saveas','QSAVE':'saveproject',
+  });
+}
+if (typeof CAD_ACTIONS !== 'undefined') {
+  Object.assign(CAD_ACTIONS, {
+    commandline:      function() { window.toggleCommandLine(); },
+    commandlinehide:  function() { window.toggleCommandLine(); },
+    workspace:        function() { window.openWorkspaceSwitcher(); },
+    welcome:          function() { window.openWelcomeScreen(); },
+    osnapsettings:    function() { window.openOsnapMenu({clientX:window.innerWidth/2,clientY:window.innerHeight/2}); },
+    newdrawing:       function() { window.openNewFromTemplate(); },
+    saveas:           function() { window.openExportModal(); },
+    saveproject:      function() { window.saveProject(); },
+  });
+}
+
+// Add workspace label to status bar
+setTimeout(function(){
+  var sb = document.querySelector('.statbar');
+  if (!sb) return;
+
+  // Workspace label button
+  if (!document.getElementById('wsStatusBtn')) {
+    var wsBtn = document.createElement('button');
+    wsBtn.id = 'wsStatusBtn';
+    wsBtn.className = 'stbtn';
+    wsBtn.title = 'Workspace (WORKSPACE)';
+    wsBtn.style.cssText = 'font-size:8px;font-family:IBM Plex Mono,monospace;color:rgba(255,255,255,.5)';
+    wsBtn.textContent = localStorage.getItem('strata_workspace') === 'civil' ? 'Civil 3D' : '2D Drafting';
+    wsBtn.onclick = openWorkspaceSwitcher;
+    sb.appendChild(wsBtn);
+  }
+
+  console.log('[StrataBasicsFeatures] Welcome ✓  COMMANDLINE ✓  OSNAP menu ✓  Workspace ✓  Templates ✓  SaveAs ✓');
+}, 800);
+
+})(); // end StrataBasicsFeatures
+
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════
@@ -26712,8 +28944,8 @@ setTimeout(function() {
 
       <div style="font-size:9.5px;font-weight:700;color:var(--st);text-transform:uppercase;letter-spacing:.6px;font-family:'IBM Plex Mono',monospace;margin-bottom:6px">Export Format</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px">
-        <button class="btn" onclick="doExport('dxf')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px">📐<span>DXF</span><span style="font-size:7.5px;color:var(--m)">AutoCAD</span></button>
-        <button class="btn" onclick="doExport('dwg')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px">📐<span>DWG</span><span style="font-size:7.5px;color:var(--m)">AutoCAD binary</span></button>
+        <button class="btn" onclick="doExport('dxf')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px">📐<span>DXF</span><span style="font-size:7.5px;color:var(--m)">Strata CAD</span></button>
+        <button class="btn" onclick="doExport('dwg')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px">📐<span>DWG</span><span style="font-size:7.5px;color:var(--m)">Strata CAD binary</span></button>
         <button class="btn" onclick="doExport('geojson')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px">🗺<span>GeoJSON</span><span style="font-size:7.5px;color:var(--m)">Web maps</span></button>
         <button class="btn" onclick="doExport('shapefile')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px;border-color:rgba(78,255,145,.4);background:rgba(78,255,145,.05)">🗃<span style='color:#4eff91'>Shapefile</span><span style="font-size:7.5px;color:var(--m)">WKT → QGIS/ArcGIS</span></button>
         <button class="btn" onclick="doExport('csv')" style="padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px">📊<span>CSV</span><span style="font-size:7.5px;color:var(--m)">Spreadsheet</span></button>
@@ -27025,7 +29257,7 @@ setTimeout(function() {
       <div style="margin-top:12px;padding:10px;background:rgba(31,168,217,.07);border:1px solid rgba(31,168,217,.2);border-radius:5px">
         <div style="font-size:9px;font-weight:800;color:var(--b);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Best Solution: Bind XREFs Before Export</div>
         <div style="font-size:9.5px;color:var(--m);line-height:1.7">
-          In <b style="color:var(--t)">AutoCAD / DWG TrueView:</b><br>
+          In <b style="color:var(--t)">Strata CAD / DWG TrueView:</b><br>
           &nbsp;1. Open the DWG file<br>
           &nbsp;2. Type <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--g)">XREF</code> → right-click each reference → <b style="color:var(--t)">Bind</b> → <b>Insert</b><br>
           &nbsp;3. Save → re-export as DXF → import here<br><br>
