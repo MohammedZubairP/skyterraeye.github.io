@@ -157,21 +157,32 @@ input,select{font-family:inherit}
 <div class="ribbon">
   <div class="rg">
     <div class="rr">
-      <button class="rb lg act" onclick="generate()" id="rb-gen"><span class="rb-i">✨</span>GENERATE</button>
+      <button class="rb lg act" onclick="regenerateNow('Generated')" id="rb-gen"><span class="rb-i">✨</span>GENERATE</button>
       <button class="rb" onclick="resetProgram()"><span class="rb-i">↺</span>RESET</button>
     </div>
     <div class="rg-lbl">AI</div>
   </div>
   <div class="rg">
     <div class="rr">
-      <button class="rb" id="rb-edit" onclick="toggleEditMode()"><span class="rb-i">✥</span>DRAG-EDIT</button>
       <button class="rb" id="rb-draw" onclick="toggleDrawMode()"><span class="rb-i">▭</span>DRAW ROOM</button>
+      <button class="rb" onclick="deleteSelectedRoom()"><span class="rb-i">🗑️</span>DELETE</button>
     </div>
     <div class="rr">
-      <button class="rb" onclick="deleteSelectedRoom()"><span class="rb-i">🗑️</span>DELETE</button>
       <button class="rb" onclick="editSelectedDims()"><span class="rb-i">🔢</span>SET SIZE</button>
+      <button class="rb" onclick="saveCurrentAsIdea()"><span class="rb-i">📌</span>SAVE EDIT</button>
     </div>
-    <div class="rg-lbl">EDIT</div>
+    <div class="rg-lbl">EDIT (drag rooms directly — always on)</div>
+  </div>
+  <div class="rg">
+    <div class="rr">
+      <button class="rb lg" onclick="generateNewIdea()"><span class="rb-i">🎲</span>NEW IDEA</button>
+      <button class="rb" onclick="historyPrev()"><span class="rb-i">◀</span>PREV</button>
+      <button class="rb" onclick="historyNext()"><span class="rb-i">▶</span>NEXT</button>
+    </div>
+    <div class="rr">
+      <button class="rb" onclick="confirmCurrentPlan()" style="color:#4ADE80"><span class="rb-i">✓</span>CONFIRM</button>
+    </div>
+    <div class="rg-lbl">REDESIGN</div>
   </div>
   <div class="rg">
     <div class="rr">
@@ -278,7 +289,7 @@ input,select{font-family:inherit}
         </div>
 
         <div class="tg-title">Plan Options</div>
-        <div class="note" style="margin-top:0">The layout algorithm makes judgment calls (which room goes where among equal-priority rooms). Instead of guessing silently, generate 3 alternatives and pick the one that fits your site:</div>
+        <div class="note" style="margin-top:0">3 quick presets, or hit <b>NEW IDEA</b> in the ribbon for an unlimited fresh layout each click — every one is saved. Compare them all in the History tab on the right, then hit <b>CONFIRM</b> to lock one in (recalculates loads/columns/beams/footings).</div>
         <div class="g3" style="margin-top:6px">
           <button class="bo" id="optA" onclick="setVariant('A')">Option A</button>
           <button class="bo" id="optB" onclick="setVariant('B')">Option B</button>
@@ -289,9 +300,9 @@ input,select{font-family:inherit}
         <div id="roomRows"></div>
         <div class="btnRow"><button class="bo" onclick="addRoom()">+ Add Room</button></div>
         <div class="note">Each room has a <b>Position</b> hint (Auto / Road-facing / Back / Side) — it steers which side of the plot the AI tries to place it on. Add a room and it regenerates immediately.</div>
-        <div class="note"><b>Manual editing:</b> after generating, use DRAG-EDIT in the ribbon to resize/move rooms by hand, DRAW ROOM to add a rectangle anywhere on the plot, or click a room then SET SIZE to type exact dimensions — same as floor-plan editors like FloorPlanCreator. Clicking Generate Plan again resets manual edits back to the AI layout.</div>
+        <div class="note"><b>Manual editing:</b> click any room, then drag its corner/edge handles to resize, or drag the body to move it — works immediately, no mode switch needed. DRAW ROOM adds a new rectangle by hand. SET SIZE types exact dimensions. Loads/columns/beams/footings recalculate automatically after every change.</div>
 
-        <div class="btnRow" style="margin-top:14px"><button class="bp" onclick="generate()">✨ Generate Plan</button></div>
+        <div class="btnRow" style="margin-top:14px"><button class="bp" onclick="regenerateNow('Generated')">✨ Generate Plan</button></div>
       </div>
 
       <div id="structInputs" style="display:none">
@@ -326,6 +337,8 @@ input,select{font-family:inherit}
       <div class="rptab act" id="rpt-layers" onclick="rpTab('layers')">Rooms</div>
       <div class="rptab" id="rpt-props" onclick="rpTab('props')">Props</div>
       <div class="rptab" id="rpt-vent" onclick="rpTab('vent')">Vent</div>
+      <div class="rptab" id="rpt-history" onclick="rpTab('history')">History</div>
+      <div class="rptab" id="rpt-compare" onclick="rpTab('compare')">Compare</div>
       <div class="rptab" id="rpt-struct" onclick="rpTab('struct')">Struct</div>
       <div class="rptab" id="rpt-summary" onclick="rpTab('summary')">Summary</div>
     </div>
@@ -341,6 +354,19 @@ input,select{font-family:inherit}
         <div class="lh"><div class="lh-t">Ventilation &amp; exposure</div></div>
         <div id="ventList"></div>
         <div class="note" style="margin:8px">Green = cross-ventilated (2+ exterior walls). Amber = single-side ventilated. Red = no exterior wall — needs a duct/shaft or borrowed light.</div>
+      </div>
+      <div class="rp-sec" id="rpsec-history">
+        <div class="lh"><div class="lh-t">Plan history — click to view</div></div>
+        <div id="historyList"></div>
+        <div class="note" style="margin:8px">Every NEW IDEA, Option A/B/C, and explicit Generate Plan is saved here. PREV/NEXT in the ribbon step through this list. Nothing is lost — pick any past idea and CONFIRM it.</div>
+      </div>
+      <div class="rp-sec" id="rpsec-compare">
+        <div class="lh"><div class="lh-t">Compare all saved ideas</div></div>
+        <div style="overflow-x:auto"><table class="structbl" id="compareTbl">
+          <thead><tr><th>#</th><th>Label</th><th>Rooms</th><th>Coverage</th><th>Built-up</th><th></th></tr></thead>
+          <tbody id="compareBody"></tbody>
+        </table></div>
+        <div class="note" style="margin:8px">Numbers only, side by side — click View on any row to render it full-size in the viewport.</div>
       </div>
       <div class="rp-sec" id="rpsec-struct">
         <div class="lh"><div class="lh-t">Columns &amp; footings</div></div>
@@ -425,9 +451,11 @@ let gridOn = true;
 let vastuOn = false;
 let viewMode = 'arch'; // 'arch' | 'load' | 'column' | 'beam' | 'footing'
 let planVariant = 'A';
+let randomShuffle = false; // when true, orderRooms shuffles instead of using A/B/C transform
+let planHistory = [];
+let historyIndex = -1;
 let entranceInfo = null; // {roomIdx, edge}
 let structModel = {columns:[], beams:[]};
-let editMode = false;   // drag-to-resize/move rooms
 let drawMode = false;   // click-drag to draw a new rectangular room
 let dragHandle = null;  // active drag operation, see canvas mousedown
 let drawRect = null;    // in-progress new room rectangle while drawMode dragging
@@ -583,14 +611,26 @@ function posScore(r, roadSide){
   return s;
 }
 function variantBaseOrder(list, variant){
+  if(randomShuffle){
+    const arr = [...list];
+    for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+    return arr;
+  }
   if(variant === 'B') return [...list].reverse();
   if(variant === 'C') return [...list].sort((a,b)=>b.area-a.area);
   return list;
 }
 function setVariant(v){
   planVariant = v;
+  randomShuffle = false;
   ['A','B','C'].forEach(k=>document.getElementById('opt'+k).classList.toggle('act', k===v));
-  generate();
+  regenerateNow('Option ' + v);
+}
+function generateNewIdea(){
+  randomShuffle = true;
+  ['A','B','C'].forEach(k=>document.getElementById('opt'+k).classList.remove('act'));
+  regenerateNow('Idea #' + (planHistory.length+1));
+  randomShuffle = false;
 }
 function orderRooms(list, roadSide){
   list = variantBaseOrder(list, planVariant); // base ordering differs per plan option
@@ -706,7 +746,101 @@ function buildStructModel(){
   structModel = {columns, beams};
 }
 
-/* ================= generate ================= */
+function regenerateNow(label){
+  clearTimeout(genTimer);
+  doGenerate();
+  pushHistory(label);
+}
+
+/* ---- plan history (infinite redesign + compare) ---- */
+function snapshotPlan(label){
+  return {
+    label, time: Date.now(),
+    plot: {...plot}, buildable: {...buildable},
+    placed: JSON.parse(JSON.stringify(placed)),
+    entranceInfo: entranceInfo ? {...entranceInfo} : null,
+    confirmed: false,
+  };
+}
+function pushHistory(label){
+  planHistory = planHistory.slice(0, historyIndex+1); // drop any redone-past-this-point branch
+  planHistory.push(snapshotPlan(label));
+  if(planHistory.length > 30) planHistory.shift();
+  historyIndex = planHistory.length-1;
+  renderHistoryList(); renderCompareTable();
+}
+function saveCurrentAsIdea(){
+  pushHistory('Manual edit #' + (planHistory.length+1));
+  document.getElementById('cmdMsg').textContent = 'Current manual layout saved to History.';
+}
+function viewHistory(i){
+  const h = planHistory[i];
+  if(!h) return;
+  plot = {...h.plot}; buildable = {...h.buildable};
+  placed = JSON.parse(JSON.stringify(h.placed));
+  entranceInfo = h.entranceInfo ? {...h.entranceInfo} : null;
+  historyIndex = i; selected = null;
+  buildStructModel();
+  document.getElementById('planBadge').innerHTML = `PLOT <b>${plot.w}' &times; ${plot.d}'</b>`;
+  document.getElementById('st-plot').textContent = `${plot.w}'\u00d7${plot.d}'`;
+  refreshStatsAndPanels();
+  document.getElementById('cmdMsg').textContent = `Viewing "${h.label}".`;
+}
+function historyPrev(){ if(historyIndex>0) viewHistory(historyIndex-1); else document.getElementById('cmdMsg').textContent='Already at the earliest saved idea.'; }
+function historyNext(){ if(historyIndex<planHistory.length-1) viewHistory(historyIndex+1); else document.getElementById('cmdMsg').textContent='Already at the latest saved idea.'; }
+function confirmCurrentPlan(){
+  if(historyIndex<0 || !planHistory[historyIndex]){
+    pushHistory('Confirmed plan');
+  }
+  planHistory.forEach((h,i)=>h.confirmed = (i===historyIndex));
+  buildStructModel();
+  refreshStatsAndPanels();
+  renderHistoryList(); renderCompareTable();
+  document.getElementById('cmdMsg').textContent = `Confirmed "${planHistory[historyIndex].label}" — loads, columns, beams and footings recalculated.`;
+}
+function refreshStatsAndPanels(){
+  const plotArea = plot.w*plot.d;
+  const buildArea = buildable.w*buildable.h;
+  const floors = +document.getElementById('floors').value || 1;
+  const coverage = plotArea>0 ? Math.round((buildArea/plotArea)*100) : 0;
+  document.getElementById('st-build').textContent = `${Math.round(buildArea)} sqft`;
+  document.getElementById('st-cov').textContent = `${coverage}%`;
+  document.getElementById('st-rooms').textContent = placed.length;
+  document.getElementById('s-plot').textContent = `${plotArea} sqft`;
+  document.getElementById('s-build').textContent = `${Math.round(buildArea)} sqft`;
+  document.getElementById('s-cov').textContent = `${coverage}%`;
+  document.getElementById('s-total').textContent = `${Math.round(buildArea*floors)} sqft / ${floors} fl`;
+  document.getElementById('s-rooms').textContent = placed.length;
+  renderRoomList(); renderProps(); renderVentList(); renderStructTable(); render();
+}
+function renderHistoryList(){
+  const wrap = document.getElementById('historyList');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  planHistory.forEach((h,i)=>{
+    const row = document.createElement('div');
+    row.className = 'li' + (i===historyIndex ? ' cur' : '');
+    const buildArea = h.buildable.w*h.buildable.h;
+    const cov = h.plot.w*h.plot.d>0 ? Math.round((buildArea/(h.plot.w*h.plot.d))*100) : 0;
+    row.innerHTML = `<div class="ld ${h.confirmed?'gr':''}"></div><div class="ln">${h.confirmed?'\u2605 ':''}${h.label}</div><div class="lv">${h.placed.length}rm \u00b7 ${cov}%</div>`;
+    row.addEventListener('click', ()=>viewHistory(i));
+    wrap.appendChild(row);
+  });
+  if(!planHistory.length) wrap.innerHTML = '<div class="noSel">No saved ideas yet.<br>Click NEW IDEA or Generate Plan.</div>';
+}
+function renderCompareTable(){
+  const body = document.getElementById('compareBody');
+  if(!body) return;
+  body.innerHTML = '';
+  planHistory.forEach((h,i)=>{
+    const buildArea = h.buildable.w*h.buildable.h;
+    const plotArea = h.plot.w*h.plot.d;
+    const cov = plotArea>0 ? Math.round((buildArea/plotArea)*100) : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i+1}${h.confirmed?' \u2605':''}</td><td>${h.label}</td><td>${h.placed.length}</td><td>${cov}%</td><td>${Math.round(buildArea)} sf</td><td><button class="bo" style="padding:2px 8px;font-size:8.5px" onclick="viewHistory(${i})">View</button></td>`;
+    body.appendChild(tr);
+  });
+}
 let genTimer = null;
 function generate(){
   document.getElementById('genflag').style.opacity = '1';
@@ -871,7 +1005,7 @@ function render(){
   else if(viewMode === 'beam') renderBeam(b0,b1);
   else if(viewMode === 'footing') renderFooting(b0,b1);
 
-  if(editMode && viewMode==='arch' && selected !== null && placed[selected]) drawHandles(placed[selected]);
+  if(viewMode==='arch' && selected !== null && placed[selected]) drawHandles(placed[selected]);
   if(drawMode && viewMode==='arch') drawPreviewRect();
 
   // dimensions + north arrow + title (both views)
@@ -1103,7 +1237,7 @@ canvas.addEventListener('mousedown', e=>{
     drawRect = {x0:wp.x-buildable.x, y0:wp.y-buildable.y, x1:wp.x-buildable.x, y1:wp.y-buildable.y};
     return;
   }
-  if(editMode && viewMode==='arch' && selected !== null && placed[selected]){
+  if(viewMode==='arch' && selected !== null && placed[selected]){
     const hit = hitHandle(mx,my,placed[selected]);
     if(hit){
       const r = placed[selected];
@@ -1237,19 +1371,9 @@ function zoomExt(){
   render();
 }
 
-function toggleEditMode(){
-  editMode = !editMode;
-  if(editMode) drawMode = false;
-  document.getElementById('rb-edit').classList.toggle('act', editMode);
-  document.getElementById('rb-draw').classList.toggle('act', drawMode);
-  vp.style.cursor = editMode ? 'default' : (drawMode ? 'crosshair' : 'grab');
-  render();
-}
 function toggleDrawMode(){
   drawMode = !drawMode;
-  if(drawMode) editMode = false;
   document.getElementById('rb-draw').classList.toggle('act', drawMode);
-  document.getElementById('rb-edit').classList.toggle('act', editMode);
   vp.style.cursor = drawMode ? 'crosshair' : 'grab';
   render();
 }
@@ -1453,7 +1577,8 @@ syncLLDefault();
 ['A','B','C'].forEach(k=>document.getElementById('opt'+k).classList.toggle('act', k==='A'));
 fitCanvas();
 zoomExt();
-generate();
+doGenerate();
+pushHistory('Initial layout');
 </script>
 </body>
 </html>
