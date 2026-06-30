@@ -165,9 +165,21 @@ input,select{font-family:inherit}
   <div class="rg">
     <div class="rr">
       <button class="rb act" id="rb-view-arch" onclick="setView('arch')"><span class="rb-i">🏠</span>ARCH</button>
-      <button class="rb" id="rb-view-struct" onclick="setView('struct')"><span class="rb-i">🏗️</span>STRUCT</button>
+      <button class="rb" id="rb-view-load" onclick="setView('load')"><span class="rb-i">⚖️</span>LOAD</button>
+      <button class="rb" id="rb-view-column" onclick="setView('column')"><span class="rb-i">⬛</span>COLUMN</button>
+    </div>
+    <div class="rr">
+      <button class="rb" id="rb-view-beam" onclick="setView('beam')"><span class="rb-i">━</span>BEAM</button>
+      <button class="rb" id="rb-view-footing" onclick="setView('footing')"><span class="rb-i">▦</span>FOOTING</button>
     </div>
     <div class="rg-lbl">DRAWING</div>
+  </div>
+  <div class="rg">
+    <div class="rr">
+      <button class="rb" onclick="saveProject()"><span class="rb-i">💾</span>SAVE</button>
+      <button class="rb" onclick="loadProjectPrompt()"><span class="rb-i">📂</span>LOAD</button>
+    </div>
+    <div class="rg-lbl">PROJECT</div>
   </div>
   <div class="rg">
     <div class="rr">
@@ -324,7 +336,12 @@ input,select{font-family:inherit}
           <thead><tr><th>Col</th><th>Trib m²</th><th>Load kN</th><th>Footing</th><th>Size</th></tr></thead>
           <tbody id="structBody"></tbody>
         </table></div>
-        <div class="disclaimer"><b>Schematic only.</b> Switch to the STRUCT drawing (ribbon) to see the column/beam layout and footing sizes plotted on the plan.</div>
+        <div class="lh"><div class="lh-t">Beams</div></div>
+        <div style="overflow-x:auto"><table class="structbl" id="beamTbl">
+          <thead><tr><th>Beam</th><th>Span ft</th><th>Size mm</th></tr></thead>
+          <tbody id="beamBody"></tbody>
+        </table></div>
+        <div class="disclaimer"><b>Schematic only.</b> Switch sheets in the DRAWING ribbon group (Load / Column / Beam / Footing) to see each one plotted on the plan separately.</div>
       </div>
       <div class="rp-sec" id="rpsec-summary">
         <div class="pg">
@@ -501,13 +518,15 @@ function toggleLP(){ document.getElementById('lpanel').classList.toggle('hidden'
 function toggleRP(){ document.getElementById('rpanel').classList.toggle('hidden'); fitCanvas(); }
 function setView(mode){
   viewMode = mode;
-  document.getElementById('rb-view-arch').classList.toggle('act', mode==='arch');
-  document.getElementById('rb-view-struct').classList.toggle('act', mode==='struct');
+  ['arch','load','column','beam','footing'].forEach(m=>{
+    document.getElementById('rb-view-'+m).classList.toggle('act', m===mode);
+  });
+  const isStruct = mode !== 'arch';
   document.getElementById('archInputs').style.display = mode==='arch' ? 'block' : 'none';
-  document.getElementById('structInputs').style.display = mode==='struct' ? 'block' : 'none';
-  document.getElementById('warnBadge').style.display = mode==='struct' ? 'block' : 'none';
+  document.getElementById('structInputs').style.display = isStruct ? 'block' : 'none';
+  document.getElementById('warnBadge').style.display = isStruct ? 'block' : 'none';
   document.getElementById('st-view').textContent = mode.toUpperCase();
-  if(mode==='struct') rpTab('struct');
+  if(isStruct) rpTab('struct');
   render();
 }
 
@@ -629,6 +648,15 @@ function buildStructModel(){
   uniqueYs.forEach(y=>{
     const onLine = columns.filter(c=>c.y===y).sort((a,b)=>a.x-b.x);
     for(let i=0;i<onLine.length-1;i++) beams.push({x1:onLine[i].x,y1:y,x2:onLine[i+1].x,y2:y});
+  });
+  beams.forEach(b=>{
+    const span = Math.hypot(b.x2-b.x1, b.y2-b.y1);
+    b.span = span;
+    // rule-of-thumb preliminary sizing only: depth ~ span(ft)*0.75in, rounded to nearest 25mm
+    const depthIn = Math.max(9, Math.round(span*0.75/3)*3);
+    const widthIn = Math.max(9, Math.round(depthIn*0.55/3)*3);
+    b.depthMM = Math.round(depthIn*25.4/25)*25;
+    b.widthMM = Math.round(widthIn*25.4/25)*25;
   });
 
   // loads
@@ -781,6 +809,13 @@ function renderStructTable(){
     tr.innerHTML = `<td>C${i+1}</td><td>${c.tribM2.toFixed(2)}</td><td>${c.loadKN.toFixed(1)}</td><td>${c.footSideM.toFixed(2)}m sq</td><td>${c.size}</td>`;
     body.appendChild(tr);
   });
+  const beamBody = document.getElementById('beamBody');
+  beamBody.innerHTML = '';
+  structModel.beams.forEach((b,i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>B${i+1}</td><td>${b.span.toFixed(1)}</td><td>${b.widthMM}\u00d7${b.depthMM}</td>`;
+    beamBody.appendChild(tr);
+  });
 }
 
 /* ================= rendering ================= */
@@ -815,7 +850,10 @@ function render(){
   drawRoadHatch(p0,p1,b0,b1,roadSide);
 
   if(viewMode === 'arch') renderArch(b0,b1);
-  else renderStruct(b0,b1);
+  else if(viewMode === 'load') renderLoad(b0,b1);
+  else if(viewMode === 'column') renderColumn(b0,b1);
+  else if(viewMode === 'beam') renderBeam(b0,b1);
+  else if(viewMode === 'footing') renderFooting(b0,b1);
 
   // dimensions + north arrow + title (both views)
   ctx.strokeStyle = '#7fb3e8'; ctx.lineWidth = 1;
@@ -833,7 +871,10 @@ function render(){
   ctx.strokeStyle = 'rgba(207,230,255,.4)'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(0,H-22); ctx.lineTo(W,H-22); ctx.stroke();
   ctx.textAlign = 'left'; ctx.fillStyle = '#eaf4ff'; ctx.font = '700 10.5px Plus Jakarta Sans, sans-serif';
-  ctx.fillText(viewMode==='arch' ? 'AIRSUM \u2014 AI-GENERATED ARCHITECTURAL PLAN' : 'AIRSUM \u2014 PRELIMINARY STRUCTURAL SCHEMATIC (NOT FOR CONSTRUCTION)', 14, H-7);
+  const sheetNames = {arch:'AI-GENERATED ARCHITECTURAL PLAN', load:'PRELIMINARY LOAD TAKEOFF (NOT FOR CONSTRUCTION)',
+    column:'PRELIMINARY COLUMN LAYOUT (NOT FOR CONSTRUCTION)', beam:'PRELIMINARY BEAM LAYOUT (NOT FOR CONSTRUCTION)',
+    footing:'PRELIMINARY FOOTING LAYOUT (NOT FOR CONSTRUCTION)'};
+  ctx.fillText('AIRSUM \u2014 ' + (sheetNames[viewMode]||''), 14, H-7);
 }
 
 function drawRoadHatch(p0,p1,b0,b1,roadSide){
@@ -939,36 +980,94 @@ function drawDoor(s0,s1,side,isEntrance){
   }
 }
 
-function renderStruct(b0,b1){
+function renderLoad(b0,b1){
+  // tributary-area cells, shaded by load magnitude, with kN labels — this IS the load takeoff drawing
   ctx.strokeStyle = 'rgba(207,230,255,.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([3,4]);
-  ctx.strokeRect(b0.x, b0.y, b1.x-b0.x, b1.y-b0.y);
-  ctx.setLineDash([]);
+  ctx.strokeRect(b0.x, b0.y, b1.x-b0.x, b1.y-b0.y); ctx.setLineDash([]);
 
-  // beams
-  ctx.strokeStyle = '#A78BFA'; ctx.lineWidth = 3;
-  structModel.beams.forEach(bm=>{
-    const s1 = worldToScreen(buildable.x+bm.x1, buildable.y+bm.y1);
-    const s2 = worldToScreen(buildable.x+bm.x2, buildable.y+bm.y2);
-    ctx.beginPath(); ctx.moveTo(s1.x,s1.y); ctx.lineTo(s2.x,s2.y); ctx.stroke();
+  const uniqueXs = [...new Set(structModel.columns.map(c=>c.x))].sort((a,b)=>a-b);
+  const uniqueYs = [...new Set(structModel.columns.map(c=>c.y))].sort((a,b)=>a-b);
+  structModel.columns.forEach(c=>{
+    const ix = uniqueXs.indexOf(c.x), iy = uniqueYs.indexOf(c.y);
+    const xL = ix>0 ? (c.x+uniqueXs[ix-1])/2 : 0, xR = ix<uniqueXs.length-1 ? (c.x+uniqueXs[ix+1])/2 : buildable.w;
+    const yT = iy>0 ? (c.y+uniqueYs[iy-1])/2 : 0, yB = iy<uniqueYs.length-1 ? (c.y+uniqueYs[iy+1])/2 : buildable.h;
+    const s0 = worldToScreen(buildable.x+xL, buildable.y+yT), s1 = worldToScreen(buildable.x+xR, buildable.y+yB);
+    const color = c.loadKN<150 ? 'rgba(74,222,128,.18)' : c.loadKN<350 ? 'rgba(245,190,24,.18)' : 'rgba(255,68,102,.18)';
+    ctx.fillStyle = color; ctx.fillRect(s0.x,s0.y,s1.x-s0.x,s1.y-s0.y);
+    ctx.strokeStyle = 'rgba(207,230,255,.3)'; ctx.lineWidth = 1; ctx.strokeRect(s0.x,s0.y,s1.x-s0.x,s1.y-s0.y);
   });
-
-  // columns + footings
   structModel.columns.forEach((c,i)=>{
     const s = worldToScreen(buildable.x+c.x, buildable.y+c.y);
-    const footPx = (c.footSideM*3.28084)*scale; // m -> ft -> px
-    ctx.strokeStyle = 'rgba(245,190,24,.5)'; ctx.lineWidth = 1; ctx.setLineDash([2,3]);
-    ctx.strokeRect(s.x-footPx/2, s.y-footPx/2, footPx, footPx);
-    ctx.setLineDash([]);
-
-    const color = c.loadKN<150 ? '#4ADE80' : c.loadKN<350 ? '#F5BE18' : '#ff4466';
-    ctx.fillStyle = color;
-    ctx.fillRect(s.x-5, s.y-5, 10, 10);
-    ctx.strokeStyle = '#091828'; ctx.lineWidth = 1; ctx.strokeRect(s.x-5, s.y-5, 10, 10);
-
-    ctx.fillStyle = '#eaf4ff'; ctx.font='700 8.5px IBM Plex Mono, monospace'; ctx.textAlign='center';
-    ctx.fillText(`C${i+1}`, s.x, s.y-9);
+    ctx.fillStyle = '#091828'; ctx.beginPath(); ctx.arc(s.x,s.y,9,0,7); ctx.fill();
+    ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle = '#eaf4ff'; ctx.font='700 8px IBM Plex Mono, monospace'; ctx.textAlign='center';
+    ctx.fillText(`${c.loadKN.toFixed(0)}`, s.x, s.y+3);
     ctx.fillStyle = '#7fb3e8'; ctx.font='8px IBM Plex Mono, monospace';
-    ctx.fillText(`${c.loadKN.toFixed(0)}kN`, s.x, s.y+18);
+    ctx.fillText(`${c.tribM2.toFixed(1)}m\u00b2`, s.x, s.y-13);
+  });
+}
+
+function renderColumn(b0,b1){
+  ctx.strokeStyle = 'rgba(207,230,255,.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([3,4]);
+  ctx.strokeRect(b0.x, b0.y, b1.x-b0.x, b1.y-b0.y); ctx.setLineDash([]);
+  // faint grid lines through each column for reference
+  const uniqueXs = [...new Set(structModel.columns.map(c=>c.x))];
+  const uniqueYs = [...new Set(structModel.columns.map(c=>c.y))];
+  ctx.strokeStyle = 'rgba(167,139,250,.25)'; ctx.lineWidth = 1;
+  uniqueXs.forEach(x=>{ const s1=worldToScreen(buildable.x+x,buildable.y), s2=worldToScreen(buildable.x+x,buildable.y+buildable.h); ctx.beginPath();ctx.moveTo(s1.x,s1.y);ctx.lineTo(s2.x,s2.y);ctx.stroke(); });
+  uniqueYs.forEach(y=>{ const s1=worldToScreen(buildable.x,buildable.y+y), s2=worldToScreen(buildable.x+buildable.w,buildable.y+y); ctx.beginPath();ctx.moveTo(s1.x,s1.y);ctx.lineTo(s2.x,s2.y);ctx.stroke(); });
+
+  structModel.columns.forEach((c,i)=>{
+    const s = worldToScreen(buildable.x+c.x, buildable.y+c.y);
+    const color = c.loadKN<150 ? '#4ADE80' : c.loadKN<350 ? '#F5BE18' : '#ff4466';
+    const r = 9;
+    ctx.fillStyle = color; ctx.fillRect(s.x-r,s.y-r,r*2,r*2);
+    ctx.strokeStyle = '#091828'; ctx.lineWidth = 1.5; ctx.strokeRect(s.x-r,s.y-r,r*2,r*2);
+    ctx.fillStyle = '#eaf4ff'; ctx.font='700 9px IBM Plex Mono, monospace'; ctx.textAlign='center';
+    ctx.fillText(`C${i+1}`, s.x, s.y-14);
+    ctx.fillStyle = '#7fb3e8'; ctx.font='8px IBM Plex Mono, monospace';
+    ctx.fillText(c.size, s.x, s.y+22);
+  });
+}
+
+function renderBeam(b0,b1){
+  ctx.strokeStyle = 'rgba(207,230,255,.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([3,4]);
+  ctx.strokeRect(b0.x, b0.y, b1.x-b0.x, b1.y-b0.y); ctx.setLineDash([]);
+
+  structModel.beams.forEach((bm,i)=>{
+    const s1 = worldToScreen(buildable.x+bm.x1, buildable.y+bm.y1);
+    const s2 = worldToScreen(buildable.x+bm.x2, buildable.y+bm.y2);
+    const thickness = Math.max(3, (bm.depthMM/1000*3.28084)*scale*0.4);
+    ctx.strokeStyle = '#A78BFA'; ctx.lineWidth = thickness; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(s1.x,s1.y); ctx.lineTo(s2.x,s2.y); ctx.stroke();
+    const mx=(s1.x+s2.x)/2, my=(s1.y+s2.y)/2;
+    ctx.fillStyle = '#eaf4ff'; ctx.font='700 8.5px IBM Plex Mono, monospace'; ctx.textAlign='center';
+    ctx.save(); ctx.translate(mx,my-7);
+    ctx.fillText(`B${i+1} ${bm.widthMM}\u00d7${bm.depthMM}`, 0, 0);
+    ctx.restore();
+  });
+  structModel.columns.forEach((c,i)=>{
+    const s = worldToScreen(buildable.x+c.x, buildable.y+c.y);
+    ctx.fillStyle = '#091828'; ctx.beginPath(); ctx.arc(s.x,s.y,4,0,7); ctx.fill();
+    ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth=1; ctx.stroke();
+  });
+}
+
+function renderFooting(b0,b1){
+  ctx.strokeStyle = 'rgba(207,230,255,.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([3,4]);
+  ctx.strokeRect(b0.x, b0.y, b1.x-b0.x, b1.y-b0.y); ctx.setLineDash([]);
+
+  structModel.columns.forEach((c,i)=>{
+    const s = worldToScreen(buildable.x+c.x, buildable.y+c.y);
+    const footPx = (c.footSideM*3.28084)*scale;
+    ctx.fillStyle = 'rgba(245,190,24,.12)'; ctx.fillRect(s.x-footPx/2, s.y-footPx/2, footPx, footPx);
+    ctx.strokeStyle = '#F5BE18'; ctx.lineWidth = 1.6; ctx.strokeRect(s.x-footPx/2, s.y-footPx/2, footPx, footPx);
+    ctx.fillStyle = '#091828'; ctx.fillRect(s.x-5,s.y-5,10,10);
+    ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth=1; ctx.strokeRect(s.x-5,s.y-5,10,10);
+    ctx.fillStyle = '#eaf4ff'; ctx.font='700 8.5px IBM Plex Mono, monospace'; ctx.textAlign='center';
+    ctx.fillText(`F${i+1}`, s.x, s.y-footPx/2-6);
+    ctx.fillStyle = '#F5BE18'; ctx.font='8px IBM Plex Mono, monospace';
+    ctx.fillText(`${c.footSideM.toFixed(2)}\u00d7${c.footSideM.toFixed(2)}m`, s.x, s.y+footPx/2+12);
   });
 }
 
@@ -1087,7 +1186,8 @@ function runCmd(){
       syncVastuBtn(); generate();
       msg.textContent = `Vastu ordering ${parts[1]==='on'?'enabled':'disabled'}`;
     } else if(cmd === 'view'){
-      if(!['arch','struct'].includes(parts[1])) throw 'usage: view arch|struct';
+      const valid = ['arch','load','column','beam','footing'];
+      if(!valid.includes(parts[1])) throw 'usage: view arch|load|column|beam|footing';
       setView(parts[1]); msg.textContent = `Switched to ${parts[1]} view`;
     } else if(cmd === 'zoom' && parts[1] === 'fit'){
       zoomExt(); msg.textContent = 'Zoomed to extents';
@@ -1104,6 +1204,66 @@ function exportPNG(){
   a.href = canvas.toDataURL('image/png');
   a.download = `airsum-${viewMode}-plan.png`;
   a.click();
+}
+
+/* ================= save / load project ================= */
+const STORAGE_KEY = 'airsum_saved_plans_v1';
+function getSavedPlans(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+  catch(e){ return {}; }
+}
+function snapshotState(){
+  return {
+    plotW:+document.getElementById('plotW').value, plotD:+document.getElementById('plotD').value,
+    floors:+document.getElementById('floors').value, btype:document.getElementById('btype').value,
+    sbF:+document.getElementById('sbF').value, sbR:+document.getElementById('sbR').value,
+    sbL:+document.getElementById('sbL').value, sbRt:+document.getElementById('sbRt').value,
+    roadSide:document.getElementById('roadSide').value, entranceRoom:document.getElementById('entranceRoom').value,
+    extWall:+document.getElementById('extWall').value, intWall:+document.getElementById('intWall').value,
+    vastu:document.getElementById('vastu').checked, planVariant,
+    dlInput:+document.getElementById('dlInput').value, llInput:+document.getElementById('llInput').value,
+    sbcInput:+document.getElementById('sbcInput').value,
+    rooms: JSON.parse(JSON.stringify(rooms)),
+  };
+}
+function applyState(s){
+  document.getElementById('plotW').value=s.plotW; document.getElementById('plotD').value=s.plotD;
+  document.getElementById('floors').value=s.floors; document.getElementById('btype').value=s.btype;
+  document.getElementById('sbF').value=s.sbF; document.getElementById('sbR').value=s.sbR;
+  document.getElementById('sbL').value=s.sbL; document.getElementById('sbRt').value=s.sbRt;
+  document.getElementById('roadSide').value=s.roadSide;
+  document.getElementById('extWall').value=s.extWall; document.getElementById('intWall').value=s.intWall;
+  document.getElementById('vastu').checked=s.vastu;
+  document.getElementById('dlInput').value=s.dlInput; document.getElementById('llInput').value=s.llInput;
+  document.getElementById('sbcInput').value=s.sbcInput;
+  planVariant = s.planVariant || 'A';
+  ['A','B','C'].forEach(k=>document.getElementById('opt'+k).classList.toggle('act', k===planVariant));
+  rooms = withPref(s.rooms || []);
+  renderRoomRows(); // also repopulates entrance dropdown
+  document.getElementById('entranceRoom').value = s.entranceRoom || 'auto';
+  syncVastuBtn();
+  generate();
+}
+function saveProject(){
+  const name = prompt('Save this plan as (name):', 'My Plan ' + new Date().toLocaleDateString());
+  if(!name) return;
+  const plans = getSavedPlans();
+  plans[name] = snapshotState();
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
+    document.getElementById('cmdMsg').textContent = `Saved "${name}" to this browser.`;
+  } catch(e){
+    document.getElementById('cmdMsg').textContent = '⚠ Could not save (browser storage unavailable or full).';
+  }
+}
+function loadProjectPrompt(){
+  const plans = getSavedPlans();
+  const names = Object.keys(plans);
+  if(!names.length){ document.getElementById('cmdMsg').textContent = 'No saved plans in this browser yet.'; return; }
+  const name = prompt('Load which plan?\n' + names.map((n,i)=>`${i+1}. ${n}`).join('\n') + '\n\nType the exact name:', names[names.length-1]);
+  if(!name || !plans[name]){ if(name) document.getElementById('cmdMsg').textContent = `No saved plan named "${name}".`; return; }
+  applyState(plans[name]);
+  document.getElementById('cmdMsg').textContent = `Loaded "${name}".`;
 }
 
 /* ================= init ================= */
