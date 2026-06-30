@@ -251,6 +251,31 @@ input,select{font-family:inherit}
   </div>
   <div class="rg">
     <div class="rr">
+      <button class="rb" id="rb-add-door" onclick="toggleAddDoor()"><span class="rb-i">🚪</span>ADD DOOR</button>
+      <button class="rb" id="rb-add-window" onclick="toggleAddWindow()"><span class="rb-i">🪟</span>ADD WINDOW</button>
+    </div>
+    <div class="rg-lbl">OPENINGS (click a wall)</div>
+  </div>
+  <div class="rg">
+    <div class="rr">
+      <select class="ps" id="furniturePicker" style="font-size:9.5px;padding:3px 5px;width:90px;height:34px">
+        <option value="bed">Bed</option>
+        <option value="sofa">Sofa</option>
+        <option value="dining_table">Dining Table</option>
+        <option value="wardrobe">Wardrobe</option>
+        <option value="wc">WC</option>
+        <option value="sink">Sink</option>
+        <option value="stove">Stove</option>
+        <option value="desk">Desk</option>
+        <option value="tv">TV Unit</option>
+        <option value="car">Car</option>
+      </select>
+      <button class="rb" id="rb-add-furniture" onclick="toggleAddFurniture()"><span class="rb-i">🛋️</span>PLACE</button>
+    </div>
+    <div class="rg-lbl">FURNITURE (click inside room)</div>
+  </div>
+  <div class="rg">
+    <div class="rr">
       <button class="rb lg" onclick="exportPNG()"><span class="rb-i">🖼️</span>PNG</button>
       <button class="rb lg" onclick="exportDXF()"><span class="rb-i">📐</span>DXF</button>
       <button class="rb lg" onclick="printPlan()"><span class="rb-i">🖨️</span>PRINT</button>
@@ -298,13 +323,13 @@ input,select{font-family:inherit}
           <div class="fg"><label>Left</label><input class="pi" id="sbL" type="number" value="3" min="0" step="0.5"></div>
           <div class="fg"><label>Right</label><input class="pi" id="sbRt" type="number" value="3" min="0" step="0.5"></div>
         </div>
-        <div class="fg"><label>Road faces</label>
-          <select class="ps" id="roadSide">
-            <option value="front">Front setback</option>
-            <option value="rear">Rear setback</option>
-            <option value="left">Left setback</option>
-            <option value="right">Right setback</option>
-          </select>
+        <div class="fg"><label>Road faces (select all that apply — corner/multi-frontage plots)</label>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;padding:6px 0">
+            <label class="check" style="margin:0"><input type="checkbox" class="roadSideCb" value="front" checked> Front</label>
+            <label class="check" style="margin:0"><input type="checkbox" class="roadSideCb" value="rear"> Rear</label>
+            <label class="check" style="margin:0"><input type="checkbox" class="roadSideCb" value="left"> Left</label>
+            <label class="check" style="margin:0"><input type="checkbox" class="roadSideCb" value="right"> Right</label>
+          </div>
         </div>
         <div class="fg"><label>Main entrance room</label>
           <select class="ps" id="entranceRoom">
@@ -328,10 +353,20 @@ input,select{font-family:inherit}
         </div>
 
         <div class="tg-title">Room Program</div>
+        <div class="fg"><label>Add from preset</label>
+          <select class="ps" id="roomPresetSelect" onchange="onPresetChange()"></select>
+        </div>
+        <div id="presetCustomFields" style="display:none">
+          <div class="g2">
+            <div class="fg"><label>Name</label><input class="pi" id="presetCustomName" placeholder="e.g. Home Theatre"></div>
+            <div class="fg"><label>Area sqft</label><input class="pi" id="presetCustomArea" type="number" value="100" min="10" step="5"></div>
+          </div>
+        </div>
+        <div class="btnRow"><button class="bp" onclick="addRoomFromPreset()">+ Add Selected Room</button></div>
         <div id="roomRows"></div>
-        <div class="btnRow"><button class="bo" onclick="addRoom()">+ Add Room</button></div>
+        <div class="btnRow"><button class="bo" onclick="addRoom()">+ Add Blank Room</button></div>
         <div class="note">Each room has a <b>Position</b> hint (Auto / Road-facing / Back / Side) — it steers which side of the plot the AI tries to place it on. Add a room and it regenerates immediately.</div>
-        <div class="note"><b>Manual editing:</b> click any room, then drag its corner/edge handles to resize, or drag the body to move it — works immediately, no mode switch needed. DRAW ROOM adds a new rectangle by hand. SET SIZE types exact dimensions. Loads/columns/beams/footings recalculate automatically after every change.</div>
+        <div class="note"><b>Manual editing:</b> click any room, then drag its corner/edge handles to resize, or drag the body to move it — works immediately, no mode switch needed. Dragging a shared wall (e.g. Hall/Kitchen boundary) resizes the room on both sides together, no gaps or overlaps. DRAW ROOM adds a new rectangle by hand. SET SIZE types exact dimensions. Loads/columns/beams/footings recalculate automatically after every change.</div>
 
         <div class="btnRow" style="margin-top:14px"><button class="bp" onclick="regenerateNow('Generated')">✨ Generate Plan</button></div>
       </div>
@@ -520,6 +555,7 @@ let historyIndex = -1;
 let entranceInfo = null; // {roomIdx, edge}
 let structModel = {columns:[], beams:[]};
 let drawMode = false;   // click-drag to draw a new rectangular room
+let addDoorMode = false, addWindowMode = false, addFurnitureMode = false;
 let dragHandle = null;  // active drag operation, see canvas mousedown
 let drawRect = null;    // in-progress new room rectangle while drawMode dragging
 
@@ -579,6 +615,62 @@ function renderRoomRows(){
     });
   });
 }
+/* ================= room presets ================= */
+const ROOM_PRESETS = [
+  {id:'living_hall',   label:'Living / Hall',              rooms:[{name:'Living / Hall', area:200}]},
+  {id:'family_lounge',  label:'Family Lounge',              rooms:[{name:'Family Lounge', area:150}]},
+  {id:'dining',         label:'Dining Room',                rooms:[{name:'Dining', area:100}]},
+  {id:'kitchen',        label:'Kitchen',                    rooms:[{name:'Kitchen', area:90}]},
+  {id:'master_toilet',  label:'★ Master Bedroom + Attached Toilet', rooms:[{name:'Master Bedroom', area:160},{name:'Master Toilet', area:40}]},
+  {id:'bedroom_toilet', label:'★ Bedroom + Attached Toilet', rooms:[{name:'Bedroom', area:130},{name:'Attached Toilet', area:36}]},
+  {id:'bedroom',        label:'Bedroom (no attached toilet)', rooms:[{name:'Bedroom', area:120}]},
+  {id:'guest_bedroom',  label:'Guest Bedroom',              rooms:[{name:'Guest Bedroom', area:130}]},
+  {id:'common_toilet',  label:'Common Toilet',              rooms:[{name:'Common Toilet', area:30}]},
+  {id:'powder_room',    label:'Powder Room (guest WC)',     rooms:[{name:'Powder Room', area:22}]},
+  {id:'parking',        label:'★ Car Parking',              rooms:[{name:'Parking', area:150}]},
+  {id:'garage',         label:'Garage (enclosed)',          rooms:[{name:'Garage', area:200}]},
+  {id:'stair',          label:'Staircase',                  rooms:[{name:'Stair', area:50}]},
+  {id:'lift',           label:'Lift / Elevator',            rooms:[{name:'Lift', area:25}]},
+  {id:'pooja',          label:'Pooja / Prayer Room',        rooms:[{name:'Pooja Room', area:36}]},
+  {id:'study',          label:'Study / Home Office',        rooms:[{name:'Study', area:80}]},
+  {id:'store',          label:'Store Room',                 rooms:[{name:'Store', area:40}]},
+  {id:'utility',        label:'Utility / Wash Area',        rooms:[{name:'Utility', area:50}]},
+  {id:'balcony',        label:'Balcony',                    rooms:[{name:'Balcony', area:40}]},
+  {id:'terrace',        label:'Terrace',                    rooms:[{name:'Terrace', area:120}]},
+  {id:'servant',        label:'Servant / Maid Room',        rooms:[{name:'Servant Room', area:70}]},
+  {id:'home_theatre',   label:'Home Theatre',               rooms:[{name:'Home Theatre', area:160}]},
+  {id:'gym',            label:'Gym',                        rooms:[{name:'Gym', area:120}]},
+  {id:'office_cabin',   label:'Office Cabin',                rooms:[{name:'Cabin', area:80}]},
+  {id:'reception',      label:'Reception',                  rooms:[{name:'Reception', area:120}]},
+  {id:'meeting',        label:'Meeting Room',               rooms:[{name:'Meeting Room', area:100}]},
+  {id:'custom',         label:'✎ Custom — type your own…',  rooms:null},
+];
+function populatePresetSelect(){
+  const sel = document.getElementById('roomPresetSelect');
+  sel.innerHTML = ROOM_PRESETS.map(p=>`<option value="${p.id}">${p.label}</option>`).join('');
+}
+function onPresetChange(){
+  const id = document.getElementById('roomPresetSelect').value;
+  document.getElementById('presetCustomFields').style.display = id==='custom' ? 'block' : 'none';
+}
+function addRoomFromPreset(){
+  const id = document.getElementById('roomPresetSelect').value;
+  const preset = ROOM_PRESETS.find(p=>p.id===id);
+  if(!preset) return;
+  let toAdd;
+  if(id==='custom'){
+    const name = document.getElementById('presetCustomName').value.trim() || 'Custom Room';
+    const area = +document.getElementById('presetCustomArea').value || 80;
+    toAdd = [{name, area}];
+  } else {
+    toAdd = preset.rooms;
+  }
+  toAdd.forEach(r=>rooms.push({name:r.name, area:r.area, pref:'auto'}));
+  renderRoomRows();
+  generate();
+  document.getElementById('cmdMsg').textContent = `Added ${toAdd.map(r=>r.name).join(' + ')}.`;
+}
+
 function addRoom(){
   rooms.push({name:'New Room', area:80, pref:'auto'});
   renderRoomRows();
@@ -689,11 +781,18 @@ function vastuScore(r){
   if(n.includes('master')) return 5;
   return 2.5;
 }
-function posScore(r, roadSide){
+function getRoadSides(){
+  const checked = [...document.querySelectorAll('.roadSideCb:checked')].map(cb=>cb.value);
+  return checked.length ? checked : ['front'];
+}
+function posScore(r, roadSides){
   let s = r.pref==='road' ? 0 : r.pref==='side' ? 1.5 : r.pref==='back' ? 3 : 1.5;
   // origin (0,0) of the buildable rect is the "first" branch of the partition tree.
-  // front/left roads sit near the origin already; rear/right roads are far from it, so invert.
-  if(roadSide === 'rear' || roadSide === 'right') s = 3 - s;
+  // front/left roads sit near the origin already; rear/right roads are far from it.
+  // with multiple road sides, bias toward the origin if ANY selected side is front/left.
+  const nearOrigin = roadSides.includes('front') || roadSides.includes('left');
+  const farFromOrigin = roadSides.includes('rear') || roadSides.includes('right');
+  if(farFromOrigin && !nearOrigin) s = 3 - s;
   return s;
 }
 function variantBaseOrder(list, variant){
@@ -718,13 +817,13 @@ function generateNewIdea(){
   regenerateNow('Idea #' + (planHistory.length+1));
   randomShuffle = false;
 }
-function orderRooms(list, roadSide){
+function orderRooms(list, roadSides){
   list = variantBaseOrder(list, planVariant); // base ordering differs per plan option
   const useVastu = vastuOn, usePos = list.some(r=>r.pref && r.pref!=='auto');
   if(!useVastu && !usePos) return list;
   return [...list].sort((a,b)=>{
-    const sa = (useVastu?vastuScore(a):0) + (usePos?posScore(a,roadSide)*0.6:0);
-    const sb = (useVastu?vastuScore(b):0) + (usePos?posScore(b,roadSide)*0.6:0);
+    const sa = (useVastu?vastuScore(a):0) + (usePos?posScore(a,roadSides)*0.6:0);
+    const sb = (useVastu?vastuScore(b):0) + (usePos?posScore(b,roadSides)*0.6:0);
     return sa-sb;
   });
 }
@@ -739,26 +838,31 @@ function edgesOf(r){
     right:  (r.x+r.w) >= buildable.w - EPS,
   };
 }
-function roadEdgeKey(roadSide){
-  return {front:'top', rear:'bottom', left:'left', right:'right'}[roadSide] || 'top';
+function roadEdgeKeys(roadSides){
+  const map = {front:'top', rear:'bottom', left:'left', right:'right'};
+  return roadSides.map(s=>map[s]).filter(Boolean);
 }
 function exteriorCount(ed){ return Object.values(ed).filter(Boolean).length; }
 
-function computeEntrance(roadSide){
-  const key = roadEdgeKey(roadSide);
-  let candidates = placed.map((r,i)=>({i, r, ed:edgesOf(r)})).filter(c=>c.ed[key]);
+function computeEntrance(roadSides){
+  const keys = roadEdgeKeys(roadSides);
+  let candidates = placed.map((r,i)=>({i, r, ed:edgesOf(r)})).filter(c=>keys.some(k=>c.ed[k]));
   if(!candidates.length) return null;
 
   const wanted = document.getElementById('entranceRoom').value;
   if(wanted !== 'auto'){
     const forced = candidates.find(c=>c.r.name === wanted);
-    if(forced) return {roomIdx: forced.i, edge: key, auto:false};
-    // chosen room doesn't touch the road edge at this layout — fall back to auto and say so
-    document.getElementById('cmdMsg').textContent = `⚠ "${wanted}" doesn't reach the road-facing wall in this layout — entrance placed automatically instead.`;
+    if(forced){
+      const edgeKey = keys.find(k=>forced.ed[k]);
+      return {roomIdx: forced.i, edge: edgeKey, auto:false};
+    }
+    // chosen room doesn't touch any road edge at this layout — fall back to auto and say so
+    document.getElementById('cmdMsg').textContent = `⚠ "${wanted}" doesn't reach a road-facing wall in this layout — entrance placed automatically instead.`;
   }
   let pick = candidates.find(c=>/living|hall|reception/i.test(c.r.name));
   if(!pick) pick = candidates.sort((a,b)=>b.r.area-a.r.area)[0];
-  return {roomIdx: pick.i, edge: key, auto:true};
+  const edgeKey = keys.find(k=>pick.ed[k]);
+  return {roomIdx: pick.i, edge: edgeKey, auto:true};
 }
 function populateEntranceSelect(){
   const sel = document.getElementById('entranceRoom');
@@ -951,7 +1055,7 @@ function doGenerateInner(){
   const sbR = +document.getElementById('sbR').value || 0;
   const sbL = +document.getElementById('sbL').value || 0;
   const sbRt = +document.getElementById('sbRt').value || 0;
-  const roadSide = document.getElementById('roadSide').value;
+  const roadSides = getRoadSides();
   vastuOn = document.getElementById('vastu').checked;
 
   const buildW = Math.max(8, plotW - sbL - sbRt);
@@ -959,7 +1063,7 @@ function doGenerateInner(){
   const buildArea = buildW*buildD;
 
   let list = withPref(rooms.filter(r=>r.area > 0));
-  list = orderRooms(list, roadSide);
+  list = orderRooms(list, roadSides);
   const totalReq = list.reduce((s,r)=>s+r.area,0);
   const scaleA = totalReq > 0 ? buildArea/totalReq : 1;
   const scaledList = list.map(r=>({...r, area:r.area*scaleA}));
@@ -968,7 +1072,7 @@ function doGenerateInner(){
   buildable = {x:sbL, y:sbF, w:buildW, h:buildD};
   placed = list.length ? partition(0,0,buildW,buildD,scaledList) : [];
   selected = null;
-  entranceInfo = computeEntrance(roadSide);
+  entranceInfo = computeEntrance(roadSides);
   buildStructModel();
 
   document.getElementById('planBadge').innerHTML = `PLOT <b>${plotW}' &times; ${plotD}'</b>`;
@@ -1142,9 +1246,9 @@ function render(){
   const b0 = worldToScreen(buildable.x, buildable.y);
   const b1 = worldToScreen(buildable.x+buildable.w, buildable.y+buildable.h);
 
-  // road hatch along the chosen setback edge
-  const roadSide = document.getElementById('roadSide').value;
-  drawRoadHatch(p0,p1,b0,b1,roadSide);
+  // road hatch along every selected setback edge (corner/multi-frontage plots)
+  const roadSides = getRoadSides();
+  roadSides.forEach(side=>drawRoadHatch(p0,p1,b0,b1,side));
 
   if(viewMode === 'arch') renderArch(b0,b1);
   else if(viewMode === 'load') renderLoad(b0,b1);
@@ -1241,6 +1345,16 @@ function renderArch(b0,b1){
       drawDoor(s0,s1,entranceInfo.edge,true);
     }
 
+    // manually-placed doors/windows (in addition to the auto ones above)
+    (r.manualOpenings||[]).forEach(op=>{
+      drawManualOpening(s0,s1,op.edge,op.frac,op.type);
+    });
+
+    // furniture symbols
+    (r.furniture||[]).forEach(f=>{
+      drawFurniture(s0.x + f.relX*w, s0.y + f.relY*h, f.type, scale);
+    });
+
     if(w>56 && h>34){
       ctx.fillStyle = '#eaf4ff'; ctx.font = '700 11px Plus Jakarta Sans, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(r.name, s0.x+w/2, s0.y+h/2-3);
@@ -1278,6 +1392,75 @@ function drawDoor(s0,s1,side,isEntrance){
     ctx.fillStyle = '#FB5B6E'; ctx.font='700 8px IBM Plex Mono, monospace'; ctx.textAlign='center';
     ctx.fillText('ENTRY', (x1+x2)/2, side==='top'? y1-5 : side==='bottom'? y1+12 : (y1+y2)/2);
   }
+}
+
+function drawManualOpening(s0,s1,side,frac,type){
+  const w = s1.x-s0.x, h = s1.y-s0.y;
+  const span = (side==='top'||side==='bottom') ? Math.min(w*0.26, 32) : Math.min(h*0.26, 32);
+  let cx,cy;
+  if(side==='top'){ cx = s0.x+frac*w; cy = s0.y; }
+  else if(side==='bottom'){ cx = s0.x+frac*w; cy = s1.y; }
+  else if(side==='left'){ cx = s0.x; cy = s0.y+frac*h; }
+  else { cx = s1.x; cy = s0.y+frac*h; }
+  const horiz = (side==='top'||side==='bottom');
+  const x1 = horiz ? cx-span/2 : cx, y1 = horiz ? cy : cy-span/2;
+  const x2 = horiz ? cx+span/2 : cx, y2 = horiz ? cy : cy+span/2;
+  if(type==='door'){
+    ctx.strokeStyle = '#0e3a66'; ctx.lineWidth = 3.4;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    // swing arc, quarter circle from the hinge point
+    ctx.strokeStyle = 'rgba(207,230,255,.45)'; ctx.lineWidth = 1; ctx.setLineDash([2,2]);
+    ctx.beginPath(); ctx.arc(x1,y1, span, horiz ? Math.PI : Math.PI/2, horiz ? Math.PI*1.5 : Math.PI); ctx.stroke();
+    ctx.setLineDash([]);
+  } else {
+    ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+}
+
+/* simple architectural furniture glyphs — drawn at (cx,cy) in screen space, sized relative to current zoom */
+function drawFurniture(cx,cy,type,scale){
+  const u = Math.max(6, scale*0.9); // unit size in px, scales with zoom
+  ctx.save();
+  ctx.strokeStyle = '#A78BFA'; ctx.fillStyle = 'rgba(167,139,250,.12)'; ctx.lineWidth = 1.2;
+  if(type==='bed'){
+    ctx.strokeRect(cx-u*1.2, cy-u*1.8, u*2.4, u*3.6);
+    ctx.beginPath(); ctx.rect(cx-u*1.0, cy-u*1.6, u*0.9, u*0.7); ctx.rect(cx+u*0.1, cy-u*1.6, u*0.9, u*0.7); ctx.stroke();
+  } else if(type==='sofa'){
+    ctx.strokeRect(cx-u*1.6, cy-u*0.7, u*3.2, u*1.4);
+    ctx.beginPath();
+    for(let i=-1;i<=1;i++){ ctx.moveTo(cx+i*u*1.0-u*0.4, cy-u*0.7); ctx.lineTo(cx+i*u*1.0-u*0.4, cy+u*0.7); }
+    ctx.stroke();
+  } else if(type==='dining_table'){
+    ctx.strokeRect(cx-u*1.3, cy-u*0.9, u*2.6, u*1.8);
+    ctx.beginPath();
+    [[-1.5,-0.6],[1.5,-0.6],[-1.5,0.6],[1.5,0.6],[-1.5,0],[1.5,0]].forEach(([dx,dy])=>{ ctx.moveTo(cx+dx*u+0.3*u,cy+dy*u); ctx.arc(cx+dx*u+0.3*u,cy+dy*u,u*0.18,0,7); });
+    ctx.stroke();
+  } else if(type==='wardrobe'){
+    ctx.strokeRect(cx-u*1.2, cy-u*0.5, u*2.4, u*1.0);
+    ctx.beginPath(); ctx.moveTo(cx,cy-u*0.5); ctx.lineTo(cx,cy+u*0.5); ctx.stroke();
+  } else if(type==='wc'){
+    ctx.beginPath(); ctx.ellipse(cx,cy,u*0.7,u*0.9,0,0,7); ctx.stroke();
+    ctx.strokeRect(cx-u*0.5, cy-u*1.5, u, u*0.6);
+  } else if(type==='sink'){
+    ctx.strokeRect(cx-u*0.9, cy-u*0.6, u*1.8, u*1.2);
+    ctx.beginPath(); ctx.ellipse(cx,cy,u*0.55,u*0.4,0,0,7); ctx.stroke();
+  } else if(type==='stove'){
+    ctx.strokeRect(cx-u*0.9, cy-u*0.9, u*1.8, u*1.8);
+    ctx.beginPath();
+    [[-0.4,-0.4],[0.4,-0.4],[-0.4,0.4],[0.4,0.4]].forEach(([dx,dy])=>{ ctx.moveTo(cx+dx*u+u*0.22,cy+dy*u); ctx.arc(cx+dx*u,cy+dy*u,u*0.22,0,7); });
+    ctx.stroke();
+  } else if(type==='desk'){
+    ctx.strokeRect(cx-u*1.1, cy-u*0.6, u*2.2, u*1.2);
+  } else if(type==='tv'){
+    ctx.strokeRect(cx-u*1.0, cy-u*0.25, u*2.0, u*0.5);
+  } else if(type==='car'){
+    ctx.strokeRect(cx-u*1.0, cy-u*2.0, u*2.0, u*4.0);
+    ctx.beginPath(); ctx.moveTo(cx-u*1.0,cy-u*0.8); ctx.lineTo(cx+u*1.0,cy-u*0.8); ctx.stroke();
+  }
+  ctx.fillStyle = '#A78BFA'; ctx.font = `${Math.max(7,u*0.5)}px IBM Plex Mono, monospace`; ctx.textAlign='center';
+  ctx.fillText(type.replace('_',' '), cx, cy+u*2.3);
+  ctx.restore();
 }
 
 function renderLoad(b0,b1){
@@ -1375,6 +1558,52 @@ function renderFooting(b0,b1){
 const vp = document.getElementById('vport');
 let dragging = false, dragMoved = false, lastX = 0, lastY = 0;
 
+function rangesOverlap(a1,a2,b1,b2){ return Math.max(a1,b1) < Math.min(a2,b2) - 0.05; }
+const CORNER_EDGES = {tl:['top','left'], tr:['top','right'], bl:['bottom','left'], br:['bottom','right']};
+function findNeighborsForEdge(idx, edgeKey){
+  const r = placed[idx];
+  const TOL = 0.1;
+  const result = [];
+  placed.forEach((nbr,j)=>{
+    if(j===idx) return;
+    if(edgeKey==='bottom'){
+      const line = r.y+r.h;
+      if(Math.abs(nbr.y-line)<TOL && rangesOverlap(r.x,r.x+r.w, nbr.x,nbr.x+nbr.w)) result.push({idx:j, key:'top', orig:{x:nbr.x,y:nbr.y,w:nbr.w,h:nbr.h}});
+    } else if(edgeKey==='top'){
+      const line = r.y;
+      if(Math.abs((nbr.y+nbr.h)-line)<TOL && rangesOverlap(r.x,r.x+r.w, nbr.x,nbr.x+nbr.w)) result.push({idx:j, key:'bottom', orig:{x:nbr.x,y:nbr.y,w:nbr.w,h:nbr.h}});
+    } else if(edgeKey==='right'){
+      const line = r.x+r.w;
+      if(Math.abs(nbr.x-line)<TOL && rangesOverlap(r.y,r.y+r.h, nbr.y,nbr.y+nbr.h)) result.push({idx:j, key:'left', orig:{x:nbr.x,y:nbr.y,w:nbr.w,h:nbr.h}});
+    } else if(edgeKey==='left'){
+      const line = r.x;
+      if(Math.abs((nbr.x+nbr.w)-line)<TOL && rangesOverlap(r.y,r.y+r.h, nbr.y,nbr.y+nbr.h)) result.push({idx:j, key:'right', orig:{x:nbr.x,y:nbr.y,w:nbr.w,h:nbr.h}});
+    }
+  });
+  return result;
+}
+function edgeDelta(r, o, key){
+  if(key==='top') return r.y-o.y;
+  if(key==='bottom') return r.h-o.h;
+  if(key==='left') return r.x-o.x;
+  if(key==='right') return r.w-o.w;
+}
+function applyNeighborEdgeDelta(nbrRoom, nbrOrig, theirKey, delta){
+  const MIN = 4;
+  if(theirKey==='top'){
+    let ny = clamp(nbrOrig.y+delta, 0, nbrOrig.y+nbrOrig.h-MIN);
+    nbrRoom.y = ny; nbrRoom.h = (nbrOrig.y+nbrOrig.h) - ny;
+  } else if(theirKey==='bottom'){
+    nbrRoom.h = clamp(nbrOrig.h+delta, MIN, buildable.h-nbrOrig.y);
+  } else if(theirKey==='left'){
+    let nx = clamp(nbrOrig.x+delta, 0, nbrOrig.x+nbrOrig.w-MIN);
+    nbrRoom.x = nx; nbrRoom.w = (nbrOrig.x+nbrOrig.w) - nx;
+  } else if(theirKey==='right'){
+    nbrRoom.w = clamp(nbrOrig.w+delta, MIN, buildable.w-nbrOrig.x);
+  }
+  nbrRoom.area = nbrRoom.w*nbrRoom.h;
+}
+
 canvas.addEventListener('mousedown', e=>{
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX-rect.left, my = e.clientY-rect.top;
@@ -1384,11 +1613,32 @@ canvas.addEventListener('mousedown', e=>{
     drawRect = {x0:wp.x-buildable.x, y0:wp.y-buildable.y, x1:wp.x-buildable.x, y1:wp.y-buildable.y};
     return;
   }
+  if((addDoorMode || addWindowMode) && viewMode==='arch'){
+    const hit = findWallNear(mx,my);
+    if(hit) addManualOpening(hit.roomIdx, hit.edge, hit.frac, addDoorMode ? 'door' : 'window');
+    else document.getElementById('cmdMsg').textContent = 'No wall close enough to that click — try clicking nearer a room edge.';
+    return;
+  }
+  if(addFurnitureMode && viewMode==='arch'){
+    const roomIdx = findRoomAtScreen(mx,my);
+    if(roomIdx>=0){
+      const wp = screenToWorld(mx,my);
+      addFurniturePiece(roomIdx, wp.x, wp.y, document.getElementById('furniturePicker').value);
+    } else document.getElementById('cmdMsg').textContent = 'Click inside a room to place furniture.';
+    return;
+  }
   if(viewMode==='arch' && selected !== null && placed[selected]){
     const hit = hitHandle(mx,my,placed[selected]);
     if(hit){
       const r = placed[selected];
       dragHandle = {...hit, roomIdx:selected, orig:{x:r.x,y:r.y,w:r.w,h:r.h}, startWorld:screenToWorld(mx,my)};
+      // capture which neighboring rooms share the wall(s) being dragged, so they move together
+      if(hit.type==='edge'){
+        dragHandle.neighborsByEdge = { [hit.key]: findNeighborsForEdge(selected, hit.key) };
+      } else if(hit.type==='corner'){
+        dragHandle.neighborsByEdge = {};
+        CORNER_EDGES[hit.key].forEach(k=>{ dragHandle.neighborsByEdge[k] = findNeighborsForEdge(selected, k); });
+      }
       return;
     }
   }
@@ -1416,8 +1666,14 @@ window.addEventListener('mousemove', e=>{
       r.y = clamp(snapVal(o.y+dy), 0, buildable.h-o.h);
     } else if(dragHandle.type === 'corner'){
       applyCornerResize(r, dragHandle.key, o, dx, dy);
+      CORNER_EDGES[dragHandle.key].forEach(k=>{
+        const delta = edgeDelta(r, o, k);
+        (dragHandle.neighborsByEdge[k]||[]).forEach(n=>applyNeighborEdgeDelta(placed[n.idx], n.orig, n.key, delta));
+      });
     } else if(dragHandle.type === 'edge'){
       applyEdgeResize(r, dragHandle.key, o, dx, dy);
+      const delta = edgeDelta(r, o, dragHandle.key);
+      (dragHandle.neighborsByEdge[dragHandle.key]||[]).forEach(n=>applyNeighborEdgeDelta(placed[n.idx], n.orig, n.key, delta));
     }
     render(); return;
   }
@@ -1572,12 +1828,87 @@ function pasteRoom(){
   document.getElementById('cmdMsg').textContent = `Pasted "${r.name}".`;
 }
 
+function clearPlacementModes(){
+  drawMode = addDoorMode = addWindowMode = addFurnitureMode = false;
+  ['rb-draw','rb-add-door','rb-add-window','rb-add-furniture'].forEach(id=>document.getElementById(id).classList.remove('act'));
+}
 function toggleDrawMode(){
-  drawMode = !drawMode;
+  const next = !drawMode; clearPlacementModes(); drawMode = next;
   document.getElementById('rb-draw').classList.toggle('act', drawMode);
   vp.style.cursor = drawMode ? 'crosshair' : 'grab';
   render();
 }
+function toggleAddDoor(){
+  const next = !addDoorMode; clearPlacementModes(); addDoorMode = next;
+  document.getElementById('rb-add-door').classList.toggle('act', addDoorMode);
+  vp.style.cursor = addDoorMode ? 'crosshair' : 'grab';
+  document.getElementById('cmdMsg').textContent = addDoorMode ? 'Click a wall in the viewport to add a door.' : '';
+}
+function toggleAddWindow(){
+  const next = !addWindowMode; clearPlacementModes(); addWindowMode = next;
+  document.getElementById('rb-add-window').classList.toggle('act', addWindowMode);
+  vp.style.cursor = addWindowMode ? 'crosshair' : 'grab';
+  document.getElementById('cmdMsg').textContent = addWindowMode ? 'Click a wall in the viewport to add a window.' : '';
+}
+function toggleAddFurniture(){
+  const next = !addFurnitureMode; clearPlacementModes(); addFurnitureMode = next;
+  document.getElementById('rb-add-furniture').classList.toggle('act', addFurnitureMode);
+  vp.style.cursor = addFurnitureMode ? 'crosshair' : 'grab';
+  document.getElementById('cmdMsg').textContent = addFurnitureMode ? 'Click inside a room to place the selected furniture.' : '';
+}
+
+/* ---- wall hit-test for manual door/window placement ---- */
+function distToSegment(px,py,x1,y1,x2,y2){
+  const dx=x2-x1, dy=y2-y1;
+  const lenSq = dx*dx+dy*dy;
+  let t = lenSq>0 ? ((px-x1)*dx+(py-y1)*dy)/lenSq : 0;
+  t = Math.max(0, Math.min(1, t));
+  const cx = x1+t*dx, cy = y1+t*dy;
+  return {dist: Math.hypot(px-cx,py-cy), t};
+}
+function findWallNear(mx,my){
+  let best = null;
+  placed.forEach((r,idx)=>{
+    const rx = buildable.x+r.x, ry = buildable.y+r.y;
+    const s0 = worldToScreen(rx,ry), s1 = worldToScreen(rx+r.w, ry+r.h);
+    const edges = {
+      top:    [s0.x,s0.y, s1.x,s0.y],
+      bottom: [s0.x,s1.y, s1.x,s1.y],
+      left:   [s0.x,s0.y, s0.x,s1.y],
+      right:  [s1.x,s0.y, s1.x,s1.y],
+    };
+    Object.entries(edges).forEach(([key,[x1,y1,x2,y2]])=>{
+      const {dist,t} = distToSegment(mx,my,x1,y1,x2,y2);
+      if(dist<12 && (!best || dist<best.dist)) best = {dist, roomIdx:idx, edge:key, frac:t};
+    });
+  });
+  return best;
+}
+function findRoomAtScreen(mx,my){
+  const wp = screenToWorld(mx,my);
+  let hit = -1;
+  placed.forEach((r,i)=>{
+    const rx = buildable.x+r.x, ry = buildable.y+r.y;
+    if(wp.x>=rx && wp.x<=rx+r.w && wp.y>=ry && wp.y<=ry+r.h) hit = i;
+  });
+  return hit;
+}
+function addManualOpening(roomIdx, edge, frac, type){
+  const r = placed[roomIdx];
+  if(!r.manualOpenings) r.manualOpenings = [];
+  r.manualOpenings.push({edge, frac: clamp(frac, 0.08, 0.92), type});
+  finalizeManualEdit();
+  document.getElementById('cmdMsg').textContent = `Added ${type} to "${r.name}" (${edge} wall).`;
+}
+function addFurniturePiece(roomIdx, wx, wy, type){
+  const r = placed[roomIdx];
+  if(!r.furniture) r.furniture = [];
+  // store position relative to room origin so it tracks the room when resized
+  r.furniture.push({type, relX: clamp((wx-(buildable.x+r.x))/r.w, 0.05, 0.95), relY: clamp((wy-(buildable.y+r.y))/r.h, 0.05, 0.95)});
+  finalizeManualEdit();
+  document.getElementById('cmdMsg').textContent = `Placed ${type.replace('_',' ')} in "${r.name}".`;
+}
+
 function deleteSelectedRoom(){
   if(selected === null || !placed[selected]){ document.getElementById('cmdMsg').textContent = 'Select a room first.'; return; }
   placed.splice(selected,1);
@@ -1679,10 +2010,10 @@ function runCmd(){
       document.getElementById('sbL').value=l; document.getElementById('sbRt').value=rt;
       generate(); msg.textContent = `Setbacks set: F${f} R${r} L${l} Rt${rt}`;
     } else if(cmd === 'road'){
-      const side = parts[1];
-      if(!['front','rear','left','right'].includes(side)) throw 'usage: road front|rear|left|right';
-      document.getElementById('roadSide').value = side;
-      generate(); msg.textContent = `Road set to ${side}`;
+      const sides = parts.slice(1).join('').split(',').map(s=>s.trim()).filter(Boolean);
+      if(!sides.length || sides.some(s=>!['front','rear','left','right'].includes(s))) throw 'usage: road front|rear|left|right (comma-separate for corner plots, e.g. road front,left)';
+      document.querySelectorAll('.roadSideCb').forEach(cb=>cb.checked = sides.includes(cb.value));
+      generate(); msg.textContent = `Road set to: ${sides.join(', ')}`;
     } else if(cmd === 'floors'){
       const n = +parts[1]; if(!n) throw 'usage: floors N';
       document.getElementById('floors').value = n; generate(); msg.textContent = `Floors set to ${n}`;
@@ -1863,7 +2194,7 @@ function snapshotState(){
     floors:+document.getElementById('floors').value, btype:document.getElementById('btype').value,
     sbF:+document.getElementById('sbF').value, sbR:+document.getElementById('sbR').value,
     sbL:+document.getElementById('sbL').value, sbRt:+document.getElementById('sbRt').value,
-    roadSide:document.getElementById('roadSide').value, entranceRoom:document.getElementById('entranceRoom').value,
+    roadSides:getRoadSides(), entranceRoom:document.getElementById('entranceRoom').value,
     extWall:+document.getElementById('extWall').value, intWall:+document.getElementById('intWall').value,
     vastu:document.getElementById('vastu').checked, planVariant,
     dlInput:+document.getElementById('dlInput').value, llInput:+document.getElementById('llInput').value,
@@ -1876,7 +2207,8 @@ function applyState(s){
   document.getElementById('floors').value=s.floors; document.getElementById('btype').value=s.btype;
   document.getElementById('sbF').value=s.sbF; document.getElementById('sbR').value=s.sbR;
   document.getElementById('sbL').value=s.sbL; document.getElementById('sbRt').value=s.sbRt;
-  document.getElementById('roadSide').value=s.roadSide;
+  const sides = s.roadSides || (s.roadSide ? [s.roadSide] : ['front']); // back-compat with old single-side saves
+  document.querySelectorAll('.roadSideCb').forEach(cb=>cb.checked = sides.includes(cb.value));
   document.getElementById('extWall').value=s.extWall; document.getElementById('intWall').value=s.intWall;
   document.getElementById('vastu').checked=s.vastu;
   document.getElementById('dlInput').value=s.dlInput; document.getElementById('llInput').value=s.llInput;
@@ -1945,13 +2277,15 @@ makeResizable(document.getElementById('rzRibbon'), document.querySelector('.ribb
 makeResizable(document.getElementById('rzBottom'), document.getElementById('bottombars'), 'y', 44, 220, true);
 
 /* ================= init ================= */
-['plotW','plotD','floors','sbF','sbR','sbL','sbRt','roadSide','extWall','intWall','entranceRoom'].forEach(id=>{
+['plotW','plotD','floors','sbF','sbR','sbL','sbRt','extWall','intWall','entranceRoom'].forEach(id=>{
   document.getElementById(id).addEventListener('input', generate);
 });
+document.querySelectorAll('.roadSideCb').forEach(cb=>cb.addEventListener('change', generate));
 ['dlInput','llInput','sbcInput'].forEach(id=>{
   document.getElementById(id).addEventListener('input', ()=>{ buildStructModel(); renderStructTable(); render(); });
 });
 renderRoomRows();
+populatePresetSelect();
 syncLLDefault();
 ['A','B','C'].forEach(k=>document.getElementById('opt'+k).classList.toggle('act', k==='A'));
 fitCanvas();
