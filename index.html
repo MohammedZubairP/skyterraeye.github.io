@@ -320,7 +320,7 @@ section{padding:80px 0}
 .pstep p{font-size:13px;color:var(--g600);line-height:1.6}
 
 /* ─── PRODUCTS ─── */
-.prod-g{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.prod-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
 @media(max-width:860px){.prod-g{grid-template-columns:1fr 1fr}}
 .pc{border-radius:8px;padding:26px 22px;border:1.5px solid;transition:var(--e);display:block;cursor:pointer}
 .pc:hover{transform:translateY(-5px)}
@@ -328,6 +328,7 @@ section{padding:80px 0}
 .pc.t{background:#F0FFF4;border-color:#A7F3D0}.pc.t:hover{box-shadow:0 8px 24px rgba(16,185,129,.15)}
 .pc.s{background:#F5F3FF;border-color:#DDD6FE}.pc.s:hover{box-shadow:0 8px 24px rgba(139,92,246,.15)}
 .pc.g{background:var(--bluel);border-color:#BFDBFE}.pc.g:hover{box-shadow:0 8px 24px rgba(0,102,204,.15)}
+.pc.a{background:#FFF1F2;border-color:#FECDD3}.pc.a:hover{box-shadow:0 8px 24px rgba(244,63,94,.15)}
 .pc-lbl{font-size:9.5px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:12px}
 .pc-n{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:700;color:var(--navy);margin-bottom:8px}
 .pc-d{font-size:13.5px;color:var(--g600);line-height:1.65;margin-bottom:16px}
@@ -508,6 +509,7 @@ select.finput{background:#fff;cursor:pointer;appearance:none;background-image:ur
         <a href="terra.html">Terra</a>
         <a href="strata.html">Strata</a>
         <a href="gauge.html">Gauge</a>
+        <a href="airsum.html">Airsum</a>
       </div>
       <a class="nav-cta" href="contact.html">Get a Quote</a>
     </div>
@@ -836,6 +838,7 @@ select.finput{background:#fff;cursor:pointer;appearance:none;background-image:ur
       <a class="pc t" href="terra.html"><div class="pc-lbl" style="color:#059669">Terrain Planning</div><div class="pc-n">Terra</div><div class="pc-d">Drone flight planning and terrain analysis for aerial survey and photogrammetric mapping.</div><div class="pc-l" style="color:#059669">Open Product <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div></a>
       <a class="pc s" href="strata.html"><div class="pc-lbl" style="color:#7C3AED">Layer Analysis</div><div class="pc-n">Strata</div><div class="pc-d">Subsurface layer visualisation and borehole log interpretation for geotechnical engineers.</div><div class="pc-l" style="color:#7C3AED">Open Product <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div></a>
       <a class="pc g" href="gauge.html"><div class="pc-lbl" style="color:var(--blue)">Measurement Platform</div><div class="pc-n">Gauge</div><div class="pc-d">Satellite map measurement, coordinate conversion, leveling H.I., stakeout and GNSS forecast.</div><div class="pc-l" style="color:var(--blue)">Open Product <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div></a>
+      <a class="pc a" href="airsum.html"><div class="pc-lbl" style="color:#F43F5E">AI Floor Plan Generator</div><div class="pc-n">Airsum</div><div class="pc-d">Auto-generates a schematic room layout from your plot size, setbacks and room program &mdash; instant area summary, no download required.</div><div class="pc-l" style="color:#F43F5E">Open Product <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div></a>
     </div>
   </div>
 </section>
@@ -1069,6 +1072,7 @@ select.finput{background:#fff;cursor:pointer;appearance:none;background-image:ur
       <li><a href="terra.html">Terra &mdash; Terrain Planning</a></li>
       <li><a href="strata.html">Strata &mdash; Layer Analysis</a></li>
       <li><a href="gauge.html">Gauge &mdash; Measurement</a></li>
+      <li><a href="airsum.html">Airsum &mdash; AI Floor Plans</a></li>
     </ul>
     <h4 style="margin-top:20px">Company</h4><ul>
       <li><a href="about.html">About Us</a></li>
