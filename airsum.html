@@ -239,11 +239,31 @@ input,select{font-family:inherit}
   </div>
   <div class="rg">
     <div class="rr">
+      <button class="rb" onclick="toggleSnap()" id="rb-snap"><span class="rb-i">🧲</span>SNAP</button>
+      <button class="rb" onclick="undoEdit()"><span class="rb-i">↩</span>UNDO</button>
+      <button class="rb" onclick="redoEdit()"><span class="rb-i">↪</span>REDO</button>
+    </div>
+    <div class="rr">
+      <button class="rb" onclick="copySelectedRoom()"><span class="rb-i">⧉</span>COPY</button>
+      <button class="rb" onclick="pasteRoom()"><span class="rb-i">📋</span>PASTE</button>
+    </div>
+    <div class="rg-lbl">CLIPBOARD (Ctrl+Z/Y/C/V, arrows to nudge)</div>
+  </div>
+  <div class="rg">
+    <div class="rr">
       <button class="rb lg" onclick="exportPNG()"><span class="rb-i">🖼️</span>PNG</button>
+      <button class="rb lg" onclick="exportDXF()"><span class="rb-i">📐</span>DXF</button>
+      <button class="rb lg" onclick="printPlan()"><span class="rb-i">🖨️</span>PRINT</button>
+    </div>
+    <div class="rr">
+      <button class="rb" onclick="exportRoomsCSV()"><span class="rb-i">📊</span>ROOMS CSV</button>
+      <button class="rb" onclick="exportStructCSV()"><span class="rb-i">📊</span>STRUCT CSV</button>
+      <button class="rb" onclick="document.getElementById('csvImportFile').click()"><span class="rb-i">📥</span>IMPORT CSV</button>
     </div>
     <div class="rg-lbl">EXPORT</div>
   </div>
 </div>
+<input type="file" id="csvImportFile" accept=".csv" style="display:none" onchange="importRoomsCSV(this)">
 
 <div class="resize-v" id="rzRibbon" title="Drag to resize ribbon height"></div>
 
@@ -355,6 +375,7 @@ input,select{font-family:inherit}
       <div class="rptab" id="rpt-history" onclick="rpTab('history')">History</div>
       <div class="rptab" id="rpt-compare" onclick="rpTab('compare')">Compare</div>
       <div class="rptab" id="rpt-struct" onclick="rpTab('struct')">Struct</div>
+      <div class="rptab" id="rpt-boq" onclick="rpTab('boq')">BOQ</div>
       <div class="rptab" id="rpt-summary" onclick="rpTab('summary')">Summary</div>
     </div>
     <div class="rp-content">
@@ -382,6 +403,29 @@ input,select{font-family:inherit}
           <tbody id="compareBody"></tbody>
         </table></div>
         <div class="note" style="margin:8px">Numbers only, side by side — click View on any row to render it full-size in the viewport.</div>
+      </div>
+      <div class="rp-sec" id="rpsec-boq">
+        <div class="lh"><div class="lh-t">Quantity takeoff (rough)</div></div>
+        <div class="pg">
+          <div class="pgt">Concrete</div>
+          <div class="pr"><span class="pl">Slab</span><span class="pv" id="boq-slab">---</span></div>
+          <div class="pr"><span class="pl">Beams</span><span class="pv" id="boq-beam">---</span></div>
+          <div class="pr"><span class="pl">Columns</span><span class="pv" id="boq-col">---</span></div>
+          <div class="pr"><span class="pl">Footings</span><span class="pv" id="boq-foot">---</span></div>
+          <div class="pr"><span class="pl"><b>Total concrete</b></span><span class="pv" id="boq-concTotal">---</span></div>
+        </div>
+        <div class="pg">
+          <div class="pgt">Steel (estimate)</div>
+          <div class="pr"><span class="pl">@ 80 kg/m³ RCC</span><span class="pv" id="boq-steel">---</span></div>
+        </div>
+        <div class="pg">
+          <div class="pgt">Masonry &amp; finishes</div>
+          <div class="pr"><span class="pl">Wall volume (brick/block)</span><span class="pv" id="boq-wallvol">---</span></div>
+          <div class="pr"><span class="pl">Plaster area (both faces)</span><span class="pv" id="boq-plaster">---</span></div>
+          <div class="pr"><span class="pl">Paint area</span><span class="pv" id="boq-paint">---</span></div>
+          <div class="pr"><span class="pl">Flooring area</span><span class="pv" id="boq-floor">---</span></div>
+        </div>
+        <div class="disclaimer"><b>Rough order-of-magnitude only.</b> No openings deduction, no wastage factor, no rebar detailing — for budgeting conversation starters, not a tender BOQ. A quantity surveyor should verify before procurement.</div>
       </div>
       <div class="rp-sec" id="rpsec-struct">
         <div class="lh"><div class="lh-t">Columns &amp; footings</div></div>
@@ -853,7 +897,7 @@ function refreshStatsAndPanels(){
   document.getElementById('s-cov').textContent = `${coverage}%`;
   document.getElementById('s-total').textContent = `${Math.round(buildArea*floors)} sqft / ${floors} fl`;
   document.getElementById('s-rooms').textContent = placed.length;
-  renderRoomList(); renderProps(); renderVentList(); renderStructTable(); render();
+  renderRoomList(); renderProps(); renderVentList(); renderStructTable(); renderBOQ(); render();
 }
 function renderHistoryList(){
   const wrap = document.getElementById('historyList');
@@ -945,7 +989,9 @@ function doGenerateInner(){
   renderProps();
   renderVentList();
   renderStructTable();
+  renderBOQ();
   render();
+  editHistory = [JSON.parse(JSON.stringify(placed))]; editHistoryIndex = 0; // fresh AI layout resets the manual-edit undo stack
 }
 
 function renderRoomList(){
@@ -1008,6 +1054,65 @@ function renderStructTable(){
     tr.innerHTML = `<td>B${i+1}</td><td>${b.span.toFixed(1)}</td><td>${b.widthMM}\u00d7${b.depthMM}</td>`;
     beamBody.appendChild(tr);
   });
+}
+
+function renderBOQ(){
+  const elSlab = document.getElementById('boq-slab');
+  if(!elSlab) return; // panel not yet in DOM on first call
+  const floors = +document.getElementById('floors').value || 1;
+  const ftToM = 0.3048;
+  const buildAreaM2 = buildable.w*buildable.h*ftToM*ftToM;
+  const slabThicknessM = 0.125; // 5in RCC slab, typical residential
+  const slabVol = buildAreaM2 * slabThicknessM * floors;
+
+  let beamVol = 0;
+  structModel.beams.forEach(b=>{
+    beamVol += (b.span*ftToM) * (b.widthMM/1000) * (b.depthMM/1000);
+  });
+  beamVol *= floors;
+
+  const floorHeightM = 3.0; // typical floor-to-floor
+  let colVol = 0;
+  structModel.columns.forEach(c=>{
+    const sideM = parseFloat(c.size)/1000 || 0.23;
+    colVol += sideM*sideM*floorHeightM;
+  });
+  colVol *= floors;
+
+  let footVol = 0;
+  structModel.columns.forEach(c=>{
+    footVol += c.footSideM*c.footSideM*0.45; // ~450mm typical isolated footing depth
+  });
+
+  const concTotal = slabVol+beamVol+colVol+footVol;
+  const steelKg = concTotal*80; // rough 80kg/m3 RCC average
+
+  // wall volume: sum perimeter of every placed room's exterior+interior edges (each shared edge double-counted ~ rough overestimate offset by typical practice of counting once per wall run)
+  const extWallFt = (+document.getElementById('extWall').value || 9)/12;
+  const intWallFt = (+document.getElementById('intWall').value || 4.5)/12;
+  let extLenFt = 2*(buildable.w+buildable.h); // perimeter only, simple approximation
+  let intLenFt = 0;
+  placed.forEach(r=>{
+    intLenFt += 2*(r.w+r.h); // overestimate; shared walls counted twice, intentionally conservative
+  });
+  const wallHeightFt = 10*floors;
+  const wallVolFt3 = extLenFt*extWallFt*wallHeightFt + intLenFt*intWallFt*wallHeightFt*0.5; // halve interior to roughly offset double count
+  const wallVolM3 = wallVolFt3*ftToM*ftToM*ftToM;
+
+  const plasterAreaFt2 = (extLenFt*wallHeightFt + intLenFt*wallHeightFt*0.5) * 2; // both faces
+  const paintAreaFt2 = plasterAreaFt2*0.92; // minus rough opening allowance
+  const floorAreaFt2 = buildable.w*buildable.h*floors;
+
+  document.getElementById('boq-slab').textContent = `${slabVol.toFixed(1)} m³`;
+  document.getElementById('boq-beam').textContent = `${beamVol.toFixed(1)} m³`;
+  document.getElementById('boq-col').textContent = `${colVol.toFixed(1)} m³`;
+  document.getElementById('boq-foot').textContent = `${footVol.toFixed(1)} m³`;
+  document.getElementById('boq-concTotal').textContent = `${concTotal.toFixed(1)} m³`;
+  document.getElementById('boq-steel').textContent = `${Math.round(steelKg)} kg`;
+  document.getElementById('boq-wallvol').textContent = `${wallVolM3.toFixed(1)} m³`;
+  document.getElementById('boq-plaster').textContent = `${Math.round(plasterAreaFt2)} sqft`;
+  document.getElementById('boq-paint').textContent = `${Math.round(paintAreaFt2)} sqft`;
+  document.getElementById('boq-floor').textContent = `${Math.round(floorAreaFt2)} sqft`;
 }
 
 /* ================= rendering ================= */
@@ -1299,7 +1404,7 @@ window.addEventListener('mousemove', e=>{
   document.getElementById('mbCoord').textContent = `X: ${wp.x.toFixed(2)}'  Y: ${wp.y.toFixed(2)}'`;
 
   if(drawRect){
-    drawRect.x1 = wp.x-buildable.x; drawRect.y1 = wp.y-buildable.y;
+    drawRect.x1 = snapVal(wp.x-buildable.x); drawRect.y1 = snapVal(wp.y-buildable.y);
     render(); drawPreviewRect(); return;
   }
   if(dragHandle){
@@ -1307,8 +1412,8 @@ window.addEventListener('mousemove', e=>{
     const dx = wp.x - dragHandle.startWorld.x, dy = wp.y - dragHandle.startWorld.y;
     const o = dragHandle.orig;
     if(dragHandle.type === 'move'){
-      r.x = clamp(o.x+dx, 0, buildable.w-o.w);
-      r.y = clamp(o.y+dy, 0, buildable.h-o.h);
+      r.x = clamp(snapVal(o.x+dx), 0, buildable.w-o.w);
+      r.y = clamp(snapVal(o.y+dy), 0, buildable.h-o.h);
     } else if(dragHandle.type === 'corner'){
       applyCornerResize(r, dragHandle.key, o, dx, dy);
     } else if(dragHandle.type === 'edge'){
@@ -1360,6 +1465,7 @@ window.addEventListener('mouseup', e=>{
 
 function applyCornerResize(r, key, o, dx, dy){
   const MIN = 4;
+  dx = snapVal(dx); dy = snapVal(dy);
   if(key==='tl'){ const nx=clamp(o.x+dx,0,o.x+o.w-MIN), ny=clamp(o.y+dy,0,o.y+o.h-MIN); r.x=nx; r.y=ny; r.w=o.x+o.w-nx; r.h=o.y+o.h-ny; }
   else if(key==='tr'){ const ny=clamp(o.y+dy,0,o.y+o.h-MIN); r.y=ny; r.w=clamp(o.w+dx,MIN,buildable.w-o.x); r.h=o.y+o.h-ny; }
   else if(key==='bl'){ const nx=clamp(o.x+dx,0,o.x+o.w-MIN); r.x=nx; r.w=o.x+o.w-nx; r.h=clamp(o.h+dy,MIN,buildable.h-o.y); }
@@ -1367,6 +1473,7 @@ function applyCornerResize(r, key, o, dx, dy){
 }
 function applyEdgeResize(r, key, o, dx, dy){
   const MIN = 4;
+  dx = snapVal(dx); dy = snapVal(dy);
   if(key==='top'){ const ny=clamp(o.y+dy,0,o.y+o.h-MIN); r.y=ny; r.h=o.y+o.h-ny; }
   else if(key==='bottom'){ r.h=clamp(o.h+dy,MIN,buildable.h-o.y); }
   else if(key==='left'){ const nx=clamp(o.x+dx,0,o.x+o.w-MIN); r.x=nx; r.w=o.x+o.w-nx; }
@@ -1413,6 +1520,58 @@ function zoomExt(){
   render();
 }
 
+let snapEnabled = false;
+const SNAP_STEP = 0.5;
+function snapVal(v){ return snapEnabled ? Math.round(v/SNAP_STEP)*SNAP_STEP : v; }
+function toggleSnap(){
+  snapEnabled = !snapEnabled;
+  document.getElementById('rb-snap').classList.toggle('act', snapEnabled);
+  document.getElementById('cmdMsg').textContent = `Snap to ${SNAP_STEP}ft grid ${snapEnabled?'enabled':'disabled'}.`;
+}
+
+let editHistory = [];
+let editHistoryIndex = -1;
+function captureEditHistory(){
+  editHistory = editHistory.slice(0, editHistoryIndex+1);
+  editHistory.push(JSON.parse(JSON.stringify(placed)));
+  if(editHistory.length > 50) editHistory.shift();
+  editHistoryIndex = editHistory.length-1;
+}
+function undoEdit(){
+  if(editHistoryIndex <= 0){ document.getElementById('cmdMsg').textContent = 'Nothing to undo.'; return; }
+  editHistoryIndex--;
+  placed = JSON.parse(JSON.stringify(editHistory[editHistoryIndex]));
+  selected = null;
+  buildStructModel(); renderRoomList(); renderProps(); renderVentList(); renderStructTable(); renderBOQ(); render();
+  document.getElementById('cmdMsg').textContent = 'Undid last edit.';
+}
+function redoEdit(){
+  if(editHistoryIndex >= editHistory.length-1){ document.getElementById('cmdMsg').textContent = 'Nothing to redo.'; return; }
+  editHistoryIndex++;
+  placed = JSON.parse(JSON.stringify(editHistory[editHistoryIndex]));
+  selected = null;
+  buildStructModel(); renderRoomList(); renderProps(); renderVentList(); renderStructTable(); renderBOQ(); render();
+  document.getElementById('cmdMsg').textContent = 'Redid edit.';
+}
+
+let clipboardRoom = null;
+function copySelectedRoom(){
+  if(selected === null || !placed[selected]){ document.getElementById('cmdMsg').textContent = 'Select a room first.'; return; }
+  clipboardRoom = JSON.parse(JSON.stringify(placed[selected]));
+  document.getElementById('cmdMsg').textContent = `Copied "${clipboardRoom.name}".`;
+}
+function pasteRoom(){
+  if(!clipboardRoom){ document.getElementById('cmdMsg').textContent = 'Nothing copied yet.'; return; }
+  const r = JSON.parse(JSON.stringify(clipboardRoom));
+  r.x = clamp(r.x+2, 0, buildable.w-r.w);
+  r.y = clamp(r.y+2, 0, buildable.h-r.h);
+  r.name = r.name + ' copy';
+  placed.push(r);
+  selected = placed.length-1;
+  finalizeManualEdit();
+  document.getElementById('cmdMsg').textContent = `Pasted "${r.name}".`;
+}
+
 function toggleDrawMode(){
   drawMode = !drawMode;
   document.getElementById('rb-draw').classList.toggle('act', drawMode);
@@ -1423,8 +1582,7 @@ function deleteSelectedRoom(){
   if(selected === null || !placed[selected]){ document.getElementById('cmdMsg').textContent = 'Select a room first.'; return; }
   placed.splice(selected,1);
   selected = null;
-  buildStructModel();
-  renderRoomList(); renderProps(); renderVentList(); renderStructTable(); render();
+  finalizeManualEdit();
   document.getElementById('cmdMsg').textContent = 'Room deleted from the drawing (Generate Plan will rebuild from the AI layout).';
 }
 function editSelectedDims(){
@@ -1442,11 +1600,33 @@ function editSelectedDims(){
 function clamp(v,lo,hi){ return Math.min(hi, Math.max(lo, v)); }
 function finalizeManualEdit(){
   buildStructModel();
-  renderRoomList(); renderProps(); renderVentList(); renderStructTable(); render();
-  const buildArea = buildable.w*buildable.h;
+  renderRoomList(); renderProps(); renderVentList(); renderStructTable(); renderBOQ(); render();
   document.getElementById('st-rooms').textContent = placed.length;
   document.getElementById('s-rooms').textContent = placed.length;
+  captureEditHistory();
 }
+
+/* keyboard: nudge selected room, undo/redo, copy/paste — ignored while typing in a field */
+window.addEventListener('keydown', e=>{
+  const tag = (e.target.tagName||'').toLowerCase();
+  if(tag==='input' || tag==='select' || tag==='textarea') return;
+  if(e.ctrlKey || e.metaKey){
+    if(e.key==='z'){ e.preventDefault(); undoEdit(); return; }
+    if(e.key==='y'){ e.preventDefault(); redoEdit(); return; }
+    if(e.key==='c'){ e.preventDefault(); copySelectedRoom(); return; }
+    if(e.key==='v'){ e.preventDefault(); pasteRoom(); return; }
+  }
+  if(selected === null || !placed[selected] || viewMode!=='arch') return;
+  const r = placed[selected];
+  const step = e.shiftKey ? 1 : SNAP_STEP;
+  let changed = true;
+  if(e.key==='ArrowLeft') r.x = clamp(r.x-step, 0, buildable.w-r.w);
+  else if(e.key==='ArrowRight') r.x = clamp(r.x+step, 0, buildable.w-r.w);
+  else if(e.key==='ArrowUp') r.y = clamp(r.y-step, 0, buildable.h-r.h);
+  else if(e.key==='ArrowDown') r.y = clamp(r.y+step, 0, buildable.h-r.h);
+  else changed = false;
+  if(changed){ e.preventDefault(); finalizeManualEdit(); }
+});
 
 function getHandles(r){
   const rx = buildable.x+r.x, ry = buildable.y+r.y;
@@ -1545,6 +1725,130 @@ function exportPNG(){
   a.href = canvas.toDataURL('image/png');
   a.download = `airsum-${viewMode}-plan.png`;
   a.click();
+}
+
+function downloadText(filename, text, mime){
+  const blob = new Blob([text], {type: mime || 'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+/* ---- CSV export/import ---- */
+function csvEscape(v){ return /[",\n]/.test(v) ? '"'+String(v).replace(/"/g,'""')+'"' : v; }
+function exportRoomsCSV(){
+  const rows = [['name','width_ft','depth_ft','area_sqft','position_hint']];
+  placed.forEach(r=>rows.push([r.name, r.w.toFixed(2), r.h.toFixed(2), r.area.toFixed(1), r.pref||'auto']));
+  downloadText('airsum-rooms.csv', rows.map(r=>r.map(csvEscape).join(',')).join('\n'), 'text/csv');
+  document.getElementById('cmdMsg').textContent = 'Exported room list as CSV.';
+}
+function exportStructCSV(){
+  const rows = [['id','type','span_or_trib','load_kN','size']];
+  structModel.columns.forEach((c,i)=>rows.push([`C${i+1}`,'column', c.tribM2.toFixed(2)+'m2', c.loadKN.toFixed(1), c.size]));
+  structModel.beams.forEach((b,i)=>rows.push([`B${i+1}`,'beam', b.span.toFixed(1)+'ft', '', `${b.widthMM}x${b.depthMM}mm`]));
+  downloadText('airsum-structural.csv', rows.map(r=>r.map(csvEscape).join(',')).join('\n'), 'text/csv');
+  document.getElementById('cmdMsg').textContent = 'Exported structural table as CSV.';
+}
+function importRoomsCSV(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const lines = reader.result.split(/\r?\n/).filter(l=>l.trim());
+      const header = lines[0].toLowerCase();
+      const start = header.includes('name') ? 1 : 0;
+      const imported = [];
+      for(let i=start;i<lines.length;i++){
+        const cols = lines[i].split(',').map(c=>c.replace(/^"|"$/g,'').trim());
+        const name = cols[0];
+        // accept either "name,area" or "name,width,depth,area" formats
+        let area;
+        if(cols.length>=4) area = +cols[3];
+        else area = +cols[1];
+        if(!name || !area || isNaN(area)) continue;
+        imported.push({name, area, pref: cols[4] || 'auto'});
+      }
+      if(!imported.length){ document.getElementById('cmdMsg').textContent = '⚠ No valid rows found in CSV (need name,...,area columns).'; return; }
+      rooms = withPref(imported);
+      renderRoomRows();
+      regenerateNow('Imported from CSV');
+      document.getElementById('cmdMsg').textContent = `Imported ${imported.length} rooms from CSV.`;
+    } catch(err){
+      document.getElementById('cmdMsg').textContent = '⚠ Could not parse that CSV: ' + err.message;
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+/* ---- DXF export (real R12 ASCII DXF — opens in AutoCAD/QCAD/LibreCAD) ---- */
+function exportDXF(){
+  const lines = [];
+  const push = (code, val) => { lines.push(String(code)); lines.push(String(val)); };
+  push(0,'SECTION'); push(2,'ENTITIES');
+
+  function dxfLine(x1,y1,x2,y2,layer){
+    push(0,'LINE'); push(8,layer);
+    push(10,x1.toFixed(3)); push(20,y1.toFixed(3)); push(30,0);
+    push(11,x2.toFixed(3)); push(21,y2.toFixed(3)); push(31,0);
+  }
+  function dxfText(x,y,h,str,layer){
+    push(0,'TEXT'); push(8,layer);
+    push(10,x.toFixed(3)); push(20,y.toFixed(3)); push(30,0);
+    push(40,h.toFixed(2)); push(1,str);
+  }
+
+  // plot + buildable boundary
+  dxfLine(0,0, plot.w,0, 'PLOT'); dxfLine(plot.w,0, plot.w,plot.d, 'PLOT');
+  dxfLine(plot.w,plot.d, 0,plot.d, 'PLOT'); dxfLine(0,plot.d, 0,0, 'PLOT');
+  const bx=buildable.x, by=buildable.y, bw=buildable.w, bh=buildable.h;
+  dxfLine(bx,by, bx+bw,by, 'BUILDABLE'); dxfLine(bx+bw,by, bx+bw,by+bh, 'BUILDABLE');
+  dxfLine(bx+bw,by+bh, bx,by+bh, 'BUILDABLE'); dxfLine(bx,by+bh, bx,by, 'BUILDABLE');
+
+  // rooms as wall rectangles + name labels
+  placed.forEach(r=>{
+    const x1=bx+r.x, y1=by+r.y, x2=bx+r.x+r.w, y2=by+r.y+r.h;
+    dxfLine(x1,y1,x2,y1,'WALLS'); dxfLine(x2,y1,x2,y2,'WALLS');
+    dxfLine(x2,y2,x1,y2,'WALLS'); dxfLine(x1,y2,x1,y1,'WALLS');
+    dxfText(x1+r.w*0.1, y1+r.h*0.5, Math.min(1.5, r.h*0.15), r.name, 'TEXT');
+  });
+
+  // structural overlay: columns as small squares, beams as lines
+  structModel.columns.forEach(c=>{
+    const cx=bx+c.x, cy=by+c.y, s=0.3;
+    dxfLine(cx-s,cy-s,cx+s,cy-s,'COLUMNS'); dxfLine(cx+s,cy-s,cx+s,cy+s,'COLUMNS');
+    dxfLine(cx+s,cy+s,cx-s,cy+s,'COLUMNS'); dxfLine(cx-s,cy+s,cx-s,cy-s,'COLUMNS');
+  });
+  structModel.beams.forEach(b=>{
+    dxfLine(bx+b.x1,by+b.y1, bx+b.x2,by+b.y2, 'BEAMS');
+  });
+
+  push(0,'ENDSEC'); push(0,'EOF');
+  downloadText('airsum-plan.dxf', lines.join('\n'), 'application/dxf');
+  document.getElementById('cmdMsg').textContent = 'Exported DXF (plot, walls, columns, beams on separate layers).';
+}
+
+/* ---- print to scale ---- */
+function printPlan(){
+  const dataUrl = canvas.toDataURL('image/png');
+  const w = window.open('', '_blank');
+  if(!w){ document.getElementById('cmdMsg').textContent = '⚠ Pop-up blocked — allow pop-ups to print.'; return; }
+  w.document.write(`
+    <html><head><title>Airsum — ${viewMode} plan</title>
+    <style>
+      @page { size: landscape; margin: 10mm; }
+      body{ margin:0; font-family: sans-serif; text-align:center; }
+      img{ max-width:100%; }
+      .meta{ font-size:11px; color:#444; margin-top:6px; }
+    </style></head>
+    <body>
+      <img src="${dataUrl}" onload="window.print()">
+      <div class="meta">Sky TerraEye Airsum &middot; ${viewMode.toUpperCase()} sheet &middot; Plot ${plot.w}'&times;${plot.d}' &middot; Generated ${new Date().toLocaleString()}</div>
+    </body></html>
+  `);
+  w.document.close();
 }
 
 /* ================= save / load project ================= */
