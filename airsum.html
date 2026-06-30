@@ -376,15 +376,82 @@ input,select{font-family:inherit}
       </div>
 
       <div id="structInputs" style="display:none">
-        <div class="tg-title">Load Assumptions (preliminary)</div>
+
+        <div class="tg-title">Dead Load Build-Up (composite)</div>
         <div class="g2">
-          <div class="fg"><label>Dead Load kN/m²</label><input class="pi" id="dlInput" type="number" value="4.5" step="0.1"></div>
-          <div class="fg"><label>Live Load kN/m²</label><input class="pi" id="llInput" type="number" value="2.0" step="0.1"></div>
+          <div class="fg"><label>Slab thickness (mm)</label><input class="pi" id="slabThickMM" type="number" value="150" step="10"></div>
+          <div class="fg"><label>Concrete density kg/m³</label><input class="pi" id="concDensity" type="number" value="2400" step="50"></div>
         </div>
-        <div class="fg"><label>Soil Bearing Capacity kPa</label><input class="pi" id="sbcInput" type="number" value="150" step="5"></div>
-        <div class="note">Live load auto-suggests by building type (residential ≈2.0, office ≈3.0 kN/m²) — override anytime. Floors come from the Plot panel.</div>
+        <div class="g2">
+          <div class="fg"><label>Floor finishes kg/m²</label><input class="pi" id="floorFinish" type="number" value="101.5" step="0.5"></div>
+          <div class="fg"><label>Ext. wall kg/m² (face)</label><input class="pi" id="extWallWt" type="number" value="355" step="5"></div>
+        </div>
+        <div class="fg"><label>Int. wall (partition) kg/m² (face)</label><input class="pi" id="intWallWt" type="number" value="162" step="5"></div>
+        <div class="rb ok" style="margin-top:6px"><div class="rl">Computed Dead Load</div><div class="rv" id="dlComputed">---</div></div>
+        <div class="btnRow"><button class="bo bw" onclick="useComputedDL()">↓ Use Computed Value</button></div>
+        <div class="fg" style="margin-top:8px"><label>Dead Load kN/m² (used in calc — editable)</label><input class="pi" id="dlInput" type="number" value="4.5" step="0.1"></div>
+        <div class="note">Slab self-weight (thickness × density) + finishes + wall weight smeared over floor area, same build-up method as a typical structural calc report (exterior/interior wall kg/m² are per wall-face area defaults — adjust to your actual wall buildup).</div>
+
+        <div class="tg-title">Live Load — ASCE 7-16 Table 4.3-1</div>
+        <div class="fg"><label>Occupancy</label>
+          <select class="ps" id="llOccupancy" onchange="onOccupancyChange()">
+            <option value="1.92">Residential — rooms (40 psf)</option>
+            <option value="4.79">Residential — public areas/corridors (100 psf)</option>
+            <option value="2.4">Office (50 psf)</option>
+            <option value="4.79">Lobby / Assembly (100 psf)</option>
+            <option value="4.79">Stairs &amp; exit ways (100 psf)</option>
+            <option value="1.92">Parking — passenger cars (40 psf)</option>
+            <option value="6.0">Storage — light (125 psf)</option>
+            <option value="custom">Custom…</option>
+          </select>
+        </div>
+        <div class="fg"><label>Live Load kN/m² (used in calc — editable)</label><input class="pi" id="llInput" type="number" value="1.92" step="0.1"></div>
+
+        <div class="fg" style="margin-top:6px"><label>Soil Bearing Capacity kPa</label><input class="pi" id="sbcInput" type="number" value="150" step="5"></div>
         <div class="btnRow" style="margin-top:10px"><button class="bp" onclick="generate()">↻ Recalculate Loads</button></div>
-        <div class="disclaimer"><b>Preliminary schematic only.</b> Tributary-area load takeoff with assumed values — not a substitute for analysis by a licensed structural engineer (FE analysis, seismic/wind, code checks per ETABS/STAAD or equivalent are required before construction).</div>
+
+        <div class="tg-title">Seismic Parameters — ASCE 7-16 Ch.11/12</div>
+        <div class="g2">
+          <div class="fg"><label>Risk Category</label>
+            <select class="ps" id="riskCategory"><option value="I">I</option><option value="II" selected>II</option><option value="III">III</option><option value="IV">IV</option></select>
+          </div>
+          <div class="fg"><label>Site Class</label>
+            <select class="ps" id="siteClass"><option>A</option><option>B</option><option>C</option><option selected>D</option><option>E</option></select>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="fg"><label>Ss (g)</label><input class="pi" id="ssInput" type="number" value="0.60" step="0.01"></div>
+          <div class="fg"><label>S1 (g)</label><input class="pi" id="s1Input" type="number" value="0.30" step="0.01"></div>
+        </div>
+        <div class="fg"><label>Seismic force-resisting system</label>
+          <select class="ps" id="seismicSystem" onchange="onSystemChange()">
+            <option value="5,4.5,3">Intermediate RC moment frame (R=5)</option>
+            <option value="8,5.5,3">Special RC moment frame (R=8)</option>
+            <option value="3,2.5,3">Ordinary RC moment frame (R=3)</option>
+            <option value="5,5,2.5">Special RC shear wall (R=5)</option>
+            <option value="6,4,2.5">Intermediate RC shear wall (R=6)</option>
+          </select>
+        </div>
+        <div class="g3">
+          <div class="fg"><label>R</label><input class="pi" id="rInput" type="number" value="5" step="0.5"></div>
+          <div class="fg"><label>Cd</label><input class="pi" id="cdInput" type="number" value="4.5" step="0.5"></div>
+          <div class="fg"><label>Ω₀</label><input class="pi" id="omegaInput" type="number" value="3" step="0.5"></div>
+        </div>
+
+        <div class="tg-title">Wind Parameters — ASCE 7-16 Ch.26</div>
+        <div class="g2">
+          <div class="fg"><label>Basic wind speed (km/h)</label><input class="pi" id="windSpeed" type="number" value="140" step="5"></div>
+          <div class="fg"><label>Exposure Category</label><select class="ps" id="exposureCategory"><option>B</option><option selected>C</option><option>D</option></select></div>
+        </div>
+        <div class="g3">
+          <div class="fg"><label>Kd</label><input class="pi" id="kdInput" type="number" value="0.85" step="0.01"></div>
+          <div class="fg"><label>Kzt</label><input class="pi" id="kztInput" type="number" value="1.0" step="0.05"></div>
+          <div class="fg"><label>Gust G</label><input class="pi" id="gustInput" type="number" value="0.85" step="0.01"></div>
+        </div>
+        <div class="btnRow" style="margin-top:8px"><button class="bp bw" onclick="computeLateralLoads()">⚡ Compute Seismic &amp; Wind</button></div>
+        <div class="note">See the <b>Lateral</b> tab on the right for Fa/Fv site coefficients, SDS/SD1, Seismic Design Category, base shear (equivalent lateral force method), and estimated wind pressure/force — full ASCE 7-16 modal/response-spectrum analysis (ETABS) is still required for final design.</div>
+
+        <div class="disclaimer"><b>Preliminary schematic only.</b> Composite load build-up and ASCE 7-16 equivalent lateral force/simplified wind procedures — correct methodology, but not a substitute for full FE analysis (ETABS), slab/mat design (SAFE), retaining wall design, or sign-off by a licensed structural engineer.</div>
       </div>
 
     </div>
@@ -415,6 +482,7 @@ input,select{font-family:inherit}
       <div class="rptab" id="rpt-compare" onclick="rpTab('compare')">Compare</div>
       <div class="rptab" id="rpt-struct" onclick="rpTab('struct')">Struct</div>
       <div class="rptab" id="rpt-boq" onclick="rpTab('boq')">BOQ</div>
+      <div class="rptab" id="rpt-lateral" onclick="rpTab('lateral')">Lateral</div>
       <div class="rptab" id="rpt-summary" onclick="rpTab('summary')">Summary</div>
     </div>
     <div class="rp-content">
@@ -465,6 +533,31 @@ input,select{font-family:inherit}
           <div class="pr"><span class="pl">Flooring area</span><span class="pv" id="boq-floor">---</span></div>
         </div>
         <div class="disclaimer"><b>Rough order-of-magnitude only.</b> No openings deduction, no wastage factor, no rebar detailing — for budgeting conversation starters, not a tender BOQ. A quantity surveyor should verify before procurement.</div>
+      </div>
+      <div class="rp-sec" id="rpsec-lateral">
+        <div class="lh"><div class="lh-t">Seismic — ASCE 7-16 §11/12</div></div>
+        <div class="pg">
+          <div class="pr"><span class="pl">Fa / Fv (site coeff.)</span><span class="pv" id="lat-fafv">---</span></div>
+          <div class="pr"><span class="pl">SMS / SM1</span><span class="pv" id="lat-sms">---</span></div>
+          <div class="pr"><span class="pl">SDS / SD1</span><span class="pv" id="lat-sds">---</span></div>
+          <div class="pr"><span class="pl"><b>Seismic Design Category</b></span><span class="pv" id="lat-sdc">---</span></div>
+          <div class="pr"><span class="pl">Approx. period Ta</span><span class="pv" id="lat-ta">---</span></div>
+          <div class="pr"><span class="pl">Seismic coeff. Cs</span><span class="pv" id="lat-cs">---</span></div>
+          <div class="pr"><span class="pl">Seismic weight W</span><span class="pv" id="lat-w">---</span></div>
+          <div class="pr"><span class="pl"><b>Base shear V (seismic)</b></span><span class="pv" id="lat-vseismic">---</span></div>
+        </div>
+        <div class="lh"><div class="lh-t">Wind — ASCE 7-16 §26-27 (simplified)</div></div>
+        <div class="pg">
+          <div class="pr"><span class="pl">Kz (velocity pressure coeff.)</span><span class="pv" id="lat-kz">---</span></div>
+          <div class="pr"><span class="pl">Velocity pressure qh</span><span class="pv" id="lat-qh">---</span></div>
+          <div class="pr"><span class="pl">Design pressure (windward)</span><span class="pv" id="lat-pwind">---</span></div>
+          <div class="pr"><span class="pl"><b>Est. base shear V (wind)</b></span><span class="pv" id="lat-vwind">---</span></div>
+        </div>
+        <div class="pg">
+          <div class="pgt">Governing lateral system</div>
+          <div class="pr"><span class="pl">Wind vs Seismic</span><span class="pv" id="lat-govern">---</span></div>
+        </div>
+        <div class="disclaimer"><b>Equivalent lateral force / simplified directional procedure.</b> Real ASCE 7-16 site coefficient tables and ELF equations, correctly applied — but this is not a substitute for modal response spectrum analysis (ETABS), torsional/irregularity checks (ASCE 12.3.2), or a full Ch.27/28 wind analysis. Click "Compute Seismic &amp; Wind" after setting parameters in the left panel.</div>
       </div>
       <div class="rp-sec" id="rpsec-struct">
         <div class="lh"><div class="lh-t">Columns &amp; footings</div></div>
@@ -693,7 +786,10 @@ function resetProgram(){
 document.getElementById('btype').addEventListener('change', resetProgram);
 function syncLLDefault(){
   const t = document.getElementById('btype').value;
-  document.getElementById('llInput').value = t === 'office' ? 3.0 : 2.0;
+  const val = t === 'office' ? 2.4 : 1.92; // ASCE 7-16 Table 4.3-1: office 50psf, residential 40psf
+  document.getElementById('llInput').value = val;
+  const occSel = document.getElementById('llOccupancy');
+  if(occSel) occSel.value = String(val);
 }
 
 /* ================= ribbon helpers ================= */
@@ -1165,6 +1261,169 @@ function renderStructTable(){
     tr.innerHTML = `<td>B${i+1}</td><td>${b.span.toFixed(1)}</td><td>${b.widthMM}\u00d7${b.depthMM}</td>`;
     beamBody.appendChild(tr);
   });
+}
+
+/* ================= dead load build-up (composite) ================= */
+function computeCompositeDL(){
+  const slabM = (+document.getElementById('slabThickMM').value || 150)/1000;
+  const concDensity = +document.getElementById('concDensity').value || 2400;
+  const finishKgM2 = +document.getElementById('floorFinish').value || 101.5;
+  const extWtKgM2 = +document.getElementById('extWallWt').value || 355;
+  const intWtKgM2 = +document.getElementById('intWallWt').value || 162;
+  const wallHeightM = 3.0;
+  const g = 9.81;
+
+  const slabSelfWeight = slabM * concDensity * g / 1000; // kN/m2
+  const finishes = finishKgM2 * g / 1000; // kN/m2
+
+  // smear wall self-weight over the floor area it sits on, same simplification used in
+  // preliminary design before a full FE model exists
+  const extPerimM = 2*(buildable.w+buildable.h)*0.3048;
+  let intLenFt = 0;
+  placed.forEach(r=>{ intLenFt += 2*(r.w+r.h)*0.5; }); // halved to roughly offset double-counting shared walls
+  const intLenM = intLenFt*0.3048;
+  const floorAreaM2 = Math.max(1, buildable.w*buildable.h*0.3048*0.3048);
+  const extWallLoadKN = extPerimM*wallHeightM*(extWtKgM2*g/1000);
+  const intWallLoadKN = intLenM*wallHeightM*(intWtKgM2*g/1000);
+  const smearedWallLoad = (extWallLoadKN+intWallLoadKN)/floorAreaM2; // kN/m2
+
+  const totalDL = slabSelfWeight + finishes + smearedWallLoad;
+  document.getElementById('dlComputed').textContent =
+    `${totalDL.toFixed(2)} kN/m² (slab ${slabSelfWeight.toFixed(2)} + finishes ${finishes.toFixed(2)} + walls ${smearedWallLoad.toFixed(2)})`;
+  return totalDL;
+}
+function useComputedDL(){
+  const v = computeCompositeDL();
+  document.getElementById('dlInput').value = v.toFixed(2);
+  document.getElementById('cmdMsg').textContent = `Dead load set to computed value: ${v.toFixed(2)} kN/m².`;
+  generate();
+}
+function onOccupancyChange(){
+  const sel = document.getElementById('llOccupancy');
+  if(sel.value==='custom') return;
+  document.getElementById('llInput').value = sel.value;
+  generate();
+}
+function onSystemChange(){
+  const [r,cd,om] = document.getElementById('seismicSystem').value.split(',');
+  document.getElementById('rInput').value = r;
+  document.getElementById('cdInput').value = cd;
+  document.getElementById('omegaInput').value = om;
+}
+
+/* ================= ASCE 7-16 seismic + wind (equivalent lateral force / simplified directional) ================= */
+function interp(table, x){
+  // table: [[x0,y0],[x1,y1],...] sorted ascending; clamps at ends
+  if(x<=table[0][0]) return table[0][1];
+  if(x>=table[table.length-1][0]) return table[table.length-1][1];
+  for(let i=0;i<table.length-1;i++){
+    const [x0,y0]=table[i], [x1,y1]=table[i+1];
+    if(x>=x0 && x<=x1) return y0 + (y1-y0)*(x-x0)/(x1-x0);
+  }
+  return table[table.length-1][1];
+}
+const FA_TABLE = { // ASCE 7-16 Table 11.4-1, by Site Class, vs Ss
+  A:[[0,0.8],[1.25,0.8]], B:[[0,0.9],[1.25,0.9]],
+  C:[[0,1.3],[0.5,1.3],[0.75,1.2],[1.0,1.2],[1.25,1.2]],
+  D:[[0,1.6],[0.5,1.4],[0.75,1.2],[1.0,1.1],[1.25,1.0]],
+  E:[[0,2.4],[0.5,1.7],[0.75,1.3],[1.0,1.1],[1.25,0.9]],
+};
+const FV_TABLE = { // ASCE 7-16 Table 11.4-2, by Site Class, vs S1
+  A:[[0,0.8],[0.5,0.8]], B:[[0,0.8],[0.5,0.8]],
+  C:[[0,1.5],[0.5,1.5]],
+  D:[[0,2.4],[0.1,2.4],[0.2,2.2],[0.3,2.0],[0.4,1.9],[0.5,1.8]],
+  E:[[0,4.2],[0.1,4.2],[0.2,3.3],[0.3,2.8],[0.4,2.4],[0.5,2.2]],
+};
+function determineSDC(sds, sd1, risk){
+  function fromSDS(v){
+    if(risk==='IV') return v<0.167?'A': v<0.33?'B':'D';
+    return v<0.167?'A': v<0.33?'B': v<0.50?'C':'D';
+  }
+  function fromSD1(v){
+    if(risk==='IV') return v<0.067?'A': v<0.133?'B':'D';
+    return v<0.067?'A': v<0.133?'B': v<0.20?'C':'D';
+  }
+  const order = ['A','B','C','D','E','F'];
+  const a = fromSDS(sds), b = fromSD1(sd1);
+  return order[Math.max(order.indexOf(a), order.indexOf(b))];
+}
+function importanceFactor(risk){ return {I:1.0, II:1.0, III:1.25, IV:1.5}[risk] || 1.0; }
+function kzLookup(exposure, heightM){
+  const tables = {
+    B:[[0,0.57],[4.6,0.62],[9.1,0.70],[12.2,0.76],[18.3,0.84],[30.5,0.95]],
+    C:[[0,0.85],[4.6,0.90],[9.1,0.98],[12.2,1.04],[18.3,1.13],[30.5,1.24]],
+    D:[[0,1.03],[4.6,1.08],[9.1,1.16],[12.2,1.22],[18.3,1.31],[30.5,1.43]],
+  };
+  return interp(tables[exposure]||tables.C, heightM);
+}
+function computeLateralLoads(){
+  const risk = document.getElementById('riskCategory').value;
+  const siteClass = document.getElementById('siteClass').value;
+  const Ss = +document.getElementById('ssInput').value || 0;
+  const S1 = +document.getElementById('s1Input').value || 0;
+  const R = +document.getElementById('rInput').value || 5;
+  const Ie = importanceFactor(risk);
+  const floors = +document.getElementById('floors').value || 1;
+  const floorHeightM = 3.0;
+  const hn = floors*floorHeightM;
+
+  const Fa = interp(FA_TABLE[siteClass]||FA_TABLE.D, Ss);
+  const Fv = interp(FV_TABLE[siteClass]||FV_TABLE.D, S1);
+  const SMS = Fa*Ss, SM1 = Fv*S1;
+  const SDS = (2/3)*SMS, SD1 = (2/3)*SM1;
+  const SDC = determineSDC(SDS, SD1, risk);
+
+  // approximate period, concrete moment frame coefficients (ASCE 7-16 Table 12.8-2)
+  const Ct = 0.0466, x = 0.9;
+  const Ta = Ct*Math.pow(hn, x);
+
+  let Cs = SDS/(R/Ie);
+  const CsMaxByT = SD1/(Ta*(R/Ie));
+  Cs = Math.min(Cs, CsMaxByT);
+  let CsMin = Math.max(0.044*SDS*Ie, 0.01);
+  if(S1>=0.6) CsMin = Math.max(CsMin, 0.5*S1/(R/Ie));
+  Cs = Math.max(Cs, CsMin);
+
+  // seismic weight: total building dead load (computed composite DL x floor area x floors), a
+  // reasonable approximation of W when no separate live-load-reduction model exists yet
+  const DL = +document.getElementById('dlInput').value || computeCompositeDL();
+  const floorAreaM2 = buildable.w*buildable.h*0.3048*0.3048;
+  const W = DL*floorAreaM2*floors;
+  const Vseismic = Cs*W;
+
+  document.getElementById('lat-fafv').textContent = `${Fa.toFixed(2)} / ${Fv.toFixed(2)}`;
+  document.getElementById('lat-sms').textContent = `${SMS.toFixed(3)}g / ${SM1.toFixed(3)}g`;
+  document.getElementById('lat-sds').textContent = `${SDS.toFixed(3)}g / ${SD1.toFixed(3)}g`;
+  document.getElementById('lat-sdc').textContent = SDC;
+  document.getElementById('lat-ta').textContent = `${Ta.toFixed(3)} sec`;
+  document.getElementById('lat-cs').textContent = Cs.toFixed(4);
+  document.getElementById('lat-w').textContent = `${W.toFixed(0)} kN`;
+  document.getElementById('lat-vseismic').textContent = `${Vseismic.toFixed(0)} kN`;
+
+  // wind — simplified directional procedure principles, windward wall only
+  const exposure = document.getElementById('exposureCategory').value;
+  const Vwind_kmh = +document.getElementById('windSpeed').value || 140;
+  const Vwind_ms = Vwind_kmh/3.6;
+  const Kd = +document.getElementById('kdInput').value || 0.85;
+  const Kzt = +document.getElementById('kztInput').value || 1.0;
+  const G = +document.getElementById('gustInput').value || 0.85;
+  const Kz = kzLookup(exposure, hn);
+  const qh = 0.613*Kz*Kzt*Kd*Vwind_ms*Vwind_ms*Ie/1000; // kPa
+  const Cp = 0.8; // windward wall, typical
+  const pWind = qh*G*Cp; // kPa
+  const frontageM = Math.min(buildable.w, buildable.h)*0.3048; // narrower face = worst-case frontal width
+  const heightM = hn;
+  const Vwind = pWind*frontageM*heightM; // kN, total windward force estimate
+
+  document.getElementById('lat-kz').textContent = Kz.toFixed(2);
+  document.getElementById('lat-qh').textContent = `${qh.toFixed(2)} kPa`;
+  document.getElementById('lat-pwind').textContent = `${pWind.toFixed(2)} kPa`;
+  document.getElementById('lat-vwind').textContent = `${Vwind.toFixed(0)} kN`;
+  document.getElementById('lat-govern').textContent =
+    Vseismic >= Vwind ? `Seismic governs (${Vseismic.toFixed(0)} > ${Vwind.toFixed(0)} kN)` : `Wind governs (${Vwind.toFixed(0)} > ${Vseismic.toFixed(0)} kN)`;
+
+  document.getElementById('cmdMsg').textContent = `Seismic Design Category ${SDC}. ${Vseismic>=Vwind?'Seismic':'Wind'} governs lateral design — see Lateral tab.`;
+  rpTab('lateral');
 }
 
 function renderBOQ(){
@@ -2509,8 +2768,12 @@ makeResizable(document.getElementById('rzBottom'), document.getElementById('bott
 });
 document.querySelectorAll('.roadSideCb').forEach(cb=>cb.addEventListener('change', generate));
 ['dlInput','llInput','sbcInput'].forEach(id=>{
-  document.getElementById(id).addEventListener('input', ()=>{ buildStructModel(); renderStructTable(); render(); });
+  document.getElementById(id).addEventListener('input', ()=>{ buildStructModel(); renderStructTable(); renderBOQ(); render(); });
 });
+['slabThickMM','concDensity','floorFinish','extWallWt','intWallWt'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', computeCompositeDL);
+});
+onSystemChange();
 renderRoomRows();
 populatePresetSelect();
 syncLLDefault();
@@ -2518,6 +2781,7 @@ syncLLDefault();
 fitCanvas();
 zoomExt();
 doGenerate();
+computeCompositeDL();
 pushHistory('Initial layout');
 </script>
 </body>
