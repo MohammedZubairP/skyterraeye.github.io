@@ -164,6 +164,17 @@ input,select{font-family:inherit}
   </div>
   <div class="rg">
     <div class="rr">
+      <button class="rb" id="rb-edit" onclick="toggleEditMode()"><span class="rb-i">✥</span>DRAG-EDIT</button>
+      <button class="rb" id="rb-draw" onclick="toggleDrawMode()"><span class="rb-i">▭</span>DRAW ROOM</button>
+    </div>
+    <div class="rr">
+      <button class="rb" onclick="deleteSelectedRoom()"><span class="rb-i">🗑️</span>DELETE</button>
+      <button class="rb" onclick="editSelectedDims()"><span class="rb-i">🔢</span>SET SIZE</button>
+    </div>
+    <div class="rg-lbl">EDIT</div>
+  </div>
+  <div class="rg">
+    <div class="rr">
       <button class="rb act" id="rb-view-arch" onclick="setView('arch')"><span class="rb-i">🏠</span>ARCH</button>
       <button class="rb" id="rb-view-load" onclick="setView('load')"><span class="rb-i">⚖️</span>LOAD</button>
       <button class="rb" id="rb-view-column" onclick="setView('column')"><span class="rb-i">⬛</span>COLUMN</button>
@@ -278,6 +289,7 @@ input,select{font-family:inherit}
         <div id="roomRows"></div>
         <div class="btnRow"><button class="bo" onclick="addRoom()">+ Add Room</button></div>
         <div class="note">Each room has a <b>Position</b> hint (Auto / Road-facing / Back / Side) — it steers which side of the plot the AI tries to place it on. Add a room and it regenerates immediately.</div>
+        <div class="note"><b>Manual editing:</b> after generating, use DRAG-EDIT in the ribbon to resize/move rooms by hand, DRAW ROOM to add a rectangle anywhere on the plot, or click a room then SET SIZE to type exact dimensions — same as floor-plan editors like FloorPlanCreator. Clicking Generate Plan again resets manual edits back to the AI layout.</div>
 
         <div class="btnRow" style="margin-top:14px"><button class="bp" onclick="generate()">✨ Generate Plan</button></div>
       </div>
@@ -411,10 +423,14 @@ let plot = {w:40,d:60};
 let selected = null;
 let gridOn = true;
 let vastuOn = false;
-let viewMode = 'arch'; // 'arch' | 'struct'
+let viewMode = 'arch'; // 'arch' | 'load' | 'column' | 'beam' | 'footing'
 let planVariant = 'A';
 let entranceInfo = null; // {roomIdx, edge}
 let structModel = {columns:[], beams:[]};
+let editMode = false;   // drag-to-resize/move rooms
+let drawMode = false;   // click-drag to draw a new rectangular room
+let dragHandle = null;  // active drag operation, see canvas mousedown
+let drawRect = null;    // in-progress new room rectangle while drawMode dragging
 
 /* ================= viewport transform ================= */
 const canvas = document.getElementById('cad');
@@ -855,6 +871,9 @@ function render(){
   else if(viewMode === 'beam') renderBeam(b0,b1);
   else if(viewMode === 'footing') renderFooting(b0,b1);
 
+  if(editMode && viewMode==='arch' && selected !== null && placed[selected]) drawHandles(placed[selected]);
+  if(drawMode && viewMode==='arch') drawPreviewRect();
+
   // dimensions + north arrow + title (both views)
   ctx.strokeStyle = '#7fb3e8'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(p0.x, p0.y-12); ctx.lineTo(p1.x, p0.y-12); ctx.stroke();
@@ -1074,17 +1093,80 @@ function renderFooting(b0,b1){
 /* ================= pan / zoom / select ================= */
 const vp = document.getElementById('vport');
 let dragging = false, dragMoved = false, lastX = 0, lastY = 0;
-canvas.addEventListener('mousedown', e=>{ dragging=true; dragMoved=false; lastX=e.clientX; lastY=e.clientY; vp.classList.add('grabbing'); });
+
+canvas.addEventListener('mousedown', e=>{
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+
+  if(drawMode && viewMode==='arch'){
+    const wp = screenToWorld(mx,my);
+    drawRect = {x0:wp.x-buildable.x, y0:wp.y-buildable.y, x1:wp.x-buildable.x, y1:wp.y-buildable.y};
+    return;
+  }
+  if(editMode && viewMode==='arch' && selected !== null && placed[selected]){
+    const hit = hitHandle(mx,my,placed[selected]);
+    if(hit){
+      const r = placed[selected];
+      dragHandle = {...hit, roomIdx:selected, orig:{x:r.x,y:r.y,w:r.w,h:r.h}, startWorld:screenToWorld(mx,my)};
+      return;
+    }
+  }
+  // fall back to existing pan / select behavior
+  dragging = true; dragMoved = false; lastX = e.clientX; lastY = e.clientY;
+  vp.classList.add('grabbing');
+});
+
 window.addEventListener('mousemove', e=>{
   const rect = canvas.getBoundingClientRect();
-  const wp = screenToWorld(e.clientX-rect.left, e.clientY-rect.top);
+  const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+  const wp = screenToWorld(mx,my);
   document.getElementById('mbCoord').textContent = `X: ${wp.x.toFixed(2)}'  Y: ${wp.y.toFixed(2)}'`;
+
+  if(drawRect){
+    drawRect.x1 = wp.x-buildable.x; drawRect.y1 = wp.y-buildable.y;
+    render(); drawPreviewRect(); return;
+  }
+  if(dragHandle){
+    const r = placed[dragHandle.roomIdx];
+    const dx = wp.x - dragHandle.startWorld.x, dy = wp.y - dragHandle.startWorld.y;
+    const o = dragHandle.orig;
+    if(dragHandle.type === 'move'){
+      r.x = clamp(o.x+dx, 0, buildable.w-o.w);
+      r.y = clamp(o.y+dy, 0, buildable.h-o.h);
+    } else if(dragHandle.type === 'corner'){
+      applyCornerResize(r, dragHandle.key, o, dx, dy);
+    } else if(dragHandle.type === 'edge'){
+      applyEdgeResize(r, dragHandle.key, o, dx, dy);
+    }
+    render(); return;
+  }
   if(!dragging) return;
   const dx = e.clientX-lastX, dy = e.clientY-lastY;
   if(Math.abs(dx)+Math.abs(dy) > 2) dragMoved = true;
   if(dragMoved){ panX += dx; panY += dy; lastX = e.clientX; lastY = e.clientY; render(); }
 });
+
 window.addEventListener('mouseup', e=>{
+  if(drawRect){
+    const x = Math.min(drawRect.x0,drawRect.x1), y = Math.min(drawRect.y0,drawRect.y1);
+    const w = Math.abs(drawRect.x1-drawRect.x0), h = Math.abs(drawRect.y1-drawRect.y0);
+    drawRect = null;
+    if(w>=2 && h>=2){
+      const name = prompt('Name this room:', 'New Room') || 'New Room';
+      placed.push({name, area:w*h, x:clamp(x,0,buildable.w-w), y:clamp(y,0,buildable.h-h), w, h});
+      selected = placed.length-1;
+      finalizeManualEdit();
+      document.getElementById('cmdMsg').textContent = `Drew "${name}" (${(w*h).toFixed(0)} sqft).`;
+    } else { render(); }
+    return;
+  }
+  if(dragHandle){
+    const r = placed[dragHandle.roomIdx];
+    r.area = r.w*r.h;
+    dragHandle = null;
+    finalizeManualEdit();
+    return;
+  }
   if(dragging && !dragMoved && viewMode==='arch'){
     const rect = canvas.getBoundingClientRect();
     const wp = screenToWorld(e.clientX-rect.left, e.clientY-rect.top);
@@ -1099,6 +1181,32 @@ window.addEventListener('mouseup', e=>{
   }
   dragging = false; vp.classList.remove('grabbing');
 });
+
+function applyCornerResize(r, key, o, dx, dy){
+  const MIN = 4;
+  if(key==='tl'){ const nx=clamp(o.x+dx,0,o.x+o.w-MIN), ny=clamp(o.y+dy,0,o.y+o.h-MIN); r.x=nx; r.y=ny; r.w=o.x+o.w-nx; r.h=o.y+o.h-ny; }
+  else if(key==='tr'){ const ny=clamp(o.y+dy,0,o.y+o.h-MIN); r.y=ny; r.w=clamp(o.w+dx,MIN,buildable.w-o.x); r.h=o.y+o.h-ny; }
+  else if(key==='bl'){ const nx=clamp(o.x+dx,0,o.x+o.w-MIN); r.x=nx; r.w=o.x+o.w-nx; r.h=clamp(o.h+dy,MIN,buildable.h-o.y); }
+  else if(key==='br'){ r.w=clamp(o.w+dx,MIN,buildable.w-o.x); r.h=clamp(o.h+dy,MIN,buildable.h-o.y); }
+}
+function applyEdgeResize(r, key, o, dx, dy){
+  const MIN = 4;
+  if(key==='top'){ const ny=clamp(o.y+dy,0,o.y+o.h-MIN); r.y=ny; r.h=o.y+o.h-ny; }
+  else if(key==='bottom'){ r.h=clamp(o.h+dy,MIN,buildable.h-o.y); }
+  else if(key==='left'){ const nx=clamp(o.x+dx,0,o.x+o.w-MIN); r.x=nx; r.w=o.x+o.w-nx; }
+  else if(key==='right'){ r.w=clamp(o.w+dx,MIN,buildable.w-o.x); }
+}
+function drawPreviewRect(){
+  if(!drawRect) return;
+  const x = Math.min(drawRect.x0,drawRect.x1), y = Math.min(drawRect.y0,drawRect.y1);
+  const w = Math.abs(drawRect.x1-drawRect.x0), h = Math.abs(drawRect.y1-drawRect.y0);
+  const s0 = worldToScreen(buildable.x+x, buildable.y+y), s1 = worldToScreen(buildable.x+x+w, buildable.y+y+h);
+  ctx.fillStyle = 'rgba(251,91,110,.15)'; ctx.fillRect(s0.x,s0.y,s1.x-s0.x,s1.y-s0.y);
+  ctx.strokeStyle = '#FB5B6E'; ctx.lineWidth = 2; ctx.setLineDash([4,3]);
+  ctx.strokeRect(s0.x,s0.y,s1.x-s0.x,s1.y-s0.y); ctx.setLineDash([]);
+  ctx.fillStyle = '#eaf4ff'; ctx.font='700 9px IBM Plex Mono, monospace'; ctx.textAlign='center';
+  ctx.fillText(`${w.toFixed(1)}' \u00d7 ${h.toFixed(1)}'`, (s0.x+s1.x)/2, (s0.y+s1.y)/2);
+}
 canvas.addEventListener('wheel', e=>{
   e.preventDefault();
   const rect = canvas.getBoundingClientRect();
@@ -1129,7 +1237,74 @@ function zoomExt(){
   render();
 }
 
-/* ================= right panel tabs ================= */
+function toggleEditMode(){
+  editMode = !editMode;
+  if(editMode) drawMode = false;
+  document.getElementById('rb-edit').classList.toggle('act', editMode);
+  document.getElementById('rb-draw').classList.toggle('act', drawMode);
+  vp.style.cursor = editMode ? 'default' : (drawMode ? 'crosshair' : 'grab');
+  render();
+}
+function toggleDrawMode(){
+  drawMode = !drawMode;
+  if(drawMode) editMode = false;
+  document.getElementById('rb-draw').classList.toggle('act', drawMode);
+  document.getElementById('rb-edit').classList.toggle('act', editMode);
+  vp.style.cursor = drawMode ? 'crosshair' : 'grab';
+  render();
+}
+function deleteSelectedRoom(){
+  if(selected === null || !placed[selected]){ document.getElementById('cmdMsg').textContent = 'Select a room first.'; return; }
+  placed.splice(selected,1);
+  selected = null;
+  buildStructModel();
+  renderRoomList(); renderProps(); renderVentList(); renderStructTable(); render();
+  document.getElementById('cmdMsg').textContent = 'Room deleted from the drawing (Generate Plan will rebuild from the AI layout).';
+}
+function editSelectedDims(){
+  if(selected === null || !placed[selected]){ document.getElementById('cmdMsg').textContent = 'Select a room first.'; return; }
+  const r = placed[selected];
+  const input = prompt(`Set exact size for "${r.name}" in feet, as WIDTHxDEPTH:`, `${r.w.toFixed(1)}x${r.h.toFixed(1)}`);
+  if(!input) return;
+  const m = input.match(/^(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)$/i);
+  if(!m){ document.getElementById('cmdMsg').textContent = 'Format must be WIDTHxDEPTH, e.g. 12x10'; return; }
+  r.w = clamp(+m[1], 4, buildable.w - r.x);
+  r.h = clamp(+m[2], 4, buildable.h - r.y);
+  r.area = r.w*r.h;
+  finalizeManualEdit();
+}
+function clamp(v,lo,hi){ return Math.min(hi, Math.max(lo, v)); }
+function finalizeManualEdit(){
+  buildStructModel();
+  renderRoomList(); renderProps(); renderVentList(); renderStructTable(); render();
+  const buildArea = buildable.w*buildable.h;
+  document.getElementById('st-rooms').textContent = placed.length;
+  document.getElementById('s-rooms').textContent = placed.length;
+}
+
+function getHandles(r){
+  const rx = buildable.x+r.x, ry = buildable.y+r.y;
+  const s0 = worldToScreen(rx,ry), s1 = worldToScreen(rx+r.w, ry+r.h);
+  return {
+    corners: { tl:{x:s0.x,y:s0.y}, tr:{x:s1.x,y:s0.y}, bl:{x:s0.x,y:s1.y}, br:{x:s1.x,y:s1.y} },
+    edges:   { top:{x:(s0.x+s1.x)/2,y:s0.y}, bottom:{x:(s0.x+s1.x)/2,y:s1.y}, left:{x:s0.x,y:(s0.y+s1.y)/2}, right:{x:s1.x,y:(s0.y+s1.y)/2} },
+    s0, s1
+  };
+}
+function hitHandle(mx,my,r){
+  const h = getHandles(r), tol = 8;
+  for(const [k,p] of Object.entries(h.corners)) if(Math.hypot(mx-p.x,my-p.y)<tol) return {type:'corner', key:k};
+  for(const [k,p] of Object.entries(h.edges)) if(Math.hypot(mx-p.x,my-p.y)<tol) return {type:'edge', key:k};
+  if(mx>=h.s0.x && mx<=h.s1.x && my>=h.s0.y && my<=h.s1.y) return {type:'move'};
+  return null;
+}
+function drawHandles(r){
+  const h = getHandles(r);
+  ctx.fillStyle = '#FB5B6E'; ctx.strokeStyle = '#091828'; ctx.lineWidth = 1.5;
+  Object.values(h.corners).forEach(p=>{ ctx.fillRect(p.x-5,p.y-5,10,10); ctx.strokeRect(p.x-5,p.y-5,10,10); });
+  ctx.fillStyle = '#091828';
+  Object.values(h.edges).forEach(p=>{ ctx.beginPath(); ctx.arc(p.x,p.y,5,0,7); ctx.fill(); ctx.strokeStyle='#FB5B6E'; ctx.lineWidth=2; ctx.stroke(); });
+}
 function rpTab(id){
   document.querySelectorAll('.rptab').forEach(t=>t.classList.remove('act'));
   document.querySelectorAll('.rp-sec').forEach(s=>s.classList.remove('act'));
