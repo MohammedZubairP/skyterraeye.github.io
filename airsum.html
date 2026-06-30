@@ -74,6 +74,7 @@ input,select{font-family:inherit}
 .bp:hover{background:#e44a5d}
 .bo{flex:1;background:none;border:1px solid var(--sep);color:var(--m);padding:7px 0;border-radius:4px;font-weight:700;font-size:10.5px;cursor:pointer;transition:all .12s}
 .bo:hover{color:var(--t);border-color:var(--bl)}
+.bo.act{background:var(--asdim);border-color:var(--asl);color:var(--as)}
 .roomrow{border:1px solid var(--sep);border-radius:5px;padding:6px;margin-bottom:6px;background:rgba(255,255,255,.015)}
 .roomrow .g2{margin-bottom:4px}
 .roomrow .rowfoot{display:flex;gap:4px;align-items:center}
@@ -240,12 +241,25 @@ input,select{font-family:inherit}
             <option value="right">Right setback</option>
           </select>
         </div>
+        <div class="fg"><label>Main entrance room</label>
+          <select class="ps" id="entranceRoom">
+            <option value="auto">Auto (closest room on road side)</option>
+          </select>
+        </div>
         <label class="check"><input type="checkbox" id="vastu" onchange="syncVastuBtn()"> Vastu-aware ordering</label>
 
         <div class="tg-title">Wall Width (in)</div>
         <div class="g2">
           <div class="fg"><label>Exterior</label><input class="pi" id="extWall" type="number" value="9" min="4" step="0.5"></div>
           <div class="fg"><label>Interior</label><input class="pi" id="intWall" type="number" value="4.5" min="3" step="0.5"></div>
+        </div>
+
+        <div class="tg-title">Plan Options</div>
+        <div class="note" style="margin-top:0">The layout algorithm makes judgment calls (which room goes where among equal-priority rooms). Instead of guessing silently, generate 3 alternatives and pick the one that fits your site:</div>
+        <div class="g3" style="margin-top:6px">
+          <button class="bo" id="optA" onclick="setVariant('A')">Option A</button>
+          <button class="bo" id="optB" onclick="setVariant('B')">Option B</button>
+          <button class="bo" id="optC" onclick="setVariant('C')">Option C</button>
         </div>
 
         <div class="tg-title">Room Program</div>
@@ -381,6 +395,7 @@ let selected = null;
 let gridOn = true;
 let vastuOn = false;
 let viewMode = 'arch'; // 'arch' | 'struct'
+let planVariant = 'A';
 let entranceInfo = null; // {roomIdx, edge}
 let structModel = {columns:[], beams:[]};
 
@@ -402,6 +417,7 @@ function screenToWorld(x,y){ return {x: (x-panX)/scale, y: (y-panY)/scale}; }
 
 /* ================= sidebar room rows ================= */
 function renderRoomRows(){
+  populateEntranceSelect();
   const wrap = document.getElementById('roomRows');
   wrap.innerHTML = '';
   rooms.forEach((r,i)=>{
@@ -502,6 +518,7 @@ function partition(x,y,w,h,items){
   const vertical = w >= h;
   let acc = 0, splitIdx = 1;
   for(let i=0;i<items.length;i++){ acc += items[i].area; if(acc >= totalArea/2){ splitIdx = Math.max(1,i+1); break; } }
+  splitIdx = Math.min(items.length-1, splitIdx); // CRITICAL: must leave >=1 item on each side or recursion never terminates
   const left = items.slice(0,splitIdx), right = items.slice(splitIdx);
   const leftArea = left.reduce((s,r)=>s+r.area,0);
   const frac = Math.min(0.78, Math.max(0.22, leftArea/totalArea));
@@ -530,7 +547,18 @@ function posScore(r, roadSide){
   if(roadSide === 'rear' || roadSide === 'right') s = 3 - s;
   return s;
 }
+function variantBaseOrder(list, variant){
+  if(variant === 'B') return [...list].reverse();
+  if(variant === 'C') return [...list].sort((a,b)=>b.area-a.area);
+  return list;
+}
+function setVariant(v){
+  planVariant = v;
+  ['A','B','C'].forEach(k=>document.getElementById('opt'+k).classList.toggle('act', k===v));
+  generate();
+}
 function orderRooms(list, roadSide){
+  list = variantBaseOrder(list, planVariant); // base ordering differs per plan option
   const useVastu = vastuOn, usePos = list.some(r=>r.pref && r.pref!=='auto');
   if(!useVastu && !usePos) return list;
   return [...list].sort((a,b)=>{
@@ -559,9 +587,24 @@ function computeEntrance(roadSide){
   const key = roadEdgeKey(roadSide);
   let candidates = placed.map((r,i)=>({i, r, ed:edgesOf(r)})).filter(c=>c.ed[key]);
   if(!candidates.length) return null;
+
+  const wanted = document.getElementById('entranceRoom').value;
+  if(wanted !== 'auto'){
+    const forced = candidates.find(c=>c.r.name === wanted);
+    if(forced) return {roomIdx: forced.i, edge: key, auto:false};
+    // chosen room doesn't touch the road edge at this layout — fall back to auto and say so
+    document.getElementById('cmdMsg').textContent = `⚠ "${wanted}" doesn't reach the road-facing wall in this layout — entrance placed automatically instead.`;
+  }
   let pick = candidates.find(c=>/living|hall|reception/i.test(c.r.name));
   if(!pick) pick = candidates.sort((a,b)=>b.r.area-a.r.area)[0];
-  return {roomIdx: pick.i, edge: key};
+  return {roomIdx: pick.i, edge: key, auto:true};
+}
+function populateEntranceSelect(){
+  const sel = document.getElementById('entranceRoom');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="auto">Auto (closest room on road side)</option>' +
+    rooms.map(r=>`<option value="${r.name}">${r.name}</option>`).join('');
+  if([...sel.options].some(o=>o.value===cur)) sel.value = cur;
 }
 
 /* ================= structural model ================= */
@@ -627,6 +670,16 @@ function generate(){
   genTimer = setTimeout(doGenerate, 120);
 }
 function doGenerate(){
+  try{
+    doGenerateInner();
+    document.getElementById('cmdMsg').textContent = '';
+  } catch(err){
+    console.error('Airsum generate error:', err);
+    document.getElementById('cmdMsg').textContent = '⚠ Generate failed: ' + (err && err.message ? err.message : err) + ' — drawing kept at last good state.';
+  }
+  document.getElementById('genflag').style.opacity = '0';
+}
+function doGenerateInner(){
   const plotW = +document.getElementById('plotW').value || 40;
   const plotD = +document.getElementById('plotD').value || 60;
   const floors = +document.getElementById('floors').value || 1;
@@ -673,7 +726,6 @@ function doGenerate(){
   renderVentList();
   renderStructTable();
   render();
-  document.getElementById('genflag').style.opacity = '0';
 }
 
 function renderRoomList(){
@@ -1055,7 +1107,7 @@ function exportPNG(){
 }
 
 /* ================= init ================= */
-['plotW','plotD','floors','sbF','sbR','sbL','sbRt','roadSide','extWall','intWall'].forEach(id=>{
+['plotW','plotD','floors','sbF','sbR','sbL','sbRt','roadSide','extWall','intWall','entranceRoom'].forEach(id=>{
   document.getElementById(id).addEventListener('input', generate);
 });
 ['dlInput','llInput','sbcInput'].forEach(id=>{
@@ -1063,6 +1115,7 @@ function exportPNG(){
 });
 renderRoomRows();
 syncLLDefault();
+['A','B','C'].forEach(k=>document.getElementById('opt'+k).classList.toggle('act', k==='A'));
 fitCanvas();
 zoomExt();
 generate();
