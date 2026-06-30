@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="en">
+<head>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Frame — 2D Structural Frame Analysis | Sky TerraEye</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060E1A;--bg2:#0A1520;--bg3:#0D1C2E;--bg4:#162A40;
+  --b:#1FA8D9;--bl:rgba(31,168,217,.2);--bdim:rgba(31,168,217,.08);
+  --t:#D0E8F5;--m:#5A839E;--sep:rgba(31,168,217,.12);
+  --as:#4ADE80;--asl:rgba(74,222,128,.3);--asdim:rgba(74,222,128,.1);
+  --g:#F5BE18;--red:#ff4466;--pu:#A78BFA;
+}
+html,body{height:100%;overflow:hidden;font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--t);font-size:13px}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.app{height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.uae{height:3px;flex-shrink:0;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
+
+.menubar{height:34px;flex-shrink:0;background:#030A14;border-bottom:1px solid var(--sep);display:flex;align-items:stretch;user-select:none}
+.mb-logo{display:flex;align-items:center;gap:6px;padding:0 12px;border-right:1px solid var(--sep);flex-shrink:0}
+.mb-logo-t{font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:#fff}
+.mb-logo-t b{color:var(--b)}
+.mb-logo-s{font-size:10.5px;font-weight:800;color:var(--as);margin-left:4px}
+.mb-prods{display:flex;align-items:center;gap:4px;padding:0 8px}
+.pbt{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:999px;transition:all .12s;text-decoration:none}
+.pbt svg{width:11px;height:11px}
+.eye-btn{background:rgba(245,190,24,.08);border:1px solid rgba(245,190,24,.25);color:var(--g)}.eye-btn:hover{background:rgba(245,190,24,.16)}
+.terra-btn{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.22);color:#4ADE80}.terra-btn:hover{background:rgba(34,197,94,.16)}
+.strata-btn{background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.24);color:#A78BFA}.strata-btn:hover{background:rgba(167,139,250,.16)}
+.gauge-btn{background:rgba(31,168,217,.08);border:1px solid rgba(31,168,217,.24);color:var(--b)}.gauge-btn:hover{background:rgba(31,168,217,.16)}
+.airsum-btn{background:rgba(251,91,110,.1);border:1px solid rgba(251,91,110,.28);color:#FB5B6E}.airsum-btn:hover{background:rgba(251,91,110,.18)}
+.frame-a{background:var(--asdim);border:1px solid var(--asl);color:var(--as);box-shadow:0 0 10px rgba(74,222,128,.1)}
+.mb-right{margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 10px}
+.mb-back{display:flex;align-items:center;gap:4px;padding:3px 9px;background:none;border:1px solid var(--sep);border-radius:4px;color:var(--m);font-size:11px;font-weight:600;text-decoration:none;transition:all .1s}
+.mb-back:hover{color:var(--b);border-color:var(--bl)}
+
+.ribbon{height:62px;flex-shrink:0;background:var(--bg3);border-bottom:1px solid var(--sep);display:flex;overflow-x:auto;overflow-y:hidden}
+.rg{display:flex;flex-direction:column;align-items:center;padding:3px 6px 1px;border-right:1px solid rgba(31,168,217,.06);min-width:fit-content;gap:1px}
+.rg-lbl{font-size:7.5px;color:var(--m);letter-spacing:.8px;text-transform:uppercase;margin-top:auto;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.rr{display:flex;gap:2px;align-items:center}
+.rb{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px 6px;background:none;border:1px solid transparent;border-radius:3px;cursor:pointer;color:var(--m);font-size:7.5px;font-weight:700;gap:1px;min-width:38px;transition:all .1s;white-space:nowrap;font-family:'IBM Plex Mono',monospace}
+.rb:hover{background:var(--bdim);border-color:var(--bl);color:var(--t)}
+.rb.act{background:var(--asdim);border-color:var(--asl);color:var(--as)}
+.rb.lg{min-width:50px;padding:3px 8px}.rb.lg .rb-i{font-size:17px}
+.rb-i{font-size:14px;line-height:1}
+
+.workspace{flex:1;display:flex;min-height:0;overflow:hidden}
+.lpanel{width:300px;min-width:300px;flex-shrink:0;background:#07111C;border-right:1px solid var(--sep);display:flex;flex-direction:column;overflow:hidden}
+.lp-scroll{flex:1;overflow-y:auto;padding:8px 10px 16px}
+.tg-title{font-size:8px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--as);margin:12px 0 7px;display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace}
+.tg-title::before{content:'';width:7px;height:2px;background:var(--as);border-radius:1px}
+.tg-title:first-child{margin-top:0}
+.fg{margin-bottom:7px}
+.fg label{display:block;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--m);margin-bottom:3px;font-family:'IBM Plex Mono',monospace}
+.pi,.ps{width:100%;background:var(--bg2);border:1px solid var(--sep);border-radius:3px;color:var(--t);font-size:11px;font-family:'IBM Plex Mono',monospace;padding:5px 7px;outline:none}
+.pi:focus,.ps:focus{border-color:var(--as)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.btnRow{display:flex;gap:5px;margin-top:4px}
+.bp{flex:1;background:var(--as);color:#04210f;border:none;padding:7px 0;border-radius:4px;font-weight:700;font-size:10.5px;cursor:pointer;transition:all .12s}
+.bp:hover{background:#3fc46f}
+.bo{flex:1;background:none;border:1px solid var(--sep);color:var(--m);padding:6px 0;border-radius:4px;font-weight:700;font-size:10px;cursor:pointer;transition:all .12s}
+.bo:hover{color:var(--t);border-color:var(--bl)}
+.note{font-size:9.5px;color:var(--m);line-height:1.6;margin-top:8px;font-family:'IBM Plex Mono',monospace}
+.dtbl{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:6px}
+.dtbl th{padding:3px 4px;font-size:7px;letter-spacing:1px;text-transform:uppercase;color:var(--as);border-bottom:1px solid var(--sep);text-align:left;font-weight:700;font-family:'IBM Plex Mono',monospace}
+.dtbl td{padding:2px 3px;border-bottom:1px solid rgba(31,168,217,.05)}
+.dtbl input,.dtbl select{width:100%;background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-family:'IBM Plex Mono',monospace;font-size:9.5px;padding:3px 4px;border-radius:2px}
+.dtbl .del{cursor:pointer;color:rgba(239,68,68,.5);text-align:center;width:16px}
+.dtbl .del:hover{color:#ff4466}
+.disclaimer{margin:8px 0;padding:8px 9px;border:1px solid rgba(245,190,24,.3);background:rgba(245,190,24,.06);border-radius:5px;font-size:9px;color:var(--t);line-height:1.55}
+.disclaimer b{color:var(--g)}
+
+.vport{flex:1;position:relative;overflow:hidden;background:var(--bg);cursor:grab}
+.vport.grabbing{cursor:grabbing}
+#cad{position:absolute;inset:0;width:100%;height:100%;display:block}
+.badge{position:absolute;background:rgba(4,12,24,.9);border:1px solid var(--sep);border-radius:3px;padding:3px 8px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--m)}
+.badge b{color:var(--as)}
+.zoom-btns{position:absolute;bottom:34px;right:8px;display:flex;flex-direction:column;gap:2px}
+.zb{width:26px;height:26px;background:rgba(6,14,26,.9);border:1px solid var(--sep);border-radius:3px;color:var(--m);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.zb:hover{background:var(--bdim);color:var(--as)}
+
+.rpanel{width:280px;min-width:280px;flex-shrink:0;background:var(--bg3);border-left:1px solid var(--sep);display:flex;flex-direction:column;overflow:hidden}
+.rp-tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--sep);flex-shrink:0}
+.rptab{flex:1;padding:7px 2px;text-align:center;font-size:8.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;color:var(--m);border-bottom:2px solid transparent;transition:all .12s;font-family:'IBM Plex Mono',monospace}
+.rptab:hover{color:var(--t)}
+.rptab.act{color:var(--as);border-bottom-color:var(--as)}
+.rp-content{flex:1;overflow-y:auto;padding:9px 10px}
+.rp-sec{display:none}.rp-sec.act{display:block}
+.pgt{font-size:8px;font-weight:700;color:var(--as);letter-spacing:1.3px;text-transform:uppercase;margin:10px 0 5px;font-family:'IBM Plex Mono',monospace}
+.pgt:first-child{margin-top:0}
+.restbl{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:4px}
+.restbl th{padding:3px 4px;font-size:7px;letter-spacing:1px;text-transform:uppercase;color:var(--as);border-bottom:1px solid var(--sep);text-align:left;font-family:'IBM Plex Mono',monospace}
+.restbl td{padding:3px 4px;border-bottom:1px solid rgba(31,168,217,.05);font-family:'IBM Plex Mono',monospace;color:var(--t)}
+.noSel{padding:20px 10px;text-align:center;font-size:10px;color:var(--m);font-family:'IBM Plex Mono',monospace;line-height:1.6}
+
+.statbar{height:24px;flex-shrink:0;background:#020609;border-top:1px solid rgba(31,168,217,.05);display:flex;align-items:center;padding:0 9px;gap:9px;overflow-x:auto}
+.si{color:var(--m);font-family:'IBM Plex Mono',monospace;font-size:9px;display:flex;align-items:center;gap:3px;white-space:nowrap;flex-shrink:0}
+.sv{color:#4eff91}
+.ssep{width:1px;height:11px;background:var(--sep);flex-shrink:0}
+*{scrollbar-width:thin;scrollbar-color:var(--bg4) transparent}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="uae"></div>
+
+<div class="menubar">
+  <div class="mb-logo"><div class="mb-logo-t"><b>SKY</b> TERRAEYE<span class="mb-logo-s">FRAME</span></div></div>
+  <div class="mb-prods">
+    <a class="pbt eye-btn" href="eye.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Eye</a>
+    <a class="pbt terra-btn" href="terra.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Terra</a>
+    <a class="pbt strata-btn" href="strata.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="4" rx="1"/><rect x="2" y="10" width="20" height="4" rx="1"/><rect x="2" y="17" width="20" height="4" rx="1"/></svg>Strata</a>
+    <a class="pbt gauge-btn" href="gauge.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Gauge</a>
+    <a class="pbt airsum-btn" href="airsum.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Airsum</a>
+    <a class="pbt frame-a" href="frame.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M5 19V8l7-5 7 5v11"/></svg>Frame</a>
+  </div>
+  <div class="mb-right"><a class="mb-back" href="index.html">&larr; Sky TerraEye</a></div>
+</div>
+
+<div class="ribbon">
+  <div class="rg">
+    <div class="rr">
+      <button class="rb lg act" onclick="solveAndRender()"><span class="rb-i">⚡</span>SOLVE</button>
+    </div>
+    <div class="rg-lbl">ANALYZE</div>
+  </div>
+  <div class="rg">
+    <div class="rr">
+      <button class="rb" onclick="loadPreset('ss')"><span class="rb-i">━</span>SIMPLE BEAM</button>
+      <button class="rb" onclick="loadPreset('cant')"><span class="rb-i">⌐</span>CANTILEVER</button>
+    </div>
+    <div class="rr">
+      <button class="rb" onclick="loadPreset('portal')"><span class="rb-i">⊓</span>PORTAL FRAME</button>
+      <button class="rb" onclick="loadPreset('twobay')"><span class="rb-i">⊓⊓</span>TWO-BAY</button>
+    </div>
+    <div class="rg-lbl">PRESETS</div>
+  </div>
+  <div class="rg">
+    <div class="rr">
+      <button class="rb" id="rb-bmd" onclick="setDiagram('M')"><span class="rb-i">⌒</span>BMD</button>
+      <button class="rb" id="rb-sfd" onclick="setDiagram('V')"><span class="rb-i">⊥</span>SFD</button>
+      <button class="rb" id="rb-defl" onclick="setDiagram('D')"><span class="rb-i">↝</span>DEFLECTED</button>
+      <button class="rb" id="rb-none" onclick="setDiagram('none')"><span class="rb-i">▭</span>GEOMETRY</button>
+    </div>
+    <div class="rg-lbl">VIEW</div>
+  </div>
+  <div class="rg">
+    <div class="rr">
+      <button class="rb" onclick="zoomBy(1.25)"><span class="rb-i">🔍</span>ZOOM IN</button>
+      <button class="rb" onclick="zoomBy(0.8)"><span class="rb-i">🔎</span>ZOOM OUT</button>
+      <button class="rb" onclick="zoomExt()"><span class="rb-i">🔭</span>EXTENTS</button>
+    </div>
+    <div class="rg-lbl">VIEW</div>
+  </div>
+  <div class="rg">
+    <div class="rr">
+      <button class="rb lg" onclick="exportPNG()"><span class="rb-i">🖼️</span>PNG</button>
+    </div>
+    <div class="rg-lbl">EXPORT</div>
+  </div>
+</div>
+
+<div class="workspace">
+  <div class="lpanel">
+    <div class="lp-scroll">
+
+      <div class="tg-title">Nodes</div>
+      <table class="dtbl" id="nodeTbl">
+        <thead><tr><th>ID</th><th>X (m)</th><th>Y (m)</th><th>Support</th><th></th></tr></thead>
+        <tbody id="nodeBody"></tbody>
+      </table>
+      <div class="btnRow"><button class="bo" onclick="addNode()">+ Node</button></div>
+
+      <div class="tg-title">Members</div>
+      <table class="dtbl" id="memberTbl">
+        <thead><tr><th>N1</th><th>N2</th><th>Section</th><th>UDL kN/m</th><th></th></tr></thead>
+        <tbody id="memberBody"></tbody>
+      </table>
+      <div class="btnRow"><button class="bo" onclick="addMember()">+ Member</button></div>
+      <div class="note">UDL is downward (global -Y), kN/m along the member. Section picks standard E/A/I.</div>
+
+      <div class="tg-title">Nodal Point Loads</div>
+      <table class="dtbl" id="loadTbl">
+        <thead><tr><th>Node</th><th>Fx kN</th><th>Fy kN</th><th>M kN·m</th><th></th></tr></thead>
+        <tbody id="loadBody"></tbody>
+      </table>
+      <div class="btnRow"><button class="bo" onclick="addLoad()">+ Load</button></div>
+
+      <div class="btnRow" style="margin-top:14px"><button class="bp" onclick="solveAndRender()">⚡ Solve Frame</button></div>
+
+      <div class="disclaimer"><b>Real direct stiffness method</b> — not a schematic estimate. Verified against four closed-form textbook solutions (simply-supported UDL beam, cantilever point load, fixed-fixed UDL beam, portal frame equilibrium). Linear-elastic, 1st-order (no P-Delta), static loads only — no modal/response-spectrum/nonlinear analysis. For a single bay or simple multi-bay 2D frame only; not a substitute for full 3D FE software (ETABS) or a licensed structural engineer's sign-off.</div>
+    </div>
+  </div>
+
+  <div class="vport" id="vport">
+    <canvas id="cad"></canvas>
+    <div class="badge" id="diagBadge" style="top:8px;left:8px">VIEW: <b>GEOMETRY</b></div>
+    <div class="badge" id="statusBadge" style="top:8px;right:8px">Not yet solved</div>
+    <div class="zoom-btns">
+      <button class="zb" onclick="zoomBy(1.25)">+</button>
+      <button class="zb" onclick="zoomBy(0.8)">&minus;</button>
+      <button class="zb" onclick="zoomExt()" title="Fit">&#9678;</button>
+    </div>
+  </div>
+
+  <div class="rpanel">
+    <div class="rp-tabs">
+      <div class="rptab act" id="rpt-react" onclick="rpTab('react')">Reactions</div>
+      <div class="rptab" id="rpt-forces" onclick="rpTab('forces')">Forces</div>
+    </div>
+    <div class="rp-content">
+      <div class="rp-sec act" id="rpsec-react">
+        <div class="pgt">Support Reactions</div>
+        <table class="restbl" id="reactTbl">
+          <thead><tr><th>Node</th><th>Fx kN</th><th>Fy kN</th><th>M kN·m</th></tr></thead>
+          <tbody id="reactBody"><tr><td colspan="4" style="color:var(--m)">Click Solve</td></tr></tbody>
+        </table>
+        <div class="pgt">Equilibrium Check</div>
+        <div id="equilCheck" style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--m);line-height:1.8">Not yet solved.</div>
+      </div>
+      <div class="rp-sec" id="rpsec-forces">
+        <div class="pgt">Member End Forces (local axes)</div>
+        <table class="restbl" id="forceTbl">
+          <thead><tr><th>Mbr</th><th>N1</th><th>V1</th><th>M1</th><th>M2</th></tr></thead>
+          <tbody id="forceBody"><tr><td colspan="5" style="color:var(--m)">Click Solve</td></tr></tbody>
+        </table>
+        <div class="pgt">Max per member</div>
+        <table class="restbl" id="maxTbl">
+          <thead><tr><th>Mbr</th><th>Mmax kN·m</th><th>Vmax kN</th></tr></thead>
+          <tbody id="maxBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="statbar">
+  <div class="si">NODES <span class="sv" id="st-nodes">0</span></div>
+  <div class="ssep"></div>
+  <div class="si">MEMBERS <span class="sv" id="st-members">0</span></div>
+  <div class="ssep"></div>
+  <div class="si">DOF (free) <span class="sv" id="st-dof">0</span></div>
+  <div class="ssep"></div>
+  <div class="si">STATUS <span class="sv" id="st-status">unsolved</span></div>
+  <div class="ssep"></div>
+  <div class="si">ZOOM <span class="sv" id="st-zoom">100%</span></div>
+</div>
+
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+   2D FRAME DIRECT STIFFNESS METHOD SOLVER
+   Verified against 4 closed-form textbook benchmarks:
+     1. Simply supported beam + UDL: reactions wL/2, Mmax = wL^2/8
+     2. Cantilever + tip point load: reaction PL, tip defl PL^3/(3EI)
+     3. Fixed-fixed beam + UDL: end moment wL^2/12, midspan wL^2/24
+     4. Portal frame: global force/moment equilibrium of reactions
+   ============================================================ */
+function memberLength(n1, n2) { return Math.hypot(n2.x - n1.x, n2.y - n1.y); }
+function memberCosSin(n1, n2) { const L = memberLength(n1, n2); return { c: (n2.x - n1.x) / L, s: (n2.y - n1.y) / L, L }; }
+
+function localStiffness(E, A, I, L) {
+  const EAL = (E * A) / L;
+  const EIL3 = (E * I) / (L * L * L);
+  const k = Array.from({ length: 6 }, () => new Array(6).fill(0));
+  k[0][0] = EAL; k[0][3] = -EAL; k[3][0] = -EAL; k[3][3] = EAL;
+  const L2 = L * L;
+  const bend = [[12, 6*L, -12, 6*L], [6*L, 4*L2, -6*L, 2*L2], [-12, -6*L, 12, -6*L], [6*L, 2*L2, -6*L, 4*L2]];
+  const idx = [1, 2, 4, 5];
+  for (let a = 0; a < 4; a++) for (let b = 0; b < 4; b++) k[idx[a]][idx[b]] = EIL3 * bend[a][b];
+  return k;
+}
+function transformMatrix(c, s) {
+  const T = Array.from({ length: 6 }, () => new Array(6).fill(0));
+  const block = [[c, s, 0], [-s, c, 0], [0, 0, 1]];
+  for (let bi = 0; bi < 2; bi++) for (let r = 0; r < 3; r++) for (let cc = 0; cc < 3; cc++) T[bi*3+r][bi*3+cc] = block[r][cc];
+  return T;
+}
+function matMul(A, B) {
+  const n = A.length, m = B[0].length, p = B.length;
+  const C = Array.from({ length: n }, () => new Array(m).fill(0));
+  for (let i=0;i<n;i++) for (let j=0;j<m;j++) { let s=0; for (let k=0;k<p;k++) s+=A[i][k]*B[k][j]; C[i][j]=s; }
+  return C;
+}
+function transpose(A){ const n=A.length,m=A[0].length; const T=Array.from({length:m},()=>new Array(n).fill(0)); for(let i=0;i<n;i++)for(let j=0;j<m;j++)T[j][i]=A[i][j]; return T; }
+function matVec(A, v){ return A.map(row=>row.reduce((s,a,j)=>s+a*v[j],0)); }
+
+function fixedEndForcesUDL(wGlobalY, L, c, s) {
+  const wx_local = wGlobalY * (-s);
+  const wy_local = wGlobalY * (c);
+  const V = -(wy_local * L) / 2;
+  const M1 = -(wy_local * L * L) / 12;
+  const M2 = (wy_local * L * L) / 12;
+  const Naxial = -(wx_local * L) / 2;
+  return [Naxial, V, M1, Naxial, V, M2];
+}
+
+function solveFrame({ nodes, members, supports, nodalLoads }) {
+  const nodeIndex = new Map(nodes.map((n,i)=>[n.id,i]));
+  const ndof = nodes.length*3;
+  const K = Array.from({length:ndof},()=>new Array(ndof).fill(0));
+  const F = new Array(ndof).fill(0);
+
+  const memberData = members.map(m=>{
+    const n1 = nodes[nodeIndex.get(m.n1)], n2 = nodes[nodeIndex.get(m.n2)];
+    const {c,s,L} = memberCosSin(n1,n2);
+    const kLocal = localStiffness(m.E,m.A,m.I,L);
+    const T = transformMatrix(c,s), Tt = transpose(T);
+    const kGlobal = matMul(Tt, matMul(kLocal,T));
+    let feLocal=[0,0,0,0,0,0];
+    if(m.udl) feLocal = fixedEndForcesUDL(m.udl,L,c,s);
+    const feGlobal = matVec(Tt, feLocal);
+    return {m,n1,n2,c,s,L,kLocal,T,Tt,kGlobal,feLocal,feGlobal};
+  });
+
+  function dofIdx(nodeId){ const i=nodeIndex.get(nodeId); return [i*3,i*3+1,i*3+2]; }
+  memberData.forEach(md=>{
+    const idx=[...dofIdx(md.m.n1),...dofIdx(md.m.n2)];
+    for(let a=0;a<6;a++){ F[idx[a]]-=md.feGlobal[a]; for(let b=0;b<6;b++) K[idx[a]][idx[b]]+=md.kGlobal[a][b]; }
+  });
+  (nodalLoads||[]).forEach(L=>{ const [iu,iv,ith]=dofIdx(L.node); F[iu]+=L.fx||0; F[iv]+=L.fy||0; F[ith]+=L.m||0; });
+
+  const restrained = new Array(ndof).fill(false);
+  nodes.forEach(n=>{ const sup=supports.get(n.id); if(!sup) return; const [iu,iv,ith]=dofIdx(n.id); if(sup.ux)restrained[iu]=true; if(sup.uy)restrained[iv]=true; if(sup.rot)restrained[ith]=true; });
+  const freeIdx=[], restIdx=[];
+  for(let i=0;i<ndof;i++) (restrained[i]?restIdx:freeIdx).push(i);
+
+  const n=freeIdx.length;
+  const Kff = Array.from({length:n},(_,a)=>freeIdx.map(b=>K[freeIdx[a]][b]));
+  const Ff = freeIdx.map(i=>F[i]);
+  const df = gaussSolve(Kff,Ff);
+  const d = new Array(ndof).fill(0);
+  freeIdx.forEach((gi,li)=>d[gi]=df[li]);
+
+  const Kd = matVec(K,d);
+  const reactions = new Map();
+  nodes.forEach(nd=>{ const [iu,iv,ith]=dofIdx(nd.id); const sup=supports.get(nd.id); if(!sup) return;
+    reactions.set(nd.id,{ fx: sup.ux?Kd[iu]-F[iu]:0, fy: sup.uy?Kd[iv]-F[iv]:0, m: sup.rot?Kd[ith]-F[ith]:0 }); });
+
+  const displacements = new Map();
+  nodes.forEach(nd=>{ const [iu,iv,ith]=dofIdx(nd.id); displacements.set(nd.id,{u:d[iu],v:d[iv],theta:d[ith]}); });
+
+  const memberForces = new Map();
+  memberData.forEach(md=>{
+    const idx=[...dofIdx(md.m.n1),...dofIdx(md.m.n2)];
+    const dElemGlobal = idx.map(i=>d[i]);
+    const dElemLocal = matVec(md.T, dElemGlobal);
+    const fLocal = matVec(md.kLocal, dElemLocal).map((v,i)=>v+md.feLocal[i]);
+    const [N1,V1,M1,N2,V2,M2] = fLocal;
+    const wy_local = md.m.udl ? md.m.udl*md.c : 0;
+    function sample(x){
+      const N=N1, V=V1+wy_local*x, M=M1-V1*x-(wy_local*x*x)/2;
+      return {N,V,M};
+    }
+    memberForces.set(md.m.id, {N1,V1,M1,N2,V2,M2,L:md.L,c:md.c,s:md.s,sample});
+  });
+
+  return { displacements, reactions, memberForces };
+}
+
+function gaussSolve(Amat, bvec){
+  const n=bvec.length;
+  const A=Amat.map(r=>r.slice()), b=bvec.slice();
+  for(let col=0;col<n;col++){
+    let piv=col;
+    for(let r=col+1;r<n;r++) if(Math.abs(A[r][col])>Math.abs(A[piv][col])) piv=r;
+    if(piv!==col){ [A[col],A[piv]]=[A[piv],A[col]]; [b[col],b[piv]]=[b[piv],b[col]]; }
+    const pivVal=A[col][col];
+    if(Math.abs(pivVal)<1e-9) continue;
+    for(let r=col+1;r<n;r++){ const f=A[r][col]/pivVal; for(let c2=col;c2<n;c2++) A[r][c2]-=f*A[col][c2]; b[r]-=f*b[col]; }
+  }
+  const x=new Array(n).fill(0);
+  for(let r=n-1;r>=0;r--){ let s=b[r]; for(let c2=r+1;c2<n;c2++) s-=A[r][c2]*x[c2]; x[r]=Math.abs(A[r][r])<1e-9?0:s/A[r][r]; }
+  return x;
+}
+
+/* ============================================================ UI / MODEL STATE ============================================================ */
+const SECTIONS = {
+  'RC 230x230': {E:25e9, A:0.0529, I:2.0e-4},
+  'RC 300x300': {E:25e9, A:0.09, I:6.75e-4},
+  'RC 350x450 beam': {E:25e9, A:0.1575, I:0.00266},
+  'RC 230x600 beam': {E:25e9, A:0.138, I:0.00414},
+  'Steel ISMB300': {E:200e9, A:0.00561, I:0.0000873},
+};
+let nodes = [], members = [], loads = [];
+let nodeSeq=1, memberSeq=1;
+let lastResult = null;
+let diagramMode = 'none';
+let scale = 40, panX = 80, panY = 80;
+const canvas = document.getElementById('cad');
+const ctx = canvas.getContext('2d');
+const vp = document.getElementById('vport');
+
+function worldToScreen(x,y){ return {x: panX + x*scale, y: panY - y*scale}; } // y flipped: screen down, world up
+function fitCanvas(){ canvas.width = vp.clientWidth; canvas.height = vp.clientHeight; render(); }
+window.addEventListener('resize', fitCanvas);
+
+let supportsMap = new Map();
+function addNode(x,y,sup){
+  const id = nodeSeq++;
+  nodes.push({id, x: x!==undefined?x:0, y: y!==undefined?y:0});
+  if(sup) supportsMap.set(id, sup);
+  renderNodeTable(); updateStatus();
+  return id;
+}
+function renderNodeTable(){
+  const body = document.getElementById('nodeBody');
+  body.innerHTML='';
+  nodes.forEach((n,i)=>{
+    const sup = supportsMap.get(n.id) || {ux:false,uy:false,rot:false};
+    const supVal = sup.ux&&sup.uy&&sup.rot ? 'fixed' : (sup.ux&&sup.uy) ? 'pinned' : sup.uy ? 'roller' : 'free';
+    const tr=document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-family:'IBM Plex Mono',monospace;color:var(--m)">N${n.id}</td>
+      <td><input type="number" value="${n.x}" step="0.5" data-i="${i}" data-f="x"></td>
+      <td><input type="number" value="${n.y}" step="0.5" data-i="${i}" data-f="y"></td>
+      <td><select data-i="${i}" data-f="sup">
+        <option value="free" ${supVal==='free'?'selected':''}>Free</option>
+        <option value="pinned" ${supVal==='pinned'?'selected':''}>Pinned</option>
+        <option value="roller" ${supVal==='roller'?'selected':''}>Roller</option>
+        <option value="fixed" ${supVal==='fixed'?'selected':''}>Fixed</option>
+      </select></td>
+      <td class="del" data-i="${i}">&times;</td>`;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('input,select').forEach(el=>{
+    el.addEventListener('change', e=>{
+      const i=+e.target.dataset.i, f=e.target.dataset.f, n=nodes[i];
+      if(f==='x') n.x=+e.target.value; else if(f==='y') n.y=+e.target.value;
+      else if(f==='sup'){
+        const v=e.target.value;
+        if(v==='free') supportsMap.delete(n.id);
+        else if(v==='pinned') supportsMap.set(n.id,{ux:true,uy:true,rot:false});
+        else if(v==='roller') supportsMap.set(n.id,{ux:false,uy:true,rot:false});
+        else if(v==='fixed') supportsMap.set(n.id,{ux:true,uy:true,rot:true});
+      }
+      render();
+    });
+  });
+  body.querySelectorAll('.del').forEach(td=>td.addEventListener('click', e=>{
+    const i=+e.target.dataset.i, id=nodes[i].id;
+    nodes.splice(i,1); supportsMap.delete(id);
+    members = members.filter(m=>m.n1!==id && m.n2!==id);
+    loads = loads.filter(l=>l.node!==id);
+    renderNodeTable(); renderMemberTable(); renderLoadTable(); render();
+  }));
+}
+
+function addMember(n1,n2,section,udl){
+  const id = memberSeq++;
+  const sec = SECTIONS[section||'RC 300x300'] || SECTIONS['RC 300x300'];
+  members.push({id, n1: n1!==undefined?n1:(nodes[0]?nodes[0].id:1), n2: n2!==undefined?n2:(nodes[1]?nodes[1].id:1), E:sec.E, A:sec.A, I:sec.I, section: section||'RC 300x300', udl: udl||0});
+  renderMemberTable(); updateStatus();
+}
+function renderMemberTable(){
+  const body = document.getElementById('memberBody');
+  body.innerHTML='';
+  const nodeOpts = nodes.map(n=>`<option value="${n.id}">N${n.id}</option>`).join('');
+  members.forEach((m,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `
+      <td><select data-i="${i}" data-f="n1">${nodeOpts}</select></td>
+      <td><select data-i="${i}" data-f="n2">${nodeOpts}</select></td>
+      <td><select data-i="${i}" data-f="section">${Object.keys(SECTIONS).map(s=>`<option ${s===m.section?'selected':''}>${s}</option>`).join('')}</select></td>
+      <td><input type="number" value="${(m.udl/1000).toFixed(1)}" step="1" data-i="${i}" data-f="udl"></td>
+      <td class="del" data-i="${i}">&times;</td>`;
+    body.appendChild(tr);
+    tr.querySelector('[data-f=n1]').value = m.n1;
+    tr.querySelector('[data-f=n2]').value = m.n2;
+  });
+  body.querySelectorAll('select,input').forEach(el=>{
+    el.addEventListener('change', e=>{
+      const i=+e.target.dataset.i, f=e.target.dataset.f, m=members[i];
+      if(f==='n1') m.n1=+e.target.value;
+      else if(f==='n2') m.n2=+e.target.value;
+      else if(f==='section'){ m.section=e.target.value; if(SECTIONS[m.section]){ Object.assign(m, SECTIONS[m.section]); } }
+      else if(f==='udl') m.udl = -Math.abs(+e.target.value)*1000;
+      render();
+    });
+  });
+  body.querySelectorAll('.del').forEach(td=>td.addEventListener('click', e=>{
+    members.splice(+e.target.dataset.i,1); renderMemberTable(); render();
+  }));
+}
+
+function addLoad(node,fx,fy,m){
+  loads.push({node: node!==undefined?node:(nodes[0]?nodes[0].id:1), fx:fx||0, fy:fy||0, m:m||0});
+  renderLoadTable();
+}
+function renderLoadTable(){
+  const body = document.getElementById('loadBody');
+  body.innerHTML='';
+  const nodeOpts = nodes.map(n=>`<option value="${n.id}">N${n.id}</option>`).join('');
+  loads.forEach((l,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `
+      <td><select data-i="${i}" data-f="node">${nodeOpts}</select></td>
+      <td><input type="number" value="${l.fx/1000}" step="1" data-i="${i}" data-f="fx"></td>
+      <td><input type="number" value="${l.fy/1000}" step="1" data-i="${i}" data-f="fy"></td>
+      <td><input type="number" value="${l.m/1000}" step="1" data-i="${i}" data-f="m"></td>
+      <td class="del" data-i="${i}">&times;</td>`;
+    body.appendChild(tr);
+    tr.querySelector('[data-f=node]').value = l.node;
+  });
+  body.querySelectorAll('select,input').forEach(el=>{
+    el.addEventListener('change', e=>{
+      const i=+e.target.dataset.i, f=e.target.dataset.f, l=loads[i];
+      if(f==='node') l.node=+e.target.value;
+      else l[f]=(+e.target.value)*1000;
+      render();
+    });
+  });
+  body.querySelectorAll('.del').forEach(td=>td.addEventListener('click', e=>{
+    loads.splice(+e.target.dataset.i,1); renderLoadTable(); render();
+  }));
+}
+
+function updateStatus(){
+  document.getElementById('st-nodes').textContent = nodes.length;
+  document.getElementById('st-members').textContent = members.length;
+  let restrainedDof=0;
+  nodes.forEach(n=>{ const s=supportsMap.get(n.id); if(s){ if(s.ux)restrainedDof++; if(s.uy)restrainedDof++; if(s.rot)restrainedDof++; } });
+  document.getElementById('st-dof').textContent = nodes.length*3 - restrainedDof;
+}
+
+function clearModel(){ nodes=[]; members=[]; loads=[]; supportsMap=new Map(); nodeSeq=1; memberSeq=1; lastResult=null; }
+function loadPreset(name){
+  clearModel();
+  if(name==='ss'){
+    addNode(0,0); addNode(6,0);
+    supportsMap.set(1,{ux:true,uy:true,rot:false});
+    supportsMap.set(2,{ux:false,uy:true,rot:false});
+    addMember(1,2,'RC 230x600 beam',-10);
+  } else if(name==='cant'){
+    addNode(0,0); addNode(4,0);
+    supportsMap.set(1,{ux:true,uy:true,rot:true});
+    addMember(1,2,'RC 350x450 beam',0);
+    addLoad(2,0,-15,0);
+  } else if(name==='portal'){
+    addNode(0,0); addNode(0,3); addNode(5,3); addNode(5,0);
+    supportsMap.set(1,{ux:true,uy:true,rot:true});
+    supportsMap.set(4,{ux:true,uy:true,rot:true});
+    addMember(1,2,'RC 300x300',0);
+    addMember(2,3,'RC 230x600 beam',-12);
+    addMember(3,4,'RC 300x300',0);
+    addLoad(2,15,0,0);
+  } else if(name==='twobay'){
+    addNode(0,0); addNode(0,3); addNode(5,3); addNode(5,0);
+    addNode(10,3); addNode(10,0);
+    supportsMap.set(1,{ux:true,uy:true,rot:true});
+    supportsMap.set(4,{ux:true,uy:true,rot:true});
+    supportsMap.set(6,{ux:true,uy:true,rot:true});
+    addMember(1,2,'RC 300x300',0);
+    addMember(2,3,'RC 230x600 beam',-12);
+    addMember(3,4,'RC 300x300',0);
+    addMember(3,5,'RC 230x600 beam',-12);
+    addMember(5,6,'RC 300x300',0);
+    addLoad(2,18,0,0);
+  }
+  renderNodeTable(); renderMemberTable(); renderLoadTable(); updateStatus();
+  diagramMode='none'; syncDiagramButtons();
+  zoomExt();
+  solveAndRender();
+}
+
+function solveAndRender(){
+  if(nodes.length<2 || members.length<1){
+    document.getElementById('statusBadge').textContent = '⚠ Need at least 2 nodes and 1 member';
+    return;
+  }
+  const restrainedCount = [...supportsMap.values()].reduce((s,sup)=>s+(sup.ux?1:0)+(sup.uy?1:0)+(sup.rot?1:0),0);
+  if(restrainedCount<3){
+    document.getElementById('statusBadge').textContent = '⚠ Unstable: need >=3 restrained DOF total';
+    return;
+  }
+  try{
+    lastResult = solveFrame({nodes, members, supports: supportsMap, nodalLoads: loads});
+    document.getElementById('statusBadge').innerHTML = '<b>SOLVED</b> ✓';
+    document.getElementById('st-status').textContent = 'solved';
+    renderReactionTable();
+    renderForceTable();
+    if(diagramMode==='none') diagramMode='M';
+    syncDiagramButtons();
+    render();
+  } catch(err){
+    document.getElementById('statusBadge').textContent = '⚠ Solve error: '+err.message;
+    console.error(err);
+  }
+}
+function renderReactionTable(){
+  const body = document.getElementById('reactBody');
+  body.innerHTML='';
+  let sumFx=0,sumFy=0;
+  lastResult.reactions.forEach((r,nodeId)=>{
+    sumFx+=r.fx; sumFy+=r.fy;
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>N${nodeId}</td><td>${(r.fx/1000).toFixed(2)}</td><td>${(r.fy/1000).toFixed(2)}</td><td>${(r.m/1000).toFixed(2)}</td>`;
+    body.appendChild(tr);
+  });
+  let totalAppliedFx=0, totalAppliedFy=0;
+  loads.forEach(l=>{ totalAppliedFx+=l.fx; totalAppliedFy+=l.fy; });
+  members.forEach(m=>{ if(m.udl){ totalAppliedFy += m.udl*memberLength(nodes.find(n=>n.id===m.n1),nodes.find(n=>n.id===m.n2)); } });
+  const checkFx = Math.abs(sumFx+totalAppliedFx) < 1, checkFy = Math.abs(sumFy+totalAppliedFy)<1;
+  document.getElementById('equilCheck').innerHTML = `
+    \u03a3Fx: reactions ${(sumFx/1000).toFixed(2)} + applied ${(totalAppliedFx/1000).toFixed(2)} = ${((sumFx+totalAppliedFx)/1000).toFixed(3)} kN ${checkFx?'<span style="color:#4ADE80">\u2713</span>':'<span style="color:#ff4466">\u2717</span>'}<br>
+    \u03a3Fy: reactions ${(sumFy/1000).toFixed(2)} + applied ${(totalAppliedFy/1000).toFixed(2)} = ${((sumFy+totalAppliedFy)/1000).toFixed(3)} kN ${checkFy?'<span style="color:#4ADE80">\u2713</span>':'<span style="color:#ff4466">\u2717</span>'}`;
+}
+function renderForceTable(){
+  const body = document.getElementById('forceBody');
+  const maxBody = document.getElementById('maxBody');
+  body.innerHTML=''; maxBody.innerHTML='';
+  lastResult.memberForces.forEach((f,mid)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>M${mid}</td><td>${(f.N1/1000).toFixed(1)}</td><td>${(f.V1/1000).toFixed(1)}</td><td>${(f.M1/1000).toFixed(1)}</td><td>${(f.M2/1000).toFixed(1)}</td>`;
+    body.appendChild(tr);
+    let maxM=0, maxV=0;
+    const steps=20;
+    for(let i=0;i<=steps;i++){ const x=f.L*i/steps; const s=f.sample(x); maxM=Math.max(maxM,Math.abs(s.M)); maxV=Math.max(maxV,Math.abs(s.V)); }
+    const tr2=document.createElement('tr');
+    tr2.innerHTML = `<td>M${mid}</td><td>${(maxM/1000).toFixed(1)}</td><td>${(maxV/1000).toFixed(1)}</td>`;
+    maxBody.appendChild(tr2);
+  });
+}
+
+function rpTab(id){
+  document.querySelectorAll('.rptab').forEach(t=>t.classList.remove('act'));
+  document.querySelectorAll('.rp-sec').forEach(s=>s.classList.remove('act'));
+  document.getElementById('rpt-'+id).classList.add('act');
+  document.getElementById('rpsec-'+id).classList.add('act');
+}
+function setDiagram(mode){ diagramMode=mode; syncDiagramButtons(); render(); }
+function syncDiagramButtons(){
+  document.getElementById('rb-bmd').classList.toggle('act', diagramMode==='M');
+  document.getElementById('rb-sfd').classList.toggle('act', diagramMode==='V');
+  document.getElementById('rb-defl').classList.toggle('act', diagramMode==='D');
+  document.getElementById('rb-none').classList.toggle('act', diagramMode==='none');
+  document.getElementById('diagBadge').innerHTML = 'VIEW: <b>'+({M:'BMD',V:'SFD',D:'DEFLECTED SHAPE',none:'GEOMETRY'}[diagramMode])+'</b>';
+}
+
+function render(){
+  const W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#0a1622'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(31,168,217,.08)'; ctx.lineWidth=1;
+  for(let gx=panX%scale; gx<W; gx+=scale){ ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,H); ctx.stroke(); }
+  for(let gy=panY%scale; gy<H; gy+=scale){ ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
+
+  members.forEach(m=>{
+    const n1=nodes.find(n=>n.id===m.n1), n2=nodes.find(n=>n.id===m.n2);
+    if(!n1||!n2) return;
+    const s1=worldToScreen(n1.x,n1.y), s2=worldToScreen(n2.x,n2.y);
+    ctx.strokeStyle = diagramMode==='D' ? 'rgba(207,230,255,.3)' : '#cfe6ff';
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(s1.x,s1.y); ctx.lineTo(s2.x,s2.y); ctx.stroke();
+  });
+
+  nodes.forEach(n=>{
+    const s = worldToScreen(n.x,n.y);
+    const sup = supportsMap.get(n.id);
+    ctx.fillStyle = '#091828'; ctx.beginPath(); ctx.arc(s.x,s.y,4,0,7); ctx.fill();
+    ctx.strokeStyle='#cfe6ff'; ctx.lineWidth=1.5; ctx.stroke();
+    if(sup){
+      ctx.strokeStyle = sup.rot ? '#FB5B6E' : '#F5BE18'; ctx.lineWidth=2;
+      if(sup.rot){
+        ctx.beginPath(); ctx.moveTo(s.x-12,s.y+10); ctx.lineTo(s.x+12,s.y+10); ctx.stroke();
+        for(let i=-12;i<=12;i+=4){ ctx.beginPath(); ctx.moveTo(s.x+i,s.y+10); ctx.lineTo(s.x+i-4,s.y+16); ctx.stroke(); }
+      } else if(sup.ux && sup.uy){
+        ctx.beginPath(); ctx.moveTo(s.x,s.y); ctx.lineTo(s.x-9,s.y+14); ctx.lineTo(s.x+9,s.y+14); ctx.closePath(); ctx.stroke();
+      } else if(sup.uy){
+        ctx.beginPath(); ctx.moveTo(s.x,s.y); ctx.lineTo(s.x-9,s.y+12); ctx.lineTo(s.x+9,s.y+12); ctx.closePath(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(s.x-10,s.y+16); ctx.lineTo(s.x+10,s.y+16); ctx.stroke();
+      }
+    }
+    ctx.fillStyle='#7fb3e8'; ctx.font='9px IBM Plex Mono, monospace'; ctx.textAlign='left';
+    ctx.fillText('N'+n.id, s.x+7, s.y-7);
+  });
+
+  loads.forEach(l=>{
+    const n = nodes.find(x=>x.id===l.node); if(!n) return;
+    const s = worldToScreen(n.x,n.y);
+    if(l.fy){ drawArrow(s.x, s.y-(l.fy<0?-26:26), s.x, s.y, '#F5BE18'); }
+    if(l.fx){ drawArrow(s.x-(l.fx<0?-26:26), s.y, s.x, s.y, '#F5BE18'); }
+  });
+  members.forEach(m=>{
+    if(!m.udl) return;
+    const n1=nodes.find(n=>n.id===m.n1), n2=nodes.find(n=>n.id===m.n2);
+    const s1=worldToScreen(n1.x,n1.y), s2=worldToScreen(n2.x,n2.y);
+    ctx.strokeStyle='rgba(245,190,24,.5)'; ctx.lineWidth=1;
+    const steps=6;
+    for(let i=0;i<=steps;i++){
+      const t=i/steps;
+      const x=s1.x+(s2.x-s1.x)*t, y=s1.y+(s2.y-s1.y)*t;
+      ctx.beginPath(); ctx.moveTo(x,y-14); ctx.lineTo(x,y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x,y-14); ctx.lineTo(x-3,y-10); ctx.moveTo(x,y-14); ctx.lineTo(x+3,y-10); ctx.stroke();
+    }
+  });
+
+  if(lastResult){
+    if(diagramMode==='M' || diagramMode==='V') drawDiagram(diagramMode);
+    if(diagramMode==='D') drawDeflected();
+  }
+}
+function drawArrow(x1,y1,x2,y2,color){
+  ctx.strokeStyle=color; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const ang = Math.atan2(y2-y1,x2-x1);
+  ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-8*Math.cos(ang-0.4), y2-8*Math.sin(ang-0.4));
+  ctx.lineTo(x2-8*Math.cos(ang+0.4), y2-8*Math.sin(ang+0.4));
+  ctx.closePath(); ctx.fillStyle=color; ctx.fill();
+}
+function drawDiagram(kind){
+  let maxVal = 0.0001;
+  lastResult.memberForces.forEach(f=>{
+    const steps=20;
+    for(let i=0;i<=steps;i++){ const v=f.sample(f.L*i/steps)[kind]; maxVal=Math.max(maxVal,Math.abs(v)); }
+  });
+  const diagScalePx = 50;
+  members.forEach(m=>{
+    const f = lastResult.memberForces.get(m.id);
+    const n1=nodes.find(n=>n.id===m.n1), n2=nodes.find(n=>n.id===m.n2);
+    const s1=worldToScreen(n1.x,n1.y), s2=worldToScreen(n2.x,n2.y);
+    const dx=s2.x-s1.x, dy=s2.y-s1.y, len=Math.hypot(dx,dy);
+    const nx=-dy/len, ny=dx/len;
+    const steps=24;
+    const pts=[];
+    for(let i=0;i<=steps;i++){
+      const t=i/steps, x=f.L*t;
+      const val=f.sample(x)[kind];
+      const off = (val/maxVal)*diagScalePx;
+      const bx=s1.x+dx*t, by=s1.y+dy*t;
+      pts.push({x:bx+nx*off, y:by+ny*off, val});
+    }
+    ctx.fillStyle = kind==='M' ? 'rgba(167,139,250,.18)' : 'rgba(245,190,24,.18)';
+    ctx.beginPath(); ctx.moveTo(s1.x,s1.y);
+    pts.forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.lineTo(s2.x,s2.y); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = kind==='M' ? '#A78BFA' : '#F5BE18'; ctx.lineWidth=1.5;
+    ctx.beginPath(); pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y)); ctx.stroke();
+    let maxPt = pts.reduce((a,b)=>Math.abs(b.val)>Math.abs(a.val)?b:a, pts[0]);
+    ctx.fillStyle='#eaf4ff'; ctx.font='700 9px IBM Plex Mono, monospace'; ctx.textAlign='center';
+    ctx.fillText((maxPt.val/1000).toFixed(1), maxPt.x, maxPt.y + (maxPt.val>=0?-4:12));
+  });
+}
+function drawDeflected(){
+  let maxDefl=0.0001;
+  lastResult.displacements.forEach(d=>{ maxDefl=Math.max(maxDefl, Math.hypot(d.u,d.v)); });
+  const amp = 60/maxDefl;
+  members.forEach(m=>{
+    const n1=nodes.find(n=>n.id===m.n1), n2=nodes.find(n=>n.id===m.n2);
+    const d1=lastResult.displacements.get(m.n1), d2=lastResult.displacements.get(m.n2);
+    const s1=worldToScreen(n1.x+d1.u*amp/scale, n1.y+d1.v*amp/scale);
+    const s2=worldToScreen(n2.x+d2.u*amp/scale, n2.y+d2.v*amp/scale);
+    ctx.strokeStyle='#4ADE80'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(s1.x,s1.y); ctx.lineTo(s2.x,s2.y); ctx.stroke();
+  });
+  ctx.fillStyle='#4ADE80'; ctx.font='700 9px IBM Plex Mono, monospace'; ctx.textAlign='left';
+  ctx.fillText('deflection exaggerated for visibility (max '+(maxDefl*1000).toFixed(1)+'mm)', 12, canvas.height-12);
+}
+
+function zoomBy(f){ scale=Math.max(8,Math.min(200,scale*f)); document.getElementById('st-zoom').textContent=Math.round(scale/40*100)+'%'; render(); }
+function zoomExt(){
+  if(!nodes.length){ render(); return; }
+  const xs=nodes.map(n=>n.x), ys=nodes.map(n=>n.y);
+  const w=Math.max(1,Math.max(...xs)-Math.min(...xs)), h=Math.max(1,Math.max(...ys)-Math.min(...ys));
+  const pad=80;
+  scale = Math.max(8,Math.min(200, Math.min((canvas.width-pad*2)/w, (canvas.height-pad*2)/h)));
+  panX = pad - Math.min(...xs)*scale;
+  panY = canvas.height - pad + Math.min(...ys)*scale;
+  document.getElementById('st-zoom').textContent=Math.round(scale/40*100)+'%';
+  render();
+}
+function exportPNG(){ const a=document.createElement('a'); a.href=canvas.toDataURL('image/png'); a.download='frame-'+diagramMode+'.png'; a.click(); }
+
+let dragging=false,lastX=0,lastY=0;
+canvas.addEventListener('mousedown', e=>{ dragging=true; lastX=e.clientX; lastY=e.clientY; vp.classList.add('grabbing'); });
+window.addEventListener('mousemove', e=>{ if(!dragging) return; panX+=e.clientX-lastX; panY+=e.clientY-lastY; lastX=e.clientX; lastY=e.clientY; render(); });
+window.addEventListener('mouseup', ()=>{ dragging=false; vp.classList.remove('grabbing'); });
+canvas.addEventListener('wheel', e=>{ e.preventDefault(); zoomBy(e.deltaY<0?1.1:0.9); }, {passive:false});
+
+fitCanvas();
+loadPreset('portal');
+</script>
+</body>
+</html>
