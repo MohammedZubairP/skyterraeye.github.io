@@ -54,6 +54,15 @@ input,select{font-family:inherit}
 .rb-i{font-size:14px;line-height:1}
 
 .workspace{flex:1;display:flex;min-height:0;overflow:hidden}
+.resize-v{height:5px;flex-shrink:0;background:var(--bg2);cursor:row-resize;position:relative;border-top:1px solid var(--sep);border-bottom:1px solid var(--sep)}
+.resize-v:hover,.resize-v.active{background:var(--asdim)}
+.resize-v::after{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:28px;height:2px;background:var(--m);border-radius:1px}
+.resize-v:hover::after,.resize-v.active::after{background:var(--as)}
+.resize-h{width:5px;flex-shrink:0;background:var(--bg2);cursor:col-resize;position:relative;border-left:1px solid var(--sep);border-right:1px solid var(--sep)}
+.resize-h:hover,.resize-h.active{background:var(--asdim)}
+.resize-h::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);height:28px;width:2px;background:var(--m);border-radius:1px}
+.resize-h:hover::after,.resize-h.active::after{background:var(--as)}
+.bottombars{display:flex;flex-direction:column;flex-shrink:0}
 
 .lpanel{width:240px;min-width:240px;flex-shrink:0;background:#07111C;border-right:1px solid var(--sep);display:flex;flex-direction:column;overflow:hidden;transition:width .2s,min-width .2s}
 .lpanel.hidden{width:0;min-width:0;border-right:none}
@@ -236,6 +245,8 @@ input,select{font-family:inherit}
   </div>
 </div>
 
+<div class="resize-v" id="rzRibbon" title="Drag to resize ribbon height"></div>
+
 <div class="workspace">
 
   <div class="lpanel" id="lpanel">
@@ -320,6 +331,8 @@ input,select{font-family:inherit}
     </div>
   </div>
 
+  <div class="resize-h" id="rzLeft" title="Drag to resize input panel"></div>
+
   <div class="vport" id="vport">
     <canvas id="cad"></canvas>
     <div class="badge" id="genflag">REGENERATING&hellip;</div>
@@ -331,6 +344,8 @@ input,select{font-family:inherit}
       <button class="zb" onclick="zoomExt()" title="Fit">&#9678;</button>
     </div>
   </div>
+
+  <div class="resize-h" id="rzRight" title="Drag to resize panel"></div>
 
   <div class="rpanel" id="rpanel">
     <div class="rp-tabs">
@@ -396,6 +411,9 @@ input,select{font-family:inherit}
   </div>
 </div>
 
+<div class="resize-v" id="rzBottom" title="Drag to resize command/status bar height"></div>
+
+<div class="bottombars" id="bottombars">
 <div class="cmdbar">
   <span class="cmd-p">CMD:</span>
   <input class="cmd-i" id="cmdInput" placeholder="plot 45x70 · setback 5 3 3 3 · road left · add room Study 80 road · del room Kitchen · vastu on · view struct · zoom fit" onkeydown="if(event.key==='Enter')runCmd()">
@@ -415,6 +433,7 @@ input,select{font-family:inherit}
   <div class="ssep"></div>
   <div class="si">ZOOM <span class="sv" id="st-zoom">100%</span></div>
   <button class="stbtn on" id="stbtn-grid" onclick="toggleGrid()" style="margin-left:auto">GRID</button>
+</div>
 </div>
 
 </div>
@@ -558,8 +577,31 @@ function toggleGrid(){
   document.getElementById('stbtn-grid').classList.toggle('on', gridOn);
   render();
 }
-function toggleLP(){ document.getElementById('lpanel').classList.toggle('hidden'); fitCanvas(); }
-function toggleRP(){ document.getElementById('rpanel').classList.toggle('hidden'); fitCanvas(); }
+let lpSavedWidth = null, rpSavedWidth = null;
+function toggleLP(){
+  const el = document.getElementById('lpanel');
+  if(el.classList.contains('hidden')){
+    el.classList.remove('hidden');
+    if(lpSavedWidth) el.style.width = lpSavedWidth+'px';
+  } else {
+    lpSavedWidth = el.getBoundingClientRect().width;
+    el.style.width = '';
+    el.classList.add('hidden');
+  }
+  fitCanvas();
+}
+function toggleRP(){
+  const el = document.getElementById('rpanel');
+  if(el.classList.contains('hidden')){
+    el.classList.remove('hidden');
+    if(rpSavedWidth) el.style.width = rpSavedWidth+'px';
+  } else {
+    rpSavedWidth = el.getBoundingClientRect().width;
+    el.style.width = '';
+    el.classList.add('hidden');
+  }
+  fitCanvas();
+}
 function setView(mode){
   viewMode = mode;
   ['arch','load','column','beam','footing'].forEach(m=>{
@@ -1564,6 +1606,39 @@ function loadProjectPrompt(){
   applyState(plans[name]);
   document.getElementById('cmdMsg').textContent = `Loaded "${name}".`;
 }
+
+/* ================= panel resize handles ================= */
+function makeResizable(handle, target, axis, min, max, invert){
+  let dragging = false, startPos = 0, startSize = 0;
+  handle.addEventListener('mousedown', e=>{
+    if(target.classList.contains('hidden')) return; // nothing to resize while collapsed
+    dragging = true; handle.classList.add('active');
+    startPos = axis==='x' ? e.clientX : e.clientY;
+    startSize = axis==='x' ? target.getBoundingClientRect().width : target.getBoundingClientRect().height;
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e=>{
+    if(!dragging) return;
+    const pos = axis==='x' ? e.clientX : e.clientY;
+    let delta = pos - startPos;
+    if(invert) delta = -delta;
+    const next = Math.min(max, Math.max(min, startSize + delta));
+    if(axis==='x') target.style.width = next+'px';
+    else target.style.height = next+'px';
+    fitCanvas();
+  });
+  window.addEventListener('mouseup', ()=>{
+    if(!dragging) return;
+    dragging = false; handle.classList.remove('active');
+    document.body.style.userSelect = '';
+    fitCanvas();
+  });
+}
+makeResizable(document.getElementById('rzLeft'), document.getElementById('lpanel'), 'x', 160, 480, false);
+makeResizable(document.getElementById('rzRight'), document.getElementById('rpanel'), 'x', 160, 480, true);
+makeResizable(document.getElementById('rzRibbon'), document.querySelector('.ribbon'), 'y', 44, 160, false);
+makeResizable(document.getElementById('rzBottom'), document.getElementById('bottombars'), 'y', 44, 220, true);
 
 /* ================= init ================= */
 ['plotW','plotD','floors','sbF','sbR','sbL','sbRt','roadSide','extWall','intWall','entranceRoom'].forEach(id=>{
