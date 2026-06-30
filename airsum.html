@@ -25,7 +25,6 @@ input,select{font-family:inherit}
 .app{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 .uae{height:3px;flex-shrink:0;background:linear-gradient(90deg,#00732F 33%,#fff 33% 66%,#CE1126 66% 90.5%,#000 90.5%)}
 
-/* MENUBAR */
 .menubar{height:34px;flex-shrink:0;background:#030A14;border-bottom:1px solid var(--sep);display:flex;align-items:stretch;user-select:none}
 .mb-logo{display:flex;align-items:center;gap:6px;padding:0 12px;border-right:1px solid var(--sep);flex-shrink:0}
 .mb-logo-t{font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:#fff}
@@ -44,7 +43,6 @@ input,select{font-family:inherit}
 .mb-back{display:flex;align-items:center;gap:4px;padding:3px 9px;background:none;border:1px solid var(--sep);border-radius:4px;color:var(--m);font-size:11px;font-weight:600;text-decoration:none;transition:all .1s}
 .mb-back:hover{color:var(--b);border-color:var(--bl)}
 
-/* RIBBON */
 .ribbon{height:62px;flex-shrink:0;background:var(--bg3);border-bottom:1px solid var(--sep);display:flex;overflow-x:auto;overflow-y:hidden}
 .rg{display:flex;flex-direction:column;align-items:center;padding:3px 6px 1px;border-right:1px solid rgba(31,168,217,.06);min-width:fit-content;gap:1px}
 .rg-lbl{font-size:7.5px;color:var(--m);letter-spacing:.8px;text-transform:uppercase;margin-top:auto;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
@@ -55,11 +53,9 @@ input,select{font-family:inherit}
 .rb.lg{min-width:46px;padding:3px 8px}.rb.lg .rb-i{font-size:17px}
 .rb-i{font-size:14px;line-height:1}
 
-/* WORKSPACE */
 .workspace{flex:1;display:flex;min-height:0;overflow:hidden}
 
-/* LEFT PANEL */
-.lpanel{width:230px;min-width:230px;flex-shrink:0;background:#07111C;border-right:1px solid var(--sep);display:flex;flex-direction:column;overflow:hidden;transition:width .2s,min-width .2s}
+.lpanel{width:240px;min-width:240px;flex-shrink:0;background:#07111C;border-right:1px solid var(--sep);display:flex;flex-direction:column;overflow:hidden;transition:width .2s,min-width .2s}
 .lpanel.hidden{width:0;min-width:0;border-right:none}
 .lp-scroll{flex:1;overflow-y:auto;padding:8px 10px 16px}
 .tg-title{font-size:8px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--as);margin:12px 0 7px;display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace}
@@ -70,6 +66,7 @@ input,select{font-family:inherit}
 .pi,.ps{width:100%;background:var(--bg2);border:1px solid var(--sep);border-radius:3px;color:var(--t);font-size:11px;font-family:'IBM Plex Mono',monospace;padding:5px 7px;outline:none}
 .pi:focus,.ps:focus{border-color:var(--as)}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
 .check{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--m);margin:8px 0;cursor:pointer}
 .check input{accent-color:var(--as)}
 .btnRow{display:flex;gap:5px;margin-top:4px}
@@ -77,23 +74,27 @@ input,select{font-family:inherit}
 .bp:hover{background:#e44a5d}
 .bo{flex:1;background:none;border:1px solid var(--sep);color:var(--m);padding:7px 0;border-radius:4px;font-weight:700;font-size:10.5px;cursor:pointer;transition:all .12s}
 .bo:hover{color:var(--t);border-color:var(--bl)}
+.roomrow{border:1px solid var(--sep);border-radius:5px;padding:6px;margin-bottom:6px;background:rgba(255,255,255,.015)}
+.roomrow .g2{margin-bottom:4px}
+.roomrow .rowfoot{display:flex;gap:4px;align-items:center}
+.roomrow .rowfoot select{flex:1}
+.note{font-size:9.5px;color:var(--m);line-height:1.65;margin-top:10px;font-family:'IBM Plex Mono',monospace}
 
-/* VIEWPORT */
 .vport{flex:1;position:relative;overflow:hidden;background:var(--bg);cursor:grab}
 .vport.grabbing{cursor:grabbing}
 #cad{position:absolute;inset:0;width:100%;height:100%;display:block}
 .badge{position:absolute;background:rgba(4,12,24,.9);border:1px solid var(--sep);border-radius:3px;padding:2px 7px;font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--m)}
 .badge b{color:var(--as)}
 #genflag{top:8px;right:8px;color:var(--as);border-color:var(--asl);opacity:0;transition:opacity .15s}
+#warnBadge{top:34px;left:8px;color:var(--g);border-color:rgba(245,190,24,.3);max-width:260px;line-height:1.5;display:none}
 .zoom-btns{position:absolute;bottom:34px;right:8px;display:flex;flex-direction:column;gap:2px}
 .zb{width:26px;height:26px;background:rgba(6,14,26,.9);border:1px solid var(--sep);border-radius:3px;color:var(--m);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .1s}
 .zb:hover{background:var(--bdim);color:var(--as)}
 
-/* RIGHT PANEL */
-.rpanel{width:240px;min-width:240px;flex-shrink:0;background:var(--bg3);border-left:1px solid var(--sep);display:flex;flex-direction:column;overflow:hidden;transition:width .2s,min-width .2s}
+.rpanel{width:260px;min-width:260px;flex-shrink:0;background:var(--bg3);border-left:1px solid var(--sep);display:flex;flex-direction:column;overflow:hidden;transition:width .2s,min-width .2s}
 .rpanel.hidden{width:0;min-width:0;border-left:none}
-.rp-tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--sep);flex-shrink:0}
-.rptab{flex:1;padding:6px 2px;text-align:center;font-size:8.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;cursor:pointer;color:var(--m);border-bottom:2px solid transparent;transition:all .12s;font-family:'IBM Plex Mono',monospace}
+.rp-tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--sep);flex-shrink:0;overflow-x:auto}
+.rptab{flex:1;padding:6px 2px;text-align:center;font-size:8px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;color:var(--m);border-bottom:2px solid transparent;transition:all .12s;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
 .rptab:hover{color:var(--t)}
 .rptab.act{color:var(--as);border-bottom-color:var(--as)}
 .rp-content{flex:1;overflow-y:auto}
@@ -104,6 +105,7 @@ input,select{font-family:inherit}
 .li:hover{background:rgba(31,168,217,.04)}
 .li.cur{background:rgba(251,91,110,.07)}
 .ld{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--as)}
+.ld.gr{background:#4ADE80}.ld.am{background:var(--g)}.ld.rd{background:var(--red)}
 .ln{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lv{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--m)}
 .pg{padding:9px 10px;border-bottom:1px solid var(--sep)}
@@ -111,10 +113,13 @@ input,select{font-family:inherit}
 .pr{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:5px}
 .pl{font-size:9.5px;color:var(--m)}
 .pv{font-size:9.5px;font-family:'IBM Plex Mono',monospace;color:var(--t)}
-.pv.ed{cursor:text}
 .noSel{padding:30px 14px;text-align:center;font-size:10.5px;color:var(--m);font-family:'IBM Plex Mono',monospace;line-height:1.7}
+.disclaimer{margin:8px;padding:9px 10px;border:1px solid rgba(245,190,24,.3);background:rgba(245,190,24,.06);border-radius:5px;font-size:9.5px;color:var(--t);line-height:1.6}
+.disclaimer b{color:var(--g)}
+.structbl{width:100%;border-collapse:collapse;font-size:9.5px}
+.structbl th{text-align:left;padding:4px 6px;font-size:7.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--as);border-bottom:1px solid var(--sep);font-family:'IBM Plex Mono',monospace}
+.structbl td{padding:4px 6px;border-bottom:1px solid rgba(31,168,217,.05);font-family:'IBM Plex Mono',monospace;color:var(--t)}
 
-/* CMD + STATUS */
 .cmdbar{height:24px;flex-shrink:0;background:#03080E;border-top:1px solid var(--sep);display:flex;align-items:center;padding:0 9px;gap:6px}
 .cmd-p{color:var(--as);font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700}
 .cmd-i{flex:1;background:none;border:none;outline:none;color:var(--t);font-family:'IBM Plex Mono',monospace;font-size:10px;caret-color:var(--as)}
@@ -133,7 +138,6 @@ input,select{font-family:inherit}
 <div class="app">
 <div class="uae"></div>
 
-<!-- MENUBAR -->
 <div class="menubar">
   <div class="mb-logo"><div class="mb-logo-t"><b>SKY</b> TERRAEYE<span class="mb-logo-s">AIRSUM</span></div></div>
   <div class="mb-prods">
@@ -149,7 +153,6 @@ input,select{font-family:inherit}
   </div>
 </div>
 
-<!-- RIBBON -->
 <div class="ribbon">
   <div class="rg">
     <div class="rr">
@@ -157,6 +160,13 @@ input,select{font-family:inherit}
       <button class="rb" onclick="resetProgram()"><span class="rb-i">↺</span>RESET</button>
     </div>
     <div class="rg-lbl">AI</div>
+  </div>
+  <div class="rg">
+    <div class="rr">
+      <button class="rb act" id="rb-view-arch" onclick="setView('arch')"><span class="rb-i">🏠</span>ARCH</button>
+      <button class="rb" id="rb-view-struct" onclick="setView('struct')"><span class="rb-i">🏗️</span>STRUCT</button>
+    </div>
+    <div class="rg-lbl">DRAWING</div>
   </div>
   <div class="rg">
     <div class="rr">
@@ -185,7 +195,6 @@ input,select{font-family:inherit}
   </div>
   <div class="rg">
     <div class="rr">
-      <button class="rb lg" onclick="exportSVG()"><span class="rb-i">💾</span>SVG</button>
       <button class="rb lg" onclick="exportPNG()"><span class="rb-i">🖼️</span>PNG</button>
     </div>
     <div class="rg-lbl">EXPORT</div>
@@ -194,52 +203,79 @@ input,select{font-family:inherit}
 
 <div class="workspace">
 
-  <!-- LEFT INPUT PANEL -->
   <div class="lpanel" id="lpanel">
     <div class="lp-scroll">
-      <div class="tg-title">Plot</div>
-      <div class="g2">
-        <div class="fg"><label>Width ft</label><input class="pi" id="plotW" type="number" value="40" min="15" step="1"></div>
-        <div class="fg"><label>Depth ft</label><input class="pi" id="plotD" type="number" value="60" min="15" step="1"></div>
-      </div>
-      <div class="g2">
-        <div class="fg"><label>Floors</label><input class="pi" id="floors" type="number" value="2" min="1" max="6" step="1"></div>
-        <div class="fg"><label>Type</label>
-          <select class="ps" id="btype">
-            <option value="villa">Villa</option>
-            <option value="apartment">Apartment</option>
-            <option value="office">Office</option>
+
+      <div id="archInputs">
+        <div class="tg-title">Plot</div>
+        <div class="g2">
+          <div class="fg"><label>Width ft</label><input class="pi" id="plotW" type="number" value="40" min="15" step="1"></div>
+          <div class="fg"><label>Depth ft</label><input class="pi" id="plotD" type="number" value="60" min="15" step="1"></div>
+        </div>
+        <div class="g2">
+          <div class="fg"><label>Floors</label><input class="pi" id="floors" type="number" value="2" min="1" max="6" step="1"></div>
+          <div class="fg"><label>Type</label>
+            <select class="ps" id="btype">
+              <option value="villa">Villa</option>
+              <option value="apartment">Apartment</option>
+              <option value="office">Office</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="tg-title">Setbacks ft &amp; Road</div>
+        <div class="g2">
+          <div class="fg"><label>Front</label><input class="pi" id="sbF" type="number" value="5" min="0" step="0.5"></div>
+          <div class="fg"><label>Rear</label><input class="pi" id="sbR" type="number" value="3" min="0" step="0.5"></div>
+        </div>
+        <div class="g2">
+          <div class="fg"><label>Left</label><input class="pi" id="sbL" type="number" value="3" min="0" step="0.5"></div>
+          <div class="fg"><label>Right</label><input class="pi" id="sbRt" type="number" value="3" min="0" step="0.5"></div>
+        </div>
+        <div class="fg"><label>Road faces</label>
+          <select class="ps" id="roadSide">
+            <option value="front">Front setback</option>
+            <option value="rear">Rear setback</option>
+            <option value="left">Left setback</option>
+            <option value="right">Right setback</option>
           </select>
         </div>
+        <label class="check"><input type="checkbox" id="vastu" onchange="syncVastuBtn()"> Vastu-aware ordering</label>
+
+        <div class="tg-title">Wall Width (in)</div>
+        <div class="g2">
+          <div class="fg"><label>Exterior</label><input class="pi" id="extWall" type="number" value="9" min="4" step="0.5"></div>
+          <div class="fg"><label>Interior</label><input class="pi" id="intWall" type="number" value="4.5" min="3" step="0.5"></div>
+        </div>
+
+        <div class="tg-title">Room Program</div>
+        <div id="roomRows"></div>
+        <div class="btnRow"><button class="bo" onclick="addRoom()">+ Add Room</button></div>
+        <div class="note">Each room has a <b>Position</b> hint (Auto / Road-facing / Back / Side) — it steers which side of the plot the AI tries to place it on. Add a room and it regenerates immediately.</div>
+
+        <div class="btnRow" style="margin-top:14px"><button class="bp" onclick="generate()">✨ Generate Plan</button></div>
       </div>
 
-      <div class="tg-title">Setbacks ft</div>
-      <div class="g2">
-        <div class="fg"><label>Front</label><input class="pi" id="sbF" type="number" value="5" min="0" step="0.5"></div>
-        <div class="fg"><label>Rear</label><input class="pi" id="sbR" type="number" value="3" min="0" step="0.5"></div>
+      <div id="structInputs" style="display:none">
+        <div class="tg-title">Load Assumptions (preliminary)</div>
+        <div class="g2">
+          <div class="fg"><label>Dead Load kN/m²</label><input class="pi" id="dlInput" type="number" value="4.5" step="0.1"></div>
+          <div class="fg"><label>Live Load kN/m²</label><input class="pi" id="llInput" type="number" value="2.0" step="0.1"></div>
+        </div>
+        <div class="fg"><label>Soil Bearing Capacity kPa</label><input class="pi" id="sbcInput" type="number" value="150" step="5"></div>
+        <div class="note">Live load auto-suggests by building type (residential ≈2.0, office ≈3.0 kN/m²) — override anytime. Floors come from the Plot panel.</div>
+        <div class="btnRow" style="margin-top:10px"><button class="bp" onclick="generate()">↻ Recalculate Loads</button></div>
+        <div class="disclaimer"><b>Preliminary schematic only.</b> Tributary-area load takeoff with assumed values — not a substitute for analysis by a licensed structural engineer (FE analysis, seismic/wind, code checks per ETABS/STAAD or equivalent are required before construction).</div>
       </div>
-      <div class="g2">
-        <div class="fg"><label>Left</label><input class="pi" id="sbL" type="number" value="3" min="0" step="0.5"></div>
-        <div class="fg"><label>Right</label><input class="pi" id="sbRt" type="number" value="3" min="0" step="0.5"></div>
-      </div>
-      <label class="check"><input type="checkbox" id="vastu" onchange="syncVastuBtn()"> Vastu-aware ordering</label>
 
-      <div class="tg-title">Room Program</div>
-      <div id="roomRows"></div>
-      <div class="btnRow"><button class="bo" onclick="addRoom()">+ Add Room</button></div>
-
-      <div class="btnRow" style="margin-top:14px"><button class="bp" onclick="generate()">✨ Generate Plan</button></div>
-      <div style="font-size:9.5px;color:var(--m);line-height:1.65;margin-top:10px;font-family:'IBM Plex Mono',monospace">
-        Click a room in the viewport to select it. Drag to pan, scroll to zoom. Try the command line below: <span style="color:var(--as)">plot 45x70</span>, <span style="color:var(--as)">add room Study 80</span>.
-      </div>
     </div>
   </div>
 
-  <!-- VIEWPORT -->
   <div class="vport" id="vport">
     <canvas id="cad"></canvas>
     <div class="badge" id="genflag">REGENERATING&hellip;</div>
     <div class="badge" style="top:8px;left:8px" id="planBadge">PLOT <b>40' &times; 60'</b></div>
+    <div class="badge" id="warnBadge">⚠ Preliminary structural schematic — not for construction</div>
     <div class="zoom-btns">
       <button class="zb" onclick="zoomBy(1.25)">+</button>
       <button class="zb" onclick="zoomBy(0.8)">&minus;</button>
@@ -247,11 +283,12 @@ input,select{font-family:inherit}
     </div>
   </div>
 
-  <!-- RIGHT PANEL -->
   <div class="rpanel" id="rpanel">
     <div class="rp-tabs">
       <div class="rptab act" id="rpt-layers" onclick="rpTab('layers')">Rooms</div>
-      <div class="rptab" id="rpt-props" onclick="rpTab('props')">Properties</div>
+      <div class="rptab" id="rpt-props" onclick="rpTab('props')">Props</div>
+      <div class="rptab" id="rpt-vent" onclick="rpTab('vent')">Vent</div>
+      <div class="rptab" id="rpt-struct" onclick="rpTab('struct')">Struct</div>
       <div class="rptab" id="rpt-summary" onclick="rpTab('summary')">Summary</div>
     </div>
     <div class="rp-content">
@@ -262,6 +299,19 @@ input,select{font-family:inherit}
       <div class="rp-sec" id="rpsec-props">
         <div id="propsBody"><div class="noSel">No room selected.<br>Click a room in the viewport.</div></div>
       </div>
+      <div class="rp-sec" id="rpsec-vent">
+        <div class="lh"><div class="lh-t">Ventilation &amp; exposure</div></div>
+        <div id="ventList"></div>
+        <div class="note" style="margin:8px">Green = cross-ventilated (2+ exterior walls). Amber = single-side ventilated. Red = no exterior wall — needs a duct/shaft or borrowed light.</div>
+      </div>
+      <div class="rp-sec" id="rpsec-struct">
+        <div class="lh"><div class="lh-t">Columns &amp; footings</div></div>
+        <div style="overflow-x:auto"><table class="structbl" id="structTbl">
+          <thead><tr><th>Col</th><th>Trib m²</th><th>Load kN</th><th>Footing</th><th>Size</th></tr></thead>
+          <tbody id="structBody"></tbody>
+        </table></div>
+        <div class="disclaimer"><b>Schematic only.</b> Switch to the STRUCT drawing (ribbon) to see the column/beam layout and footing sizes plotted on the plan.</div>
+      </div>
       <div class="rp-sec" id="rpsec-summary">
         <div class="pg">
           <div class="pgt">Area Summary</div>
@@ -271,20 +321,18 @@ input,select{font-family:inherit}
           <div class="pr"><span class="pl">Built-up (all floors)</span><span class="pv" id="s-total">---</span></div>
           <div class="pr"><span class="pl">Rooms placed</span><span class="pv" id="s-rooms">---</span></div>
         </div>
-        <div style="padding:9px 10px;font-size:9.5px;color:var(--m);line-height:1.6">Rough indicator only — not a substitute for a licensed structural engineer's BOQ.</div>
+        <div style="padding:9px 10px;font-size:9.5px;color:var(--m);line-height:1.6">Rough quantity indicator only — not a substitute for a licensed structural engineer's BOQ.</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- CMD BAR -->
 <div class="cmdbar">
   <span class="cmd-p">CMD:</span>
-  <input class="cmd-i" id="cmdInput" placeholder="plot 45x70 · setback 5 3 3 3 · add room Study 80 · del room Kitchen · vastu on · zoom fit" onkeydown="if(event.key==='Enter')runCmd()">
+  <input class="cmd-i" id="cmdInput" placeholder="plot 45x70 · setback 5 3 3 3 · road left · add room Study 80 road · del room Kitchen · vastu on · view struct · zoom fit" onkeydown="if(event.key==='Enter')runCmd()">
   <span class="cmd-m" id="cmdMsg"></span>
 </div>
 
-<!-- STATUS BAR -->
 <div class="statbar">
   <div class="si">PLOT <span class="sv" id="st-plot">40'&times;60'</span></div>
   <div class="ssep"></div>
@@ -293,6 +341,8 @@ input,select{font-family:inherit}
   <div class="si">COVERAGE <span class="sv" id="st-cov">---</span></div>
   <div class="ssep"></div>
   <div class="si">ROOMS <span class="sv" id="st-rooms">---</span></div>
+  <div class="ssep"></div>
+  <div class="si">VIEW <span class="sv" id="st-view">ARCH</span></div>
   <div class="ssep"></div>
   <div class="si">ZOOM <span class="sv" id="st-zoom">100%</span></div>
   <button class="stbtn on" id="stbtn-grid" onclick="toggleGrid()" style="margin-left:auto">GRID</button>
@@ -303,7 +353,7 @@ input,select{font-family:inherit}
 <script>
 'use strict';
 
-/* ---------------- model ---------------- */
+/* ================= model ================= */
 const defaultRooms = {
   villa: [
     {name:"Living / Hall", area:180},{name:"Kitchen", area:90},
@@ -322,19 +372,23 @@ const defaultRooms = {
   ]
 };
 const types = ['villa','apartment','office'];
-let rooms = JSON.parse(JSON.stringify(defaultRooms.villa));
-let placed = [];          // last generated room rects, world ft (relative to buildable origin)
-let buildable = {x:0,y:0,w:0,h:0}; // world ft offset of buildable rect from plot origin
+function withPref(list){ return list.map(r=>({...r, pref: r.pref || 'auto'})); }
+let rooms = withPref(JSON.parse(JSON.stringify(defaultRooms.villa)));
+let placed = [];
+let buildable = {x:0,y:0,w:0,h:0};
 let plot = {w:40,d:60};
-let selected = null;       // index into placed[]
+let selected = null;
 let gridOn = true;
 let vastuOn = false;
+let viewMode = 'arch'; // 'arch' | 'struct'
+let entranceInfo = null; // {roomIdx, edge}
+let structModel = {columns:[], beams:[]};
 
-/* ---------------- viewport transform ---------------- */
+/* ================= viewport transform ================= */
 const canvas = document.getElementById('cad');
 const ctx = canvas.getContext('2d');
-let scale = 9;            // px per ft
-let panX = 60, panY = 60; // px offset of plot origin (0,0) on screen
+let scale = 9;
+let panX = 60, panY = 60;
 
 function fitCanvas(){
   const vp = document.getElementById('vport');
@@ -343,55 +397,72 @@ function fitCanvas(){
   render();
 }
 window.addEventListener('resize', fitCanvas);
-
 function worldToScreen(x,y){ return {x: panX + x*scale, y: panY + y*scale}; }
 function screenToWorld(x,y){ return {x: (x-panX)/scale, y: (y-panY)/scale}; }
 
-/* ---------------- sidebar room rows ---------------- */
+/* ================= sidebar room rows ================= */
 function renderRoomRows(){
   const wrap = document.getElementById('roomRows');
   wrap.innerHTML = '';
   rooms.forEach((r,i)=>{
     const row = document.createElement('div');
-    row.className = 'g2';
-    row.style.marginBottom = '5px';
-    row.style.gridTemplateColumns = '1fr 56px 20px';
-    row.style.display = 'grid';
+    row.className = 'roomrow';
     row.innerHTML = `
-      <input class="pi" style="font-size:10px;padding:4px 6px" value="${r.name}" data-i="${i}" data-f="name">
-      <input class="pi" style="font-size:10px;padding:4px 6px" type="number" value="${r.area}" min="20" step="5" data-i="${i}" data-f="area">
-      <button class="bo" style="padding:0;color:#ff4466;border-color:rgba(255,68,102,.25)" data-i="${i}" data-del="1">&times;</button>
+      <div class="g2">
+        <input class="pi" style="font-size:10px;padding:4px 6px" value="${r.name}" data-i="${i}" data-f="name">
+        <input class="pi" style="font-size:10px;padding:4px 6px" type="number" value="${r.area}" min="20" step="5" data-i="${i}" data-f="area">
+      </div>
+      <div class="rowfoot">
+        <select class="ps" style="font-size:9.5px;padding:4px 6px" data-i="${i}" data-f="pref">
+          <option value="auto" ${r.pref==='auto'?'selected':''}>Auto</option>
+          <option value="road" ${r.pref==='road'?'selected':''}>Road-facing</option>
+          <option value="back" ${r.pref==='back'?'selected':''}>Back</option>
+          <option value="side" ${r.pref==='side'?'selected':''}>Side</option>
+        </select>
+        <button class="bo" style="flex:0 0 24px;padding:0;color:#ff4466;border-color:rgba(255,68,102,.25)" data-i="${i}" data-del="1">&times;</button>
+      </div>
     `;
     wrap.appendChild(row);
   });
-  wrap.querySelectorAll('input').forEach(inp=>{
+  wrap.querySelectorAll('input,select').forEach(inp=>{
     inp.addEventListener('change', e=>{
       const i = +e.target.dataset.i, f = e.target.dataset.f;
       rooms[i][f] = f === 'area' ? (+e.target.value || 20) : e.target.value;
+      generate();
     });
   });
   wrap.querySelectorAll('[data-del]').forEach(b=>{
     b.addEventListener('click', e=>{
       rooms.splice(+e.target.dataset.i,1);
       renderRoomRows();
+      generate();
     });
   });
 }
-function addRoom(){ rooms.push({name:'New Room', area:80}); renderRoomRows(); }
+function addRoom(){
+  rooms.push({name:'New Room', area:80, pref:'auto'});
+  renderRoomRows();
+  generate();               // BUGFIX: previously didn't regenerate, so new rooms never appeared
+}
 function resetProgram(){
   const t = document.getElementById('btype').value;
-  rooms = JSON.parse(JSON.stringify(defaultRooms[t]));
+  rooms = withPref(JSON.parse(JSON.stringify(defaultRooms[t])));
   renderRoomRows();
+  syncLLDefault();
   generate();
 }
 document.getElementById('btype').addEventListener('change', resetProgram);
+function syncLLDefault(){
+  const t = document.getElementById('btype').value;
+  document.getElementById('llInput').value = t === 'office' ? 3.0 : 2.0;
+}
 
-/* ---------------- ribbon helpers ---------------- */
+/* ================= ribbon helpers ================= */
 function cycleType(){
   const sel = document.getElementById('btype');
   const idx = (types.indexOf(sel.value)+1) % types.length;
   sel.value = types[idx];
-  document.getElementById('rb-type').querySelector('.rb-i').nextSibling.textContent = types[idx].toUpperCase();
+  document.getElementById('rb-type').lastChild.textContent = types[idx].toUpperCase();
   resetProgram();
 }
 function toggleVastu(){
@@ -412,8 +483,19 @@ function toggleGrid(){
 }
 function toggleLP(){ document.getElementById('lpanel').classList.toggle('hidden'); fitCanvas(); }
 function toggleRP(){ document.getElementById('rpanel').classList.toggle('hidden'); fitCanvas(); }
+function setView(mode){
+  viewMode = mode;
+  document.getElementById('rb-view-arch').classList.toggle('act', mode==='arch');
+  document.getElementById('rb-view-struct').classList.toggle('act', mode==='struct');
+  document.getElementById('archInputs').style.display = mode==='arch' ? 'block' : 'none';
+  document.getElementById('structInputs').style.display = mode==='struct' ? 'block' : 'none';
+  document.getElementById('warnBadge').style.display = mode==='struct' ? 'block' : 'none';
+  document.getElementById('st-view').textContent = mode.toUpperCase();
+  if(mode==='struct') rpTab('struct');
+  render();
+}
 
-/* ---------------- partition algorithm ---------------- */
+/* ================= space-partition algorithm ================= */
 function partition(x,y,w,h,items){
   if(items.length === 1) return [{...items[0], x, y, w, h}];
   const totalArea = items.reduce((s,r)=>s+r.area,0);
@@ -431,21 +513,113 @@ function partition(x,y,w,h,items){
     return [...partition(x,y,w,h1,left), ...partition(x,y+h1,w,h-h1,right)];
   }
 }
-function orderForVastu(list){
-  const score = r=>{
-    const n = r.name.toLowerCase();
-    if(n.includes('kitchen')) return 0;
-    if(n.includes('toilet')) return 1;
-    if(n.includes('living')||n.includes('hall')||n.includes('reception')) return 2;
-    if(n.includes('bedroom 2')||n.includes('cabin')) return 3;
-    if(n.includes('stair')) return 4;
-    if(n.includes('master')) return 5;
-    return 2.5;
-  };
-  return [...list].sort((a,b)=>score(a)-score(b));
+function vastuScore(r){
+  const n = r.name.toLowerCase();
+  if(n.includes('kitchen')) return 0;
+  if(n.includes('toilet')) return 1;
+  if(n.includes('living')||n.includes('hall')||n.includes('reception')) return 2;
+  if(n.includes('bedroom 2')||n.includes('cabin')) return 3;
+  if(n.includes('stair')) return 4;
+  if(n.includes('master')) return 5;
+  return 2.5;
+}
+function posScore(r, roadSide){
+  let s = r.pref==='road' ? 0 : r.pref==='side' ? 1.5 : r.pref==='back' ? 3 : 1.5;
+  // origin (0,0) of the buildable rect is the "first" branch of the partition tree.
+  // front/left roads sit near the origin already; rear/right roads are far from it, so invert.
+  if(roadSide === 'rear' || roadSide === 'right') s = 3 - s;
+  return s;
+}
+function orderRooms(list, roadSide){
+  const useVastu = vastuOn, usePos = list.some(r=>r.pref && r.pref!=='auto');
+  if(!useVastu && !usePos) return list;
+  return [...list].sort((a,b)=>{
+    const sa = (useVastu?vastuScore(a):0) + (usePos?posScore(a,roadSide)*0.6:0);
+    const sb = (useVastu?vastuScore(b):0) + (usePos?posScore(b,roadSide)*0.6:0);
+    return sa-sb;
+  });
 }
 
-/* ---------------- generate ---------------- */
+/* ================= geometry helpers (exterior walls / doors / windows) ================= */
+const EPS = 0.05;
+function edgesOf(r){
+  return {
+    top:    r.y <= EPS,
+    bottom: (r.y+r.h) >= buildable.h - EPS,
+    left:   r.x <= EPS,
+    right:  (r.x+r.w) >= buildable.w - EPS,
+  };
+}
+function roadEdgeKey(roadSide){
+  return {front:'top', rear:'bottom', left:'left', right:'right'}[roadSide] || 'top';
+}
+function exteriorCount(ed){ return Object.values(ed).filter(Boolean).length; }
+
+function computeEntrance(roadSide){
+  const key = roadEdgeKey(roadSide);
+  let candidates = placed.map((r,i)=>({i, r, ed:edgesOf(r)})).filter(c=>c.ed[key]);
+  if(!candidates.length) return null;
+  let pick = candidates.find(c=>/living|hall|reception/i.test(c.r.name));
+  if(!pick) pick = candidates.sort((a,b)=>b.r.area-a.r.area)[0];
+  return {roomIdx: pick.i, edge: key};
+}
+
+/* ================= structural model ================= */
+function snap(v){ return Math.round(v/0.25)*0.25; }
+function buildStructModel(){
+  const pts = new Map();
+  function addPt(x,y){ const k = snap(x)+','+snap(y); if(!pts.has(k)) pts.set(k,{x:snap(x),y:snap(y)}); }
+  addPt(0,0); addPt(buildable.w,0); addPt(buildable.w,buildable.h); addPt(0,buildable.h);
+  placed.forEach(r=>{
+    addPt(r.x,r.y); addPt(r.x+r.w,r.y); addPt(r.x+r.w,r.y+r.h); addPt(r.x,r.y+r.h);
+  });
+  const columns = [...pts.values()];
+  const uniqueXs = [...new Set(columns.map(c=>c.x))].sort((a,b)=>a-b);
+  const uniqueYs = [...new Set(columns.map(c=>c.y))].sort((a,b)=>a-b);
+
+  // beams: connect consecutive columns sharing an X or Y line
+  const beams = [];
+  uniqueXs.forEach(x=>{
+    const onLine = columns.filter(c=>c.x===x).sort((a,b)=>a.y-b.y);
+    for(let i=0;i<onLine.length-1;i++) beams.push({x1:x,y1:onLine[i].y,x2:x,y2:onLine[i+1].y});
+  });
+  uniqueYs.forEach(y=>{
+    const onLine = columns.filter(c=>c.y===y).sort((a,b)=>a.x-b.x);
+    for(let i=0;i<onLine.length-1;i++) beams.push({x1:onLine[i].x,y1:y,x2:onLine[i+1].x,y2:y});
+  });
+
+  // loads
+  const DL = +document.getElementById('dlInput').value || 4.5;
+  const LL = +document.getElementById('llInput').value || 2.0;
+  const SBC = +document.getElementById('sbcInput').value || 150;
+  const floors = +document.getElementById('floors').value || 1;
+
+  function halfSpan(arr, v, lo, hi){
+    const idx = arr.indexOf(v);
+    const left = idx>0 ? (v-arr[idx-1])/2 : (v-lo);
+    const right = idx<arr.length-1 ? (arr[idx+1]-v)/2 : (hi-v);
+    return left+right;
+  }
+  columns.forEach(c=>{
+    const spanX = halfSpan(uniqueXs, c.x, 0, buildable.w);
+    const spanY = halfSpan(uniqueYs, c.y, 0, buildable.h);
+    const tribFt2 = Math.max(0.1, spanX*spanY);
+    const tribM2 = tribFt2*0.0929;
+    const loadKN = tribM2*(DL+LL)*floors;
+    const footAreaM2 = loadKN/Math.max(1,SBC);
+    const footSideM = Math.sqrt(footAreaM2);
+    let size = '230×230mm';
+    if(loadKN>=700) size='450×450mm (verify)';
+    else if(loadKN>=450) size='400×400mm';
+    else if(loadKN>=250) size='350×350mm';
+    else if(loadKN>=100) size='300×300mm';
+    c.tribFt2 = tribFt2; c.tribM2 = tribM2; c.loadKN = loadKN; c.footSideM = footSideM; c.size = size;
+  });
+
+  structModel = {columns, beams};
+}
+
+/* ================= generate ================= */
 let genTimer = null;
 function generate(){
   document.getElementById('genflag').style.opacity = '1';
@@ -460,14 +634,15 @@ function doGenerate(){
   const sbR = +document.getElementById('sbR').value || 0;
   const sbL = +document.getElementById('sbL').value || 0;
   const sbRt = +document.getElementById('sbRt').value || 0;
+  const roadSide = document.getElementById('roadSide').value;
   vastuOn = document.getElementById('vastu').checked;
 
   const buildW = Math.max(8, plotW - sbL - sbRt);
   const buildD = Math.max(8, plotD - sbF - sbR);
   const buildArea = buildW*buildD;
 
-  let list = rooms.filter(r=>r.area > 0);
-  if(vastuOn) list = orderForVastu(list);
+  let list = withPref(rooms.filter(r=>r.area > 0));
+  list = orderRooms(list, roadSide);
   const totalReq = list.reduce((s,r)=>s+r.area,0);
   const scaleA = totalReq > 0 ? buildArea/totalReq : 1;
   const scaledList = list.map(r=>({...r, area:r.area*scaleA}));
@@ -476,6 +651,8 @@ function doGenerate(){
   buildable = {x:sbL, y:sbF, w:buildW, h:buildD};
   placed = list.length ? partition(0,0,buildW,buildD,scaledList) : [];
   selected = null;
+  entranceInfo = computeEntrance(roadSide);
+  buildStructModel();
 
   document.getElementById('planBadge').innerHTML = `PLOT <b>${plotW}' &times; ${plotD}'</b>`;
   document.getElementById('st-plot').textContent = `${plotW}'\u00d7${plotD}'`;
@@ -493,6 +670,8 @@ function doGenerate(){
 
   renderRoomList();
   renderProps();
+  renderVentList();
+  renderStructTable();
   render();
   document.getElementById('genflag').style.opacity = '0';
 }
@@ -508,7 +687,6 @@ function renderRoomList(){
     wrap.appendChild(row);
   });
 }
-
 function renderProps(){
   const body = document.getElementById('propsBody');
   if(selected === null || !placed[selected]){
@@ -516,6 +694,8 @@ function renderProps(){
     return;
   }
   const r = placed[selected];
+  const ed = edgesOf(r);
+  const extWalls = Object.entries(ed).filter(([,v])=>v).map(([k])=>k).join(', ') || 'none';
   body.innerHTML = `
     <div class="pg">
       <div class="pgt">Room</div>
@@ -523,69 +703,150 @@ function renderProps(){
       <div class="pr"><span class="pl">Width</span><span class="pv">${r.w.toFixed(2)} ft</span></div>
       <div class="pr"><span class="pl">Depth</span><span class="pv">${r.h.toFixed(2)} ft</span></div>
       <div class="pr"><span class="pl">Area</span><span class="pv">${r.area.toFixed(1)} sqft</span></div>
+      <div class="pr"><span class="pl">Exterior walls</span><span class="pv">${extWalls}</span></div>
     </div>
   `;
 }
+function renderVentList(){
+  const wrap = document.getElementById('ventList');
+  wrap.innerHTML = '';
+  placed.forEach(r=>{
+    const ed = edgesOf(r);
+    const n = exteriorCount(ed);
+    const cls = n>=2 ? 'gr' : n===1 ? 'am' : 'rd';
+    const label = n>=2 ? 'Cross-ventilated' : n===1 ? 'Single-side' : 'No exterior wall';
+    const row = document.createElement('div');
+    row.className = 'li';
+    row.innerHTML = `<div class="ld ${cls}"></div><div class="ln">${r.name}</div><div class="lv">${label}</div>`;
+    wrap.appendChild(row);
+  });
+}
+function renderStructTable(){
+  const body = document.getElementById('structBody');
+  body.innerHTML = '';
+  structModel.columns.forEach((c,i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>C${i+1}</td><td>${c.tribM2.toFixed(2)}</td><td>${c.loadKN.toFixed(1)}</td><td>${c.footSideM.toFixed(2)}m sq</td><td>${c.size}</td>`;
+    body.appendChild(tr);
+  });
+}
 
-/* ---------------- rendering ---------------- */
+/* ================= rendering ================= */
 function render(){
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0,0,W,H);
-
-  // blueprint background
   const grad = ctx.createLinearGradient(0,0,0,H);
   grad.addColorStop(0,'#0e3a66'); grad.addColorStop(1,'#0a2f54');
   ctx.fillStyle = grad;
   ctx.fillRect(0,0,W,H);
 
   if(gridOn){
-    ctx.strokeStyle = 'rgba(207,230,255,.12)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(207,230,255,.12)'; ctx.lineWidth = 1;
     const startWX = Math.floor(screenToWorld(0,0).x/5)*5;
     const endWX = screenToWorld(W,0).x;
-    for(let gx = startWX; gx <= endWX; gx += 5){
-      const p = worldToScreen(gx,0);
-      ctx.beginPath(); ctx.moveTo(p.x,0); ctx.lineTo(p.x,H); ctx.stroke();
-    }
+    for(let gx = startWX; gx <= endWX; gx += 5){ const p = worldToScreen(gx,0); ctx.beginPath(); ctx.moveTo(p.x,0); ctx.lineTo(p.x,H); ctx.stroke(); }
     const startWY = Math.floor(screenToWorld(0,0).y/5)*5;
     const endWY = screenToWorld(0,H).y;
-    for(let gy = startWY; gy <= endWY; gy += 5){
-      const p = worldToScreen(0,gy);
-      ctx.beginPath(); ctx.moveTo(0,p.y); ctx.lineTo(W,p.y); ctx.stroke();
-    }
+    for(let gy = startWY; gy <= endWY; gy += 5){ const p = worldToScreen(0,gy); ctx.beginPath(); ctx.moveTo(0,p.y); ctx.lineTo(W,p.y); ctx.stroke(); }
   }
 
-  // plot boundary (dashed)
   const p0 = worldToScreen(0,0), p1 = worldToScreen(plot.w, plot.d);
-  ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = 1.4; ctx.setLineDash([4,5]);
+  ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = 1.2; ctx.setLineDash([4,5]);
   ctx.strokeRect(p0.x, p0.y, p1.x-p0.x, p1.y-p0.y);
   ctx.setLineDash([]);
 
-  // buildable boundary (solid)
   const b0 = worldToScreen(buildable.x, buildable.y);
   const b1 = worldToScreen(buildable.x+buildable.w, buildable.y+buildable.h);
-  ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = 2;
+
+  // road hatch along the chosen setback edge
+  const roadSide = document.getElementById('roadSide').value;
+  drawRoadHatch(p0,p1,b0,b1,roadSide);
+
+  if(viewMode === 'arch') renderArch(b0,b1);
+  else renderStruct(b0,b1);
+
+  // dimensions + north arrow + title (both views)
+  ctx.strokeStyle = '#7fb3e8'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(p0.x, p0.y-12); ctx.lineTo(p1.x, p0.y-12); ctx.stroke();
+  ctx.fillStyle = '#cfe6ff'; ctx.font = '10px IBM Plex Mono, monospace'; ctx.textAlign = 'center';
+  ctx.fillText(`${plot.w}'-0" PLOT WIDTH`, (p0.x+p1.x)/2, p0.y-17);
+  ctx.save(); ctx.translate(p0.x-16, (p0.y+p1.y)/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText(`${plot.d}'-0" PLOT DEPTH`, 0, 0); ctx.restore();
+
+  const naX = p1.x+30, naY = p0.y+26;
+  ctx.fillStyle = '#cfe6ff';
+  ctx.beginPath(); ctx.moveTo(naX,naY-16); ctx.lineTo(naX+6,naY+8); ctx.lineTo(naX,naY+3); ctx.lineTo(naX-6,naY+8); ctx.closePath(); ctx.fill();
+  ctx.font = '700 10px Plus Jakarta Sans, sans-serif'; ctx.fillText('N', naX, naY+22);
+
+  ctx.strokeStyle = 'rgba(207,230,255,.4)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0,H-22); ctx.lineTo(W,H-22); ctx.stroke();
+  ctx.textAlign = 'left'; ctx.fillStyle = '#eaf4ff'; ctx.font = '700 10.5px Plus Jakarta Sans, sans-serif';
+  ctx.fillText(viewMode==='arch' ? 'AIRSUM \u2014 AI-GENERATED ARCHITECTURAL PLAN' : 'AIRSUM \u2014 PRELIMINARY STRUCTURAL SCHEMATIC (NOT FOR CONSTRUCTION)', 14, H-7);
+}
+
+function drawRoadHatch(p0,p1,b0,b1,roadSide){
+  ctx.save();
+  ctx.strokeStyle = 'rgba(245,190,24,.55)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+  ctx.setLineDash([2,7]);
+  let ax,ay,bx,by;
+  if(roadSide==='front'){ ax=p0.x; ay=(p0.y+b0.y)/2; bx=p1.x; by=ay; }
+  else if(roadSide==='rear'){ ax=p0.x; ay=(p1.y+b1.y)/2; bx=p1.x; by=ay; }
+  else if(roadSide==='left'){ ax=(p0.x+b0.x)/2; ay=p0.y; bx=ax; by=p1.y; }
+  else { ax=(p1.x+b1.x)/2; ay=p0.y; bx=ax; by=p1.y; }
+  ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(245,190,24,.85)'; ctx.font = '700 9px IBM Plex Mono, monospace'; ctx.textAlign='center';
+  if(roadSide==='front'||roadSide==='rear') ctx.fillText('ROAD', (ax+bx)/2, ay-6);
+  else { ctx.save(); ctx.translate(ax-10,(ay+by)/2); ctx.rotate(-Math.PI/2); ctx.fillText('ROAD',0,0); ctx.restore(); }
+  ctx.restore();
+}
+
+function renderArch(b0,b1){
+  const extWallFt = (+document.getElementById('extWall').value || 9)/12;
+  const intWallFt = (+document.getElementById('intWall').value || 4.5)/12;
+
+  ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = Math.max(2, extWallFt*scale);
   ctx.strokeRect(b0.x, b0.y, b1.x-b0.x, b1.y-b0.y);
 
-  // rooms
   placed.forEach((r,i)=>{
     const rx = buildable.x + r.x, ry = buildable.y + r.y;
     const s0 = worldToScreen(rx,ry), s1 = worldToScreen(rx+r.w, ry+r.h);
     const w = s1.x-s0.x, h = s1.y-s0.y;
     const isSel = selected === i;
+    const ed = edgesOf(r);
+
     ctx.fillStyle = isSel ? 'rgba(251,91,110,.16)' : 'rgba(255,255,255,.045)';
     ctx.fillRect(s0.x, s0.y, w, h);
-    ctx.strokeStyle = isSel ? '#FB5B6E' : '#7fb3e8';
-    ctx.lineWidth = isSel ? 2 : 1;
-    ctx.strokeRect(s0.x, s0.y, w, h);
 
-    // door gap
-    const doorW = Math.min(3*scale, w*0.35, 30);
-    ctx.strokeStyle = '#0e3a66'; ctx.lineWidth = 3.2;
-    ctx.beginPath();
-    ctx.moveTo(s0.x + w*0.15, s1.y);
-    ctx.lineTo(s0.x + w*0.15 + doorW, s1.y);
-    ctx.stroke();
+    // walls per edge: exterior thickness on exterior edges, interior elsewhere
+    function edgeLine(x1,y1,x2,y2,isExt){
+      ctx.strokeStyle = isSel ? '#FB5B6E' : (isExt ? '#eaf4ff' : '#7fb3e8');
+      ctx.lineWidth = isSel ? 2.5 : Math.max(1.2, (isExt?extWallFt:intWallFt)*scale);
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    }
+    edgeLine(s0.x,s0.y,s1.x,s0.y, ed.top);
+    edgeLine(s0.x,s1.y,s1.x,s1.y, ed.bottom);
+    edgeLine(s0.x,s0.y,s0.x,s1.y, ed.left);
+    edgeLine(s1.x,s0.y,s1.x,s1.y, ed.right);
+
+    // windows on exterior edges (skip the entrance edge of the entrance room)
+    const isEntranceRoom = entranceInfo && entranceInfo.roomIdx === i;
+    Object.entries(ed).forEach(([side,isExt])=>{
+      if(!isExt) return;
+      if(isEntranceRoom && entranceInfo.edge === side) return; // entrance door goes here instead
+      drawWindow(s0,s1,side);
+    });
+
+    // interior door on the longest non-exterior edge (if any), unless this room has the entrance
+    if(!isEntranceRoom){
+      const interiorEdges = Object.entries(ed).filter(([,v])=>!v).map(([k])=>k);
+      if(interiorEdges.length){
+        const pick = interiorEdges.includes('bottom') ? 'bottom' : interiorEdges[0];
+        drawDoor(s0,s1,pick,false);
+      }
+    } else {
+      drawDoor(s0,s1,entranceInfo.edge,true);
+    }
 
     if(w>56 && h>34){
       ctx.fillStyle = '#eaf4ff'; ctx.font = '700 11px Plus Jakarta Sans, sans-serif'; ctx.textAlign = 'center';
@@ -597,40 +858,72 @@ function render(){
       ctx.fillText(r.name, s0.x+w/2, s0.y+h/2+3);
     }
   });
-
-  // dimensions
-  ctx.strokeStyle = '#7fb3e8'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(p0.x, p0.y-12); ctx.lineTo(p1.x, p0.y-12); ctx.stroke();
-  ctx.fillStyle = '#cfe6ff'; ctx.font = '10px IBM Plex Mono, monospace'; ctx.textAlign = 'center';
-  ctx.fillText(`${plot.w}'-0" PLOT WIDTH`, (p0.x+p1.x)/2, p0.y-17);
-
-  ctx.save();
-  ctx.translate(p0.x-16, (p0.y+p1.y)/2);
-  ctx.rotate(-Math.PI/2);
-  ctx.fillText(`${plot.d}'-0" PLOT DEPTH`, 0, 0);
-  ctx.restore();
-
-  // north arrow
-  const naX = p1.x+30, naY = p0.y+26;
-  ctx.fillStyle = '#cfe6ff';
-  ctx.beginPath(); ctx.moveTo(naX,naY-16); ctx.lineTo(naX+6,naY+8); ctx.lineTo(naX,naY+3); ctx.lineTo(naX-6,naY+8); ctx.closePath(); ctx.fill();
-  ctx.font = '700 10px Plus Jakarta Sans, sans-serif'; ctx.fillText('N', naX, naY+22);
-
-  // title block
-  ctx.strokeStyle = 'rgba(207,230,255,.4)'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(0,H-22); ctx.lineTo(W,H-22); ctx.stroke();
-  ctx.textAlign = 'left'; ctx.fillStyle = '#eaf4ff'; ctx.font = '700 10.5px Plus Jakarta Sans, sans-serif';
-  ctx.fillText('AIRSUM \u2014 AI-GENERATED SCHEMATIC PLAN', 14, H-7);
 }
 
-/* ---------------- pan / zoom / select ---------------- */
+function drawWindow(s0,s1,side){
+  const len = Math.min((side==='top'||side==='bottom') ? (s1.x-s0.x) : (s1.y-s0.y) * 0.4, 46);
+  ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = 3;
+  let x1,y1,x2,y2;
+  if(side==='top'){ const cx=(s0.x+s1.x)/2; x1=cx-len/2;y1=s0.y;x2=cx+len/2;y2=s0.y; }
+  else if(side==='bottom'){ const cx=(s0.x+s1.x)/2; x1=cx-len/2;y1=s1.y;x2=cx+len/2;y2=s1.y; }
+  else if(side==='left'){ const cy=(s0.y+s1.y)/2; x1=s0.x;y1=cy-len/2;x2=s0.x;y2=cy+len/2; }
+  else { const cy=(s0.y+s1.y)/2; x1=s1.x;y1=cy-len/2;x2=s1.x;y2=cy+len/2; }
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+}
+function drawDoor(s0,s1,side,isEntrance){
+  const w = s1.x-s0.x, h = s1.y-s0.y;
+  const doorW = isEntrance ? Math.min(w*0.3,h*0.3,40) : Math.min(w*0.3, 28);
+  ctx.strokeStyle = isEntrance ? '#FB5B6E' : '#0e3a66';
+  ctx.lineWidth = isEntrance ? 4 : 3.2;
+  let x1,y1,x2,y2;
+  if(side==='top'){ const cx=s0.x+w*0.5; x1=cx-doorW/2;y1=s0.y;x2=cx+doorW/2;y2=s0.y; }
+  else if(side==='bottom'){ const cx=s0.x+w*0.5; x1=cx-doorW/2;y1=s1.y;x2=cx+doorW/2;y2=s1.y; }
+  else if(side==='left'){ const cy=s0.y+h*0.5; x1=s0.x;y1=cy-doorW/2;x2=s0.x;y2=cy+doorW/2; }
+  else { const cy=s0.y+h*0.5; x1=s1.x;y1=cy-doorW/2;x2=s1.x;y2=cy+doorW/2; }
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  if(isEntrance){
+    ctx.fillStyle = '#FB5B6E'; ctx.font='700 8px IBM Plex Mono, monospace'; ctx.textAlign='center';
+    ctx.fillText('ENTRY', (x1+x2)/2, side==='top'? y1-5 : side==='bottom'? y1+12 : (y1+y2)/2);
+  }
+}
+
+function renderStruct(b0,b1){
+  ctx.strokeStyle = 'rgba(207,230,255,.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([3,4]);
+  ctx.strokeRect(b0.x, b0.y, b1.x-b0.x, b1.y-b0.y);
+  ctx.setLineDash([]);
+
+  // beams
+  ctx.strokeStyle = '#A78BFA'; ctx.lineWidth = 3;
+  structModel.beams.forEach(bm=>{
+    const s1 = worldToScreen(buildable.x+bm.x1, buildable.y+bm.y1);
+    const s2 = worldToScreen(buildable.x+bm.x2, buildable.y+bm.y2);
+    ctx.beginPath(); ctx.moveTo(s1.x,s1.y); ctx.lineTo(s2.x,s2.y); ctx.stroke();
+  });
+
+  // columns + footings
+  structModel.columns.forEach((c,i)=>{
+    const s = worldToScreen(buildable.x+c.x, buildable.y+c.y);
+    const footPx = (c.footSideM*3.28084)*scale; // m -> ft -> px
+    ctx.strokeStyle = 'rgba(245,190,24,.5)'; ctx.lineWidth = 1; ctx.setLineDash([2,3]);
+    ctx.strokeRect(s.x-footPx/2, s.y-footPx/2, footPx, footPx);
+    ctx.setLineDash([]);
+
+    const color = c.loadKN<150 ? '#4ADE80' : c.loadKN<350 ? '#F5BE18' : '#ff4466';
+    ctx.fillStyle = color;
+    ctx.fillRect(s.x-5, s.y-5, 10, 10);
+    ctx.strokeStyle = '#091828'; ctx.lineWidth = 1; ctx.strokeRect(s.x-5, s.y-5, 10, 10);
+
+    ctx.fillStyle = '#eaf4ff'; ctx.font='700 8.5px IBM Plex Mono, monospace'; ctx.textAlign='center';
+    ctx.fillText(`C${i+1}`, s.x, s.y-9);
+    ctx.fillStyle = '#7fb3e8'; ctx.font='8px IBM Plex Mono, monospace';
+    ctx.fillText(`${c.loadKN.toFixed(0)}kN`, s.x, s.y+18);
+  });
+}
+
+/* ================= pan / zoom / select ================= */
 const vp = document.getElementById('vport');
 let dragging = false, dragMoved = false, lastX = 0, lastY = 0;
-
-canvas.addEventListener('mousedown', e=>{
-  dragging = true; dragMoved = false; lastX = e.clientX; lastY = e.clientY;
-  vp.classList.add('grabbing');
-});
+canvas.addEventListener('mousedown', e=>{ dragging=true; dragMoved=false; lastX=e.clientX; lastY=e.clientY; vp.classList.add('grabbing'); });
 window.addEventListener('mousemove', e=>{
   const rect = canvas.getBoundingClientRect();
   const wp = screenToWorld(e.clientX-rect.left, e.clientY-rect.top);
@@ -641,8 +934,7 @@ window.addEventListener('mousemove', e=>{
   if(dragMoved){ panX += dx; panY += dy; lastX = e.clientX; lastY = e.clientY; render(); }
 });
 window.addEventListener('mouseup', e=>{
-  if(dragging && !dragMoved){
-    // treat as click-select
+  if(dragging && !dragMoved && viewMode==='arch'){
     const rect = canvas.getBoundingClientRect();
     const wp = screenToWorld(e.clientX-rect.left, e.clientY-rect.top);
     let hit = -1;
@@ -654,8 +946,7 @@ window.addEventListener('mouseup', e=>{
     renderRoomList(); renderProps(); render();
     if(hit>=0) rpTab('props');
   }
-  dragging = false;
-  vp.classList.remove('grabbing');
+  dragging = false; vp.classList.remove('grabbing');
 });
 canvas.addEventListener('wheel', e=>{
   e.preventDefault();
@@ -669,7 +960,6 @@ canvas.addEventListener('wheel', e=>{
   document.getElementById('st-zoom').textContent = Math.round(scale/9*100)+'%';
   render();
 }, {passive:false});
-
 function zoomBy(f){
   const cx = canvas.width/2, cy = canvas.height/2;
   const before = screenToWorld(cx,cy);
@@ -688,7 +978,7 @@ function zoomExt(){
   render();
 }
 
-/* ---------------- right panel tabs ---------------- */
+/* ================= right panel tabs ================= */
 function rpTab(id){
   document.querySelectorAll('.rptab').forEach(t=>t.classList.remove('act'));
   document.querySelectorAll('.rp-sec').forEach(s=>s.classList.remove('act'));
@@ -696,104 +986,83 @@ function rpTab(id){
   document.getElementById('rpsec-'+id).classList.add('act');
 }
 
-/* ---------------- command line ---------------- */
+/* ================= command line ================= */
 function runCmd(){
   const inp = document.getElementById('cmdInput');
   const msg = document.getElementById('cmdMsg');
   const raw = inp.value.trim();
-  if(!raw){ return; }
+  if(!raw) return;
   const parts = raw.split(/\s+/);
   const cmd = parts[0].toLowerCase();
   try{
     if(cmd === 'plot'){
       const m = parts[1].match(/^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/i);
-      if(!m) throw 'usage: plot WxD  (e.g. plot 45x70)';
-      document.getElementById('plotW').value = m[1];
-      document.getElementById('plotD').value = m[2];
-      generate();
-      msg.textContent = `Plot set to ${m[1]}'\u00d7${m[2]}'`;
+      if(!m) throw 'usage: plot WxD';
+      document.getElementById('plotW').value = m[1]; document.getElementById('plotD').value = m[2];
+      generate(); msg.textContent = `Plot set to ${m[1]}'\u00d7${m[2]}'`;
     } else if(cmd === 'setback'){
       const [f,r,l,rt] = parts.slice(1).map(Number);
       if([f,r,l,rt].some(isNaN)) throw 'usage: setback FRONT REAR LEFT RIGHT';
       document.getElementById('sbF').value=f; document.getElementById('sbR').value=r;
       document.getElementById('sbL').value=l; document.getElementById('sbRt').value=rt;
-      generate();
-      msg.textContent = `Setbacks set: F${f} R${r} L${l} Rt${rt}`;
+      generate(); msg.textContent = `Setbacks set: F${f} R${r} L${l} Rt${rt}`;
+    } else if(cmd === 'road'){
+      const side = parts[1];
+      if(!['front','rear','left','right'].includes(side)) throw 'usage: road front|rear|left|right';
+      document.getElementById('roadSide').value = side;
+      generate(); msg.textContent = `Road set to ${side}`;
     } else if(cmd === 'floors'){
-      const n = +parts[1];
-      if(!n) throw 'usage: floors N';
-      document.getElementById('floors').value = n;
-      generate();
-      msg.textContent = `Floors set to ${n}`;
+      const n = +parts[1]; if(!n) throw 'usage: floors N';
+      document.getElementById('floors').value = n; generate(); msg.textContent = `Floors set to ${n}`;
     } else if(cmd === 'add' && parts[1] === 'room'){
-      const area = +parts[parts.length-1];
-      const name = parts.slice(2, -1).join(' ') || 'New Room';
-      if(!area) throw 'usage: add room NAME AREA';
-      rooms.push({name, area});
-      renderRoomRows();
-      generate();
-      msg.textContent = `Added room "${name}" (${area} sqft)`;
+      let toks = parts.slice(2);
+      let pref = 'auto';
+      if(['road','back','side'].includes(toks[toks.length-1])){ pref = toks.pop(); }
+      const area = +toks[toks.length-1];
+      const name = toks.slice(0,-1).join(' ') || 'New Room';
+      if(!area) throw 'usage: add room NAME AREA [road|back|side]';
+      rooms.push({name, area, pref});
+      renderRoomRows(); generate();
+      msg.textContent = `Added room "${name}" (${area} sqft, ${pref})`;
     } else if(cmd === 'del' && parts[1] === 'room'){
       const name = parts.slice(2).join(' ').toLowerCase();
       const idx = rooms.findIndex(r=>r.name.toLowerCase() === name);
       if(idx < 0) throw `room "${parts.slice(2).join(' ')}" not found`;
-      rooms.splice(idx,1);
-      renderRoomRows();
-      generate();
+      rooms.splice(idx,1); renderRoomRows(); generate();
       msg.textContent = `Removed room "${parts.slice(2).join(' ')}"`;
     } else if(cmd === 'vastu'){
-      const on = parts[1] === 'on';
-      document.getElementById('vastu').checked = on;
-      syncVastuBtn();
-      generate();
-      msg.textContent = `Vastu ordering ${on ? 'enabled' : 'disabled'}`;
+      document.getElementById('vastu').checked = parts[1] === 'on';
+      syncVastuBtn(); generate();
+      msg.textContent = `Vastu ordering ${parts[1]==='on'?'enabled':'disabled'}`;
+    } else if(cmd === 'view'){
+      if(!['arch','struct'].includes(parts[1])) throw 'usage: view arch|struct';
+      setView(parts[1]); msg.textContent = `Switched to ${parts[1]} view`;
     } else if(cmd === 'zoom' && parts[1] === 'fit'){
-      zoomExt();
-      msg.textContent = 'Zoomed to extents';
+      zoomExt(); msg.textContent = 'Zoomed to extents';
     } else {
       throw `unknown command "${cmd}"`;
     }
-  } catch(err){
-    msg.textContent = typeof err === 'string' ? err : 'command error';
-  }
+  } catch(err){ msg.textContent = typeof err === 'string' ? err : 'command error'; }
   inp.value = '';
 }
 
-/* ---------------- export ---------------- */
+/* ================= export ================= */
 function exportPNG(){
   const a = document.createElement('a');
   a.href = canvas.toDataURL('image/png');
-  a.download = 'airsum-plan.png';
-  a.click();
-}
-function exportSVG(){
-  // lightweight SVG re-render of current plan (independent of canvas pixels)
-  const pad = 8, F = 11;
-  const W = (plot.w+pad*2+6)*F, H = (plot.d+pad*2+4)*F;
-  const ox = pad*F, oy = pad*F;
-  let body = '';
-  body += `<rect x="${ox}" y="${oy}" width="${plot.w*F}" height="${plot.d*F}" fill="none" stroke="#cfe6ff" stroke-width="1.4" stroke-dasharray="4 5"/>`;
-  const bx = ox+buildable.x*F, by = oy+buildable.y*F;
-  body += `<rect x="${bx}" y="${by}" width="${buildable.w*F}" height="${buildable.h*F}" fill="none" stroke="#cfe6ff" stroke-width="2"/>`;
-  placed.forEach(r=>{
-    const rx = bx+r.x*F, ry = by+r.y*F, rw=r.w*F, rh=r.h*F;
-    body += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="rgba(255,255,255,.05)" stroke="#7fb3e8" stroke-width="1.4"/>`;
-    body += `<text x="${rx+rw/2}" y="${ry+rh/2-3}" text-anchor="middle" font-size="11" fill="#eaf4ff" font-family="sans-serif" font-weight="700">${r.name}</text>`;
-    body += `<text x="${rx+rw/2}" y="${ry+rh/2+11}" text-anchor="middle" font-size="9" fill="#7fb3e8" font-family="monospace">${Math.round(r.w)}' x ${Math.round(r.h)}' - ${Math.round(r.area)} sqft</text>`;
-  });
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="#0a2f54"/>${body}</svg>`;
-  const blob = new Blob([svg], {type:'image/svg+xml'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'airsum-plan.svg';
+  a.download = `airsum-${viewMode}-plan.png`;
   a.click();
 }
 
-/* ---------------- init ---------------- */
-['plotW','plotD','floors','sbF','sbR','sbL','sbRt'].forEach(id=>{
+/* ================= init ================= */
+['plotW','plotD','floors','sbF','sbR','sbL','sbRt','roadSide','extWall','intWall'].forEach(id=>{
   document.getElementById(id).addEventListener('input', generate);
 });
+['dlInput','llInput','sbcInput'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', ()=>{ buildStructModel(); renderStructTable(); render(); });
+});
 renderRoomRows();
+syncLLDefault();
 fitCanvas();
 zoomExt();
 generate();
