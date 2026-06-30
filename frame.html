@@ -131,6 +131,7 @@ input,select{font-family:inherit}
   <div class="rg">
     <div class="rr">
       <button class="rb lg act" onclick="solveAndRender()"><span class="rb-i">⚡</span>SOLVE</button>
+      <button class="rb lg" onclick="runDesignCheck()"><span class="rb-i">🔍</span>DESIGN CHECK</button>
     </div>
     <div class="rg-lbl">ANALYZE</div>
   </div>
@@ -196,6 +197,37 @@ input,select{font-family:inherit}
       </table>
       <div class="btnRow"><button class="bo" onclick="addLoad()">+ Load</button></div>
 
+      <div class="tg-title">Load Generator — derive UDL from occupancy</div>
+      <div class="g2">
+        <div class="fg"><label>Occupancy (ASCE 7-16)</label>
+          <select class="ps" id="llOccupancy">
+            <option value="1.92">Residential (1.92 kN/m\u00b2)</option>
+            <option value="2.4">Office (2.4 kN/m\u00b2)</option>
+            <option value="4.79">Lobby/Stairs (4.79 kN/m\u00b2)</option>
+            <option value="6.0">Storage (6.0 kN/m\u00b2)</option>
+          </select>
+        </div>
+        <div class="fg"><label>Dead load kN/m\u00b2</label><input class="pi" id="genDL" type="number" value="4.5" step="0.1"></div>
+      </div>
+      <div class="fg"><label>Tributary width (m) — how much floor each beam carries</label><input class="pi" id="tribWidth" type="number" value="3" step="0.5"></div>
+      <div class="rb ok"><div class="rl">Computed UDL</div><div class="rv" id="genUDLShow">---</div></div>
+      <div class="fg"><label>Apply to member</label><select class="ps" id="genTargetMember"></select></div>
+      <div class="btnRow"><button class="bo bw" onclick="applyGeneratedLoad()">\u2193 Apply UDL to selected member</button></div>
+
+      <div class="tg-title">Design Parameters (RC, ACI/IS-style)</div>
+      <div class="g3">
+        <div class="fg"><label>f'c N/mm\u00b2</label><input class="pi" id="fcInput" type="number" value="25" step="1"></div>
+        <div class="fg"><label>fy N/mm\u00b2</label><input class="pi" id="fyInput" type="number" value="415" step="5"></div>
+        <div class="fg"><label>\u03c1 steel %</label><input class="pi" id="rhoInput" type="number" value="1.5" step="0.1"></div>
+      </div>
+      <div class="fg"><label>Soil Bearing Capacity kPa</label><input class="pi" id="sbcInput" type="number" value="150" step="10"></div>
+      <div class="btnRow"><button class="bp bw" onclick="runDesignCheck()">\ud83d\udd0d Check Capacity &amp; Suggest Sizes</button></div>
+
+      <div class="tg-title">Import / Export</div>
+      <div class="btnRow"><button class="bo bw" onclick="document.getElementById('dxfImportFile').click()">\u2191 Import DXF (Frame/Airsum layer convention)</button></div>
+      <input type="file" id="dxfImportFile" accept=".dxf" style="display:none" onchange="importDXF(this)">
+      <div class="note">Expects LINE entities on layers MEMBERS (frame members — endpoints become nodes, snapped within 0.1ft) and SUPPORTS (a short line at a node marks it fixed). Exported by Frame's own DXF export, or draw matching layers in AutoCAD/Strata CAD. Arbitrary/scanned drawings are not supported — geometry recognition from images isn't reliable enough to trust for structural input.</div>
+
       <div class="btnRow" style="margin-top:14px"><button class="bp" onclick="solveAndRender()">⚡ Solve Frame</button></div>
 
       <div class="disclaimer"><b>Real direct stiffness method</b> — not a schematic estimate. Verified against four closed-form textbook solutions (simply-supported UDL beam, cantilever point load, fixed-fixed UDL beam, portal frame equilibrium). Linear-elastic, 1st-order (no P-Delta), static loads only — no modal/response-spectrum/nonlinear analysis. For a single bay or simple multi-bay 2D frame only; not a substitute for full 3D FE software (ETABS) or a licensed structural engineer's sign-off.</div>
@@ -217,6 +249,7 @@ input,select{font-family:inherit}
     <div class="rp-tabs">
       <div class="rptab act" id="rpt-react" onclick="rpTab('react')">Reactions</div>
       <div class="rptab" id="rpt-forces" onclick="rpTab('forces')">Forces</div>
+      <div class="rptab" id="rpt-design" onclick="rpTab('design')">Design</div>
     </div>
     <div class="rp-content">
       <div class="rp-sec act" id="rpsec-react">
@@ -227,6 +260,11 @@ input,select{font-family:inherit}
         </table>
         <div class="pgt">Equilibrium Check</div>
         <div id="equilCheck" style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--m);line-height:1.8">Not yet solved.</div>
+        <div class="pgt">Footing Sizing (soil bearing check)</div>
+        <table class="restbl" id="footTbl">
+          <thead><tr><th>Node</th><th>React. kN</th><th>Footing m\u00d7m</th></tr></thead>
+          <tbody id="footBody"><tr><td colspan="3" style="color:var(--m)">Click Solve</td></tr></tbody>
+        </table>
       </div>
       <div class="rp-sec" id="rpsec-forces">
         <div class="pgt">Member End Forces (local axes)</div>
@@ -239,6 +277,16 @@ input,select{font-family:inherit}
           <thead><tr><th>Mbr</th><th>Mmax kN·m</th><th>Vmax kN</th></tr></thead>
           <tbody id="maxBody"></tbody>
         </table>
+      </div>
+      <div class="rp-sec" id="rpsec-design">
+        <div class="pgt">Capacity Check — \u03c6Pn / \u03c6Mn / \u03c6Vn</div>
+        <table class="restbl" id="designTbl">
+          <thead><tr><th>Mbr</th><th>Type</th><th>Demand</th><th>Capacity</th><th>Util.</th></tr></thead>
+          <tbody id="designBody"><tr><td colspan="5" style="color:var(--m)">Click "Check Capacity"</td></tr></tbody>
+        </table>
+        <div class="pgt">Suggested Sizes (where failing)</div>
+        <div id="suggestList" style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--m);line-height:1.8">Not yet checked.</div>
+        <div class="disclaimer">Simplified ACI/IS-456-style axial (columns) and singly-reinforced flexure+shear (beams) checks at a default reinforcement ratio — not a full biaxial bending / ductile detailing / development-length design. Real construction drawings need a licensed engineer's complete design.</div>
       </div>
     </div>
   </div>
@@ -388,12 +436,19 @@ function gaussSolve(Amat, bvec){
 
 /* ============================================================ UI / MODEL STATE ============================================================ */
 const SECTIONS = {
-  'RC 230x230': {E:25e9, A:0.0529, I:2.0e-4},
-  'RC 300x300': {E:25e9, A:0.09, I:6.75e-4},
-  'RC 350x450 beam': {E:25e9, A:0.1575, I:0.00266},
-  'RC 230x600 beam': {E:25e9, A:0.138, I:0.00414},
-  'Steel ISMB300': {E:200e9, A:0.00561, I:0.0000873},
+  'RC 230x230': {E:25e9, A:0.0529, I:2.0e-4, w:230, d:230, kind:'column'},
+  'RC 300x300': {E:25e9, A:0.09, I:6.75e-4, w:300, d:300, kind:'column'},
+  'RC 350x350': {E:25e9, A:0.1225, I:1.25e-3, w:350, d:350, kind:'column'},
+  'RC 400x400': {E:25e9, A:0.16, I:2.13e-3, w:400, d:400, kind:'column'},
+  'RC 450x450': {E:25e9, A:0.2025, I:3.42e-3, w:450, d:450, kind:'column'},
+  'RC 500x500': {E:25e9, A:0.25, I:5.21e-3, w:500, d:500, kind:'column'},
+  'RC 230x450 beam': {E:25e9, A:0.1035, I:0.001747, w:230, d:450, kind:'beam'},
+  'RC 230x600 beam': {E:25e9, A:0.138, I:0.00414, w:230, d:600, kind:'beam'},
+  'RC 300x600 beam': {E:25e9, A:0.18, I:0.0054, w:300, d:600, kind:'beam'},
+  'RC 350x450 beam': {E:25e9, A:0.1575, I:0.00266, w:350, d:450, kind:'beam'},
+  'Steel ISMB300': {E:200e9, A:0.00561, I:0.0000873, w:140, d:300, kind:'beam'},
 };
+const COLUMN_SECTIONS_ASC = Object.keys(SECTIONS).filter(k=>SECTIONS[k].kind==='column').sort((a,b)=>SECTIONS[a].w-SECTIONS[b].w);
 let nodes = [], members = [], loads = [];
 let nodeSeq=1, memberSeq=1;
 let lastResult = null;
@@ -490,6 +545,7 @@ function renderMemberTable(){
       render();
     });
   });
+  populateGenTargetMember();
   body.querySelectorAll('.del').forEach(td=>td.addEventListener('click', e=>{
     members.splice(+e.target.dataset.i,1); renderMemberTable(); render();
   }));
@@ -591,6 +647,8 @@ function solveAndRender(){
     document.getElementById('st-status').textContent = 'solved';
     renderReactionTable();
     renderForceTable();
+    renderFootingTable();
+    populateGenTargetMember();
     if(diagramMode==='none') diagramMode='M';
     syncDiagramButtons();
     render();
@@ -632,6 +690,184 @@ function renderForceTable(){
     tr2.innerHTML = `<td>M${mid}</td><td>${(maxM/1000).toFixed(1)}</td><td>${(maxV/1000).toFixed(1)}</td>`;
     maxBody.appendChild(tr2);
   });
+}
+
+/* ---- footing sizing from soil bearing capacity ---- */
+function renderFootingTable(){
+  const body = document.getElementById('footBody');
+  body.innerHTML='';
+  const sbc = +document.getElementById('sbcInput').value || 150; // kPa
+  lastResult.reactions.forEach((r,nodeId)=>{
+    const reactKN = Math.abs(r.fy)/1000;
+    const areaM2 = (reactKN*1000)/(sbc*1000); // kN/(kPa) = kN/(kN/m2) = m2 ... reactKN(kN)*1000=N; sbc(kPa)*1000=Pa(N/m2); N/(N/m2)=m2
+    const side = Math.sqrt(Math.max(0.01,areaM2));
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>N${nodeId}</td><td>${reactKN.toFixed(1)}</td><td>${side.toFixed(2)}\u00d7${side.toFixed(2)}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+/* ---- load generator: derive a UDL from occupancy live load + dead load + tributary width ---- */
+function computeGenUDL(){
+  const ll = +document.getElementById('llOccupancy').value || 1.92;
+  const dl = +document.getElementById('genDL').value || 4.5;
+  const trib = +document.getElementById('tribWidth').value || 3;
+  const udlKNm = (ll+dl)*trib; // kN/m run of beam
+  document.getElementById('genUDLShow').textContent = `${udlKNm.toFixed(1)} kN/m  (= (LL ${ll} + DL ${dl}) kN/m\u00b2 \u00d7 ${trib}m tributary width)`;
+  return udlKNm;
+}
+function populateGenTargetMember(){
+  const sel = document.getElementById('genTargetMember');
+  if(!sel) return;
+  sel.innerHTML = members.map(m=>`<option value="${m.id}">M${m.id} (N${m.n1}\u2192N${m.n2})</option>`).join('');
+}
+function applyGeneratedLoad(){
+  const udl = computeGenUDL();
+  const mid = +document.getElementById('genTargetMember').value;
+  const m = members.find(x=>x.id===mid);
+  if(!m){ document.getElementById('cmdMsg')&&(document.getElementById('cmdMsg').textContent=''); return; }
+  m.udl = -udl*1000;
+  renderMemberTable();
+  document.getElementById('statusBadge').textContent = `Applied ${udl.toFixed(1)} kN/m to M${mid}. Re-solve to see effect.`;
+}
+
+/* ---- RC capacity check (simplified ACI/IS-456-style: axial for columns, flexure+shear for beams) ---- */
+function classifyMember(m){
+  const n1=nodes.find(n=>n.id===m.n1), n2=nodes.find(n=>n.id===m.n2);
+  const angle = Math.abs(Math.atan2(n2.y-n1.y, n2.x-n1.x));
+  return (angle > Math.PI/4 && angle < 3*Math.PI/4) ? 'column' : 'beam';
+}
+function columnCapacity(widthMM, depthMM, fc, fy, rhoPct){
+  const Ag = widthMM*depthMM;
+  const Ast = Ag*(rhoPct/100);
+  const phiPn = 0.8*0.65*(0.85*fc*(Ag-Ast) + fy*Ast); // N — ACI tied-column reduced axial capacity
+  return phiPn/1000; // kN
+}
+function beamCapacity(widthMM, depthMM, fc, fy, rhoPct){
+  const cover = 50;
+  const d = depthMM-cover;
+  const As = widthMM*d*(rhoPct/100);
+  const a = (As*fy)/(0.85*fc*widthMM);
+  const phiMn = 0.9*As*fy*(d-a/2); // N·mm
+  const phiVn = 0.75*0.17*Math.sqrt(fc)*widthMM*d; // N (simplified ACI 22.5.5.1 concrete shear)
+  return { phiMn: phiMn/1e6, phiVn: phiVn/1000 }; // kN·m, kN
+}
+function suggestColumnSize(PuKN, fc, fy, rhoPct){
+  for(const key of COLUMN_SECTIONS_ASC){
+    const s = SECTIONS[key];
+    const cap = columnCapacity(s.w, s.d, fc, fy, rhoPct);
+    if(cap >= PuKN) return {key, cap};
+  }
+  return null;
+}
+function runDesignCheck(){
+  if(!lastResult){ document.getElementById('cmdMsg') && (document.getElementById('cmdMsg').textContent=''); document.getElementById('statusBadge').textContent='⚠ Solve the frame first.'; return; }
+  const fc = +document.getElementById('fcInput').value || 25;
+  const fy = +document.getElementById('fyInput').value || 415;
+  const rho = +document.getElementById('rhoInput').value || 1.5;
+
+  const body = document.getElementById('designBody');
+  const suggestEl = document.getElementById('suggestList');
+  body.innerHTML = '';
+  const suggestions = [];
+
+  members.forEach(m=>{
+    const kind = classifyMember(m);
+    const f = lastResult.memberForces.get(m.id);
+    const sec = SECTIONS[m.section] || {w:300,d:300};
+    if(kind==='column'){
+      const Pu = Math.max(Math.abs(f.N1), Math.abs(f.N2))/1000; // kN
+      const phiPn = columnCapacity(sec.w, sec.d, fc, fy, rho);
+      const util = Pu/phiPn;
+      addDesignRow(body, m.id, 'Column (axial)', Pu.toFixed(1)+' kN', phiPn.toFixed(1)+' kN', util);
+      if(util>1.0){
+        const sugg = suggestColumnSize(Pu, fc, fy, rho);
+        suggestions.push(`M${m.id} (${m.section}, Pu=${Pu.toFixed(0)}kN) overstressed at ${(util*100).toFixed(0)}% \u2014 suggest ${sugg?sugg.key+' (\u03c6Pn='+sugg.cap.toFixed(0)+'kN)':'larger than catalog max — increase reinforcement or section'}`);
+      }
+    } else {
+      let maxM=0, maxV=0;
+      const steps=20;
+      for(let i=0;i<=steps;i++){ const x=f.L*i/steps; const s=f.sample(x); maxM=Math.max(maxM,Math.abs(s.M)); maxV=Math.max(maxV,Math.abs(s.V)); }
+      const Mu = maxM/1000, Vu = maxV/1000;
+      const cap = beamCapacity(sec.w, sec.d, fc, fy, rho);
+      const utilM = Mu/cap.phiMn, utilV = Vu/cap.phiVn;
+      addDesignRow(body, m.id, 'Beam (moment)', Mu.toFixed(1)+' kN\u00b7m', cap.phiMn.toFixed(1)+' kN\u00b7m', utilM);
+      addDesignRow(body, m.id, 'Beam (shear)', Vu.toFixed(1)+' kN', cap.phiVn.toFixed(1)+' kN', utilV);
+      if(utilM>1.0 || utilV>1.0){
+        suggestions.push(`M${m.id} (${m.section}) ${utilM>1?'flexure':''}${utilM>1&&utilV>1?' & ':''}${utilV>1?'shear':''} overstressed \u2014 increase depth, width, or steel ratio (currently ${rho}%)`);
+      }
+    }
+  });
+
+  suggestEl.innerHTML = suggestions.length
+    ? suggestions.map(s=>`<div style="color:#ff4466;margin-bottom:4px">\u26a0 ${s}</div>`).join('')
+    : '<span style="color:#4ADE80">\u2713 All members pass at the current sections and reinforcement ratio.</span>';
+  rpTab('design');
+}
+function addDesignRow(body, mid, type, demand, capacity, util){
+  const color = util<0.85 ? '#4ADE80' : util<=1.0 ? '#F5BE18' : '#ff4466';
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>M${mid}</td><td>${type}</td><td>${demand}</td><td>${capacity}</td><td style="color:${color};font-weight:700">${(util*100).toFixed(0)}%</td>`;
+  body.appendChild(tr);
+}
+
+/* ---- DXF import (Frame/Airsum LINE-on-named-layer convention) ---- */
+function importDXF(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const text = reader.result;
+      const lines = text.split(/\r?\n/).map(l=>l.trim());
+      const entities = [];
+      let i=0, current=null;
+      while(i < lines.length-1){
+        const code = lines[i], val = lines[i+1];
+        if(code === '0'){
+          if(current && current.layer && current.x1!==null) entities.push(current);
+          current = (val==='LINE') ? {layer:null,x1:null,y1:null,x2:null,y2:null} : null;
+        } else if(current){
+          if(code==='8') current.layer=val;
+          else if(code==='10') current.x1=parseFloat(val);
+          else if(code==='20') current.y1=parseFloat(val);
+          else if(code==='11') current.x2=parseFloat(val);
+          else if(code==='21') current.y2=parseFloat(val);
+        }
+        i+=2;
+      }
+      if(current && current.layer && current.x1!==null) entities.push(current);
+      const memberLines = entities.filter(e=>e.layer==='MEMBERS');
+      const supportLines = entities.filter(e=>e.layer==='SUPPORTS');
+      if(!memberLines.length){ document.getElementById('statusBadge').textContent='⚠ No LINE entities found on a "MEMBERS" layer in this DXF.'; return; }
+
+      clearModel();
+      const ptKey = p => `${Math.round(p.x*20)},${Math.round(p.y*20)}`; // snap to 0.05 units
+      const ptToNode = new Map();
+      function nodeFor(x,y){
+        const k = ptKey({x,y});
+        if(ptToNode.has(k)) return ptToNode.get(k);
+        const id = addNode(x,y);
+        ptToNode.set(k,id);
+        return id;
+      }
+      memberLines.forEach(e=>{
+        const n1 = nodeFor(e.x1,e.y1), n2 = nodeFor(e.x2,e.y2);
+        addMember(n1,n2,'RC 300x300',0);
+      });
+      supportLines.forEach(e=>{
+        const k = ptKey({x:e.x1,y:e.y1});
+        const id = ptToNode.get(k);
+        if(id) supportsMap.set(id, {ux:true,uy:true,rot:true});
+      });
+      renderNodeTable(); renderMemberTable(); updateStatus(); zoomExt();
+      document.getElementById('statusBadge').textContent = `Imported ${memberLines.length} members, ${nodes.length} nodes from DXF.`;
+    } catch(err){
+      document.getElementById('statusBadge').textContent = '⚠ DXF parse error: '+err.message;
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
 }
 
 function rpTab(id){
@@ -792,6 +1028,8 @@ canvas.addEventListener('wheel', e=>{ e.preventDefault(); zoomBy(e.deltaY<0?1.1:
 
 fitCanvas();
 loadPreset('portal');
+['llOccupancy','genDL','tribWidth'].forEach(id=>document.getElementById(id).addEventListener('input', computeGenUDL));
+computeGenUDL();
 </script>
 </body>
 </html>
