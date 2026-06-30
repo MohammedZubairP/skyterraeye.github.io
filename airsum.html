@@ -174,10 +174,10 @@ input,select{font-family:inherit}
   <div class="rg">
     <div class="rr">
       <button class="rb" id="rb-draw" onclick="toggleDrawMode()"><span class="rb-i">▭</span>DRAW ROOM</button>
-      <button class="rb" onclick="deleteSelectedRoom()"><span class="rb-i">🗑️</span>DELETE</button>
+      <button class="rb" onclick="uiDelete()"><span class="rb-i">🗑️</span>DELETE</button>
     </div>
     <div class="rr">
-      <button class="rb" onclick="editSelectedDims()"><span class="rb-i">🔢</span>SET SIZE</button>
+      <button class="rb" onclick="uiSetSize()"><span class="rb-i">🔢</span>SET SIZE</button>
       <button class="rb" onclick="saveCurrentAsIdea()"><span class="rb-i">📌</span>SAVE EDIT</button>
     </div>
     <div class="rg-lbl">EDIT (drag rooms directly — always on)</div>
@@ -244,10 +244,14 @@ input,select{font-family:inherit}
       <button class="rb" onclick="redoEdit()"><span class="rb-i">↪</span>REDO</button>
     </div>
     <div class="rr">
-      <button class="rb" onclick="copySelectedRoom()"><span class="rb-i">⧉</span>COPY</button>
-      <button class="rb" onclick="pasteRoom()"><span class="rb-i">📋</span>PASTE</button>
+      <button class="rb" onclick="uiCopy()"><span class="rb-i">⧉</span>COPY</button>
+      <button class="rb" onclick="uiPaste()"><span class="rb-i">📋</span>PASTE</button>
     </div>
-    <div class="rg-lbl">CLIPBOARD (Ctrl+Z/Y/C/V, arrows to nudge)</div>
+    <div class="rr">
+      <button class="rb" onclick="uiRotate()"><span class="rb-i">↻</span>ROTATE</button>
+      <button class="rb" onclick="uiFlip()"><span class="rb-i">⇄</span>FLIP</button>
+    </div>
+    <div class="rg-lbl">CLIPBOARD (R rotate, F flip, Del remove)</div>
   </div>
   <div class="rg">
     <div class="rr">
@@ -557,6 +561,9 @@ let structModel = {columns:[], beams:[]};
 let drawMode = false;   // click-drag to draw a new rectangular room
 let addDoorMode = false, addWindowMode = false, addFurnitureMode = false;
 let dragHandle = null;  // active drag operation, see canvas mousedown
+let selItem = null;     // {roomIdx, kind:'furniture'|'opening', idx} — selected door/window/furniture
+let dragItem = null;    // active drag of a selected item
+let itemClipboard = null;
 let drawRect = null;    // in-progress new room rectangle while drawMode dragging
 
 /* ================= viewport transform ================= */
@@ -1256,7 +1263,8 @@ function render(){
   else if(viewMode === 'beam') renderBeam(b0,b1);
   else if(viewMode === 'footing') renderFooting(b0,b1);
 
-  if(viewMode==='arch' && selected !== null && placed[selected]) drawHandles(placed[selected]);
+  if(viewMode==='arch' && !selItem && selected !== null && placed[selected]) drawHandles(placed[selected]);
+  if(viewMode==='arch' && selItem) drawItemSelection();
   if(drawMode && viewMode==='arch') drawPreviewRect();
 
   // dimensions + north arrow + title (both views)
@@ -1347,12 +1355,12 @@ function renderArch(b0,b1){
 
     // manually-placed doors/windows (in addition to the auto ones above)
     (r.manualOpenings||[]).forEach(op=>{
-      drawManualOpening(s0,s1,op.edge,op.frac,op.type);
+      drawManualOpening(s0,s1,op.edge,op.frac,op.type,op.width,op.flip);
     });
 
     // furniture symbols
     (r.furniture||[]).forEach(f=>{
-      drawFurniture(s0.x + f.relX*w, s0.y + f.relY*h, f.type, scale);
+      drawFurniture(s0.x + f.relX*w, s0.y + f.relY*h, f.type, scale, f.rot, f.sizeMul);
     });
 
     if(w>56 && h>34){
@@ -1394,9 +1402,9 @@ function drawDoor(s0,s1,side,isEntrance){
   }
 }
 
-function drawManualOpening(s0,s1,side,frac,type){
+function drawManualOpening(s0,s1,side,frac,type,width,flip){
   const w = s1.x-s0.x, h = s1.y-s0.y;
-  const span = (side==='top'||side==='bottom') ? Math.min(w*0.26, 32) : Math.min(h*0.26, 32);
+  const span = Math.max(10, Math.min((side==='top'||side==='bottom') ? w*0.5 : h*0.5, (width||3)*scale));
   let cx,cy;
   if(side==='top'){ cx = s0.x+frac*w; cy = s0.y; }
   else if(side==='bottom'){ cx = s0.x+frac*w; cy = s1.y; }
@@ -1405,23 +1413,49 @@ function drawManualOpening(s0,s1,side,frac,type){
   const horiz = (side==='top'||side==='bottom');
   const x1 = horiz ? cx-span/2 : cx, y1 = horiz ? cy : cy-span/2;
   const x2 = horiz ? cx+span/2 : cx, y2 = horiz ? cy : cy+span/2;
+  const hingeX = flip ? x2 : x1, hingeY = flip ? y2 : y1;
   if(type==='door'){
     ctx.strokeStyle = '#0e3a66'; ctx.lineWidth = 3.4;
     ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-    // swing arc, quarter circle from the hinge point
     ctx.strokeStyle = 'rgba(207,230,255,.45)'; ctx.lineWidth = 1; ctx.setLineDash([2,2]);
-    ctx.beginPath(); ctx.arc(x1,y1, span, horiz ? Math.PI : Math.PI/2, horiz ? Math.PI*1.5 : Math.PI); ctx.stroke();
+    let startAng = horiz ? Math.PI : Math.PI/2, endAng = horiz ? Math.PI*1.5 : Math.PI;
+    if(flip){ startAng += Math.PI; endAng += Math.PI; }
+    ctx.beginPath(); ctx.arc(hingeX,hingeY, span, startAng, endAng); ctx.stroke();
     ctx.setLineDash([]);
   } else {
     ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
   }
+  return {cx,cy};
 }
 
-/* simple architectural furniture glyphs — drawn at (cx,cy) in screen space, sized relative to current zoom */
-function drawFurniture(cx,cy,type,scale){
-  const u = Math.max(6, scale*0.9); // unit size in px, scales with zoom
+function drawItemSelection(){
+  if(!selItem) return;
+  const r = placed[selItem.roomIdx];
+  if(!r) return;
+  if(selItem.kind==='furniture'){
+    const f = r.furniture[selItem.idx];
+    if(!f) return;
+    const p = furnitureScreenPos(r,f);
+    ctx.strokeStyle = '#FB5B6E'; ctx.lineWidth = 2; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.arc(p.x,p.y, 22*(f.sizeMul||1), 0, 7); ctx.stroke();
+    ctx.setLineDash([]);
+  } else {
+    const op = r.manualOpenings[selItem.idx];
+    if(!op) return;
+    const p = openingScreenPos(r,op);
+    ctx.strokeStyle = '#FB5B6E'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(p.x,p.y, 9, 0, 7); ctx.stroke();
+  }
+}
+
+/* simple architectural furniture glyphs — drawn centered on the origin after translate/rotate, sized relative to zoom and the item's own sizeMul */
+function drawFurniture(cx,cy,type,zoomScale,rot,sizeMul){
+  const u = Math.max(6, zoomScale*0.9) * (sizeMul||1);
   ctx.save();
+  ctx.translate(cx,cy);
+  ctx.rotate((rot||0)*Math.PI/180);
+  cx = 0; cy = 0; // all glyph coordinates below are relative to the (translated) origin
   ctx.strokeStyle = '#A78BFA'; ctx.fillStyle = 'rgba(167,139,250,.12)'; ctx.lineWidth = 1.2;
   if(type==='bed'){
     ctx.strokeRect(cx-u*1.2, cy-u*1.8, u*2.4, u*3.6);
@@ -1627,10 +1661,17 @@ canvas.addEventListener('mousedown', e=>{
     } else document.getElementById('cmdMsg').textContent = 'Click inside a room to place furniture.';
     return;
   }
+  if(viewMode==='arch'){
+    const fHit = hitFurniture(mx,my);
+    if(fHit){ selItem=fHit; selected=fHit.roomIdx; dragItem={...fHit, startWorld:screenToWorld(mx,my)}; renderRoomList(); renderProps(); render(); return; }
+    const oHit = hitOpening(mx,my);
+    if(oHit){ selItem=oHit; selected=oHit.roomIdx; dragItem={...oHit}; renderRoomList(); renderProps(); render(); return; }
+  }
   if(viewMode==='arch' && selected !== null && placed[selected]){
     const hit = hitHandle(mx,my,placed[selected]);
     if(hit){
       const r = placed[selected];
+      selItem = null;
       dragHandle = {...hit, roomIdx:selected, orig:{x:r.x,y:r.y,w:r.w,h:r.h}, startWorld:screenToWorld(mx,my)};
       // capture which neighboring rooms share the wall(s) being dragged, so they move together
       if(hit.type==='edge'){
@@ -1656,6 +1697,23 @@ window.addEventListener('mousemove', e=>{
   if(drawRect){
     drawRect.x1 = snapVal(wp.x-buildable.x); drawRect.y1 = snapVal(wp.y-buildable.y);
     render(); drawPreviewRect(); return;
+  }
+  if(dragItem){
+    const r = placed[dragItem.roomIdx];
+    if(dragItem.kind==='furniture'){
+      const f = r.furniture[dragItem.idx];
+      f.relX = clamp((wp.x-(buildable.x+r.x))/r.w, 0.04, 0.96);
+      f.relY = clamp((wp.y-(buildable.y+r.y))/r.h, 0.04, 0.96);
+    } else {
+      const op = r.manualOpenings[dragItem.idx];
+      const rx=buildable.x+r.x, ry=buildable.y+r.y;
+      const s0=worldToScreen(rx,ry), s1=worldToScreen(rx+r.w, ry+r.h);
+      let t;
+      if(op.edge==='top'||op.edge==='bottom') t=(mx-s0.x)/(s1.x-s0.x);
+      else t=(my-s0.y)/(s1.y-s0.y);
+      op.frac = clamp(t, 0.06, 0.94);
+    }
+    render(); return;
   }
   if(dragHandle){
     const r = placed[dragHandle.roomIdx];
@@ -1697,6 +1755,11 @@ window.addEventListener('mouseup', e=>{
     } else { render(); }
     return;
   }
+  if(dragItem){
+    dragItem = null;
+    finalizeManualEdit();
+    return;
+  }
   if(dragHandle){
     const r = placed[dragHandle.roomIdx];
     r.area = r.w*r.h;
@@ -1713,6 +1776,7 @@ window.addEventListener('mouseup', e=>{
       if(wp.x>=rx && wp.x<=rx+r.w && wp.y>=ry && wp.y<=ry+r.h) hit = i;
     });
     selected = hit >= 0 ? hit : null;
+    selItem = null;
     renderRoomList(); renderProps(); render();
     if(hit>=0) rpTab('props');
   }
@@ -1896,18 +1960,150 @@ function findRoomAtScreen(mx,my){
 function addManualOpening(roomIdx, edge, frac, type){
   const r = placed[roomIdx];
   if(!r.manualOpenings) r.manualOpenings = [];
-  r.manualOpenings.push({edge, frac: clamp(frac, 0.08, 0.92), type});
+  r.manualOpenings.push({edge, frac: clamp(frac, 0.08, 0.92), type, width: type==='door'?3:4, flip:false});
+  selItem = {roomIdx, kind:'opening', idx:r.manualOpenings.length-1};
+  selected = roomIdx;
   finalizeManualEdit();
-  document.getElementById('cmdMsg').textContent = `Added ${type} to "${r.name}" (${edge} wall).`;
+  document.getElementById('cmdMsg').textContent = `Added ${type} to "${r.name}" (${edge} wall). Drag to slide, R to flip swing, +/- to resize, Delete to remove.`;
 }
 function addFurniturePiece(roomIdx, wx, wy, type){
   const r = placed[roomIdx];
   if(!r.furniture) r.furniture = [];
-  // store position relative to room origin so it tracks the room when resized
-  r.furniture.push({type, relX: clamp((wx-(buildable.x+r.x))/r.w, 0.05, 0.95), relY: clamp((wy-(buildable.y+r.y))/r.h, 0.05, 0.95)});
+  r.furniture.push({type, relX: clamp((wx-(buildable.x+r.x))/r.w, 0.05, 0.95), relY: clamp((wy-(buildable.y+r.y))/r.h, 0.05, 0.95), rot:0, sizeMul:1});
+  selItem = {roomIdx, kind:'furniture', idx:r.furniture.length-1};
+  selected = roomIdx;
   finalizeManualEdit();
-  document.getElementById('cmdMsg').textContent = `Placed ${type.replace('_',' ')} in "${r.name}".`;
+  document.getElementById('cmdMsg').textContent = `Placed ${type.replace('_',' ')} in "${r.name}". Drag to move, R to rotate, +/- to resize, Delete to remove.`;
 }
+
+/* ---- item (door/window/furniture) selection, hit-testing, and manipulation ---- */
+function furnitureScreenPos(r, f){
+  const rx=buildable.x+r.x, ry=buildable.y+r.y;
+  const s0=worldToScreen(rx,ry), s1=worldToScreen(rx+r.w, ry+r.h);
+  return {x: s0.x+f.relX*(s1.x-s0.x), y: s0.y+f.relY*(s1.y-s0.y)};
+}
+function openingScreenPos(r, op){
+  const rx=buildable.x+r.x, ry=buildable.y+r.y;
+  const s0=worldToScreen(rx,ry), s1=worldToScreen(rx+r.w, ry+r.h);
+  if(op.edge==='top') return {x: s0.x+op.frac*(s1.x-s0.x), y: s0.y};
+  if(op.edge==='bottom') return {x: s0.x+op.frac*(s1.x-s0.x), y: s1.y};
+  if(op.edge==='left') return {x: s0.x, y: s0.y+op.frac*(s1.y-s0.y)};
+  return {x: s1.x, y: s0.y+op.frac*(s1.y-s0.y)};
+}
+function hitFurniture(mx,my){
+  for(let ri=placed.length-1; ri>=0; ri--){
+    const r = placed[ri];
+    for(let fi=(r.furniture||[]).length-1; fi>=0; fi--){
+      const p = furnitureScreenPos(r, r.furniture[fi]);
+      if(Math.hypot(mx-p.x,my-p.y) < 16) return {roomIdx:ri, kind:'furniture', idx:fi};
+    }
+  }
+  return null;
+}
+function hitOpening(mx,my){
+  for(let ri=placed.length-1; ri>=0; ri--){
+    const r = placed[ri];
+    for(let oi=(r.manualOpenings||[]).length-1; oi>=0; oi--){
+      const p = openingScreenPos(r, r.manualOpenings[oi]);
+      if(Math.hypot(mx-p.x,my-p.y) < 12) return {roomIdx:ri, kind:'opening', idx:oi};
+    }
+  }
+  return null;
+}
+function curItem(){
+  if(!selItem) return null;
+  const r = placed[selItem.roomIdx];
+  if(!r) return null;
+  return selItem.kind==='furniture' ? r.furniture[selItem.idx] : r.manualOpenings[selItem.idx];
+}
+function deleteSelectedItem(){
+  if(!selItem) return false;
+  const r = placed[selItem.roomIdx];
+  const arr = selItem.kind==='furniture' ? r.furniture : r.manualOpenings;
+  arr.splice(selItem.idx,1);
+  selItem = null;
+  finalizeManualEdit();
+  document.getElementById('cmdMsg').textContent = 'Item deleted.';
+  return true;
+}
+function copySelectedItem(){
+  if(!selItem) return false;
+  itemClipboard = {kind:selItem.kind, data: JSON.parse(JSON.stringify(curItem()))};
+  document.getElementById('cmdMsg').textContent = `Copied ${selItem.kind}.`;
+  return true;
+}
+function pasteItem(){
+  if(!itemClipboard || selItem===null){
+    if(!itemClipboard){ document.getElementById('cmdMsg').textContent = 'Nothing copied yet.'; }
+    return false;
+  }
+  const r = placed[selItem.roomIdx];
+  const copy = JSON.parse(JSON.stringify(itemClipboard.data));
+  if(itemClipboard.kind==='furniture'){
+    if(!r.furniture) r.furniture = [];
+    copy.relX = clamp(copy.relX+0.06, 0.04, 0.96); copy.relY = clamp(copy.relY+0.06, 0.04, 0.96);
+    r.furniture.push(copy);
+    selItem = {roomIdx:selItem.roomIdx, kind:'furniture', idx:r.furniture.length-1};
+  } else {
+    if(!r.manualOpenings) r.manualOpenings = [];
+    copy.frac = clamp(copy.frac+0.08, 0.08, 0.92);
+    r.manualOpenings.push(copy);
+    selItem = {roomIdx:selItem.roomIdx, kind:'opening', idx:r.manualOpenings.length-1};
+  }
+  finalizeManualEdit();
+  document.getElementById('cmdMsg').textContent = `Pasted ${itemClipboard.kind} onto "${r.name}".`;
+  return true;
+}
+function rotateSelectedItem(deltaDeg){
+  const it = curItem();
+  if(!it || selItem.kind!=='furniture') return false;
+  it.rot = ((it.rot||0) + deltaDeg + 360) % 360;
+  finalizeManualEdit();
+  return true;
+}
+function scaleSelectedItem(deltaScale){
+  const it = curItem();
+  if(!it) return false;
+  if(selItem.kind==='furniture'){
+    it.sizeMul = clamp((it.sizeMul||1) + deltaScale, 0.4, 2.5);
+  } else {
+    it.width = clamp((it.width||3) + deltaScale*1.5, 2, 8);
+  }
+  finalizeManualEdit();
+  return true;
+}
+function flipSelectedOpening(){
+  const it = curItem();
+  if(!it || selItem.kind!=='opening') return false;
+  it.flip = !it.flip;
+  finalizeManualEdit();
+  return true;
+}
+
+/* unified ribbon dispatch: acts on the selected door/window/furniture item if one is selected, otherwise the room */
+function uiDelete(){ if(selItem){ deleteSelectedItem(); } else { deleteSelectedRoom(); } }
+function uiCopy(){ if(selItem){ copySelectedItem(); } else { copySelectedRoom(); } }
+function uiPaste(){ if(selItem){ pasteItem(); } else { pasteRoom(); } }
+function uiSetSize(){
+  if(!selItem){ editSelectedDims(); return; }
+  const it = curItem();
+  if(selItem.kind==='furniture'){
+    const input = prompt(`Scale for this ${it.type.replace('_',' ')} (1 = normal size, e.g. 1.5 = 50% bigger):`, (it.sizeMul||1).toFixed(2));
+    if(!input) return;
+    const v = parseFloat(input);
+    if(isNaN(v)){ document.getElementById('cmdMsg').textContent = 'Enter a number, e.g. 1.2'; return; }
+    it.sizeMul = clamp(v, 0.4, 2.5);
+  } else {
+    const input = prompt(`Width for this ${it.type} in feet:`, (it.width||3).toFixed(1));
+    if(!input) return;
+    const v = parseFloat(input);
+    if(isNaN(v)){ document.getElementById('cmdMsg').textContent = 'Enter a number in feet, e.g. 3.5'; return; }
+    it.width = clamp(v, 2, 8);
+  }
+  finalizeManualEdit();
+}
+function uiRotate(){ if(selItem && selItem.kind==='furniture') rotateSelectedItem(15); else document.getElementById('cmdMsg').textContent = 'Select a furniture piece to rotate (doors/windows stay flush to their wall — use FLIP instead).'; }
+function uiFlip(){ if(selItem && selItem.kind==='opening') flipSelectedOpening(); else document.getElementById('cmdMsg').textContent = 'Select a door to flip its swing side.'; }
 
 function deleteSelectedRoom(){
   if(selected === null || !placed[selected]){ document.getElementById('cmdMsg').textContent = 'Select a room first.'; return; }
@@ -1941,13 +2137,44 @@ function finalizeManualEdit(){
 window.addEventListener('keydown', e=>{
   const tag = (e.target.tagName||'').toLowerCase();
   if(tag==='input' || tag==='select' || tag==='textarea') return;
+  if(viewMode!=='arch') return;
+
   if(e.ctrlKey || e.metaKey){
     if(e.key==='z'){ e.preventDefault(); undoEdit(); return; }
     if(e.key==='y'){ e.preventDefault(); redoEdit(); return; }
-    if(e.key==='c'){ e.preventDefault(); copySelectedRoom(); return; }
-    if(e.key==='v'){ e.preventDefault(); pasteRoom(); return; }
+    if(e.key==='c'){ e.preventDefault(); uiCopy(); return; }
+    if(e.key==='v'){ e.preventDefault(); uiPaste(); return; }
   }
-  if(selected === null || !placed[selected] || viewMode!=='arch') return;
+
+  // item-level controls take priority when a door/window/furniture piece is selected
+  if(selItem){
+    if(e.key==='Delete' || e.key==='Backspace'){ e.preventDefault(); deleteSelectedItem(); return; }
+    if(e.key==='r' || e.key==='R'){ e.preventDefault(); rotateSelectedItem(e.shiftKey ? -15 : 15); return; }
+    if(e.key==='f' || e.key==='F'){ e.preventDefault(); flipSelectedOpening(); return; }
+    if(e.key==='+' || e.key==='='){ e.preventDefault(); scaleSelectedItem(0.1); return; }
+    if(e.key==='-' || e.key==='_'){ e.preventDefault(); scaleSelectedItem(-0.1); return; }
+    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+      e.preventDefault();
+      const r = placed[selItem.roomIdx];
+      const step = (e.shiftKey ? 0.04 : 0.015);
+      if(selItem.kind==='furniture'){
+        const f = r.furniture[selItem.idx];
+        if(e.key==='ArrowLeft') f.relX = clamp(f.relX-step,0.04,0.96);
+        else if(e.key==='ArrowRight') f.relX = clamp(f.relX+step,0.04,0.96);
+        else if(e.key==='ArrowUp') f.relY = clamp(f.relY-step,0.04,0.96);
+        else f.relY = clamp(f.relY+step,0.04,0.96);
+      } else {
+        const op = r.manualOpenings[selItem.idx];
+        const dir = (e.key==='ArrowLeft'||e.key==='ArrowUp') ? -1 : 1;
+        op.frac = clamp(op.frac+dir*step, 0.06, 0.94);
+      }
+      finalizeManualEdit();
+    }
+    return;
+  }
+
+  if(selected === null || !placed[selected]) return;
+  if(e.key==='Delete' || e.key==='Backspace'){ e.preventDefault(); deleteSelectedRoom(); return; }
   const r = placed[selected];
   const step = e.shiftKey ? 1 : SNAP_STEP;
   let changed = true;
