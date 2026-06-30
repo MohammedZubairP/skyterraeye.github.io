@@ -255,10 +255,33 @@ input,select{font-family:inherit}
   </div>
   <div class="rg">
     <div class="rr">
+      <select class="ps" id="doorSizePicker" style="font-size:9px;padding:3px 4px;width:118px;height:34px"></select>
       <button class="rb" id="rb-add-door" onclick="toggleAddDoor()"><span class="rb-i">🚪</span>ADD DOOR</button>
+    </div>
+    <div class="rr">
+      <select class="ps" id="windowSizePicker" style="font-size:9px;padding:3px 4px;width:118px;height:34px"></select>
       <button class="rb" id="rb-add-window" onclick="toggleAddWindow()"><span class="rb-i">🪟</span>ADD WINDOW</button>
     </div>
-    <div class="rg-lbl">OPENINGS (click a wall)</div>
+    <div class="rg-lbl">OPENINGS — standard market sizes (click a wall)</div>
+  </div>
+  <div class="rg">
+    <div class="rr">
+      <button class="rb" id="rb-polygon" onclick="toggleDrawPlotPolygon()"><span class="rb-i">⬠</span>PLOT POLYGON</button>
+      <button class="rb" onclick="resetPlotRect()"><span class="rb-i">▭</span>RECT PLOT</button>
+    </div>
+    <div class="rr">
+      <button class="rb" id="rb-crosshair" onclick="toggleCrosshair()"><span class="rb-i">✛</span>CROSSHAIR</button>
+    </div>
+    <div class="rg-lbl">IRREGULAR PLOTS</div>
+  </div>
+  <div class="rg">
+    <div class="rr">
+      <button class="rb lg" id="rb-view-3d" onclick="setView('3d')"><span class="rb-i">🧊</span>3D MODEL</button>
+    </div>
+    <div class="rr">
+      <button class="rb" onclick="orbit3DReset()"><span class="rb-i">↻</span>RESET VIEW</button>
+    </div>
+    <div class="rg-lbl">3D (drag orbit, scroll zoom)</div>
   </div>
   <div class="rg">
     <div class="rr">
@@ -461,9 +484,15 @@ input,select{font-family:inherit}
 
   <div class="vport" id="vport">
     <canvas id="cad"></canvas>
+    <div id="cad3d-wrap" style="position:absolute;inset:0;display:none"></div>
     <div class="badge" id="genflag">REGENERATING&hellip;</div>
     <div class="badge" style="top:8px;left:8px" id="planBadge">PLOT <b>40' &times; 60'</b></div>
     <div class="badge" id="warnBadge">⚠ Preliminary structural schematic — not for construction</div>
+    <div class="badge" id="badge3d" style="top:8px;left:8px;display:none">3D MODEL — drag to orbit, scroll to zoom, right-drag to pan</div>
+    <div class="badge" id="layer3dToggle" style="bottom:8px;left:8px;display:none">
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;margin-bottom:3px"><input type="checkbox" id="layer3dArch" checked onchange="render3D()"> Architecture (walls)</label>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="layer3dStruct" checked onchange="render3D()"> Structure (columns/beams/footings)</label>
+    </div>
     <div class="zoom-btns">
       <button class="zb" onclick="zoomBy(1.25)">+</button>
       <button class="zb" onclick="zoomBy(0.8)">&minus;</button>
@@ -614,6 +643,8 @@ input,select{font-family:inherit}
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 'use strict';
 
@@ -846,13 +877,24 @@ function setView(mode){
   ['arch','load','column','beam','footing'].forEach(m=>{
     document.getElementById('rb-view-'+m).classList.toggle('act', m===mode);
   });
-  const isStruct = mode !== 'arch';
+  document.getElementById('rb-view-3d').classList.toggle('act', mode==='3d');
+  const isStruct = mode !== 'arch' && mode !== '3d';
   document.getElementById('archInputs').style.display = mode==='arch' ? 'block' : 'none';
-  document.getElementById('structInputs').style.display = isStruct ? 'block' : 'none';
+  document.getElementById('structInputs').style.display = (isStruct||mode==='3d') ? 'block' : 'none';
   document.getElementById('warnBadge').style.display = isStruct ? 'block' : 'none';
+  document.getElementById('badge3d').style.display = mode==='3d' ? 'block' : 'none';
+  document.getElementById('layer3dToggle').style.display = mode==='3d' ? 'block' : 'none';
+  document.getElementById('planBadge').style.display = mode==='3d' ? 'none' : 'block';
   document.getElementById('st-view').textContent = mode.toUpperCase();
-  if(isStruct) rpTab('struct');
-  render();
+  document.getElementById('cad').style.display = mode==='3d' ? 'none' : 'block';
+  document.getElementById('cad3d-wrap').style.display = mode==='3d' ? 'block' : 'none';
+  if(mode==='3d'){
+    if(!threeReady) initThreeJS();
+    render3D();
+  } else {
+    if(isStruct) rpTab('struct');
+    render();
+  }
 }
 
 /* ================= space-partition algorithm ================= */
@@ -920,6 +962,11 @@ function generateNewIdea(){
   regenerateNow('Idea #' + (planHistory.length+1));
   randomShuffle = false;
 }
+function shuffleArr(list){
+  const arr = [...list];
+  for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+  return arr;
+}
 function orderRooms(list, roadSides){
   list = variantBaseOrder(list, planVariant); // base ordering differs per plan option
   const useVastu = vastuOn, usePos = list.some(r=>r.pref && r.pref!=='auto');
@@ -929,6 +976,67 @@ function orderRooms(list, roadSides){
     const sb = (useVastu?vastuScore(b):0) + (usePos?posScore(b,roadSides)*0.6:0);
     return sa-sb;
   });
+}
+
+/* ================= "common sense" room rules: minimum sizes + bedroom/toilet adjacency ================= */
+const MIN_ROOM_RULES = [
+  {match:/master.*bedroom/i, minArea:130, minDim:10, label:'Master Bedroom'},
+  {match:/toilet|wc|bathroom/i, minArea:25, minDim:3, label:'Toilet'},
+  {match:/bedroom/i, minArea:90, minDim:8, label:'Bedroom'},
+  {match:/kitchen/i, minArea:60, minDim:6, label:'Kitchen'},
+  {match:/living|hall|reception/i, minArea:120, minDim:10, label:'Living/Hall'},
+  {match:/stair/i, minArea:40, minDim:3, label:'Stair'},
+  {match:/parking/i, minArea:120, minDim:8, label:'Parking'},
+];
+function minRuleFor(name){ return MIN_ROOM_RULES.find(r=>r.match.test(name)) || {minArea:30, minDim:4, label:'Room'}; }
+function checkMinSizes(placedRooms){
+  const warnings = [];
+  placedRooms.forEach(r=>{
+    const rule = minRuleFor(r.name);
+    if(r.area < rule.minArea*0.85 || Math.min(r.w,r.h) < rule.minDim*0.85){
+      warnings.push(`${r.name}: ${r.w.toFixed(1)}'\u00d7${r.h.toFixed(1)}' (${r.area.toFixed(0)} sqft) is below the typical usable minimum for a ${rule.label.toLowerCase()} (~${rule.minArea} sqft, ${rule.minDim}' min side)`);
+    }
+  });
+  return warnings;
+}
+
+/** Find (bedroom, toilet) name pairs that should end up adjacent — "common sense" adjacency. */
+function detectAdjacencyPairs(list){
+  const pairs = [];
+  const toilets = list.filter(r=>/toilet|wc|bathroom/i.test(r.name));
+  const usedToilets = new Set();
+  list.filter(r=>/bedroom/i.test(r.name)).forEach(bed=>{
+    // prefer an explicitly-named attached/master toilet, else any unclaimed toilet
+    let t = toilets.find(t=>!usedToilets.has(t.name) && /attached|master|en.?suite/i.test(t.name) && (/master/i.test(bed.name)===/master/i.test(t.name)));
+    if(!t) t = toilets.find(t=>!usedToilets.has(t.name));
+    if(t){ usedToilets.add(t.name); pairs.push([bed.name, t.name]); }
+  });
+  return pairs;
+}
+/** Reorder list so each pair's two rooms sit next to each other (biases the slice-and-dice split toward keeping them together). */
+function groupPairs(list, pairs){
+  const arr = [...list];
+  pairs.forEach(([nameA, nameB])=>{
+    const ia = arr.findIndex(r=>r.name===nameA);
+    const ib = arr.findIndex(r=>r.name===nameB);
+    if(ia<0 || ib<0 || Math.abs(ia-ib)===1) return;
+    const [item] = arr.splice(ib,1);
+    const newIa = arr.findIndex(r=>r.name===nameA);
+    arr.splice(newIa+1, 0, item);
+  });
+  return arr;
+}
+/** After partition, verify pairs actually share a wall (true geometric adjacency, not just list order). */
+function verifyPairsAdjacent(placedRooms, pairs){
+  let okCount = 0;
+  pairs.forEach(([nameA,nameB])=>{
+    const a = placedRooms.find(r=>r.name===nameA), b = placedRooms.find(r=>r.name===nameB);
+    if(!a || !b){ return; }
+    const touchesH = (Math.abs((a.y+a.h)-b.y)<0.1 || Math.abs((b.y+b.h)-a.y)<0.1) && rangesOverlap(a.x,a.x+a.w,b.x,b.x+b.w);
+    const touchesV = (Math.abs((a.x+a.w)-b.x)<0.1 || Math.abs((b.x+b.w)-a.x)<0.1) && rangesOverlap(a.y,a.y+a.h,b.y,b.y+b.h);
+    if(touchesH||touchesV) okCount++;
+  });
+  return okCount;
 }
 
 /* ================= geometry helpers (exterior walls / doors / windows) ================= */
@@ -1161,9 +1269,25 @@ function doGenerateInner(){
   const roadSides = getRoadSides();
   vastuOn = document.getElementById('vastu').checked;
 
-  const buildW = Math.max(8, plotW - sbL - sbRt);
-  const buildD = Math.max(8, plotD - sbF - sbR);
-  const buildArea = buildW*buildD;
+  let buildW, buildD, buildArea, polyClipBuildable = null;
+  if(plotShapeMode === 'polygon' && plotPolygon && plotPolygon.length >= 3){
+    const pb = polygonBounds(plotPolygon);
+    plot = {w: pb.maxX-pb.minX, d: pb.maxY-pb.minY, polyOriginX: pb.minX, polyOriginY: pb.minY};
+    const uniformSetback = sbF; // polygon mode uses one uniform setback (Front field) for the whole boundary
+    const shifted = plotPolygon.map(p=>({x:p.x-pb.minX, y:p.y-pb.minY}));
+    polyClipBuildable = offsetPolygonInward(shifted, uniformSetback);
+    const bb = polygonBounds(polyClipBuildable);
+    buildW = Math.max(8, bb.maxX-bb.minX);
+    buildD = Math.max(8, bb.maxY-bb.minY);
+    buildArea = shoelaceArea(polyClipBuildable); // true polygon area, not the bounding-box rectangle
+    buildable = {x:bb.minX, y:bb.minY, w:buildW, h:buildD, polyOriginX:pb.minX, polyOriginY:pb.minY};
+  } else {
+    buildW = Math.max(8, plotW - sbL - sbRt);
+    buildD = Math.max(8, plotD - sbF - sbR);
+    buildArea = buildW*buildD;
+    plot = {w:plotW, d:plotD};
+    buildable = {x:sbL, y:sbF, w:buildW, h:buildD};
+  }
 
   let list = withPref(rooms.filter(r=>r.area > 0));
   list = orderRooms(list, roadSides);
@@ -1171,17 +1295,56 @@ function doGenerateInner(){
   const scaleA = totalReq > 0 ? buildArea/totalReq : 1;
   const scaledList = list.map(r=>({...r, area:r.area*scaleA}));
 
-  plot = {w:plotW, d:plotD};
-  buildable = {x:sbL, y:sbF, w:buildW, h:buildD};
-  placed = list.length ? partition(0,0,buildW,buildD,scaledList) : [];
+  // "common sense" pass: try a few orderings (grouping bedroom+toilet pairs together in the
+  // list, which biases — though doesn't geometrically guarantee — the slice/dice split to keep
+  // them touching) and keep whichever attempt actually achieves the most real adjacency.
+  const pairs = detectAdjacencyPairs(scaledList);
+  let bestPlaced = scaledList.length ? partition(0,0,buildW,buildD,scaledList) : [];
+  let bestAdjacent = pairs.length ? verifyPairsAdjacent(bestPlaced, pairs) : 0;
+  if(pairs.length){
+    const attempts = [groupPairs(scaledList, pairs), groupPairs([...scaledList].reverse(), pairs), groupPairs(shuffleArr(scaledList), pairs)];
+    attempts.forEach(attemptList=>{
+      const attemptPlaced = partition(0,0,buildW,buildD,attemptList);
+      const adj = verifyPairsAdjacent(attemptPlaced, pairs);
+      if(adj > bestAdjacent){ bestAdjacent = adj; bestPlaced = attemptPlaced; }
+    });
+  }
+
+  // for irregular plots, clip each room rect against the true buildable polygon (real area,
+  // not just bounding-box rectangles) — ONLY when the boundary is convex: Sutherland-Hodgman
+  // clipping is mathematically invalid for concave (e.g. L-shaped) polygons and can produce
+  // degenerate/wrong areas, so we deliberately skip clipping rather than show a wrong number.
+  let polyMsg = '';
+  if(polyClipBuildable){
+    if(isConvexPolygon(polyClipBuildable)){
+      const localClip = polyClipBuildable.map(p=>({x:p.x-buildable.x, y:p.y-buildable.y}));
+      bestPlaced.forEach(r=>{
+        const rectPts = [{x:r.x,y:r.y},{x:r.x+r.w,y:r.y},{x:r.x+r.w,y:r.y+r.h},{x:r.x,y:r.y+r.h}];
+        const clipped = clipPolygon(rectPts, localClip);
+        if(clipped.length>=3){ r.clipPoly = clipped; r.area = shoelaceArea(clipped); }
+      });
+      polyMsg = 'Irregular plot clipped to boundary (convex — areas accurate). ';
+    } else {
+      polyMsg = '⚠ Concave plot shape — clipping skipped to avoid inaccurate areas, using bounding box. ';
+    }
+  }
+
+  placed = bestPlaced;
   selected = null;
   entranceInfo = computeEntrance(roadSides);
   buildStructModel();
 
-  document.getElementById('planBadge').innerHTML = `PLOT <b>${plotW}' &times; ${plotD}'</b>`;
-  document.getElementById('st-plot').textContent = `${plotW}'\u00d7${plotD}'`;
+  const sizeWarnings = checkMinSizes(placed);
+  const adjMsg = pairs.length ? `${bestAdjacent}/${pairs.length} bedroom\u2194toilet pair(s) placed adjacent. ` : '';
+  document.getElementById('cmdMsg').textContent = polyMsg + adjMsg + (sizeWarnings.length ? `\u26a0 ${sizeWarnings.length} room(s) below typical minimum size \u2014 see Vent tab.` : (pairs.length?'':''));
+  window.lastSizeWarnings = sizeWarnings;
 
-  const plotArea = plotW*plotD;
+  document.getElementById('planBadge').innerHTML = plotShapeMode==='polygon'
+    ? `PLOT <b>irregular, ${plot.w.toFixed(0)}'\u00d7${plot.d.toFixed(0)}' bbox</b>`
+    : `PLOT <b>${plot.w}' &times; ${plot.d}'</b>`;
+  document.getElementById('st-plot').textContent = `${plot.w.toFixed(0)}'\u00d7${plot.d.toFixed(0)}'`;
+
+  const plotArea = plotShapeMode==='polygon' && plotPolygon ? shoelaceArea(plotPolygon) : plot.w*plot.d;
   const coverage = plotArea>0 ? Math.round((buildArea/plotArea)*100) : 0;
   document.getElementById('st-build').textContent = `${Math.round(buildArea)} sqft`;
   document.getElementById('st-cov').textContent = `${coverage}%`;
@@ -1245,6 +1408,18 @@ function renderVentList(){
     row.innerHTML = `<div class="ld ${cls}"></div><div class="ln">${r.name}</div><div class="lv">${label}</div>`;
     wrap.appendChild(row);
   });
+  const warnings = window.lastSizeWarnings || [];
+  if(warnings.length){
+    const hdr = document.createElement('div');
+    hdr.className = 'lh'; hdr.innerHTML = '<div class="lh-t" style="color:var(--g)">\u26a0 Below typical minimum size</div>';
+    wrap.appendChild(hdr);
+    warnings.forEach(w=>{
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:6px 9px;font-size:10px;color:var(--g);line-height:1.5;border-bottom:1px solid rgba(31,168,217,.05)';
+      row.textContent = w;
+      wrap.appendChild(row);
+    });
+  }
 }
 function renderStructTable(){
   const body = document.getElementById('structBody');
@@ -1525,6 +1700,13 @@ function render(){
   if(viewMode==='arch' && !selItem && selected !== null && placed[selected]) drawHandles(placed[selected]);
   if(viewMode==='arch' && selItem) drawItemSelection();
   if(drawMode && viewMode==='arch') drawPreviewRect();
+  if(drawingPlotPolygon && drawPolyPts.length){
+    ctx.strokeStyle = '#4ADE80'; ctx.lineWidth = 2; ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    drawPolyPts.forEach((p,i)=>{ const s=worldToScreen(p.x,p.y); i===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y); });
+    ctx.stroke(); ctx.setLineDash([]);
+    drawPolyPts.forEach(p=>{ const s=worldToScreen(p.x,p.y); ctx.fillStyle='#4ADE80'; ctx.beginPath(); ctx.arc(s.x,s.y,4,0,7); ctx.fill(); });
+  }
 
   // dimensions + north arrow + title (both views)
   ctx.strokeStyle = '#7fb3e8'; ctx.lineWidth = 1;
@@ -1569,8 +1751,15 @@ function renderArch(b0,b1){
   const extWallFt = (+document.getElementById('extWall').value || 9)/12;
   const intWallFt = (+document.getElementById('intWall').value || 4.5)/12;
 
-  ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = Math.max(2, extWallFt*scale);
-  ctx.strokeRect(b0.x, b0.y, b1.x-b0.x, b1.y-b0.y);
+  if(plotShapeMode==='polygon' && plotPolygon && plotPolygon.length>=3){
+    ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = Math.max(2, extWallFt*scale);
+    ctx.beginPath();
+    plotPolygon.forEach((p,i)=>{ const s=worldToScreen(p.x,p.y); i===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y); });
+    ctx.closePath(); ctx.stroke();
+  } else {
+    ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = Math.max(2, extWallFt*scale);
+    ctx.strokeRect(b0.x, b0.y, b1.x-b0.x, b1.y-b0.y);
+  }
 
   placed.forEach((r,i)=>{
     const rx = buildable.x + r.x, ry = buildable.y + r.y;
@@ -1580,7 +1769,13 @@ function renderArch(b0,b1){
     const ed = edgesOf(r);
 
     ctx.fillStyle = isSel ? 'rgba(251,91,110,.16)' : 'rgba(255,255,255,.045)';
-    ctx.fillRect(s0.x, s0.y, w, h);
+    if(r.clipPoly){
+      ctx.beginPath();
+      r.clipPoly.forEach((p,j)=>{ const s=worldToScreen(buildable.x+p.x, buildable.y+p.y); j===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y); });
+      ctx.closePath(); ctx.fill();
+    } else {
+      ctx.fillRect(s0.x, s0.y, w, h);
+    }
 
     // walls per edge: exterior thickness on exterior edges, interior elsewhere
     function edgeLine(x1,y1,x2,y2,isExt){
@@ -1756,6 +1951,240 @@ function drawFurniture(cx,cy,type,zoomScale,rot,sizeMul){
   ctx.restore();
 }
 
+/* ================= 3D model (Three.js) ================= */
+let threeReady = false;
+let threeScene, threeCamera, threeRenderer, threeControls, threeModelGroup;
+function initThreeJS(){
+  const wrap = document.getElementById('cad3d-wrap');
+  threeScene = new THREE.Scene();
+  threeScene.background = new THREE.Color(0x0a1622);
+  threeCamera = new THREE.PerspectiveCamera(50, wrap.clientWidth/Math.max(1,wrap.clientHeight), 0.1, 2000);
+  threeRenderer = new THREE.WebGLRenderer({antialias:true});
+  threeRenderer.setPixelRatio(window.devicePixelRatio||1);
+  threeRenderer.setSize(wrap.clientWidth, wrap.clientHeight);
+  wrap.appendChild(threeRenderer.domElement);
+  threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
+  threeControls.enableDamping = true;
+  threeScene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+  sun.position.set(60,90,40);
+  threeScene.add(sun);
+  threeModelGroup = new THREE.Group();
+  threeScene.add(threeModelGroup);
+  threeReady = true;
+  (function animate(){
+    requestAnimationFrame(animate);
+    if(viewMode==='3d'){ threeControls.update(); threeRenderer.render(threeScene, threeCamera); }
+  })();
+  window.addEventListener('resize', ()=>{
+    if(!threeReady) return;
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    threeCamera.aspect = w/Math.max(1,h);
+    threeCamera.updateProjectionMatrix();
+    threeRenderer.setSize(w,h);
+  });
+}
+function ft(v){ return v; } // scene units = feet (simplest 1:1, no real-world unit conversion needed for visualization)
+function addBoxEdgeWall(group, x1,y1,x2,y2, thicknessFt, heightFt, baseY, color){
+  const len = Math.hypot(x2-x1,y2-y1);
+  if(len < 0.05) return;
+  const geo = new THREE.BoxGeometry(len, heightFt, thicknessFt);
+  const mat = new THREE.MeshStandardMaterial({color, roughness:0.85});
+  const mesh = new THREE.Mesh(geo, mat);
+  const mx=(x1+x2)/2, my=(y1+y2)/2;
+  mesh.position.set(mx, baseY+heightFt/2, my);
+  mesh.rotation.y = -Math.atan2(y2-y1, x2-x1);
+  group.add(mesh);
+}
+function render3D(){
+  if(!threeReady) return;
+  threeScene.remove(threeModelGroup);
+  threeModelGroup = new THREE.Group();
+  threeScene.add(threeModelGroup);
+
+  const floors = +document.getElementById('floors').value || 1;
+  const floorHeight = 10; // ft
+  const extWallFt = (+document.getElementById('extWall').value || 9)/12;
+  const intWallFt = (+document.getElementById('intWall').value || 4.5)/12;
+  const showArch = document.getElementById('layer3dArch').checked;
+  const showStruct = document.getElementById('layer3dStruct').checked;
+
+  // ground plate
+  const groundGeo = new THREE.PlaneGeometry(Math.max(60,plot.w+20), Math.max(60,plot.d+20));
+  const groundMat = new THREE.MeshStandardMaterial({color:0x0e2438, roughness:1});
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI/2;
+  ground.position.set(plot.w/2, -0.05, plot.d/2);
+  threeModelGroup.add(ground);
+
+  if(showArch){
+    for(let fl=0; fl<floors; fl++){
+      const baseY = fl*floorHeight;
+      placed.forEach(r=>{
+        const ed = edgesOf(r);
+        const x1 = buildable.x+r.x, y1 = buildable.y+r.y, x2 = x1+r.w, y2 = y1+r.h;
+        const wallColor = 0xcfe6ff;
+        addBoxEdgeWall(threeModelGroup, x1,y1, x2,y1, ed.top?extWallFt:intWallFt, floorHeight*0.92, baseY, wallColor);
+        addBoxEdgeWall(threeModelGroup, x1,y2, x2,y2, ed.bottom?extWallFt:intWallFt, floorHeight*0.92, baseY, wallColor);
+        addBoxEdgeWall(threeModelGroup, x1,y1, x1,y2, ed.left?extWallFt:intWallFt, floorHeight*0.92, baseY, wallColor);
+        addBoxEdgeWall(threeModelGroup, x2,y1, x2,y2, ed.right?extWallFt:intWallFt, floorHeight*0.92, baseY, wallColor);
+      });
+      // floor slab
+      const slabGeo = new THREE.BoxGeometry(buildable.w, 0.4, buildable.h);
+      const slabMat = new THREE.MeshStandardMaterial({color:0x1c3650, roughness:0.9});
+      const slab = new THREE.Mesh(slabGeo, slabMat);
+      slab.position.set(buildable.x+buildable.w/2, baseY, buildable.y+buildable.h/2);
+      threeModelGroup.add(slab);
+    }
+  }
+
+  if(showStruct){
+    const colMat = new THREE.MeshStandardMaterial({color:0xF5BE18, roughness:0.6});
+    const beamMat = new THREE.MeshStandardMaterial({color:0xA78BFA, roughness:0.6});
+    const footMat = new THREE.MeshStandardMaterial({color:0x4ADE80, roughness:0.7});
+    structModel.columns.forEach(c=>{
+      const sizeM = (parseFloat(c.size)||300)/1000; // mm->m
+      const sizeFt = sizeM*3.28084;
+      const totalH = floorHeight*floors;
+      const geo = new THREE.BoxGeometry(sizeFt, totalH, sizeFt);
+      const mesh = new THREE.Mesh(geo, colMat);
+      mesh.position.set(buildable.x+c.x, totalH/2, buildable.y+c.y);
+      threeModelGroup.add(mesh);
+      // footing below ground
+      const footFt = c.footSideM*3.28084;
+      const fgeo = new THREE.BoxGeometry(footFt, 1.5, footFt);
+      const fmesh = new THREE.Mesh(fgeo, footMat);
+      fmesh.position.set(buildable.x+c.x, -1.5/2, buildable.y+c.y);
+      threeModelGroup.add(fmesh);
+    });
+    structModel.beams.forEach((b,i)=>{
+      const wFt=(b.widthMM||300)/1000*3.28084, dFt=(b.depthMM||450)/1000*3.28084;
+      const x1=buildable.x+b.x1, y1=buildable.y+b.y1, x2=buildable.x+b.x2, y2=buildable.y+b.y2;
+      const len=Math.hypot(x2-x1,y2-y1);
+      const geo = new THREE.BoxGeometry(len, dFt, wFt);
+      const mesh = new THREE.Mesh(geo, beamMat);
+      mesh.position.set((x1+x2)/2, floorHeight-dFt/2, (y1+y2)/2);
+      mesh.rotation.y = -Math.atan2(y2-y1,x2-x1);
+      threeModelGroup.add(mesh);
+    });
+  }
+
+  if(threeCamera && (threeCamera._needsInitialFrame !== false)){
+    orbit3DReset();
+    threeCamera._needsInitialFrame = false;
+  }
+}
+function orbit3DReset(){
+  if(!threeReady) return;
+  const cx = plot.w/2, cz = plot.d/2;
+  const dist = Math.max(plot.w, plot.d, 30) * 1.4;
+  threeCamera.position.set(cx + dist*0.6, dist*0.55, cz + dist*0.6);
+  threeControls.target.set(cx, 5, cz);
+  threeControls.update();
+}
+
+/* ================= polygon plot tools (irregular land) ================= */
+let plotShapeMode = 'rect'; // 'rect' | 'polygon'
+let plotPolygon = null;     // array of {x,y} in plan ft, when plotShapeMode==='polygon'
+let drawingPlotPolygon = false;
+let drawPolyPts = [];
+function toggleDrawPlotPolygon(){
+  drawingPlotPolygon = !drawingPlotPolygon;
+  document.getElementById('rb-polygon').classList.toggle('act', drawingPlotPolygon);
+  if(drawingPlotPolygon){
+    drawPolyPts = [];
+    document.getElementById('cmdMsg').textContent = 'Click to place plot boundary points; double-click to finish (min 3 points).';
+    vp.style.cursor = 'crosshair';
+  } else {
+    vp.style.cursor = 'grab';
+  }
+}
+function resetPlotRect(){
+  plotShapeMode = 'rect'; plotPolygon = null; drawingPlotPolygon=false; drawPolyPts=[];
+  document.getElementById('rb-polygon').classList.remove('act');
+  document.getElementById('cmdMsg').textContent = 'Reverted to rectangular plot.';
+  regenerateNow('Rectangular plot');
+}
+function shoelaceArea(poly){
+  let a=0;
+  for(let i=0;i<poly.length;i++){ const p=poly[i], q=poly[(i+1)%poly.length]; a += p.x*q.y - q.x*p.y; }
+  return Math.abs(a)/2;
+}
+function polygonBounds(poly){
+  const xs=poly.map(p=>p.x), ys=poly.map(p=>p.y);
+  return {minX:Math.min(...xs), maxX:Math.max(...xs), minY:Math.min(...ys), maxY:Math.max(...ys)};
+}
+/** Inward offset (shrink) of a polygon by distance d — works reliably for convex shapes,
+ *  reasonably for mild concavity. Each edge moved inward along its normal, new vertices from
+ *  consecutive offset-line intersections. */
+function offsetPolygonInward(poly, d){
+  const n = poly.length;
+  // ensure CCW winding (positive shoelace sum) so "inward" normal direction is consistent
+  let area2=0;
+  for(let i=0;i<n;i++){ const p=poly[i], q=poly[(i+1)%n]; area2 += p.x*q.y-q.x*p.y; }
+  const pts = area2<0 ? [...poly].reverse() : poly;
+  const lines = [];
+  for(let i=0;i<n;i++){
+    const p1=pts[i], p2=pts[(i+1)%n];
+    const dx=p2.x-p1.x, dy=p2.y-p1.y, len=Math.hypot(dx,dy)||1;
+    const nx=-dy/len, ny=dx/len; // inward normal for our y-down plan coordinate convention (verified against a known rectangle: see test)
+    lines.push({p1:{x:p1.x+nx*d,y:p1.y+ny*d}, p2:{x:p2.x+nx*d,y:p2.y+ny*d}, dx:dx/len, dy:dy/len});
+  }
+  const result = [];
+  for(let i=0;i<n;i++){
+    const a = lines[(i-1+n)%n], b = lines[i];
+    const ip = lineLineIntersect(a.p1,{x:a.p1.x+a.dx,y:a.p1.y+a.dy}, b.p1,{x:b.p1.x+b.dx,y:b.p1.y+b.dy});
+    result.push(ip || b.p1);
+  }
+  return result;
+}
+function lineLineIntersect(p1,p2,p3,p4){
+  const d1x=p2.x-p1.x, d1y=p2.y-p1.y, d2x=p4.x-p3.x, d2y=p4.y-p3.y;
+  const denom = d1x*d2y - d1y*d2x;
+  if(Math.abs(denom)<1e-9) return null;
+  const t = ((p3.x-p1.x)*d2y - (p3.y-p1.y)*d2x)/denom;
+  return {x:p1.x+d1x*t, y:p1.y+d1y*t};
+}
+/** Sutherland-Hodgman: clip a rectangle (as 4-point poly) against a (possibly concave) clip polygon. */
+function isConvexPolygon(poly){
+  const n = poly.length;
+  let sign = 0;
+  for(let i=0;i<n;i++){
+    const a=poly[i], b=poly[(i+1)%n], c=poly[(i+2)%n];
+    const cross = (b.x-a.x)*(c.y-b.y) - (b.y-a.y)*(c.x-b.x);
+    if(Math.abs(cross) < 1e-9) continue;
+    const s = cross>0?1:-1;
+    if(sign===0) sign=s; else if(s!==sign) return false;
+  }
+  return true;
+}
+function clipPolygon(subject, clip){
+  let output = subject;
+  const n = clip.length;
+  for(let i=0;i<n;i++){
+    if(!output.length) break;
+    const cp1=clip[i], cp2=clip[(i+1)%n];
+    const input = output; output=[];
+    const inside = p => (cp2.x-cp1.x)*(p.y-cp1.y) - (cp2.y-cp1.y)*(p.x-cp1.x) >= 0;
+    for(let j=0;j<input.length;j++){
+      const cur=input[j], prev=input[(j-1+input.length)%input.length];
+      const curIn=inside(cur), prevIn=inside(prev);
+      if(curIn){
+        if(!prevIn){ const ip=lineLineIntersect(prev,cur,cp1,cp2); if(ip) output.push(ip); }
+        output.push(cur);
+      } else if(prevIn){ const ip=lineLineIntersect(prev,cur,cp1,cp2); if(ip) output.push(ip); }
+    }
+  }
+  return output;
+}
+
+function toggleCrosshair(){
+  crosshairMode = !crosshairMode;
+  document.getElementById('rb-crosshair').classList.toggle('act', crosshairMode);
+  vp.style.cursor = crosshairMode ? 'crosshair' : 'grab';
+}
+let crosshairMode = false;
+
 function renderLoad(b0,b1){
   // tributary-area cells, shaded by load magnitude, with kN labels — this IS the load takeoff drawing
   ctx.strokeStyle = 'rgba(207,230,255,.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([3,4]);
@@ -1901,6 +2330,12 @@ canvas.addEventListener('mousedown', e=>{
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX-rect.left, my = e.clientY-rect.top;
 
+  if(drawingPlotPolygon && viewMode==='arch'){
+    const wp = screenToWorld(mx,my);
+    drawPolyPts.push({x: snapVal(wp.x), y: snapVal(wp.y)});
+    render();
+    return;
+  }
   if(drawMode && viewMode==='arch'){
     const wp = screenToWorld(mx,my);
     drawRect = {x0:wp.x-buildable.x, y0:wp.y-buildable.y, x1:wp.x-buildable.x, y1:wp.y-buildable.y};
@@ -2069,6 +2504,16 @@ function drawPreviewRect(){
   ctx.fillStyle = '#eaf4ff'; ctx.font='700 9px IBM Plex Mono, monospace'; ctx.textAlign='center';
   ctx.fillText(`${w.toFixed(1)}' \u00d7 ${h.toFixed(1)}'`, (s0.x+s1.x)/2, (s0.y+s1.y)/2);
 }
+canvas.addEventListener('dblclick', e=>{
+  if(!drawingPlotPolygon) return;
+  if(drawPolyPts.length < 3){ document.getElementById('cmdMsg').textContent = 'Need at least 3 points for a plot boundary.'; return; }
+  plotPolygon = drawPolyPts.slice();
+  plotShapeMode = 'polygon';
+  drawingPlotPolygon = false; drawPolyPts = [];
+  document.getElementById('rb-polygon').classList.remove('act');
+  vp.style.cursor = 'grab';
+  regenerateNow('Irregular plot');
+});
 canvas.addEventListener('wheel', e=>{
   e.preventDefault();
   const rect = canvas.getBoundingClientRect();
@@ -2216,14 +2661,49 @@ function findRoomAtScreen(mx,my){
   });
   return hit;
 }
+/* ================= standard door/window catalog (real market sizes, width x height in ft-in) ================= */
+const DOOR_CATALOG = [
+  {label:'Main Door — 3\'6"x7\'0"', width:3.5},
+  {label:'Bedroom Door — 3\'0"x7\'0"', width:3.0},
+  {label:'Toilet Door — 2\'3"x7\'0"', width:2.25},
+  {label:'Kitchen Door — 2\'9"x7\'0"', width:2.75},
+  {label:'French Door — 5\'0"x7\'0"', width:5.0},
+  {label:'Sliding Door — 6\'0"x7\'0"', width:6.0},
+  {label:'Garage/Wide Door — 8\'0"x7\'0"', width:8.0},
+  {label:'Custom size…', width:null},
+];
+const WINDOW_CATALOG = [
+  {label:'Bedroom Window — 4\'0"x4\'0"', width:4.0},
+  {label:'Living Room Window — 6\'0"x4\'0"', width:6.0},
+  {label:'Kitchen Window — 3\'0"x3\'0"', width:3.0},
+  {label:'Toilet Ventilator — 1\'6"x1\'6"', width:1.5},
+  {label:'Small Ventilator — 1\'0"x1\'0"', width:1.0},
+  {label:'Bay Window — 7\'0"x4\'0"', width:7.0},
+  {label:'Custom size…', width:null},
+];
+function populateOpeningPickers(){
+  document.getElementById('doorSizePicker').innerHTML = DOOR_CATALOG.map((d,i)=>`<option value="${i}">${d.label}</option>`).join('');
+  document.getElementById('windowSizePicker').innerHTML = WINDOW_CATALOG.map((w,i)=>`<option value="${i}">${w.label}</option>`).join('');
+}
+function pickedOpeningWidth(type){
+  const catalog = type==='door' ? DOOR_CATALOG : WINDOW_CATALOG;
+  const sel = document.getElementById(type==='door'?'doorSizePicker':'windowSizePicker');
+  const entry = catalog[+sel.value];
+  if(entry.width !== null) return entry.width;
+  const input = prompt(`Enter ${type} width in feet (standard market sizes are 1.5\u20136ft):`, type==='door'?'3':'4');
+  const v = parseFloat(input);
+  return (input && !isNaN(v)) ? clamp(v, 1, 10) : (type==='door'?3:4);
+}
+
 function addManualOpening(roomIdx, edge, frac, type){
   const r = placed[roomIdx];
   if(!r.manualOpenings) r.manualOpenings = [];
-  r.manualOpenings.push({edge, frac: clamp(frac, 0.08, 0.92), type, width: type==='door'?3:4, flip:false});
+  const width = pickedOpeningWidth(type);
+  r.manualOpenings.push({edge, frac: clamp(frac, 0.08, 0.92), type, width, flip:false});
   selItem = {roomIdx, kind:'opening', idx:r.manualOpenings.length-1};
   selected = roomIdx;
   finalizeManualEdit();
-  document.getElementById('cmdMsg').textContent = `Added ${type} to "${r.name}" (${edge} wall). Drag to slide, R to flip swing, +/- to resize, Delete to remove.`;
+  document.getElementById('cmdMsg').textContent = `Added ${width}ft ${type} to "${r.name}" (${edge} wall). Drag to slide, R to flip swing, +/- to resize, Delete to remove.`;
 }
 function addFurniturePiece(roomIdx, wx, wy, type){
   const r = placed[roomIdx];
@@ -2776,6 +3256,7 @@ document.querySelectorAll('.roadSideCb').forEach(cb=>cb.addEventListener('change
 onSystemChange();
 renderRoomRows();
 populatePresetSelect();
+populateOpeningPickers();
 syncLLDefault();
 ['A','B','C'].forEach(k=>document.getElementById('opt'+k).classList.toggle('act', k==='A'));
 fitCanvas();
