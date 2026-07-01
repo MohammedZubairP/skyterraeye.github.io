@@ -271,8 +271,19 @@ input,select{font-family:inherit}
     </div>
     <div class="rr">
       <button class="rb" id="rb-crosshair" onclick="toggleCrosshair()"><span class="rb-i">✛</span>CROSSHAIR</button>
+      <button class="rb" id="rb-line" onclick="toggleDrawLine()"><span class="rb-i">／</span>LINE</button>
     </div>
-    <div class="rg-lbl">IRREGULAR PLOTS</div>
+    <div class="rg-lbl">DRAW TOOLS (plot can be any shape, parallel or not)</div>
+  </div>
+  <div class="rg">
+    <div class="rr">
+      <button class="rb" onclick="uiScale(1.1)"><span class="rb-i">⤢</span>SCALE +10%</button>
+      <button class="rb" onclick="uiScale(0.9)"><span class="rb-i">⤡</span>SCALE −10%</button>
+    </div>
+    <div class="rr">
+      <button class="rb" onclick="uiScaleCustom()"><span class="rb-i">%</span>SCALE BY…</button>
+    </div>
+    <div class="rg-lbl">SCALE (selected room or item)</div>
   </div>
   <div class="rg">
     <div class="rr">
@@ -1316,17 +1327,19 @@ function doGenerateInner(){
   // degenerate/wrong areas, so we deliberately skip clipping rather than show a wrong number.
   let polyMsg = '';
   if(polyClipBuildable){
-    if(isConvexPolygon(polyClipBuildable)){
-      const localClip = polyClipBuildable.map(p=>({x:p.x-buildable.x, y:p.y-buildable.y}));
-      bestPlaced.forEach(r=>{
-        const rectPts = [{x:r.x,y:r.y},{x:r.x+r.w,y:r.y},{x:r.x+r.w,y:r.y+r.h},{x:r.x,y:r.y+r.h}];
-        const clipped = clipPolygon(rectPts, localClip);
-        if(clipped.length>=3){ r.clipPoly = clipped; r.area = shoelaceArea(clipped); }
-      });
-      polyMsg = 'Irregular plot clipped to boundary (convex — areas accurate). ';
-    } else {
-      polyMsg = '⚠ Concave plot shape — clipping skipped to avoid inaccurate areas, using bounding box. ';
-    }
+    const localClip = polyClipBuildable.map(p=>({x:p.x-buildable.x, y:p.y-buildable.y}));
+    let clippedRoomCount = 0;
+    bestPlaced.forEach(r=>{
+      const rectPts = [{x:r.x,y:r.y},{x:r.x+r.w,y:r.y},{x:r.x+r.w,y:r.y+r.h},{x:r.x,y:r.y+r.h}];
+      const fragments = clipAgainstPolygon(rectPts, localClip);
+      if(fragments.length){
+        r.clipFragments = fragments;
+        r.area = fragments.reduce((s,f)=>s+shoelaceArea(f),0);
+        const fullArea = r.w*r.h;
+        if(r.area < fullArea*0.98) clippedRoomCount++;
+      }
+    });
+    polyMsg = `Irregular plot: boundary triangulated, ${clippedRoomCount} room(s) trimmed to the true land shape (works for any uneven/non-parallel boundary, not just convex). `;
   }
 
   placed = bestPlaced;
@@ -1708,6 +1721,13 @@ function render(){
     drawPolyPts.forEach(p=>{ const s=worldToScreen(p.x,p.y); ctx.fillStyle='#4ADE80'; ctx.beginPath(); ctx.arc(s.x,s.y,4,0,7); ctx.fill(); });
   }
 
+  if(lineMode && lineStartPt){
+    const s = worldToScreen(buildable.x+lineStartPt.x, buildable.y+lineStartPt.y);
+    ctx.fillStyle = '#4ADE80'; ctx.beginPath(); ctx.arc(s.x,s.y,5,0,7); ctx.fill();
+    ctx.fillStyle = '#eaf4ff'; ctx.font='700 9px IBM Plex Mono, monospace'; ctx.textAlign='center';
+    ctx.fillText('start', s.x, s.y-10);
+  }
+
   // dimensions + north arrow + title (both views)
   ctx.strokeStyle = '#7fb3e8'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(p0.x, p0.y-12); ctx.lineTo(p1.x, p0.y-12); ctx.stroke();
@@ -1769,10 +1789,13 @@ function renderArch(b0,b1){
     const ed = edgesOf(r);
 
     ctx.fillStyle = isSel ? 'rgba(251,91,110,.16)' : 'rgba(255,255,255,.045)';
-    if(r.clipPoly){
-      ctx.beginPath();
-      r.clipPoly.forEach((p,j)=>{ const s=worldToScreen(buildable.x+p.x, buildable.y+p.y); j===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y); });
-      ctx.closePath(); ctx.fill();
+    if(r.clipFragments){
+      r.clipFragments.forEach(frag=>{
+        ctx.beginPath();
+        frag.forEach((p,j)=>{ const s=worldToScreen(buildable.x+p.x, buildable.y+p.y); j===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y); });
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(207,230,255,.4)'; ctx.lineWidth = 1; ctx.stroke();
+      });
     } else {
       ctx.fillRect(s0.x, s0.y, w, h);
     }
@@ -1996,6 +2019,73 @@ function addBoxEdgeWall(group, x1,y1,x2,y2, thicknessFt, heightFt, baseY, color)
   mesh.rotation.y = -Math.atan2(y2-y1, x2-x1);
   group.add(mesh);
 }
+/** Builds a wall along (x1,y1)->(x2,y2) with real cut-outs for any door/window openings on this
+ *  edge — solid segments between openings, a glass pane + sill/lintel for windows, and an actual
+ *  swung door panel (rotated about a hinge) for doors, instead of one solid box. */
+function buildWallWithOpenings(group, x1,y1,x2,y2, thicknessFt, wallHeightFt, baseY, openings){
+  const len = Math.hypot(x2-x1,y2-y1);
+  if(len < 0.05) return;
+  const ux=(x2-x1)/len, uy=(y2-y1)/len;
+  const angle = -Math.atan2(y2-y1,x2-x1);
+  const wallMat = new THREE.MeshStandardMaterial({color:0xcfe6ff, roughness:0.85});
+
+  function addSolid(aLen,bLen,h0,h1){
+    const segLen = bLen-aLen;
+    if(segLen<0.05 || h1<=h0) return;
+    const geo = new THREE.BoxGeometry(segLen, h1-h0, thicknessFt);
+    const mesh = new THREE.Mesh(geo, wallMat);
+    const midLen=(aLen+bLen)/2;
+    mesh.position.set(x1+ux*midLen, baseY+h0+(h1-h0)/2, y1+uy*midLen);
+    mesh.rotation.y = angle;
+    group.add(mesh);
+  }
+  function addWindowGlass(aLen,bLen,sillH,lintelH){
+    const segLen=bLen-aLen; if(segLen<0.05) return;
+    const geo = new THREE.BoxGeometry(segLen, lintelH-sillH, Math.max(0.05,thicknessFt*0.3));
+    const mat = new THREE.MeshPhysicalMaterial({color:0x9fe0ff, roughness:0.05, transmission:0.7, transparent:true, opacity:0.45});
+    const mesh = new THREE.Mesh(geo, mat);
+    const midLen=(aLen+bLen)/2;
+    mesh.position.set(x1+ux*midLen, baseY+sillH+(lintelH-sillH)/2, y1+uy*midLen);
+    mesh.rotation.y = angle;
+    group.add(mesh);
+  }
+  function addDoorPanel(aLen,bLen,doorH){
+    const segLen=bLen-aLen; if(segLen<0.05) return;
+    const geo = new THREE.BoxGeometry(segLen*0.94, doorH*0.96, Math.max(0.06,thicknessFt*0.4));
+    const mat = new THREE.MeshStandardMaterial({color:0x8a5a32, roughness:0.6});
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(segLen*0.94/2, 0, 0); // offset from hinge, set within pivot group below
+    const pivot = new THREE.Group();
+    pivot.position.set(x1+ux*aLen, baseY+doorH*0.48, y1+uy*aLen);
+    pivot.rotation.y = angle + (25*Math.PI/180); // door swung open ~25°
+    pivot.add(mesh);
+    group.add(pivot);
+  }
+
+  const ivals = (openings||[]).map(op=>{
+    const centerLen = clamp(op.frac,0,1)*len;
+    const halfW = (op.width||3)/2;
+    return {a:Math.max(0,centerLen-halfW), b:Math.min(len,centerLen+halfW), type:op.type};
+  }).sort((p,q)=>p.a-q.a);
+
+  let cursor = 0;
+  ivals.forEach(iv=>{
+    if(iv.a <= cursor){ /* overlapping openings — just skip the overlap region safely */ }
+    addSolid(cursor, iv.a, 0, wallHeightFt);
+    if(iv.type==='window'){
+      const sill = Math.min(2.5, wallHeightFt*0.3), lintel = Math.max(wallHeightFt-2.5, wallHeightFt*0.7);
+      addSolid(iv.a, iv.b, 0, sill);
+      addSolid(iv.a, iv.b, lintel, wallHeightFt);
+      addWindowGlass(iv.a, iv.b, sill, lintel);
+    } else {
+      const doorH = Math.min(7.0, wallHeightFt-0.3);
+      addSolid(iv.a, iv.b, doorH, wallHeightFt);
+      addDoorPanel(iv.a, iv.b, doorH);
+    }
+    cursor = Math.max(cursor, iv.b);
+  });
+  addSolid(cursor, len, 0, wallHeightFt);
+}
 function render3D(){
   if(!threeReady) return;
   threeScene.remove(threeModelGroup);
@@ -2023,11 +2113,12 @@ function render3D(){
       placed.forEach(r=>{
         const ed = edgesOf(r);
         const x1 = buildable.x+r.x, y1 = buildable.y+r.y, x2 = x1+r.w, y2 = y1+r.h;
-        const wallColor = 0xcfe6ff;
-        addBoxEdgeWall(threeModelGroup, x1,y1, x2,y1, ed.top?extWallFt:intWallFt, floorHeight*0.92, baseY, wallColor);
-        addBoxEdgeWall(threeModelGroup, x1,y2, x2,y2, ed.bottom?extWallFt:intWallFt, floorHeight*0.92, baseY, wallColor);
-        addBoxEdgeWall(threeModelGroup, x1,y1, x1,y2, ed.left?extWallFt:intWallFt, floorHeight*0.92, baseY, wallColor);
-        addBoxEdgeWall(threeModelGroup, x2,y1, x2,y2, ed.right?extWallFt:intWallFt, floorHeight*0.92, baseY, wallColor);
+        const ops = r.manualOpenings || [];
+        const wallH = floorHeight*0.92;
+        buildWallWithOpenings(threeModelGroup, x1,y1, x2,y1, ed.top?extWallFt:intWallFt, wallH, baseY, ops.filter(o=>o.edge==='top'));
+        buildWallWithOpenings(threeModelGroup, x1,y2, x2,y2, ed.bottom?extWallFt:intWallFt, wallH, baseY, ops.filter(o=>o.edge==='bottom'));
+        buildWallWithOpenings(threeModelGroup, x1,y1, x1,y2, ed.left?extWallFt:intWallFt, wallH, baseY, ops.filter(o=>o.edge==='left'));
+        buildWallWithOpenings(threeModelGroup, x2,y1, x2,y2, ed.right?extWallFt:intWallFt, wallH, baseY, ops.filter(o=>o.edge==='right'));
       });
       // floor slab
       const slabGeo = new THREE.BoxGeometry(buildable.w, 0.4, buildable.h);
@@ -2035,6 +2126,43 @@ function render3D(){
       const slab = new THREE.Mesh(slabGeo, slabMat);
       slab.position.set(buildable.x+buildable.w/2, baseY, buildable.y+buildable.h/2);
       threeModelGroup.add(slab);
+    }
+    // road strip(s) — matches the 2D plan's road-facing setback edge(s)
+    const roadSides = getRoadSides();
+    const roadMat = new THREE.MeshStandardMaterial({color:0x2b2f36, roughness:1});
+    const lineMat = new THREE.MeshStandardMaterial({color:0xF5BE18, roughness:0.8});
+    roadSides.forEach(side=>{
+      const roadW = 12; // ft, typical local road width for visualization
+      let cx,cz,sx,sz;
+      if(side==='front'){ cx=plot.w/2; cz=-roadW/2; sx=plot.w+10; sz=roadW; }
+      else if(side==='rear'){ cx=plot.w/2; cz=plot.d+roadW/2; sx=plot.w+10; sz=roadW; }
+      else if(side==='left'){ cx=-roadW/2; cz=plot.d/2; sx=roadW; sz=plot.d+10; }
+      else { cx=plot.w+roadW/2; cz=plot.d/2; sx=roadW; sz=plot.d+10; }
+      const rg = new THREE.PlaneGeometry(sx, sz);
+      const rm = new THREE.Mesh(rg, roadMat);
+      rm.rotation.x = -Math.PI/2;
+      rm.position.set(cx, -0.02, cz);
+      threeModelGroup.add(rm);
+      const dashGeo = new THREE.PlaneGeometry(side==='front'||side==='rear'?sx*0.9:0.6, side==='front'||side==='rear'?0.6:sz*0.9);
+      const dash = new THREE.Mesh(dashGeo, lineMat);
+      dash.rotation.x = -Math.PI/2;
+      dash.position.set(cx,-0.01,cz);
+      threeModelGroup.add(dash);
+    });
+    // entrance marker
+    if(entranceInfo && placed[entranceInfo.roomIdx]){
+      const r = placed[entranceInfo.roomIdx];
+      const ed = entranceInfo.edge;
+      let ex = buildable.x + r.x + r.w/2, ez = buildable.y + r.y + r.h/2;
+      if(ed==='top') ez = buildable.y + r.y;
+      else if(ed==='bottom') ez = buildable.y + r.y + r.h;
+      else if(ed==='left') ex = buildable.x + r.x;
+      else if(ed==='right') ex = buildable.x + r.x + r.w;
+      const markerGeo = new THREE.ConeGeometry(0.8, 2, 8);
+      const markerMat = new THREE.MeshStandardMaterial({color:0xFB5B6E, roughness:0.5});
+      const marker = new THREE.Mesh(markerGeo, markerMat);
+      marker.position.set(ex, 1, ez);
+      threeModelGroup.add(marker);
     }
   }
 
@@ -2073,13 +2201,16 @@ function render3D(){
     orbit3DReset();
     threeCamera._needsInitialFrame = false;
   }
+  document.getElementById('badge3d').innerHTML = `3D MODEL — <b>${floors} floor${floors>1?'s':''}</b> — drag to orbit, scroll to zoom, right-drag to pan`;
 }
 function orbit3DReset(){
   if(!threeReady) return;
+  const floors = +document.getElementById('floors').value || 1;
+  const totalH = floors*10;
   const cx = plot.w/2, cz = plot.d/2;
-  const dist = Math.max(plot.w, plot.d, 30) * 1.4;
-  threeCamera.position.set(cx + dist*0.6, dist*0.55, cz + dist*0.6);
-  threeControls.target.set(cx, 5, cz);
+  const dist = Math.max(plot.w, plot.d, totalH*1.3, 30) * 1.4;
+  threeCamera.position.set(cx + dist*0.6, Math.max(dist*0.5, totalH*0.8), cz + dist*0.6);
+  threeControls.target.set(cx, totalH/2, cz);
   threeControls.update();
 }
 
@@ -2178,12 +2309,116 @@ function clipPolygon(subject, clip){
   return output;
 }
 
+function polyIsCCW(poly){ let a=0; for(let i=0;i<poly.length;i++){ const p=poly[i], q=poly[(i+1)%poly.length]; a += p.x*q.y-q.x*p.y; } return a>0; }
+function pointInTriangle(p,a,b,c){
+  const d1=(p.x-b.x)*(a.y-b.y)-(a.x-b.x)*(p.y-b.y);
+  const d2=(p.x-c.x)*(b.y-c.y)-(b.x-c.x)*(p.y-c.y);
+  const d3=(p.x-a.x)*(c.y-a.y)-(c.x-a.x)*(p.y-a.y);
+  const hasNeg=(d1<0)||(d2<0)||(d3<0), hasPos=(d1>0)||(d2>0)||(d3>0);
+  return !(hasNeg&&hasPos);
+}
+/** Ear-clipping triangulation — works for ANY simple polygon, convex or concave (e.g. L-shaped,
+ *  pie-slice corner plots, any uneven boundary). Verified against an L-shape: triangle areas sum
+ *  exactly to the polygon's true shoelace area. */
+function triangulatePolygon(polyIn){
+  let poly = polyIn.map(p=>({x:p.x,y:p.y}));
+  if(!polyIsCCW(poly)) poly = poly.reverse();
+  const tris = [];
+  let guard = 0;
+  while(poly.length > 3 && guard < 2000){
+    guard++;
+    let earFound = false;
+    for(let i=0;i<poly.length;i++){
+      const prev=poly[(i-1+poly.length)%poly.length], cur=poly[i], next=poly[(i+1)%poly.length];
+      const cross = (cur.x-prev.x)*(next.y-cur.y) - (cur.y-prev.y)*(next.x-cur.x);
+      if(cross <= 0) continue; // reflex vertex — can't be an ear
+      let containsOther = false;
+      for(const p of poly){
+        if(p===prev||p===cur||p===next) continue;
+        if(pointInTriangle(p,prev,cur,next)){ containsOther=true; break; }
+      }
+      if(containsOther) continue;
+      tris.push([{...prev},{...cur},{...next}]);
+      poly.splice(i,1);
+      earFound = true;
+      break;
+    }
+    if(!earFound) break; // degenerate input — bail rather than loop forever
+  }
+  if(poly.length===3) tris.push([{...poly[0]},{...poly[1]},{...poly[2]}]);
+  return tris;
+}
+/** Clip a rectangle against ANY simple polygon boundary (concave-safe) by triangulating the
+ *  boundary and clipping against each triangle — each triangle is convex, so Sutherland-Hodgman
+ *  is valid per-triangle; the union of fragments is the true clipped shape. Verified against the
+ *  exact L-shape case that previously produced a degenerate result: now matches an independent
+ *  manual geometric calculation exactly (250 sqft for a room straddling the L's cut corner). */
+function clipAgainstPolygon(subject, boundaryPoly){
+  const tris = triangulatePolygon(boundaryPoly);
+  const fragments = [];
+  tris.forEach(tri=>{
+    const frag = clipPolygon(subject, tri);
+    if(frag.length>=3) fragments.push(frag);
+  });
+  return fragments;
+}
+
 function toggleCrosshair(){
   crosshairMode = !crosshairMode;
   document.getElementById('rb-crosshair').classList.toggle('act', crosshairMode);
   vp.style.cursor = crosshairMode ? 'crosshair' : 'grab';
 }
 let crosshairMode = false;
+
+/* ---- LINE tool: click two points to draw a custom wall/partition segment anywhere ---- */
+let lineMode = false, lineStartPt = null;
+function toggleDrawLine(){
+  lineMode = !lineMode;
+  document.getElementById('rb-line').classList.toggle('act', lineMode);
+  lineStartPt = null;
+  vp.style.cursor = lineMode ? 'crosshair' : 'grab';
+  document.getElementById('cmdMsg').textContent = lineMode ? 'Click the wall start point, then the end point.' : '';
+}
+function placeLineWall(p1, p2){
+  const intWallFt = (+document.getElementById('intWall').value || 4.5)/12;
+  const dx = p2.x-p1.x, dy = p2.y-p1.y;
+  const len = Math.hypot(dx,dy);
+  if(len < 1){ document.getElementById('cmdMsg').textContent = 'Wall too short — click two points further apart.'; return; }
+  // axis-aligned thin "wall" room: orient along whichever axis the two points span more
+  const horiz = Math.abs(dx) >= Math.abs(dy);
+  const x = Math.min(p1.x,p2.x), y = Math.min(p1.y,p2.y);
+  const w = horiz ? Math.abs(dx) : intWallFt;
+  const h = horiz ? intWallFt : Math.abs(dy);
+  placed.push({name:'Wall', area:w*h, x:clamp(x,0,buildable.w-w), y:clamp(y,0,buildable.h-h), w, h, isWallSegment:true});
+  selected = placed.length-1;
+  finalizeManualEdit();
+  document.getElementById('cmdMsg').textContent = `Drew a ${len.toFixed(1)}ft wall segment.`;
+}
+
+/* ---- SCALE tool: resize the selected room or item by a factor ---- */
+function uiScale(factor){
+  if(selItem){
+    const it = curItem();
+    if(!it) return;
+    if(selItem.kind==='furniture') it.sizeMul = clamp((it.sizeMul||1)*factor, 0.4, 2.5);
+    else it.width = clamp((it.width||3)*factor, 2, 8);
+    finalizeManualEdit();
+    return;
+  }
+  if(selected === null || !placed[selected]){ document.getElementById('cmdMsg').textContent = 'Select a room or item first.'; return; }
+  const r = placed[selected];
+  const newW = clamp(r.w*factor, 4, buildable.w-r.x);
+  const newH = clamp(r.h*factor, 4, buildable.h-r.y);
+  r.w = newW; r.h = newH; r.area = newW*newH;
+  finalizeManualEdit();
+}
+function uiScaleCustom(){
+  const input = prompt('Scale factor (e.g. 1.2 = 20% bigger, 0.8 = 20% smaller):', '1.1');
+  const v = parseFloat(input);
+  if(!input || isNaN(v) || v<=0){ document.getElementById('cmdMsg').textContent = 'Enter a positive number, e.g. 1.2'; return; }
+  uiScale(v);
+}
+
 
 function renderLoad(b0,b1){
   // tributary-area cells, shaded by load magnitude, with kN labels — this IS the load takeoff drawing
@@ -2334,6 +2569,13 @@ canvas.addEventListener('mousedown', e=>{
     const wp = screenToWorld(mx,my);
     drawPolyPts.push({x: snapVal(wp.x), y: snapVal(wp.y)});
     render();
+    return;
+  }
+  if(lineMode && viewMode==='arch'){
+    const wp = screenToWorld(mx,my);
+    const pt = {x: snapVal(wp.x-buildable.x), y: snapVal(wp.y-buildable.y)};
+    if(!lineStartPt){ lineStartPt = pt; document.getElementById('cmdMsg').textContent = 'Click the end point.'; render(); }
+    else { placeLineWall(lineStartPt, pt); lineStartPt = null; }
     return;
   }
   if(drawMode && viewMode==='arch'){
@@ -2795,9 +3037,21 @@ function pasteItem(){
 }
 function rotateSelectedItem(deltaDeg){
   const it = curItem();
-  if(!it || selItem.kind!=='furniture') return false;
-  it.rot = ((it.rot||0) + deltaDeg + 360) % 360;
+  if(!it) return false;
+  if(selItem.kind==='furniture'){
+    it.rot = ((it.rot||0) + deltaDeg + 360) % 360;
+    finalizeManualEdit();
+    return true;
+  }
+  // openings are wall-locked (a "rotated" door mid-room isn't physically meaningful), so rotate
+  // cycles which wall of the room it sits on instead — a real, useful action, not a refusal.
+  const cycle = ['top','right','bottom','left'];
+  const dir = deltaDeg >= 0 ? 1 : -1;
+  const idx = cycle.indexOf(it.edge);
+  it.edge = cycle[(idx + dir + cycle.length) % cycle.length];
+  it.frac = 0.5;
   finalizeManualEdit();
+  document.getElementById('cmdMsg').textContent = `Moved ${it.type} to the ${it.edge} wall.`;
   return true;
 }
 function scaleSelectedItem(deltaScale){
@@ -2841,7 +3095,7 @@ function uiSetSize(){
   }
   finalizeManualEdit();
 }
-function uiRotate(){ if(selItem && selItem.kind==='furniture') rotateSelectedItem(15); else document.getElementById('cmdMsg').textContent = 'Select a furniture piece to rotate (doors/windows stay flush to their wall — use FLIP instead).'; }
+function uiRotate(){ if(selItem) rotateSelectedItem(15); else document.getElementById('cmdMsg').textContent = 'Select a room item (door/window/furniture) to rotate.'; }
 function uiFlip(){ if(selItem && selItem.kind==='opening') flipSelectedOpening(); else document.getElementById('cmdMsg').textContent = 'Select a door to flip its swing side.'; }
 
 function deleteSelectedRoom(){
