@@ -655,7 +655,125 @@ input,select{font-family:inherit}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/* Minimal self-contained OrbitControls for r128 — no external CDN dependency */
+(function(){
+  THREE.OrbitControls = function(camera, domElement){
+    this.camera = camera;
+    this.domElement = domElement || document;
+    this.target = new THREE.Vector3();
+    this.enableDamping = false;
+    this.dampingFactor = 0.05;
+    var scope = this;
+    var STATE = {NONE:-1,ROTATE:0,DOLLY:1,PAN:2};
+    var state = STATE.NONE;
+    var spherical = new THREE.Spherical();
+    var sphericalDelta = new THREE.Spherical();
+    var scale = 1;
+    var panOffset = new THREE.Vector3();
+    var rotateStart = new THREE.Vector2(), rotateEnd = new THREE.Vector2(), rotateDelta = new THREE.Vector2();
+    var panStart = new THREE.Vector2(), panEnd = new THREE.Vector2(), panDelta = new THREE.Vector2();
+    var dollyStart = new THREE.Vector2(), dollyEnd = new THREE.Vector2(), dollyDelta = new THREE.Vector2();
+    var EPS = 0.000001;
+    this.update = function(){
+      var offset = new THREE.Vector3();
+      var quat = new THREE.Quaternion().setFromUnitVectors(camera.up, new THREE.Vector3(0,1,0));
+      var quatInverse = quat.clone().invert();
+      var lastPos = new THREE.Vector3();
+      var lastQuat = new THREE.Quaternion();
+      return function update(){
+        var pos = camera.position;
+        offset.copy(pos).sub(scope.target);
+        offset.applyQuaternion(quat);
+        spherical.setFromVector3(offset);
+        spherical.theta += sphericalDelta.theta;
+        spherical.phi += sphericalDelta.phi;
+        spherical.phi = Math.max(EPS, Math.min(Math.PI-EPS, spherical.phi));
+        spherical.makeSafe();
+        spherical.radius *= scale;
+        spherical.radius = Math.max(0.1, spherical.radius);
+        scope.target.add(panOffset);
+        offset.setFromSpherical(spherical);
+        offset.applyQuaternion(quatInverse);
+        pos.copy(scope.target).add(offset);
+        camera.lookAt(scope.target);
+        if(scope.enableDamping){
+          sphericalDelta.theta *= (1-scope.dampingFactor);
+          sphericalDelta.phi *= (1-scope.dampingFactor);
+          panOffset.multiplyScalar(1-scope.dampingFactor);
+        } else {
+          sphericalDelta.set(0,0,0);
+          panOffset.set(0,0,0);
+        }
+        scale = 1;
+      };
+    }();
+    function rotateLeft(angle){ sphericalDelta.theta -= angle; }
+    function rotateUp(angle){ sphericalDelta.phi -= angle; }
+    function dollyIn(dollyScale){ scale /= dollyScale; }
+    function dollyOut(dollyScale){ scale *= dollyScale; }
+    function panLeft(distance, matrix){
+      var v = new THREE.Vector3(); v.setFromMatrixColumn(matrix,0); v.multiplyScalar(-distance); panOffset.add(v);
+    }
+    function panUp(distance, matrix){
+      var v = new THREE.Vector3(); v.setFromMatrixColumn(matrix,1); v.multiplyScalar(distance); panOffset.add(v);
+    }
+    function pan(deltaX, deltaY){
+      var el = domElement === document ? document.body : domElement;
+      var pos = camera.position;
+      var targetDist = pos.distanceTo(scope.target);
+      targetDist *= Math.tan((camera.fov/2)*Math.PI/180);
+      panLeft(2*deltaX*targetDist/el.clientHeight, camera.matrix);
+      panUp(2*deltaY*targetDist/el.clientHeight, camera.matrix);
+    }
+    var onMouseDown = function(e){
+      if(e.button===0) state=STATE.ROTATE;
+      else if(e.button===1) state=STATE.DOLLY;
+      else if(e.button===2) state=STATE.PAN;
+      if(state===STATE.ROTATE) rotateStart.set(e.clientX,e.clientY);
+      else if(state===STATE.PAN) panStart.set(e.clientX,e.clientY);
+      else if(state===STATE.DOLLY) dollyStart.set(e.clientX,e.clientY);
+      document.addEventListener('mousemove',onMouseMove,false);
+      document.addEventListener('mouseup',onMouseUp,false);
+    };
+    var onMouseMove = function(e){
+      if(state===STATE.ROTATE){
+        rotateEnd.set(e.clientX,e.clientY); rotateDelta.subVectors(rotateEnd,rotateStart);
+        var el = domElement===document?document.body:domElement;
+        rotateLeft(2*Math.PI*rotateDelta.x/el.clientWidth);
+        rotateUp(2*Math.PI*rotateDelta.y/el.clientHeight);
+        rotateStart.copy(rotateEnd); scope.update();
+      } else if(state===STATE.PAN){
+        panEnd.set(e.clientX,e.clientY); panDelta.subVectors(panEnd,panStart);
+        pan(panDelta.x, panDelta.y); panStart.copy(panEnd); scope.update();
+      } else if(state===STATE.DOLLY){
+        dollyEnd.set(e.clientX,e.clientY); dollyDelta.subVectors(dollyEnd,dollyStart);
+        if(dollyDelta.y>0) dollyIn(1.05); else dollyOut(1.05);
+        dollyStart.copy(dollyEnd); scope.update();
+      }
+    };
+    var onMouseUp = function(){
+      state=STATE.NONE;
+      document.removeEventListener('mousemove',onMouseMove,false);
+      document.removeEventListener('mouseup',onMouseUp,false);
+    };
+    var onWheel = function(e){
+      e.preventDefault();
+      if(e.deltaY<0) dollyOut(1.1); else dollyIn(1.1);
+      scope.update();
+    };
+    var onContextMenu = function(e){ e.preventDefault(); };
+    domElement.addEventListener('mousedown',onMouseDown,false);
+    domElement.addEventListener('wheel',onWheel,{passive:false});
+    domElement.addEventListener('contextmenu',onContextMenu,false);
+    this.dispose = function(){
+      domElement.removeEventListener('mousedown',onMouseDown);
+      domElement.removeEventListener('wheel',onWheel);
+      domElement.removeEventListener('contextmenu',onContextMenu);
+    };
+  };
+})();
+</script>
 <script>
 'use strict';
 
@@ -898,9 +1016,20 @@ function setView(mode){
   document.getElementById('planBadge').style.display = mode==='3d' ? 'none' : 'block';
   document.getElementById('st-view').textContent = mode.toUpperCase();
   document.getElementById('cad').style.display = mode==='3d' ? 'none' : 'block';
-  document.getElementById('cad3d-wrap').style.display = mode==='3d' ? 'block' : 'none';
+  const wrap3d = document.getElementById('cad3d-wrap');
+  wrap3d.style.display = mode==='3d' ? 'block' : 'none';
   if(mode==='3d'){
-    if(!threeReady) initThreeJS();
+    if(!threeReady){
+      initThreeJS(); // wrap is now display:block so clientWidth/Height are valid
+    }
+    // force renderer to match the (now-visible) container every time we enter 3D mode
+    const W = wrap3d.clientWidth || vp.clientWidth || 800;
+    const H = wrap3d.clientHeight || vp.clientHeight || 600;
+    if(threeRenderer){
+      threeCamera.aspect = W/Math.max(1,H);
+      threeCamera.updateProjectionMatrix();
+      threeRenderer.setSize(W, H);
+    }
     render3D();
   } else {
     if(isStruct) rpTab('struct');
@@ -1979,33 +2108,47 @@ let threeReady = false;
 let threeScene, threeCamera, threeRenderer, threeControls, threeModelGroup;
 function initThreeJS(){
   const wrap = document.getElementById('cad3d-wrap');
+  // wrap must be visible before we read its dimensions — caller must set display:block first
+  const W = wrap.clientWidth || vp.clientWidth || 800;
+  const H = wrap.clientHeight || vp.clientHeight || 600;
   threeScene = new THREE.Scene();
   threeScene.background = new THREE.Color(0x0a1622);
-  threeCamera = new THREE.PerspectiveCamera(50, wrap.clientWidth/Math.max(1,wrap.clientHeight), 0.1, 2000);
-  threeRenderer = new THREE.WebGLRenderer({antialias:true});
-  threeRenderer.setPixelRatio(window.devicePixelRatio||1);
-  threeRenderer.setSize(wrap.clientWidth, wrap.clientHeight);
+  threeCamera = new THREE.PerspectiveCamera(50, W/Math.max(1,H), 0.1, 5000);
+  threeRenderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
+  threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+  threeRenderer.setSize(W, H);
+  threeRenderer.shadowMap.enabled = true;
   wrap.appendChild(threeRenderer.domElement);
   threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
   threeControls.enableDamping = true;
-  threeScene.add(new THREE.AmbientLight(0xffffff, 0.55));
-  const sun = new THREE.DirectionalLight(0xffffff, 0.8);
-  sun.position.set(60,90,40);
+  threeControls.dampingFactor = 0.08;
+  threeScene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.85);
+  sun.position.set(80, 100, 60);
+  sun.castShadow = true;
   threeScene.add(sun);
+  const fill = new THREE.DirectionalLight(0x88aaff, 0.3);
+  fill.position.set(-40, 20, -30);
+  threeScene.add(fill);
   threeModelGroup = new THREE.Group();
   threeScene.add(threeModelGroup);
   threeReady = true;
   (function animate(){
     requestAnimationFrame(animate);
-    if(viewMode==='3d'){ threeControls.update(); threeRenderer.render(threeScene, threeCamera); }
+    if(viewMode==='3d'){
+      threeControls.update();
+      threeRenderer.render(threeScene, threeCamera);
+    }
   })();
-  window.addEventListener('resize', ()=>{
+  const resizeObs = new ResizeObserver(()=>{
     if(!threeReady) return;
     const w = wrap.clientWidth, h = wrap.clientHeight;
-    threeCamera.aspect = w/Math.max(1,h);
+    if(w<1 || h<1) return;
+    threeCamera.aspect = w/h;
     threeCamera.updateProjectionMatrix();
     threeRenderer.setSize(w,h);
   });
+  resizeObs.observe(wrap);
 }
 function ft(v){ return v; } // scene units = feet (simplest 1:1, no real-world unit conversion needed for visualization)
 function addBoxEdgeWall(group, x1,y1,x2,y2, thicknessFt, heightFt, baseY, color){
@@ -2042,7 +2185,7 @@ function buildWallWithOpenings(group, x1,y1,x2,y2, thicknessFt, wallHeightFt, ba
   function addWindowGlass(aLen,bLen,sillH,lintelH){
     const segLen=bLen-aLen; if(segLen<0.05) return;
     const geo = new THREE.BoxGeometry(segLen, lintelH-sillH, Math.max(0.05,thicknessFt*0.3));
-    const mat = new THREE.MeshPhysicalMaterial({color:0x9fe0ff, roughness:0.05, transmission:0.7, transparent:true, opacity:0.45});
+    const mat = new THREE.MeshStandardMaterial({color:0x9fe0ff, roughness:0.05, transparent:true, opacity:0.35, side: THREE.DoubleSide});
     const mesh = new THREE.Mesh(geo, mat);
     const midLen=(aLen+bLen)/2;
     mesh.position.set(x1+ux*midLen, baseY+sillH+(lintelH-sillH)/2, y1+uy*midLen);
@@ -2087,17 +2230,29 @@ function buildWallWithOpenings(group, x1,y1,x2,y2, thicknessFt, wallHeightFt, ba
   addSolid(cursor, len, 0, wallHeightFt);
 }
 function render3D(){
-  if(!threeReady) return;
+  if(!threeReady){ console.warn('3D not ready'); return; }
   threeScene.remove(threeModelGroup);
   threeModelGroup = new THREE.Group();
   threeScene.add(threeModelGroup);
 
   const floors = +document.getElementById('floors').value || 1;
-  const floorHeight = 10; // ft
+  const floorHeight = 10; // ft per floor
   const extWallFt = (+document.getElementById('extWall').value || 9)/12;
   const intWallFt = (+document.getElementById('intWall').value || 4.5)/12;
-  const showArch = document.getElementById('layer3dArch').checked;
-  const showStruct = document.getElementById('layer3dStruct').checked;
+  const showArch = document.getElementById('layer3dArch') ? document.getElementById('layer3dArch').checked : true;
+  const showStruct = document.getElementById('layer3dStruct') ? document.getElementById('layer3dStruct').checked : true;
+
+  // fallback: if no rooms yet, show a placeholder so the user knows 3D is working
+  if(!placed || !placed.length){
+    const box = new THREE.Mesh(new THREE.BoxGeometry(20,10,20), new THREE.MeshStandardMaterial({color:0x1FA8D9, wireframe:true}));
+    box.position.set(20,5,20);
+    threeModelGroup.add(box);
+    const lbl = new THREE.Mesh(new THREE.BoxGeometry(30,1,0.2), new THREE.MeshStandardMaterial({color:0x4ADE80}));
+    lbl.position.set(20,12,5);
+    threeModelGroup.add(lbl);
+    orbit3DReset();
+    return;
+  }
 
   // ground plate
   const groundGeo = new THREE.PlaneGeometry(Math.max(60,plot.w+20), Math.max(60,plot.d+20));
@@ -2197,10 +2352,7 @@ function render3D(){
     });
   }
 
-  if(threeCamera && (threeCamera._needsInitialFrame !== false)){
-    orbit3DReset();
-    threeCamera._needsInitialFrame = false;
-  }
+  orbit3DReset(); // always re-frame to match the current model (floors, plot size)
   document.getElementById('badge3d').innerHTML = `3D MODEL — <b>${floors} floor${floors>1?'s':''}</b> — drag to orbit, scroll to zoom, right-drag to pan`;
 }
 function orbit3DReset(){
