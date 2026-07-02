@@ -1917,6 +1917,18 @@ function renderArch(b0,b1){
     ctx.strokeRect(b0.x, b0.y, b1.x-b0.x, b1.y-b0.y);
   }
 
+  // In polygon mode: set a canvas clip path to the ACTUAL polygon boundary so that
+  // room fills and walls are cleanly masked without any triangle fragment artifacts.
+  // This is the correct approach — clip the canvas to the plot shape, then render
+  // all rooms as normal rectangles. No diagonal lines, no overlap artifacts.
+  if(plotShapeMode==='polygon' && plotPolygon && plotPolygon.length>=3){
+    ctx.save();
+    ctx.beginPath();
+    plotPolygon.forEach((p,i)=>{ const s=worldToScreen(p.x,p.y); i===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y); });
+    ctx.closePath();
+    ctx.clip(); // everything drawn below is clipped to the polygon shape
+  }
+
   placed.forEach((r,i)=>{
     const rx = buildable.x + r.x, ry = buildable.y + r.y;
     const s0 = worldToScreen(rx,ry), s1 = worldToScreen(rx+r.w, ry+r.h);
@@ -1926,50 +1938,29 @@ function renderArch(b0,b1){
     const extWallLW = Math.max(1.8, extWallFt*scale);
     const intWallLW = Math.max(1.2, intWallFt*scale);
 
-    // — fill —
+    // — fill — always a plain rect; the canvas clip handles the polygon boundary
     ctx.fillStyle = isSel ? 'rgba(251,91,110,.16)' : 'rgba(255,255,255,.045)';
-    if(r.clipFragments){
-      r.clipFragments.forEach(frag=>{
-        ctx.beginPath();
-        frag.forEach((p,j)=>{ const s=worldToScreen(buildable.x+p.x, buildable.y+p.y); j===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y); });
-        ctx.closePath(); ctx.fill();
-      });
-    } else {
-      ctx.fillRect(s0.x, s0.y, w, h);
-    }
+    ctx.fillRect(s0.x, s0.y, w, h);
 
     // — walls —
-    // In polygon mode with clipFragments, draw walls along the ACTUAL fragment boundary
-    // so that the building visually follows the irregular plot shape.
-    if(plotShapeMode==='polygon' && r.clipFragments){
-      const allFragEdges = [];
-      r.clipFragments.forEach(frag=>{
-        for(let fi=0;fi<frag.length;fi++){
-          const pa=frag[fi], pb2=frag[(fi+1)%frag.length];
-          allFragEdges.push({pa,pb:pb2});
-        }
-      });
-      allFragEdges.forEach(({pa,pb:pb2})=>{
-        const sa=worldToScreen(buildable.x+pa.x,buildable.y+pa.y);
-        const sb=worldToScreen(buildable.x+pb2.x,buildable.y+pb2.y);
-        // determine if this fragment edge is on an exterior boundary
-        const midX=(pa.x+pb2.x)/2, midY=(pa.y+pb2.y)/2;
-        const onEdge = midX<0.3||midY<0.3||Math.abs(midX-buildable.w)<0.3||Math.abs(midY-buildable.h)<0.3;
-        ctx.strokeStyle = isSel?'#FB5B6E':(onEdge?'#eaf4ff':'#7fb3e8');
-        ctx.lineWidth = isSel?2.5:(onEdge?extWallLW:intWallLW);
-        ctx.beginPath(); ctx.moveTo(sa.x,sa.y); ctx.lineTo(sb.x,sb.y); ctx.stroke();
-      });
-    } else {
-      function edgeLine(x1,y1,x2,y2,isExt){
-        ctx.strokeStyle = isSel ? '#FB5B6E' : (isExt ? '#eaf4ff' : '#7fb3e8');
-        ctx.lineWidth = isSel ? 2.5 : (isExt?extWallLW:intWallLW);
-        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-      }
-      edgeLine(s0.x,s0.y,s1.x,s0.y, ed.top);
-      edgeLine(s0.x,s1.y,s1.x,s1.y, ed.bottom);
-      edgeLine(s0.x,s0.y,s0.x,s1.y, ed.left);
-      edgeLine(s1.x,s0.y,s1.x,s1.y, ed.right);
+    // Always draw rectangular room walls (top/bottom/left/right edges).
+    // clipFragments is only used for the FILL shape — never for wall rendering,
+    // because drawing individual triangle fragment edges produces diagonal
+    // triangulation lines that look wrong. Rectangular walls stay clean.
+    // The polygon boundary itself is drawn separately in render() as the outer wall.
+    function edgeLine(x1,y1,x2,y2,isExt){
+      ctx.strokeStyle = isSel ? '#FB5B6E' : (isExt ? '#eaf4ff' : '#7fb3e8');
+      ctx.lineWidth = isSel ? 2.5 : (isExt ? extWallLW : intWallLW);
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
     }
+    // In polygon mode, exterior edges are determined by adjacency to the polygon
+    // boundary (not just the bounding box), but rectangular wall lines still work
+    // because interior partitions divide rooms naturally, and the polygon outline
+    // provides the outer wall shape.
+    edgeLine(s0.x,s0.y,s1.x,s0.y, ed.top);
+    edgeLine(s0.x,s1.y,s1.x,s1.y, ed.bottom);
+    edgeLine(s0.x,s0.y,s0.x,s1.y, ed.left);
+    edgeLine(s1.x,s0.y,s1.x,s1.y, ed.right);
 
     // windows on exterior edges (skip the entrance edge of the entrance room)
     const isEntranceRoom = entranceInfo && entranceInfo.roomIdx === i;
@@ -2010,6 +2001,18 @@ function renderArch(b0,b1){
       ctx.fillText(r.name, s0.x+w/2, s0.y+h/2+3);
     }
   });
+
+  // restore canvas state after polygon clip (if active)
+  if(plotShapeMode==='polygon' && plotPolygon && plotPolygon.length>=3){
+    ctx.restore();
+    // re-draw the polygon boundary as a thick exterior wall ON TOP of the clip
+    // so it appears clean and crisp even over clipped room fills
+    ctx.strokeStyle = '#eaf4ff';
+    ctx.lineWidth = Math.max(2.5, (+document.getElementById('extWall').value||9)/12*scale);
+    ctx.beginPath();
+    plotPolygon.forEach((p,i)=>{ const s=worldToScreen(p.x,p.y); i===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y); });
+    ctx.closePath(); ctx.stroke();
+  }
 }
 
 function drawWindow(s0,s1,side){
