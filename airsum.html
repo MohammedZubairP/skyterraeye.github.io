@@ -1199,7 +1199,36 @@ function buildStructModel(){
   placed.forEach(r=>{
     addPt(r.x,r.y); addPt(r.x+r.w,r.y); addPt(r.x+r.w,r.y+r.h); addPt(r.x,r.y+r.h);
   });
-  const columns = [...pts.values()];
+  let columns = [...pts.values()];
+
+  // In polygon mode: filter out columns that fall outside the actual polygon boundary.
+  // Column grid points come from room rectangle corners which may be outside the polygon
+  // (rooms are partitioned in the bounding box, then visually clipped by canvas clip).
+  // We only want structural columns at intersections that are INSIDE the plot.
+  if(plotShapeMode==='polygon' && plotPolygon && plotPolygon.length>=3){
+    const pb = polygonBounds(plotPolygon);
+    columns = columns.filter(c=>{
+      // c.x, c.y are in local buildable space [0..buildW, 0..buildH]
+      // convert to world to test against plotPolygon
+      const wx = buildable.x + c.x, wy = buildable.y + c.y;
+      return pointInPolygon(wx, wy, plotPolygon);
+    });
+    // Also add the actual polygon vertices themselves as column positions (at inset)
+    if(window._polyClipBuildable){
+      const pb2 = polygonBounds(plotPolygon);
+      const bbMinX = buildable.x - pb2.minX, bbMinY = buildable.y - pb2.minY;
+      window._polyClipBuildable.forEach(p=>{
+        const lx = p.x - bbMinX, ly = p.y - bbMinY;
+        const k = snap(lx)+','+snap(ly);
+        if(!pts.has(k)) columns.push({x:lx, y:ly});
+      });
+    }
+    if(columns.length < 2){
+      // fallback: place columns at polygon vertices if no room intersections inside
+      const pb2 = polygonBounds(plotPolygon);
+      plotPolygon.forEach(p=>columns.push({x:p.x-buildable.x+pb2.minX, y:p.y-buildable.y+pb2.minY}));
+    }
+  }
   const uniqueXs = [...new Set(columns.map(c=>c.x))].sort((a,b)=>a-b);
   const uniqueYs = [...new Set(columns.map(c=>c.y))].sort((a,b)=>a-b);
 
@@ -2685,7 +2714,8 @@ function render3DFrame(){
 
   if(allCols.length){
     allCols.forEach(col=>{
-      const xM = col.x*ftToM, zM = col.y*ftToM; // plan x→3D x, plan y→3D z
+      // col.x, col.y are in LOCAL buildable space; convert to world by adding buildable offset
+      const xM = (buildable.x + col.x)*ftToM, zM = (buildable.y + col.y)*ftToM;
       const secName = sectionForLoad(col.loadKN||200);
       const sec = FRAME_SECTIONS[secName]||{w:300,d:300};
       const wM = sec.w/1000, dM = sec.d/1000;
@@ -2750,6 +2780,9 @@ function render3DFrame(){
     for(let i=0;i<=20;i++){const x=f.L*i/20;const s=f.sample(x);maxM=Math.max(maxM,Math.abs(s.M));maxV=Math.max(maxV,Math.abs(s.V));}
   });
   const diagScale = Math.min(0.4, 0.15*(maxX-minX)/Math.max(maxM/1000, 0.001));
+  // materials used by the DSM overlay section below
+  const matFoot = new THREE.MeshStandardMaterial({color:0xF5BE18, roughness:0.8, transparent:true, opacity:0.7});
+  const matGround = new THREE.MeshStandardMaterial({color:0x8B6914, roughness:0.9});
 
   frameMembers.forEach(m=>{
     const n1=frameNodes.find(n=>n.id===m.n1), n2=frameNodes.find(n=>n.id===m.n2);
@@ -3662,6 +3695,26 @@ const vp = document.getElementById('vport');
 let dragging = false, dragMoved = false, lastX = 0, lastY = 0;
 
 function rangesOverlap(a1,a2,b1,b2){ return Math.max(a1,b1) < Math.min(a2,b2) - 0.05; }
+
+/** Ray-casting point-in-polygon test. Works for any simple polygon (convex or concave). */
+function pointInPolygon(px, py, poly){
+  let inside = false;
+  for(let i=0,j=poly.length-1; i<poly.length; j=i++){
+    const xi=poly[i].x, yi=poly[i].y, xj=poly[j].x, yj=poly[j].y;
+    if(((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
+}
+/** Check if a rectangle [rx,ry,rx+rw,ry+rh] (in world coords) is mostly inside the given polygon. */
+function rectMostlyInPolygon(rx,ry,rw,rh,poly,threshold=0.5){
+  // sample a 3x3 grid of points inside the rect and count how many are inside the polygon
+  let inside=0, total=0;
+  for(let dy=0.2;dy<=0.8;dy+=0.3) for(let dx=0.2;dx<=0.8;dx+=0.3){
+    total++;
+    if(pointInPolygon(rx+rw*dx, ry+rh*dy, poly)) inside++;
+  }
+  return inside/total >= threshold;
+}
 const CORNER_EDGES = {tl:['top','left'], tr:['top','right'], bl:['bottom','left'], br:['bottom','right']};
 function findNeighborsForEdge(idx, edgeKey){
   const r = placed[idx];
@@ -3838,16 +3891,38 @@ window.addEventListener('mousemove', e=>{
     const dx = wp.x - dragHandle.startWorld.x, dy = wp.y - dragHandle.startWorld.y;
     const o = dragHandle.orig;
     if(dragHandle.type === 'move'){
-      // clamp the move so room stays fully inside the buildable area
-      const newX = clamp(snapVal(o.x+dx), 0, buildable.w-o.w);
-      const newY = clamp(snapVal(o.y+dy), 0, buildable.h-o.h);
+      // clamp the move so room stays inside the buildable bounding area
+      let newX = clamp(snapVal(o.x+dx), 0, buildable.w-o.w);
+      let newY = clamp(snapVal(o.y+dy), 0, buildable.h-o.h);
+
+      // in polygon mode: additionally constrain so the room CENTER stays inside the polygon
+      if(plotShapeMode==='polygon' && plotPolygon && plotPolygon.length>=3){
+        const wx = buildable.x + newX + o.w/2;
+        const wy = buildable.y + newY + o.h/2;
+        if(!pointInPolygon(wx, wy, plotPolygon)){
+          // reject this component of movement — try X-only, then Y-only, else no move
+          const tryX = buildable.x + newX + o.w/2;
+          const tryY = buildable.y + (o.y) + o.h/2;
+          if(pointInPolygon(tryX, tryY, plotPolygon)){
+            newY = o.y; // allow X move only
+          } else {
+            const tryX2 = buildable.x + o.x + o.w/2;
+            const tryY2 = buildable.y + newY + o.h/2;
+            if(pointInPolygon(tryX2, tryY2, plotPolygon)){
+              newX = o.x; // allow Y move only
+            } else {
+              newX = o.x; newY = o.y; // no move — both components leave polygon
+            }
+          }
+        }
+      }
+
       const actualDX = newX - o.x;
       const actualDY = newY - o.y;
       r.x = newX;
       r.y = newY;
       // propagate movement to all rooms that share a wall with this room,
       // moving them as a rigid group (they stay glued together)
-      const TOL = 0.15;
       placed.forEach((nbr,ni)=>{
         if(ni===dragHandle.roomIdx || !dragHandle._movedNeighbors) return;
         if(!dragHandle._movedNeighbors.has(ni)) return;
