@@ -43,7 +43,13 @@ input,select{font-family:inherit}
 .mb-back{display:flex;align-items:center;gap:4px;padding:3px 9px;background:none;border:1px solid var(--sep);border-radius:4px;color:var(--m);font-size:11px;font-weight:600;text-decoration:none;transition:all .1s}
 .mb-back:hover{color:var(--b);border-color:var(--bl)}
 
-.ribbon{height:62px;flex-shrink:0;background:var(--bg3);border-bottom:1px solid var(--sep);display:flex;overflow-x:auto;overflow-y:hidden}
+.ribbon{height:auto;flex-shrink:0;background:var(--bg3);border-bottom:1px solid var(--sep);display:flex;flex-direction:column}
+.ribbon-tabs{display:flex;background:#040c18;border-bottom:1px solid var(--sep);overflow-x:auto;flex-shrink:0}
+.rtab{padding:5px 14px;font-size:9.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;cursor:pointer;color:var(--m);border-bottom:2px solid transparent;white-space:nowrap;font-family:'IBM Plex Mono',monospace;transition:all .12s;border-right:1px solid var(--sep);flex-shrink:0}
+.rtab:hover{color:var(--t);background:var(--bdim)}
+.rtab.act{color:var(--as);border-bottom-color:var(--as);background:var(--asdim)}
+.ribbon-panel{display:none;flex-direction:row;overflow-x:auto;padding:2px 0;min-height:58px}
+.ribbon-panel.act{display:flex}
 .rg{display:flex;flex-direction:column;align-items:center;padding:3px 6px 1px;border-right:1px solid rgba(31,168,217,.06);min-width:fit-content;gap:1px}
 .rg-lbl{font-size:7.5px;color:var(--m);letter-spacing:.8px;text-transform:uppercase;margin-top:auto;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
 .rr{display:flex;gap:2px;align-items:center}
@@ -163,167 +169,79 @@ input,select{font-family:inherit}
   </div>
 </div>
 
-<div class="ribbon">
-  <div class="rg">
-    <div class="rr">
-      <button class="rb lg act" onclick="regenerateNow('Generated')" id="rb-gen"><span class="rb-i">✨</span>GENERATE</button>
-      <button class="rb" onclick="resetProgram()"><span class="rb-i">↺</span>RESET</button>
-    </div>
-    <div class="rg-lbl">AI</div>
+<div class="ribbon" id="ribbon">
+  <div class="ribbon-tabs" id="ribbonTabs">
+    <div class="rtab act" data-panel="rp-home" onclick="switchRibbon('rp-home')">HOME</div>
+    <div class="rtab" data-panel="rp-draw" onclick="switchRibbon('rp-draw')">DRAW</div>
+    <div class="rtab" data-panel="rp-rooms" onclick="switchRibbon('rp-rooms')">ROOMS</div>
+    <div class="rtab" data-panel="rp-openings" onclick="switchRibbon('rp-openings')">OPENINGS</div>
+    <div class="rtab" data-panel="rp-struct" onclick="switchRibbon('rp-struct')">STRUCTURE</div>
+    <div class="rtab" data-panel="rp-3d" onclick="switchRibbon('rp-3d')">3D VIEW</div>
+    <div class="rtab" data-panel="rp-export" onclick="switchRibbon('rp-export')">EXPORT</div>
+    <div class="rtab" data-panel="rp-settings" onclick="switchRibbon('rp-settings')">SETTINGS</div>
   </div>
-  <div class="rg">
-    <div class="rr">
-      <button class="rb" id="rb-draw" onclick="toggleDrawMode()"><span class="rb-i">▭</span>DRAW ROOM</button>
-      <button class="rb" onclick="uiDelete()"><span class="rb-i">🗑️</span>DELETE</button>
-    </div>
-    <div class="rr">
-      <button class="rb" onclick="uiSetSize()"><span class="rb-i">🔢</span>SET SIZE</button>
-      <button class="rb" onclick="saveCurrentAsIdea()"><span class="rb-i">📌</span>SAVE EDIT</button>
-    </div>
-    <div class="rg-lbl">EDIT (drag rooms directly — always on)</div>
+
+  <!-- HOME -->
+  <div class="ribbon-panel act" id="rp-home">
+    <div class="rg"><div class="rr"><button class="rb lg act" onclick="regenerateNow('Generated')" id="rb-gen"><span class="rb-i">✨</span>GENERATE</button><button class="rb" onclick="resetProgram()"><span class="rb-i">↺</span>RESET</button></div><div class="rg-lbl">AI PLAN</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="generateNewIdea()"><span class="rb-i">🎲</span>NEW IDEA</button><button class="rb" onclick="historyPrev()"><span class="rb-i">◀</span>PREV</button><button class="rb" onclick="historyNext()"><span class="rb-i">▶</span>NEXT</button></div><div class="rr"><button class="rb" onclick="confirmCurrentPlan()" style="color:#4ADE80"><span class="rb-i">✓</span>CONFIRM</button></div><div class="rg-lbl">IDEAS</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="undoEdit()"><span class="rb-i">↩</span>UNDO</button><button class="rb" onclick="redoEdit()"><span class="rb-i">↪</span>REDO</button></div><div class="rr"><button class="rb" onclick="uiCopy()"><span class="rb-i">⧉</span>COPY</button><button class="rb" onclick="uiPaste()"><span class="rb-i">📋</span>PASTE</button></div><div class="rg-lbl">EDIT</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="zoomBy(1.25)"><span class="rb-i">🔍</span>ZOOM IN</button><button class="rb" onclick="zoomBy(0.8)"><span class="rb-i">🔎</span>ZOOM OUT</button><button class="rb" onclick="zoomExt()"><span class="rb-i">🔭</span>EXTENTS</button></div><div class="rr"><button class="rb" onclick="toggleGrid()" id="rb-grid"><span class="rb-i">⊞</span>GRID</button><button class="rb" onclick="toggleLP()"><span class="rb-i">◧</span>INPUT</button><button class="rb" onclick="toggleRP()"><span class="rb-i">◨</span>PANEL</button></div><div class="rg-lbl">VIEW</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="saveProject()"><span class="rb-i">💾</span>SAVE</button><button class="rb" onclick="loadProjectPrompt()"><span class="rb-i">📂</span>LOAD</button></div><div class="rg-lbl">PROJECT</div></div>
+    <div class="rg"><div class="rr"><button class="rb act" id="rb-view-arch" onclick="setView('arch')"><span class="rb-i">🏠</span>ARCH</button><button class="rb" id="rb-view-load" onclick="setView('load')"><span class="rb-i">⚖️</span>LOAD</button></div><div class="rr"><button class="rb" id="rb-view-column" onclick="setView('column')"><span class="rb-i">⬛</span>COLUMN</button><button class="rb" id="rb-view-beam" onclick="setView('beam')"><span class="rb-i">━</span>BEAM</button><button class="rb" id="rb-view-footing" onclick="setView('footing')"><span class="rb-i">▦</span>FOOTING</button></div><div class="rg-lbl">SHEETS</div></div>
   </div>
-  <div class="rg">
-    <div class="rr">
-      <button class="rb lg" onclick="generateNewIdea()"><span class="rb-i">🎲</span>NEW IDEA</button>
-      <button class="rb" onclick="historyPrev()"><span class="rb-i">◀</span>PREV</button>
-      <button class="rb" onclick="historyNext()"><span class="rb-i">▶</span>NEXT</button>
-    </div>
-    <div class="rr">
-      <button class="rb" onclick="confirmCurrentPlan()" style="color:#4ADE80"><span class="rb-i">✓</span>CONFIRM</button>
-    </div>
-    <div class="rg-lbl">REDESIGN</div>
+
+  <!-- DRAW -->
+  <div class="ribbon-panel" id="rp-draw">
+    <div class="rg"><div class="rr"><button class="rb lg" id="rb-cadplot" onclick="startCADPlot()"><span class="rb-i">✏️</span>DRAW PLOT</button><button class="rb" onclick="finishCADPlot()"><span class="rb-i">⏎</span>FINISH</button></div><div class="rr"><button class="rb" onclick="undoCADVertex()"><span class="rb-i">↩</span>UNDO PT</button><button class="rb" onclick="resetPlotRect()"><span class="rb-i">✕</span>CANCEL</button></div><div class="rg-lbl">CAD PLOT DRAWING (click vertices, type length)</div></div>
+    <div class="rg"><div class="rr"><button class="rb" id="rb-snap" onclick="toggleSnap()"><span class="rb-i">🧲</span>SNAP</button><button class="rb" id="rb-ortho" onclick="toggleOrtho()"><span class="rb-i">⊿</span>ORTHO 90°</button></div><div class="rr"><button class="rb" id="rb-crosshair" onclick="toggleCrosshair()"><span class="rb-i">✛</span>CROSSHAIR</button><button class="rb" id="rb-line" onclick="toggleDrawLine()"><span class="rb-i">／</span>WALL LINE</button></div><div class="rg-lbl">CONSTRAINTS</div></div>
+    <div class="rg"><div class="rr"><button class="rb" id="rb-draw" onclick="toggleDrawMode()"><span class="rb-i">▭</span>DRAW ROOM</button><button class="rb" onclick="uiDelete()"><span class="rb-i">🗑️</span>DELETE</button></div><div class="rr"><button class="rb" onclick="uiSetSize()"><span class="rb-i">🔢</span>SET SIZE</button><button class="rb" onclick="uiScale(1.1)"><span class="rb-i">⤢</span>SCALE+</button><button class="rb" onclick="uiScale(0.9)"><span class="rb-i">⤡</span>SCALE−</button></div><div class="rg-lbl">EDIT ROOMS</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="uiRotate()"><span class="rb-i">↻</span>ROTATE</button><button class="rb" onclick="uiFlip()"><span class="rb-i">⇄</span>FLIP</button></div><div class="rr"><button class="rb" onclick="uiCopy()"><span class="rb-i">⧉</span>COPY</button><button class="rb" onclick="uiPaste()"><span class="rb-i">📋</span>PASTE</button></div><div class="rg-lbl">TRANSFORM</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="showMapPanel()"><span class="rb-i">🌍</span>MAP/SAT</button></div><div class="rg-lbl">LOCATION</div></div>
   </div>
-  <div class="rg">
-    <div class="rr">
-      <button class="rb act" id="rb-view-arch" onclick="setView('arch')"><span class="rb-i">🏠</span>ARCH</button>
-      <button class="rb" id="rb-view-load" onclick="setView('load')"><span class="rb-i">⚖️</span>LOAD</button>
-      <button class="rb" id="rb-view-column" onclick="setView('column')"><span class="rb-i">⬛</span>COLUMN</button>
-    </div>
-    <div class="rr">
-      <button class="rb" id="rb-view-beam" onclick="setView('beam')"><span class="rb-i">━</span>BEAM</button>
-      <button class="rb" id="rb-view-footing" onclick="setView('footing')"><span class="rb-i">▦</span>FOOTING</button>
-    </div>
-    <div class="rg-lbl">DRAWING</div>
+
+  <!-- ROOMS -->
+  <div class="ribbon-panel" id="rp-rooms">
+    <div class="rg"><div class="rr"><button class="rb lg" onclick="showRoomPalette()"><span class="rb-i">🏠</span>ROOM PALETTE</button></div><div class="rg-lbl">DRAG &amp; DROP ROOMS</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="toggleVastu()" id="rb-vastu"><span class="rb-i">🧭</span>VASTU</button><button class="rb" onclick="cycleType()" id="rb-type"><span class="rb-i">🏠</span>VILLA</button></div><div class="rg-lbl">PROGRAM</div></div>
+    <div class="rg"><div class="rr"><select class="ps" id="furniturePicker" style="font-size:9px;padding:3px 4px;width:110px;height:34px"><option value="bed">King Bed</option><option value="bed_single">Single Bed</option><option value="sofa">Sofa 3-seat</option><option value="sofa_l">L-Sofa</option><option value="dining_table">Dining Table</option><option value="wardrobe">Wardrobe</option><option value="wc">WC / Toilet</option><option value="bathtub">Bathtub</option><option value="sink">Sink / Basin</option><option value="shower">Shower</option><option value="stove">Stove / Hob</option><option value="fridge">Refrigerator</option><option value="desk">Study Desk</option><option value="tv">TV Unit</option><option value="car">Car</option></select><button class="rb" id="rb-add-furniture" onclick="toggleAddFurniture()"><span class="rb-i">🛋️</span>PLACE</button></div><div class="rg-lbl">FURNITURE</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="saveCurrentAsIdea()"><span class="rb-i">📌</span>SAVE EDIT</button></div><div class="rg-lbl">SAVE</div></div>
   </div>
-  <div class="rg">
-    <div class="rr">
-      <button class="rb" onclick="saveProject()"><span class="rb-i">💾</span>SAVE</button>
-      <button class="rb" onclick="loadProjectPrompt()"><span class="rb-i">📂</span>LOAD</button>
-    </div>
-    <div class="rg-lbl">PROJECT</div>
+
+  <!-- OPENINGS -->
+  <div class="ribbon-panel" id="rp-openings">
+    <div class="rg"><div class="rr"><select class="ps" id="doorSizePicker" style="font-size:9px;padding:3px 4px;width:148px;height:34px"></select></div><div class="rr"><button class="rb lg" id="rb-add-door" onclick="toggleAddDoor()"><span class="rb-i">🚪</span>ADD DOOR</button></div><div class="rg-lbl">DOORS (click wall)</div></div>
+    <div class="rg"><div class="rr"><select class="ps" id="windowSizePicker" style="font-size:9px;padding:3px 4px;width:148px;height:34px"></select></div><div class="rr"><button class="rb lg" id="rb-add-window" onclick="toggleAddWindow()"><span class="rb-i">🪟</span>ADD WINDOW</button></div><div class="rg-lbl">WINDOWS (click wall)</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="uiRotate()"><span class="rb-i">↻</span>MOVE WALL</button><button class="rb" onclick="uiFlip()"><span class="rb-i">⇄</span>FLIP SWING</button></div><div class="rr"><button class="rb" onclick="uiSetSize()"><span class="rb-i">🔢</span>SET WIDTH</button><button class="rb" onclick="uiDelete()"><span class="rb-i">🗑️</span>REMOVE</button></div><div class="rg-lbl">EDIT SELECTED</div></div>
   </div>
-  <div class="rg">
-    <div class="rr">
-      <button class="rb" onclick="toggleVastu()" id="rb-vastu"><span class="rb-i">🧭</span>VASTU</button>
-      <button class="rb" onclick="cycleType()" id="rb-type"><span class="rb-i">🏠</span>VILLA</button>
-    </div>
-    <div class="rg-lbl">PROGRAM</div>
+
+  <!-- STRUCTURE -->
+  <div class="ribbon-panel" id="rp-struct">
+    <div class="rg"><div class="rr"><button class="rb" id="rb-view-column2" onclick="setView('column')"><span class="rb-i">⬛</span>COLUMNS</button><button class="rb" id="rb-view-beam2" onclick="setView('beam')"><span class="rb-i">━</span>BEAMS</button><button class="rb" id="rb-view-footing2" onclick="setView('footing')"><span class="rb-i">▦</span>FOOTINGS</button></div><div class="rr"><button class="rb" id="rb-view-load2" onclick="setView('load')"><span class="rb-i">⚖️</span>LOADS</button></div><div class="rg-lbl">STRUCT SHEETS</div></div>
+    <div class="rg"><div class="rr"><button class="rb lg" onclick="setView('frame')"><span class="rb-i">📐</span>FRAME ANALYSIS</button></div><div class="rg-lbl">ANALYSIS</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="computeLateralLoads()"><span class="rb-i">⚡</span>SEISMIC/WIND</button></div><div class="rg-lbl">LATERAL</div></div>
   </div>
-  <div class="rg">
-    <div class="rr">
-      <button class="rb" onclick="zoomBy(1.25)"><span class="rb-i">🔍</span>ZOOM IN</button>
-      <button class="rb" onclick="zoomBy(0.8)"><span class="rb-i">🔎</span>ZOOM OUT</button>
-    </div>
-    <div class="rr">
-      <button class="rb" onclick="zoomExt()"><span class="rb-i">🔭</span>EXTENTS</button>
-      <button class="rb" onclick="toggleGrid()" id="rb-grid"><span class="rb-i">⊞</span>GRID</button>
-    </div>
-    <div class="rg-lbl">VIEW</div>
+
+  <!-- 3D -->
+  <div class="ribbon-panel" id="rp-3d">
+    <div class="rg"><div class="rr"><button class="rb lg" id="rb-view-3d" onclick="setView('3d')"><span class="rb-i">🧊</span>3D ARCH</button><button class="rb lg" id="rb-view-frame" onclick="setView('frame')"><span class="rb-i">📐</span>3D FRAME</button></div><div class="rg-lbl">3D VIEWS</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="orbit3DReset()"><span class="rb-i">🎯</span>RESET CAM</button></div><div class="rr" style="gap:4px;padding:2px 4px"><label style="font-size:8px;color:var(--t);display:flex;align-items:center;gap:2px"><input type="checkbox" id="layer3dArch" checked onchange="render3D()"> Arch</label><label style="font-size:8px;color:var(--t);display:flex;align-items:center;gap:2px"><input type="checkbox" id="layer3dStruct" checked onchange="render3D()"> Struct</label></div><div class="rg-lbl">3D LAYERS</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="set3DStyle('modern')"><span class="rb-i">🏢</span>MODERN</button><button class="rb" onclick="set3DStyle('classic')"><span class="rb-i">🏛️</span>CLASSIC</button><button class="rb" onclick="set3DStyle('minimal')"><span class="rb-i">◻️</span>MINIMAL</button></div><div class="rg-lbl">BUILDING STYLE</div></div>
   </div>
-  <div class="rg">
-    <div class="rr">
-      <button class="rb" onclick="toggleLP()"><span class="rb-i">◧</span>INPUT</button>
-      <button class="rb" onclick="toggleRP()"><span class="rb-i">◨</span>PANEL</button>
-    </div>
-    <div class="rg-lbl">LAYOUT</div>
+
+  <!-- EXPORT -->
+  <div class="ribbon-panel" id="rp-export">
+    <div class="rg"><div class="rr"><button class="rb lg" onclick="exportPNG()"><span class="rb-i">🖼️</span>PNG</button><button class="rb lg" onclick="exportDXF()"><span class="rb-i">📐</span>DXF</button><button class="rb lg" onclick="printPlan()"><span class="rb-i">🖨️</span>PRINT</button></div><div class="rg-lbl">DRAWINGS</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="exportRoomsCSV()"><span class="rb-i">📊</span>ROOMS CSV</button><button class="rb" onclick="exportStructCSV()"><span class="rb-i">📊</span>STRUCT CSV</button></div><div class="rr"><button class="rb" onclick="document.getElementById('csvImportFile').click()"><span class="rb-i">📥</span>IMPORT CSV</button></div><div class="rg-lbl">DATA</div></div>
+    <div class="rg"><div class="rr"><button class="rb lg" onclick="exportStructuralPDF()"><span class="rb-i">📄</span>STRUCT REPORT</button></div><div class="rg-lbl">PDF REPORT</div></div>
   </div>
-  <div class="rg">
-    <div class="rr">
-      <button class="rb" onclick="toggleSnap()" id="rb-snap"><span class="rb-i">🧲</span>SNAP</button>
-      <button class="rb" onclick="undoEdit()"><span class="rb-i">↩</span>UNDO</button>
-      <button class="rb" onclick="redoEdit()"><span class="rb-i">↪</span>REDO</button>
-    </div>
-    <div class="rr">
-      <button class="rb" onclick="uiCopy()"><span class="rb-i">⧉</span>COPY</button>
-      <button class="rb" onclick="uiPaste()"><span class="rb-i">📋</span>PASTE</button>
-    </div>
-    <div class="rr">
-      <button class="rb" onclick="uiRotate()"><span class="rb-i">↻</span>ROTATE</button>
-      <button class="rb" onclick="uiFlip()"><span class="rb-i">⇄</span>FLIP</button>
-    </div>
-    <div class="rg-lbl">CLIPBOARD (R rotate, F flip, Del remove)</div>
-  </div>
-  <div class="rg">
-    <div class="rr">
-      <select class="ps" id="doorSizePicker" style="font-size:9px;padding:3px 4px;width:118px;height:34px"></select>
-      <button class="rb" id="rb-add-door" onclick="toggleAddDoor()"><span class="rb-i">🚪</span>ADD DOOR</button>
-    </div>
-    <div class="rr">
-      <select class="ps" id="windowSizePicker" style="font-size:9px;padding:3px 4px;width:118px;height:34px"></select>
-      <button class="rb" id="rb-add-window" onclick="toggleAddWindow()"><span class="rb-i">🪟</span>ADD WINDOW</button>
-    </div>
-    <div class="rg-lbl">OPENINGS — standard market sizes (click a wall)</div>
-  </div>
-  <div class="rg">
-    <div class="rr">
-      <button class="rb" id="rb-polygon" onclick="toggleDrawPlotPolygon()"><span class="rb-i">⬠</span>PLOT POLYGON</button>
-      <button class="rb" onclick="resetPlotRect()"><span class="rb-i">▭</span>RECT PLOT</button>
-    </div>
-    <div class="rr">
-      <button class="rb" id="rb-crosshair" onclick="toggleCrosshair()"><span class="rb-i">✛</span>CROSSHAIR</button>
-      <button class="rb" id="rb-line" onclick="toggleDrawLine()"><span class="rb-i">／</span>LINE</button>
-    </div>
-    <div class="rg-lbl">DRAW TOOLS (plot can be any shape, parallel or not)</div>
-  </div>
-  <div class="rg">
-    <div class="rr">
-      <button class="rb" onclick="uiScale(1.1)"><span class="rb-i">⤢</span>SCALE +10%</button>
-      <button class="rb" onclick="uiScale(0.9)"><span class="rb-i">⤡</span>SCALE −10%</button>
-    </div>
-    <div class="rr">
-      <button class="rb" onclick="uiScaleCustom()"><span class="rb-i">%</span>SCALE BY…</button>
-    </div>
-    <div class="rg-lbl">SCALE (selected room or item)</div>
-  </div>
-  <div class="rg">
-    <div class="rr">
-      <button class="rb lg" id="rb-view-3d" onclick="setView('3d')"><span class="rb-i">🧊</span>3D MODEL</button>
-    </div>
-    <div class="rr">
-      <button class="rb" onclick="orbit3DReset()"><span class="rb-i">↻</span>RESET VIEW</button>
-    </div>
-    <div class="rg-lbl">3D (drag orbit, scroll zoom)</div>
-  </div>
-  <div class="rg">
-    <div class="rr">
-      <select class="ps" id="furniturePicker" style="font-size:9.5px;padding:3px 5px;width:90px;height:34px">
-        <option value="bed">Bed</option>
-        <option value="sofa">Sofa</option>
-        <option value="dining_table">Dining Table</option>
-        <option value="wardrobe">Wardrobe</option>
-        <option value="wc">WC</option>
-        <option value="sink">Sink</option>
-        <option value="stove">Stove</option>
-        <option value="desk">Desk</option>
-        <option value="tv">TV Unit</option>
-        <option value="car">Car</option>
-      </select>
-      <button class="rb" id="rb-add-furniture" onclick="toggleAddFurniture()"><span class="rb-i">🛋️</span>PLACE</button>
-    </div>
-    <div class="rg-lbl">FURNITURE (click inside room)</div>
-  </div>
-  <div class="rg">
-    <div class="rr">
-      <button class="rb lg" onclick="exportPNG()"><span class="rb-i">🖼️</span>PNG</button>
-      <button class="rb lg" onclick="exportDXF()"><span class="rb-i">📐</span>DXF</button>
-      <button class="rb lg" onclick="printPlan()"><span class="rb-i">🖨️</span>PRINT</button>
-    </div>
-    <div class="rr">
-      <button class="rb" onclick="exportRoomsCSV()"><span class="rb-i">📊</span>ROOMS CSV</button>
-      <button class="rb" onclick="exportStructCSV()"><span class="rb-i">📊</span>STRUCT CSV</button>
-      <button class="rb" onclick="document.getElementById('csvImportFile').click()"><span class="rb-i">📥</span>IMPORT CSV</button>
-    </div>
-    <div class="rg-lbl">EXPORT</div>
+
+  <!-- SETTINGS -->
+  <div class="ribbon-panel" id="rp-settings">
+    <div class="rg"><div class="rr"><select class="ps" id="unitSystem" style="width:110px;font-size:10px" onchange="changeUnits()"><option value="ft">Feet (ft)</option><option value="m">Metres (m)</option><option value="mm">Millimetres (mm)</option></select></div><div class="rg-lbl">UNITS</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="toggleSnap()" id="rb-snap"><span class="rb-i">🧲</span>SNAP</button><button class="rb" onclick="toggleOrtho()" id="rb-ortho3"><span class="rb-i">⊿</span>ORTHO</button></div><div class="rg-lbl">DRAFTING</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="showSBCLookup()"><span class="rb-i">🌍</span>SOIL SBC LOOKUP</button></div><div class="rg-lbl">SOIL (FREE)</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="showMapPanel()"><span class="rb-i">🗺️</span>SATELLITE MAP</button></div><div class="rg-lbl">LOCATION</div></div>
   </div>
 </div>
 <input type="file" id="csvImportFile" accept=".csv" style="display:none" onchange="importRoomsCSV(this)">
@@ -442,6 +360,16 @@ input,select{font-family:inherit}
         <div class="fg"><label>Live Load kN/m² (used in calc — editable)</label><input class="pi" id="llInput" type="number" value="1.92" step="0.1"></div>
 
         <div class="fg" style="margin-top:6px"><label>Soil Bearing Capacity kPa</label><input class="pi" id="sbcInput" type="number" value="150" step="5"></div>
+
+        <div class="tg-title">RC Design Parameters (ACI 318 / Frame Analysis)</div>
+        <div class="g3">
+          <div class="fg"><label>f'c N/mm²</label><input class="pi" id="fcInput" type="number" value="25" step="1"></div>
+          <div class="fg"><label>fy N/mm²</label><input class="pi" id="fyInput" type="number" value="415" step="5"></div>
+          <div class="fg"><label>ρ steel %</label><input class="pi" id="rhoInput" type="number" value="1.5" step="0.1"></div>
+        </div>
+        <div class="btnRow" style="margin-top:6px"><button class="bp bw" onclick="setView('frame')">📐 Run Frame Analysis</button></div>
+        <div class="note">Click "3D FRAME" ribbon button or the above to auto-build a frame from the confirmed structural layout and run a full DSM analysis with ACI capacity checks.</div>
+
         <div class="btnRow" style="margin-top:10px"><button class="bp" onclick="generate()">↻ Recalculate Loads</button></div>
 
         <div class="tg-title">Seismic Parameters — ASCE 7-16 Ch.11/12</div>
@@ -496,6 +424,7 @@ input,select{font-family:inherit}
   <div class="vport" id="vport">
     <canvas id="cad"></canvas>
     <div id="cad3d-wrap" style="position:absolute;inset:0;display:none"></div>
+    <div id="cadframe-wrap" style="position:absolute;inset:0;display:none;flex-direction:column"></div>
     <div class="badge" id="genflag">REGENERATING&hellip;</div>
     <div class="badge" style="top:8px;left:8px" id="planBadge">PLOT <b>40' &times; 60'</b></div>
     <div class="badge" id="warnBadge">⚠ Preliminary structural schematic — not for construction</div>
@@ -523,6 +452,7 @@ input,select{font-family:inherit}
       <div class="rptab" id="rpt-struct" onclick="rpTab('struct')">Struct</div>
       <div class="rptab" id="rpt-boq" onclick="rpTab('boq')">BOQ</div>
       <div class="rptab" id="rpt-lateral" onclick="rpTab('lateral')">Lateral</div>
+      <div class="rptab" id="rpt-frameresult" onclick="rpTab('frameresult')">Frame</div>
       <div class="rptab" id="rpt-summary" onclick="rpTab('summary')">Summary</div>
     </div>
     <div class="rp-content">
@@ -622,6 +552,40 @@ input,select{font-family:inherit}
           <div class="pr"><span class="pl">Rooms placed</span><span class="pv" id="s-rooms">---</span></div>
         </div>
         <div style="padding:9px 10px;font-size:9.5px;color:var(--m);line-height:1.6">Rough quantity indicator only — not a substitute for a licensed structural engineer's BOQ.</div>
+      </div>
+      <div class="rp-sec" id="rpsec-frameresult">
+        <div class="lh"><div class="lh-t">Direct Stiffness Frame Analysis</div></div>
+        <div class="pg">
+          <div class="pgt">Status</div>
+          <div id="frameStatus" style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--m);line-height:1.6">Switch to 3D FRAME view — frame is auto-built from the confirmed structural model.</div>
+        </div>
+        <div class="pg">
+          <div class="pgt">Support Reactions (kN)</div>
+          <table class="restbl" id="frameReactTbl">
+            <thead><tr><th>Node</th><th>Fx</th><th>Fy</th><th>M kN·m</th></tr></thead>
+            <tbody id="frameReactBody"><tr><td colspan="4" style="color:var(--m)">Run analysis</td></tr></tbody>
+          </table>
+          <div id="frameEquil" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--m);margin-top:4px"></div>
+        </div>
+        <div class="pg">
+          <div class="pgt">Member Capacity (ACI 318)</div>
+          <table class="restbl" id="frameDesignTbl">
+            <thead><tr><th>Mbr</th><th>Type</th><th>Demand</th><th>Cap.</th><th>Util %</th></tr></thead>
+            <tbody id="frameDesignBody"><tr><td colspan="5" style="color:var(--m)">Run analysis</td></tr></tbody>
+          </table>
+        </div>
+        <div class="pg">
+          <div class="pgt">Suggestions / Warnings</div>
+          <div id="frameSuggest" style="font-family:'IBM Plex Mono',monospace;font-size:9px;line-height:1.7;color:var(--m)">—</div>
+        </div>
+        <div class="pg">
+          <div class="pgt">Footing Design (SBC-based)</div>
+          <table class="restbl" id="frameFootTbl">
+            <thead><tr><th>Node</th><th>Reaction</th><th>Footing</th><th>Depth</th></tr></thead>
+            <tbody id="frameFootBody"></tbody>
+          </table>
+        </div>
+        <div class="disclaimer"><b>Simplified 2D DSM solver verified against four textbook benchmarks.</b> Linear-elastic, static, 1st-order. Real construction design needs full 3D FE (ETABS), biaxial bending, ductile detailing, and a licensed structural engineer's stamp.</div>
       </div>
     </div>
   </div>
@@ -1007,30 +971,33 @@ function setView(mode){
     document.getElementById('rb-view-'+m).classList.toggle('act', m===mode);
   });
   document.getElementById('rb-view-3d').classList.toggle('act', mode==='3d');
-  const isStruct = mode !== 'arch' && mode !== '3d';
+  document.getElementById('rb-view-frame').classList.toggle('act', mode==='frame');
+  const isStruct = mode !== 'arch' && mode !== '3d' && mode !== 'frame';
   document.getElementById('archInputs').style.display = mode==='arch' ? 'block' : 'none';
-  document.getElementById('structInputs').style.display = (isStruct||mode==='3d') ? 'block' : 'none';
+  document.getElementById('structInputs').style.display = (isStruct||mode==='3d'||mode==='frame') ? 'block' : 'none';
   document.getElementById('warnBadge').style.display = isStruct ? 'block' : 'none';
   document.getElementById('badge3d').style.display = mode==='3d' ? 'block' : 'none';
   document.getElementById('layer3dToggle').style.display = mode==='3d' ? 'block' : 'none';
-  document.getElementById('planBadge').style.display = mode==='3d' ? 'none' : 'block';
+  document.getElementById('planBadge').style.display = (mode==='3d'||mode==='frame') ? 'none' : 'block';
   document.getElementById('st-view').textContent = mode.toUpperCase();
-  document.getElementById('cad').style.display = mode==='3d' ? 'none' : 'block';
+
+  // canvas visibility
+  document.getElementById('cad').style.display = (mode==='3d'||mode==='frame') ? 'none' : 'block';
   const wrap3d = document.getElementById('cad3d-wrap');
   wrap3d.style.display = mode==='3d' ? 'block' : 'none';
+  const wrapF = document.getElementById('cadframe-wrap');
+  wrapF.style.display = mode==='frame' ? 'flex' : 'none';
+
   if(mode==='3d'){
-    if(!threeReady){
-      initThreeJS(); // wrap is now display:block so clientWidth/Height are valid
-    }
-    // force renderer to match the (now-visible) container every time we enter 3D mode
-    const W = wrap3d.clientWidth || vp.clientWidth || 800;
-    const H = wrap3d.clientHeight || vp.clientHeight || 600;
-    if(threeRenderer){
-      threeCamera.aspect = W/Math.max(1,H);
-      threeCamera.updateProjectionMatrix();
-      threeRenderer.setSize(W, H);
-    }
+    if(!threeReady){ initThreeJS(); }
+    const W=wrap3d.clientWidth||vp.clientWidth||800, H=wrap3d.clientHeight||vp.clientHeight||600;
+    if(threeRenderer){ threeCamera.aspect=W/Math.max(1,H); threeCamera.updateProjectionMatrix(); threeRenderer.setSize(W,H); }
     render3D();
+  } else if(mode==='frame'){
+    if(!frameRender3Ready){ initFrameThreeJS(); }
+    const W=wrapF.clientWidth||vp.clientWidth||800, H=wrapF.clientHeight||vp.clientHeight||600;
+    if(frameRdr){ frameCam.aspect=W/Math.max(1,H); frameCam.updateProjectionMatrix(); frameRdr.setSize(W,H); }
+    runFrameAnalysis();
   } else {
     if(isStruct) rpTab('struct');
     render();
@@ -1412,16 +1379,20 @@ function doGenerateInner(){
   let buildW, buildD, buildArea, polyClipBuildable = null;
   if(plotShapeMode === 'polygon' && plotPolygon && plotPolygon.length >= 3){
     const pb = polygonBounds(plotPolygon);
-    plot = {w: pb.maxX-pb.minX, d: pb.maxY-pb.minY, polyOriginX: pb.minX, polyOriginY: pb.minY};
+    plot = {w: pb.maxX-pb.minX, d: pb.maxY-pb.minY};
     const uniformSetback = sbF; // polygon mode uses one uniform setback (Front field) for the whole boundary
     const shifted = plotPolygon.map(p=>({x:p.x-pb.minX, y:p.y-pb.minY}));
     polyClipBuildable = offsetPolygonInward(shifted, uniformSetback);
+    window._polyClipBuildable = polyClipBuildable; // expose for render() to draw inset boundary
     const bb = polygonBounds(polyClipBuildable);
     buildW = Math.max(8, bb.maxX-bb.minX);
     buildD = Math.max(8, bb.maxY-bb.minY);
-    buildArea = shoelaceArea(polyClipBuildable); // true polygon area, not the bounding-box rectangle
-    buildable = {x:bb.minX, y:bb.minY, w:buildW, h:buildD, polyOriginX:pb.minX, polyOriginY:pb.minY};
+    buildArea = shoelaceArea(polyClipBuildable);
+    // CRITICAL: rooms are rendered as world(buildable.x + r.x, buildable.y + r.y)
+    // The polygon lives at world origin pb.minX/pb.minY, so add that back here
+    buildable = {x: pb.minX + bb.minX, y: pb.minY + bb.minY, w: buildW, h: buildD};
   } else {
+    window._polyClipBuildable = null;
     buildW = Math.max(8, plotW - sbL - sbRt);
     buildD = Math.max(8, plotD - sbF - sbR);
     buildArea = buildW*buildD;
@@ -1456,7 +1427,12 @@ function doGenerateInner(){
   // degenerate/wrong areas, so we deliberately skip clipping rather than show a wrong number.
   let polyMsg = '';
   if(polyClipBuildable){
-    const localClip = polyClipBuildable.map(p=>({x:p.x-buildable.x, y:p.y-buildable.y}));
+    // rooms are in local space [0..buildW, 0..buildD] (r.x from 0, r.y from 0).
+    // polyClipBuildable is in local space relative to the shifted polygon origin (bb.minX,bb.minY).
+    // buildable.x = pb.minX + bb.minX, so to go back to room-local: subtract bb.minX = buildable.x - pb.minX
+    const pb = polygonBounds(plotPolygon);
+    const bbMinX = buildable.x - pb.minX, bbMinY = buildable.y - pb.minY;
+    const localClip = polyClipBuildable.map(p=>({x: p.x - bbMinX, y: p.y - bbMinY}));
     let clippedRoomCount = 0;
     bestPlaced.forEach(r=>{
       const rectPts = [{x:r.x,y:r.y},{x:r.x+r.w,y:r.y},{x:r.x+r.w,y:r.y+r.h},{x:r.x,y:r.y+r.h}];
@@ -1468,7 +1444,7 @@ function doGenerateInner(){
         if(r.area < fullArea*0.98) clippedRoomCount++;
       }
     });
-    polyMsg = `Irregular plot: boundary triangulated, ${clippedRoomCount} room(s) trimmed to the true land shape (works for any uneven/non-parallel boundary, not just convex). `;
+    polyMsg = `Irregular plot: boundary triangulated, ${clippedRoomCount} room(s) trimmed to the true land shape. `;
   }
 
   placed = bestPlaced;
@@ -1821,10 +1797,34 @@ function render(){
     for(let gy = startWY; gy <= endWY; gy += 5){ const p = worldToScreen(0,gy); ctx.beginPath(); ctx.moveTo(0,p.y); ctx.lineTo(W,p.y); ctx.stroke(); }
   }
 
-  const p0 = worldToScreen(0,0), p1 = worldToScreen(plot.w, plot.d);
-  ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = 1.2; ctx.setLineDash([4,5]);
-  ctx.strokeRect(p0.x, p0.y, p1.x-p0.x, p1.y-p0.y);
-  ctx.setLineDash([]);
+  // plot boundary — dashed rect in normal mode, actual polygon shape in polygon mode
+  if(plotShapeMode==='polygon' && plotPolygon && plotPolygon.length>=3){
+    // draw the actual user-drawn polygon as the outer plot boundary
+    ctx.strokeStyle = 'rgba(207,230,255,.5)'; ctx.lineWidth = 1.2; ctx.setLineDash([4,5]);
+    ctx.beginPath();
+    plotPolygon.forEach((p,i)=>{ const s=worldToScreen(p.x,p.y); i===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y); });
+    ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+    // also draw the inset buildable polygon (setback offset)
+    if(window._polyClipBuildable){
+      const pb = polygonBounds(plotPolygon);
+      ctx.strokeStyle = 'rgba(207,230,255,.25)'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+      ctx.beginPath();
+      window._polyClipBuildable.forEach((p,i)=>{
+        const s=worldToScreen(p.x+pb.minX, p.y+pb.minY);
+        i===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y);
+      });
+      ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+    }
+  } else {
+    // normal rectangular plot: dashed outer boundary
+    const _p0 = worldToScreen(0,0), _p1 = worldToScreen(plot.w, plot.d);
+    ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = 1.2; ctx.setLineDash([4,5]);
+    ctx.strokeRect(_p0.x, _p0.y, _p1.x-_p0.x, _p1.y-_p0.y);
+    ctx.setLineDash([]);
+  }
+
+  const p0 = plotShapeMode==='polygon' && plotPolygon ? (()=>{ const pb=polygonBounds(plotPolygon); return worldToScreen(pb.minX,pb.minY); })() : worldToScreen(0,0);
+  const p1 = plotShapeMode==='polygon' && plotPolygon ? (()=>{ const pb=polygonBounds(plotPolygon); return worldToScreen(pb.maxX,pb.maxY); })() : worldToScreen(plot.w, plot.d);
 
   const b0 = worldToScreen(buildable.x, buildable.y);
   const b1 = worldToScreen(buildable.x+buildable.w, buildable.y+buildable.h);
@@ -1842,6 +1842,9 @@ function render(){
   if(viewMode==='arch' && !selItem && selected !== null && placed[selected]) drawHandles(placed[selected]);
   if(viewMode==='arch' && selItem) drawItemSelection();
   if(drawMode && viewMode==='arch') drawPreviewRect();
+  // CAD plot drawing overlay (live measurement, angle, vertex labels)
+  drawCADPlotOverlay();
+
   if(drawingPlotPolygon && drawPolyPts.length){
     ctx.strokeStyle = '#4ADE80'; ctx.lineWidth = 2; ctx.setLineDash([4,3]);
     ctx.beginPath();
@@ -1900,12 +1903,9 @@ function renderArch(b0,b1){
   const extWallFt = (+document.getElementById('extWall').value || 9)/12;
   const intWallFt = (+document.getElementById('intWall').value || 4.5)/12;
 
-  if(plotShapeMode==='polygon' && plotPolygon && plotPolygon.length>=3){
-    ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = Math.max(2, extWallFt*scale);
-    ctx.beginPath();
-    plotPolygon.forEach((p,i)=>{ const s=worldToScreen(p.x,p.y); i===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y); });
-    ctx.closePath(); ctx.stroke();
-  } else {
+  // In rect mode only: draw the buildable box outline (exterior walls boundary)
+  // In polygon mode the boundary is drawn in render() above from the actual polygon points
+  if(plotShapeMode !== 'polygon'){
     ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = Math.max(2, extWallFt*scale);
     ctx.strokeRect(b0.x, b0.y, b1.x-b0.x, b1.y-b0.y);
   }
@@ -2097,6 +2097,25 @@ function drawFurniture(cx,cy,type,zoomScale,rot,sizeMul){
   } else if(type==='car'){
     ctx.strokeRect(cx-u*1.0, cy-u*2.0, u*2.0, u*4.0);
     ctx.beginPath(); ctx.moveTo(cx-u*1.0,cy-u*0.8); ctx.lineTo(cx+u*1.0,cy-u*0.8); ctx.stroke();
+  } else if(type==='bathtub'){
+    ctx.strokeRect(cx-u*0.9, cy-u*1.8, u*1.8, u*3.6);
+    ctx.beginPath(); ctx.ellipse(cx, cy+u*0.8, u*0.7, u*1.1, 0, 0, 7); ctx.stroke(); // tub oval
+    ctx.fillStyle='rgba(159,224,255,.25)'; ctx.beginPath(); ctx.ellipse(cx, cy+u*0.8, u*0.7, u*1.1, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy-u*1.3, u*0.22, 0, 7); ctx.stroke(); // tap
+  } else if(type==='shower'){
+    ctx.strokeRect(cx-u*0.9, cy-u*0.9, u*1.8, u*1.8);
+    ctx.beginPath(); ctx.arc(cx,cy,u*0.5,0,7); ctx.stroke(); // drain
+    for(let d=0;d<8;d++){const a=d*Math.PI/4; ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*u*0.55,cy+Math.sin(a)*u*0.55); ctx.lineTo(cx+Math.cos(a)*u*0.8,cy+Math.sin(a)*u*0.8); ctx.stroke();}
+  } else if(type==='fridge'){
+    ctx.strokeRect(cx-u*0.7, cy-u*1.2, u*1.4, u*2.4);
+    ctx.beginPath(); ctx.moveTo(cx-u*0.7,cy-u*0.3); ctx.lineTo(cx+u*0.7,cy-u*0.3); ctx.stroke();
+    ctx.fillStyle='rgba(167,139,250,.2)'; ctx.fillRect(cx-u*0.7,cy-u*1.2,u*1.4,u*0.9); // freezer section
+  } else if(type==='bed_single'){
+    ctx.strokeRect(cx-u*0.8, cy-u*1.8, u*1.6, u*3.2);
+    ctx.beginPath(); ctx.rect(cx-u*0.6, cy-u*1.6, u*1.2, u*0.7); ctx.stroke(); // pillow
+  } else if(type==='sofa_l'){
+    ctx.strokeRect(cx-u*1.6, cy-u*0.7, u*3.2, u*1.0); // main sofa
+    ctx.strokeRect(cx+u*1.6, cy-u*0.7, u*1.0, u*1.8); // L arm
   }
   ctx.fillStyle = '#A78BFA'; ctx.font = `${Math.max(7,u*0.5)}px IBM Plex Mono, monospace`; ctx.textAlign='center';
   ctx.fillText(type.replace('_',' '), cx, cy+u*2.3);
@@ -2346,7 +2365,10 @@ function render3D(){
       const len=Math.hypot(x2-x1,y2-y1);
       const geo = new THREE.BoxGeometry(len, dFt, wFt);
       const mesh = new THREE.Mesh(geo, beamMat);
-      mesh.position.set((x1+x2)/2, floorHeight-dFt/2, (y1+y2)/2);
+      // FIX: beams sit at top of columns, just below the slab soffit
+      // Y = floor_base + wall_height - beam_depth/2  (wall_height = floorHeight*0.92)
+      const beamY = (floors-1)*floorHeight + floorHeight*0.92 - dFt/2;
+      mesh.position.set((x1+x2)/2, beamY, (y1+y2)/2);
       mesh.rotation.y = -Math.atan2(y2-y1,x2-x1);
       threeModelGroup.add(mesh);
     });
@@ -2366,7 +2388,877 @@ function orbit3DReset(){
   threeControls.update();
 }
 
-/* ================= polygon plot tools (irregular land) ================= */
+
+/* ============================================================
+   ██████ EMBEDDED FRAME ANALYSIS ENGINE ██████
+   Verified direct stiffness method — same solver as standalone Frame tool,
+   verified against 4 closed-form textbook benchmarks.
+   Auto-builds from Airsum's structModel when you enter the 3D FRAME view.
+   ============================================================ */
+
+/* --- DSM solver (embedded, verified) --- */
+function _localK(E,A,I,L){
+  const EAL=E*A/L, EIL3=E*I/(L*L*L), L2=L*L;
+  const k=Array.from({length:6},()=>new Array(6).fill(0));
+  k[0][0]=EAL;k[0][3]=-EAL;k[3][0]=-EAL;k[3][3]=EAL;
+  const bend=[[12,6*L,-12,6*L],[6*L,4*L2,-6*L,2*L2],[-12,-6*L,12,-6*L],[6*L,2*L2,-6*L,4*L2]];
+  [1,2,4,5].forEach((r,a)=>[1,2,4,5].forEach((c,b)=>k[r][c]=EIL3*bend[a][b]));
+  return k;
+}
+function _Tmat(c,s){
+  const T=Array.from({length:6},()=>new Array(6).fill(0));
+  [[c,s,0],[-s,c,0],[0,0,1]].forEach((row,r)=>[0,1].forEach(bi=>row.forEach((v,col)=>T[bi*3+r][bi*3+col]=v)));
+  return T;
+}
+function _matMul(A,B){const n=A.length,m=B[0].length,p=B.length,C=Array.from({length:n},()=>new Array(m).fill(0));for(let i=0;i<n;i++)for(let j=0;j<m;j++){let s=0;for(let k=0;k<p;k++)s+=A[i][k]*B[k][j];C[i][j]=s;}return C;}
+function _tp(A){const n=A.length,m=A[0].length,T=Array.from({length:m},()=>new Array(n).fill(0));for(let i=0;i<n;i++)for(let j=0;j<m;j++)T[j][i]=A[i][j];return T;}
+function _mv(A,v){return A.map(r=>r.reduce((s,a,j)=>s+a*v[j],0));}
+function _fef(wY,L,c,s){const wx=-wY*s,wy=wY*c,V=-wy*L/2,M1=-wy*L*L/12,M2=wy*L*L/12,Na=-wx*L/2;return[Na,V,M1,Na,V,M2];}
+function _gauss(A0,b0){
+  const n=b0.length,A=A0.map(r=>r.slice()),b=b0.slice();
+  for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(A[r][c])>Math.abs(A[p][c]))p=r;[A[c],A[p]]=[A[p],A[c]];[b[c],b[p]]=[b[p],b[c]];const pv=A[c][c];if(Math.abs(pv)<1e-9)continue;for(let r=c+1;r<n;r++){const f=A[r][c]/pv;for(let k=c;k<n;k++)A[r][k]-=f*A[c][k];b[r]-=f*b[c];}}
+  const x=new Array(n).fill(0);for(let r=n-1;r>=0;r--){let s=b[r];for(let c=r+1;c<n;c++)s-=A[r][c]*x[c];x[r]=Math.abs(A[r][r])<1e-9?0:s/A[r][r];}return x;
+}
+function runDSMFrame({nodes,members,supports,nodalLoads}){
+  const nIdx=new Map(nodes.map((n,i)=>[n.id,i])), nd=nodes.length*3;
+  const K=Array.from({length:nd},()=>new Array(nd).fill(0)), F=new Array(nd).fill(0);
+  const mdata=members.map(m=>{
+    const n1=nodes[nIdx.get(m.n1)],n2=nodes[nIdx.get(m.n2)];
+    const dx=n2.x-n1.x,dy=n2.y-n1.y,L=Math.hypot(dx,dy),c=dx/L,s=dy/L;
+    const kL=_localK(m.E,m.A,m.I,L),T=_Tmat(c,s),Tt=_tp(T);
+    const kG=_matMul(Tt,_matMul(kL,T));
+    const feL=m.udl?_fef(m.udl,L,c,s):[0,0,0,0,0,0];
+    const feG=_mv(Tt,feL);
+    return{m,n1,n2,c,s,L,kL,T,Tt,kG,feL,feG};
+  });
+  function di(id){const i=nIdx.get(id);return[i*3,i*3+1,i*3+2];}
+  mdata.forEach(md=>{
+    const idx=[...di(md.m.n1),...di(md.m.n2)];
+    for(let a=0;a<6;a++){F[idx[a]]-=md.feG[a];for(let b=0;b<6;b++)K[idx[a]][idx[b]]+=md.kG[a][b];}
+  });
+  (nodalLoads||[]).forEach(l=>{const[iu,iv,it]=di(l.node);F[iu]+=(l.fx||0);F[iv]+=(l.fy||0);F[it]+=(l.m||0);});
+  const rest=new Array(nd).fill(false);
+  nodes.forEach(n=>{const sup=supports.get(n.id);if(!sup)return;const[iu,iv,it]=di(n.id);if(sup.ux)rest[iu]=true;if(sup.uy)rest[iv]=true;if(sup.rot)rest[it]=true;});
+  const free=[],restI=[];
+  for(let i=0;i<nd;i++)(rest[i]?restI:free).push(i);
+  const nf=free.length;
+  const Kff=Array.from({length:nf},(_,a)=>free.map(b=>K[free[a]][b]));
+  const Ff=free.map(i=>F[i]);
+  const df=_gauss(Kff,Ff);
+  const d=new Array(nd).fill(0);free.forEach((gi,li)=>d[gi]=df[li]);
+  const Kd=_mv(K,d);
+  const reactions=new Map();
+  nodes.forEach(n=>{const[iu,iv,it]=di(n.id);const sup=supports.get(n.id);if(!sup)return;reactions.set(n.id,{fx:sup.ux?Kd[iu]-F[iu]:0,fy:sup.uy?Kd[iv]-F[iv]:0,m:sup.rot?Kd[it]-F[it]:0});});
+  const displacements=new Map();
+  nodes.forEach(n=>{const[iu,iv,it]=di(n.id);displacements.set(n.id,{u:d[iu],v:d[iv],theta:d[it]});});
+  const memberForces=new Map();
+  mdata.forEach(md=>{
+    const idx=[...di(md.m.n1),...di(md.m.n2)];
+    const dG=idx.map(i=>d[i]);
+    const dL=_mv(md.T,dG);
+    const fL=_mv(md.kL,dL).map((v,i)=>v+md.feL[i]);
+    const[N1,V1,M1,N2,V2,M2]=fL;
+    const wy=md.m.udl?md.m.udl*md.c:0;
+    memberForces.set(md.m.id,{N1,V1,M1,N2,V2,M2,L:md.L,c:md.c,s:md.s,
+      sample:x=>({N:N1, V:V1+wy*x, M:M1-V1*x-(wy*x*x)/2})
+    });
+  });
+  return{displacements,reactions,memberForces};
+}
+
+/* --- ACI 318 capacity checks --- */
+const FRAME_SECTIONS = {
+  'RC 230x230':{E:25e9,A:0.0529,I:2.0e-4,w:230,d:230,kind:'column'},
+  'RC 300x300':{E:25e9,A:0.09,I:6.75e-4,w:300,d:300,kind:'column'},
+  'RC 350x350':{E:25e9,A:0.1225,I:1.25e-3,w:350,d:350,kind:'column'},
+  'RC 400x400':{E:25e9,A:0.16,I:2.13e-3,w:400,d:400,kind:'column'},
+  'RC 450x450':{E:25e9,A:0.2025,I:3.42e-3,w:450,d:450,kind:'column'},
+  'RC 500x500':{E:25e9,A:0.25,I:5.21e-3,w:500,d:500,kind:'column'},
+  'RC 230x450':{E:25e9,A:0.1035,I:0.001747,w:230,d:450,kind:'beam'},
+  'RC 230x600':{E:25e9,A:0.138,I:0.00414,w:230,d:600,kind:'beam'},
+  'RC 300x600':{E:25e9,A:0.18,I:0.0054,w:300,d:600,kind:'beam'},
+  'RC 350x450':{E:25e9,A:0.1575,I:0.00266,w:350,d:450,kind:'beam'},
+};
+function sectionForLoad(loadKN){
+  if(loadKN>2000) return 'RC 500x500';
+  if(loadKN>1400) return 'RC 450x450';
+  if(loadKN>950) return 'RC 400x400';
+  if(loadKN>580) return 'RC 350x350';
+  if(loadKN>250) return 'RC 300x300';
+  return 'RC 230x230';
+}
+function sectionForBeamSpan(spanFt){
+  if(spanFt>20) return 'RC 300x600';
+  if(spanFt>14) return 'RC 230x600';
+  if(spanFt>9)  return 'RC 230x450';
+  return 'RC 230x450';
+}
+function colCapKN(wMM,dMM,fc,fy,rhoPct){const Ag=wMM*dMM,Ast=Ag*(rhoPct/100);return 0.8*0.65*(0.85*fc*(Ag-Ast)+fy*Ast)/1000;}
+function beamCap(wMM,dMM,fc,fy,rhoPct){
+  const d=dMM-50,As=wMM*d*(rhoPct/100);
+  const a=(As*fy)/(0.85*fc*wMM);
+  const phiMn=0.9*As*fy*(d-a/2)/1e6;
+  const phiVn=0.75*0.17*Math.sqrt(fc)*wMM*d/1000;
+  return{phiMn,phiVn};
+}
+function suggestColSection(PuKN,fc,fy,rho){
+  const order=['RC 230x230','RC 300x300','RC 350x350','RC 400x400','RC 450x450','RC 500x500'];
+  for(const k of order){const s=FRAME_SECTIONS[k];if(colCapKN(s.w,s.d,fc,fy,rho)>=PuKN)return k;}
+  return null;
+}
+
+/* --- Frame state --- */
+let frameResult = null;
+let frameNodes = [], frameMembers = [];
+let frameSupports = new Map();
+let frameRender3Ready = false;
+let frameSc, frameCam, frameRdr, frameCtrl, frameGroup;
+
+/* --- Auto-build frame model from Airsum's structModel --- */
+function buildFrameModelFromStruct(){
+  const floors = +document.getElementById('floors').value || 1;
+  const floorH = 3.0; // 3m per floor (metric, m)
+  const DL = +document.getElementById('dlInput').value || 4.5;
+  const LL = +document.getElementById('llInput').value || 2.0;
+  const ftToM = 0.3048;
+
+  const cols = structModel.columns;
+  const beams = structModel.beams;
+  if(!cols.length) return null;
+
+  // use X-direction frames (slice at each unique Y, analyse a 2D frame per row)
+  // pick the most-loaded row (most columns) as the representative governing frame
+  const uniqueYs = [...new Set(cols.map(c=>Math.round(c.y*10)/10))].sort((a,b)=>a-b);
+  let bestY = uniqueYs[0], bestCount = 0;
+  uniqueYs.forEach(y=>{
+    const count = cols.filter(c=>Math.abs(c.y-y)<0.5).length;
+    if(count>bestCount){bestCount=count;bestY=y;}
+  });
+  const frameCols = cols.filter(c=>Math.abs(c.y-bestY)<0.5).sort((a,b)=>a.x-b.x);
+  if(frameCols.length<2) return null; // need at least 2 columns for a frame
+
+  const nodes = [], members = [];
+  let nId=1, mId=1;
+  const sup = new Map();
+  const loads = [];
+  const nodeMap = new Map(); // key: "x,floor" -> nodeId
+
+  const colSec = (loadKN)=>FRAME_SECTIONS[sectionForLoad(loadKN)];
+  const beamSec = (spanFt)=>FRAME_SECTIONS[sectionForBeamSpan(spanFt)];
+
+  // build nodes: each column gets nodes at each floor level
+  frameCols.forEach(col=>{
+    const xm = col.x * ftToM; // convert ft to m
+    for(let fl=0;fl<=floors;fl++){
+      const ym = fl*floorH;
+      const id = nId++;
+      nodes.push({id, x:xm, y:ym});
+      nodeMap.set(`${Math.round(col.x*10)},${fl}`, id);
+      if(fl===0) sup.set(id, {ux:true, uy:true, rot:true}); // fixed base
+    }
+  });
+
+  // column members: connect floor-to-floor vertically
+  frameCols.forEach((col,ci)=>{
+    const sec = colSec(col.loadKN||200);
+    for(let fl=0;fl<floors;fl++){
+      const n1 = nodeMap.get(`${Math.round(col.x*10)},${fl}`);
+      const n2 = nodeMap.get(`${Math.round(col.x*10)},${fl+1}`);
+      members.push({id:mId++, n1, n2, ...sec, kind:'column', udl:0});
+    }
+  });
+
+  // beam members: connect column tops at each floor
+  for(let fl=1;fl<=floors;fl++){
+    for(let ci=0;ci<frameCols.length-1;ci++){
+      const c1=frameCols[ci], c2=frameCols[ci+1];
+      const n1 = nodeMap.get(`${Math.round(c1.x*10)},${fl}`);
+      const n2 = nodeMap.get(`${Math.round(c2.x*10)},${fl}`);
+      const spanFt = Math.abs(c2.x-c1.x);
+      const spanM = spanFt*ftToM;
+      const sec = beamSec(spanFt);
+      const udl = -(DL+LL)*1000 * Math.min(6, (structModel.beams.find(b=>
+        Math.abs(b.x1-c1.x)<1&&Math.abs(b.x2-c2.x)<1)||{}).span||5)*ftToM; // tributary width approximation
+      members.push({id:mId++, n1, n2, ...sec, kind:'beam', udl: -Math.abs((DL+LL)*1000*3)});
+    }
+  }
+
+  return {nodes, members, supports:sup, nodalLoads:loads};
+}
+
+/* --- Init Three.js for Frame view (separate renderer) --- */
+function initFrameThreeJS(){
+  const wrap = document.getElementById('cadframe-wrap');
+  const W = wrap.clientWidth||vp.clientWidth||800, H = wrap.clientHeight||vp.clientHeight||600;
+  frameSc = new THREE.Scene();
+  frameSc.background = new THREE.Color(0x04090f);
+  frameCam = new THREE.PerspectiveCamera(45, W/Math.max(1,H), 0.01, 1000);
+  frameRdr = new THREE.WebGLRenderer({antialias:true});
+  frameRdr.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  frameRdr.setSize(W,H);
+  wrap.appendChild(frameRdr.domElement);
+  frameCtrl = new THREE.OrbitControls(frameCam, frameRdr.domElement);
+  frameCtrl.enableDamping=true; frameCtrl.dampingFactor=0.08;
+  frameSc.add(new THREE.AmbientLight(0xffffff,0.5));
+  const sl=new THREE.DirectionalLight(0xffffff,0.9); sl.position.set(20,30,20); frameSc.add(sl);
+  const fl2=new THREE.DirectionalLight(0x4488ff,0.3); fl2.position.set(-10,10,-10); frameSc.add(fl2);
+  frameGroup=new THREE.Group(); frameSc.add(frameGroup);
+  frameRender3Ready=true;
+  (function af(){requestAnimationFrame(af);if(viewMode==='frame'){frameCtrl.update();frameRdr.render(frameSc,frameCam);}})();
+  new ResizeObserver(()=>{
+    if(!frameRender3Ready)return;
+    const w=wrap.clientWidth,h=wrap.clientHeight;if(w<1||h<1)return;
+    frameCam.aspect=w/h; frameCam.updateProjectionMatrix(); frameRdr.setSize(w,h);
+  }).observe(wrap);
+}
+
+/* --- Build and render the 3D Frame --- */
+function render3DFrame(){
+  if(!frameRender3Ready) return;
+  frameSc.remove(frameGroup);
+  frameGroup=new THREE.Group(); frameSc.add(frameGroup);
+
+  if(!frameResult || !frameNodes.length){
+    // placeholder box if no analysis yet
+    const ph=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x1FA8D9,wireframe:true}));
+    ph.position.set(0,0.5,0); frameGroup.add(ph);
+    frameCam.position.set(3,3,5); frameCtrl.target.set(0,1,0); frameCtrl.update();
+    return;
+  }
+
+  const fc = +document.getElementById('fcInput')?.value || 25;
+  const fy = +document.getElementById('fyInput')?.value || 415;
+  const rho = +document.getElementById('rhoInput')?.value || 1.5;
+  const maxDisp = Math.max(0.0001, ...[...frameResult.displacements.values()].map(d=>Math.hypot(d.u,d.v)));
+  const dispAmp = Math.min(0.5, 0.3/maxDisp); // exaggerated for visibility, capped
+
+  // --- ground grid ---
+  const minX = Math.min(...frameNodes.map(n=>n.x)), maxX = Math.max(...frameNodes.map(n=>n.x));
+  const gSize = (maxX-minX)+3;
+  const gg=new THREE.GridHelper(gSize,20,0x1FA8D9,0x0d2d48);
+  gg.position.set((minX+maxX)/2,-0.01,0); frameGroup.add(gg);
+
+  // --- find max BMD/SFD for scaling ---
+  let maxM=0.0001, maxV=0.0001;
+  frameResult.memberForces.forEach(f=>{
+    for(let i=0;i<=20;i++){const x=f.L*i/20;const s=f.sample(x);maxM=Math.max(maxM,Math.abs(s.M));maxV=Math.max(maxV,Math.abs(s.V));}
+  });
+  const diagScale = Math.min(0.4, 0.2*(maxX-minX)/Math.max(maxM/1000, 0.001));
+
+  const matCol=new THREE.MeshStandardMaterial({color:0x4ADE80,roughness:0.5});
+  const matBeam=new THREE.MeshStandardMaterial({color:0x60a5fa,roughness:0.5});
+  const matFoot=new THREE.MeshStandardMaterial({color:0xF5BE18,roughness:0.8,transparent:true,opacity:0.7});
+  const matGround=new THREE.MeshStandardMaterial({color:0x8B6914,roughness:0.9});
+  const sbc = +document.getElementById('sbcInput')?.value || 150;
+
+  frameMembers.forEach(m=>{
+    const n1=frameNodes.find(n=>n.id===m.n1), n2=frameNodes.find(n=>n.id===m.n2);
+    const d1=frameResult.displacements.get(m.n1)||{u:0,v:0};
+    const d2=frameResult.displacements.get(m.n2)||{u:0,v:0};
+    // deformed positions
+    const p1x=n1.x+d1.u*dispAmp, p1y=n1.y+d1.v*dispAmp;
+    const p2x=n2.x+d2.u*dispAmp, p2y=n2.y+d2.v*dispAmp;
+    const isCol = m.kind==='column';
+    const sec = FRAME_SECTIONS[m._secName]||{w:300,d:300};
+    const wM=(sec.w||300)/1000, dM=(sec.d||300)/1000;
+    const len=Math.hypot(n2.x-n1.x,n2.y-n1.y);
+    const angle=-Math.atan2(n2.y-n1.y,n2.x-n1.x);
+
+    // ACI capacity check — colour member by utilisation
+    const f=frameResult.memberForces.get(m.id);
+    let util=0;
+    if(isCol){
+      const Pu=Math.max(Math.abs(f.N1),Math.abs(f.N2))/1000;
+      const cap=colCapKN(sec.w,sec.d,fc,fy,rho);
+      util=Pu/cap;
+    } else {
+      let maxMdem=0,maxVdem=0;
+      for(let i=0;i<=20;i++){const x=f.L*i/20;const s=f.sample(x);maxMdem=Math.max(maxMdem,Math.abs(s.M));maxVdem=Math.max(maxVdem,Math.abs(s.V));}
+      const cap=beamCap(sec.w,sec.d,fc,fy,rho);
+      util=Math.max(maxMdem/1000/cap.phiMn, maxVdem/1000/cap.phiVn);
+    }
+    const col = util<0.7?0x4ADE80: util<=1.0?0xF5BE18: 0xff4466;
+    const mat=new THREE.MeshStandardMaterial({color:col,roughness:0.45});
+
+    // member as rectangular prism
+    const geo=new THREE.BoxGeometry(len, isCol?dM:wM, isCol?wM:dM);
+    const mesh=new THREE.Mesh(geo,mat);
+    const mx=(p1x+p2x)/2, my=(p1y+p2y)/2;
+    mesh.position.set(mx,my,0);
+    mesh.rotation.z=angle;
+    frameGroup.add(mesh);
+
+    // BMD ribbon along the member (in the Z plane for 2D frame)
+    const steps=30;
+    const bmdPts=[], sfdPts=[];
+    for(let i=0;i<=steps;i++){
+      const t=i/steps;
+      const x=f.L*t;
+      const s=f.sample(x);
+      const M=s.M/1000/maxM*diagScale; // normalised, scaled
+      const V=s.V/1000/maxV*diagScale;
+      const bx=n1.x+(n2.x-n1.x)*t, by=n1.y+(n2.y-n1.y)*t;
+      const nx_=-(n2.y-n1.y)/len, ny_=(n2.x-n1.x)/len; // perp to member
+      bmdPts.push(new THREE.Vector3(bx+nx_*M, by+ny_*M, 0.05));
+      sfdPts.push(new THREE.Vector3(bx+nx_*V, by+ny_*V, -0.05));
+    }
+    const bmdGeo=new THREE.BufferGeometry().setFromPoints(bmdPts);
+    frameGroup.add(new THREE.Line(bmdGeo, new THREE.LineBasicMaterial({color:0xA78BFA,linewidth:1.5})));
+    const sfdGeo=new THREE.BufferGeometry().setFromPoints(sfdPts);
+    frameGroup.add(new THREE.Line(sfdGeo, new THREE.LineBasicMaterial({color:0xFB5B6E,linewidth:1.5})));
+
+    // member label
+    const peak = (()=>{let mx=0,at=0;for(let i=0;i<=20;i++){const x=f.L*i/20;if(Math.abs(f.sample(x).M)>mx){mx=Math.abs(f.sample(x).M);at=i/20;}}return{v:mx/1000,t:at};})();
+    makeFrameLabel(`M${m.id}\n${peak.v.toFixed(1)}kN·m`, n1.x+(n2.x-n1.x)*peak.t, n1.y+(n2.y-n1.y)*peak.t, 0.12);
+
+    // footing below ground for column bases (only at base nodes)
+    if(isCol && n1.y < 0.1){
+      const reaction=frameResult.reactions.get(m.n1);
+      if(reaction){
+        const fy_=Math.abs(reaction.fy)/1000;
+        const footSide=Math.sqrt(fy_/Math.max(1,sbc));
+        const fgeo=new THREE.BoxGeometry(footSide,0.45,footSide);
+        const fmesh=new THREE.Mesh(fgeo,matFoot);
+        fmesh.position.set(n1.x,-0.45/2,0);
+        frameGroup.add(fmesh);
+        // soil below
+        const sgeo=new THREE.BoxGeometry(footSide*1.4,0.15,footSide*1.4);
+        const sm=new THREE.Mesh(sgeo,matGround);
+        sm.position.set(n1.x,-0.55,0);
+        frameGroup.add(sm);
+        makeFrameLabel(`Fting\n${footSide.toFixed(2)}m`, n1.x, -0.8, 0);
+      }
+    }
+  });
+
+  // node dots
+  frameNodes.forEach(n=>{
+    const isBase=frameSupports.get(n.id)?.ux===true;
+    const geo=new THREE.SphereGeometry(0.05,10,10);
+    const mat2=new THREE.MeshStandardMaterial({color:isBase?0xF5BE18:0xffffff});
+    const m2=new THREE.Mesh(geo,mat2);
+    m2.position.set(n.x,n.y,0);
+    frameGroup.add(m2);
+    // fixed-base marker
+    if(isBase){
+      const pg=new THREE.PlaneGeometry(0.3,0.15);
+      const pm=new THREE.Mesh(pg,new THREE.MeshStandardMaterial({color:0x8B6914}));
+      pm.position.set(n.x,-0.08,0);
+      frameGroup.add(pm);
+    }
+  });
+
+  // reaction arrows
+  frameResult.reactions.forEach((r,nodeId)=>{
+    const n=frameNodes.find(nd=>nd.id===nodeId);
+    if(!n||Math.abs(r.fy)<0.1)return;
+    const arrowDir=new THREE.Vector3(0,r.fy>0?1:-1,0).normalize();
+    const origin=new THREE.Vector3(n.x,n.y+(r.fy>0?-0.5:0.5),0);
+    const arr=new THREE.ArrowHelper(arrowDir,origin,0.4,0xF5BE18,0.12,0.07);
+    frameGroup.add(arr);
+    makeFrameLabel(`${(r.fy/1000).toFixed(1)}kN`, n.x, n.y+(r.fy>0?-0.8:0.8), 0.08);
+  });
+
+  // legend sprites
+  makeLegendBar();
+
+  // frame camera
+  const allX=frameNodes.map(n=>n.x), allY=frameNodes.map(n=>n.y);
+  const cx=(Math.min(...allX)+Math.max(...allX))/2, cy=(Math.min(...allY)+Math.max(...allY))/2;
+  const span=Math.max(Math.max(...allX)-Math.min(...allX), Math.max(...allY)-Math.min(...allY), 2)*1.5;
+  frameCam.position.set(cx, cy, span*1.2);
+  frameCtrl.target.set(cx,cy,0);
+  frameCtrl.update();
+}
+
+function makeFrameLabel(text, x, y, size){
+  // canvas-based sprite for crisp text at any zoom
+  const lines=text.split('\n');
+  const cvs=document.createElement('canvas'); cvs.width=256; cvs.height=lines.length*48+16;
+  const gc=cvs.getContext('2d');
+  gc.fillStyle='rgba(6,14,26,0.0)'; gc.fillRect(0,0,cvs.width,cvs.height);
+  gc.fillStyle='#fff'; gc.font='700 36px IBM Plex Mono, monospace'; gc.textAlign='center';
+  lines.forEach((l,i)=>gc.fillText(l,128,44+i*44));
+  const tex=new THREE.CanvasTexture(cvs);
+  const mat=new THREE.SpriteMaterial({map:tex,transparent:true});
+  const spr=new THREE.Sprite(mat);
+  spr.position.set(x,y,0.3);
+  spr.scale.set(size*(cvs.width/cvs.height)*lines.length*0.6, size*lines.length*0.6, 1);
+  frameGroup.add(spr);
+}
+function makeLegendBar(){
+  const items=[{c:0x4ADE80,l:'< 70%'},{c:0xF5BE18,l:'70–100%'},{c:0xff4466,l:'> 100%'},{c:0xA78BFA,l:'BMD'},{c:0xFB5B6E,l:'SFD'}];
+  items.forEach((it,i)=>{
+    const cvs=document.createElement('canvas');cvs.width=192;cvs.height=48;
+    const gc=cvs.getContext('2d');
+    gc.fillStyle='rgba(6,14,26,0.75)';gc.fillRect(0,0,192,48);
+    const h=`#${it.c.toString(16).padStart(6,'0')}`;
+    gc.fillStyle=h;gc.fillRect(8,12,24,24);
+    gc.fillStyle='#cfe6ff';gc.font='700 26px IBM Plex Mono, monospace';gc.textAlign='left';
+    gc.fillText(it.l,40,36);
+    const tex=new THREE.CanvasTexture(cvs);
+    const mat=new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false});
+    const spr=new THREE.Sprite(mat);
+    const allX=frameNodes.map(n=>n.x);
+    spr.position.set(Math.max(...allX)+1.2, Math.max(...frameNodes.map(n=>n.y))-i*0.4, 0);
+    spr.scale.set(1.8,0.38,1);
+    frameGroup.add(spr);
+  });
+}
+
+/* --- Run full frame analysis & populate results panel --- */
+function runFrameAnalysis(){
+  document.getElementById('frameStatus').textContent = 'Building frame model from confirmed structural layout…';
+  const frameModel = buildFrameModelFromStruct();
+  if(!frameModel || frameModel.nodes.length<2){
+    document.getElementById('frameStatus').textContent = '⚠ Not enough columns to build a frame — generate a plan with at least 2 columns in a row first.';
+    return;
+  }
+  frameNodes = frameModel.nodes;
+  frameMembers = frameModel.members;
+  frameSupports = frameModel.supports;
+
+  // attach section name to each member for capacity checks
+  frameMembers.forEach(m=>{
+    m._secName = Object.keys(FRAME_SECTIONS).find(k=>{
+      const s=FRAME_SECTIONS[k];
+      return Math.abs(s.A-m.A)<0.001 && Math.abs(s.I-m.I)<0.0001;
+    })||'RC 300x300';
+  });
+
+  try{
+    const restraintCount = [...frameModel.supports.values()].reduce((s,sup)=>s+(sup.ux?1:0)+(sup.uy?1:0)+(sup.rot?1:0),0);
+    if(restraintCount<3) throw new Error('Insufficient restraints — check that base supports are fixed');
+    frameResult = runDSMFrame(frameModel);
+    document.getElementById('frameStatus').innerHTML = `<span style="color:#4ADE80">✓ SOLVED</span> — ${frameNodes.length} nodes, ${frameMembers.length} members (${frameMembers.filter(m=>m.kind==='column').length} columns, ${frameMembers.filter(m=>m.kind==='beam').length} beams)`;
+    populateFrameResultsPanel();
+    render3DFrame();
+  } catch(err){
+    document.getElementById('frameStatus').textContent = '⚠ Solve error: '+err.message;
+    console.error(err);
+  }
+}
+
+function populateFrameResultsPanel(){
+  if(!frameResult) return;
+  const fc=+document.getElementById('fcInput')?.value||25;
+  const fy=+document.getElementById('fyInput')?.value||415;
+  const rho=+document.getElementById('rhoInput')?.value||1.5;
+  const sbc=+document.getElementById('sbcInput')?.value||150;
+
+  // reactions
+  const rb=document.getElementById('frameReactBody'); rb.innerHTML='';
+  let sumFx=0,sumFy=0;
+  frameResult.reactions.forEach((r,nodeId)=>{
+    sumFx+=r.fx; sumFy+=r.fy;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>N${nodeId}</td><td>${(r.fx/1000).toFixed(2)}</td><td>${(r.fy/1000).toFixed(2)}</td><td>${(r.m/1000).toFixed(2)}</td>`;
+    rb.appendChild(tr);
+  });
+  let totalFy=0;
+  frameMembers.forEach(m=>{if(m.udl&&m.kind==='beam'){const n1=frameNodes.find(n=>n.id===m.n1),n2=frameNodes.find(n=>n.id===m.n2);totalFy+=m.udl*Math.hypot(n2.x-n1.x,n2.y-n1.y);}});
+  const chkFy=Math.abs(sumFy+totalFy)<1;
+  document.getElementById('frameEquil').innerHTML=`ΣFy: ${(sumFy/1000).toFixed(2)} + ${(totalFy/1000).toFixed(2)} = ${((sumFy+totalFy)/1000).toFixed(3)} kN ${chkFy?'<span style="color:#4ADE80">✓</span>':'<span style="color:#ff4466">✗</span>'}`;
+
+  // capacity checks
+  const db=document.getElementById('frameDesignBody'); db.innerHTML='';
+  const suggestions=[];
+  frameMembers.forEach(m=>{
+    const f=frameResult.memberForces.get(m.id);
+    const sec=FRAME_SECTIONS[m._secName]||{w:300,d:300};
+    if(m.kind==='column'){
+      const Pu=Math.max(Math.abs(f.N1),Math.abs(f.N2))/1000;
+      const cap=colCapKN(sec.w,sec.d,fc,fy,rho);
+      const util=Pu/cap;
+      const color=util<0.7?'#4ADE80':util<=1.0?'#F5BE18':'#ff4466';
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>M${m.id}</td><td>Col axial</td><td>${Pu.toFixed(0)} kN</td><td>${cap.toFixed(0)} kN</td><td style="color:${color};font-weight:700">${(util*100).toFixed(0)}%</td>`;
+      db.appendChild(tr);
+      if(util>1.0){const s=suggestColSection(Pu,fc,fy,rho);suggestions.push(`⚠ M${m.id}(${m._secName}) overstressed ${(util*100).toFixed(0)}% — suggest <b>${s||'increase ρ%'}</b>`);}
+    } else {
+      let maxMdem=0,maxVdem=0;
+      for(let i=0;i<=20;i++){const x=f.L*i/20;const s=f.sample(x);maxMdem=Math.max(maxMdem,Math.abs(s.M));maxVdem=Math.max(maxVdem,Math.abs(s.V));}
+      const cap=beamCap(sec.w,sec.d,fc,fy,rho);
+      const utilM=maxMdem/1000/cap.phiMn, utilV=maxVdem/1000/cap.phiVn;
+      const util=Math.max(utilM,utilV);
+      const color=util<0.7?'#4ADE80':util<=1.0?'#F5BE18':'#ff4466';
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>M${m.id}</td><td>Beam M/V</td><td>${(maxMdem/1000).toFixed(1)} kN·m</td><td>${cap.phiMn.toFixed(1)} kN·m</td><td style="color:${color};font-weight:700">${(util*100).toFixed(0)}%</td>`;
+      db.appendChild(tr);
+      if(utilM>1.0) suggestions.push(`⚠ M${m.id}(${m._secName}) flexure overstressed ${(utilM*100).toFixed(0)}%`);
+      if(utilV>1.0) suggestions.push(`⚠ M${m.id} shear overstressed ${(utilV*100).toFixed(0)}% — add stirrups or increase width`);
+    }
+  });
+  document.getElementById('frameSuggest').innerHTML = suggestions.length
+    ? suggestions.map(s=>`<div style="color:#ff4466;margin-bottom:3px">${s}</div>`).join('')
+    : '<span style="color:#4ADE80">✓ All members pass at current sections and ρ='+rho+'%</span>';
+
+  // footings
+  const fb=document.getElementById('frameFootBody'); fb.innerHTML='';
+  frameResult.reactions.forEach((r,nodeId)=>{
+    const sup=frameSupports.get(nodeId);
+    if(!sup?.uy) return;
+    const fy_=Math.abs(r.fy)/1000;
+    const side=Math.sqrt(fy_/Math.max(1,sbc));
+    const depth=0.45+side*0.3; // rule-of-thumb depth
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>N${nodeId}</td><td>${fy_.toFixed(1)} kN</td><td>${side.toFixed(2)}m × ${side.toFixed(2)}m</td><td>${depth.toFixed(2)}m</td>`;
+    fb.appendChild(tr);
+  });
+
+  rpTab('frameresult');
+}
+
+/* ================= ribbon tab switching ================= */
+function switchRibbon(panelId){
+  document.querySelectorAll('.rtab').forEach(t=>t.classList.toggle('act', t.dataset.panel===panelId));
+  document.querySelectorAll('.ribbon-panel').forEach(p=>p.classList.toggle('act', p.id===panelId));
+}
+
+/* ================= unit system ================= */
+let unitSys = 'ft'; // 'ft' | 'm' | 'mm'
+const UNIT_FACTOR = {ft:1, m:0.3048, mm:304.8}; // 1 plan unit = X of selected unit
+function changeUnits(){
+  unitSys = document.getElementById('unitSystem').value;
+  render();
+  document.getElementById('cmdMsg').textContent = `Units changed to ${unitSys}. Display only — internal model stays in feet.`;
+}
+function displayVal(ft){ // convert feet to display units for labels
+  if(unitSys==='m') return (ft*0.3048).toFixed(2)+'m';
+  if(unitSys==='mm') return Math.round(ft*304.8)+'mm';
+  return ft.toFixed(1)+"'";
+}
+
+/* ================= ORTHO mode (constrain drawing to 45° increments) ================= */
+let orthoMode = false;
+function toggleOrtho(){
+  orthoMode = !orthoMode;
+  ['rb-ortho','rb-ortho3'].forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.toggle('act',orthoMode); });
+  document.getElementById('cmdMsg').textContent = `ORTHO ${orthoMode?'ON (lines snap to 90°)':'OFF'}`;
+}
+function applyOrtho(startPt, endPt){
+  if(!orthoMode) return endPt;
+  const dx=endPt.x-startPt.x, dy=endPt.y-startPt.y;
+  const angle=Math.atan2(dy,dx), snap45=Math.round(angle/(Math.PI/4))*(Math.PI/4);
+  const len=Math.hypot(dx,dy);
+  return {x:startPt.x+Math.cos(snap45)*len, y:startPt.y+Math.sin(snap45)*len};
+}
+
+/* ================= CAD PLOT DRAWING ENGINE ================= */
+// Click vertices, see live measurement+angle, type a length to constrain, finish with ENTER or button.
+let cadPlotMode = false;
+let cadPts = [];        // [{x,y}] world coords of confirmed vertices
+let cadCursor = null;   // current mouse world position while drawing
+let cadInputActive = false;
+let cadInputEl = null;
+
+function startCADPlot(){
+  cadPlotMode = true; cadPts = []; cadCursor = null;
+  plotShapeMode = 'rect'; plotPolygon = null; window._polyClipBuildable = null;
+  document.getElementById('rb-cadplot').classList.add('act');
+  vp.style.cursor = 'crosshair';
+  switchRibbon('rp-draw');
+  document.getElementById('cmdMsg').textContent = '✏️ CAD PLOT DRAWING — click to place vertex 1. Type a length and press Enter to constrain. Double-click or press Enter on last vertex to close.';
+  render();
+}
+function undoCADVertex(){
+  if(cadPts.length) cadPts.pop();
+  document.getElementById('cmdMsg').textContent = `Removed last vertex. ${cadPts.length} vertices placed.`;
+  render();
+}
+function finishCADPlot(){
+  if(cadPts.length<3){ document.getElementById('cmdMsg').textContent = '⚠ Need at least 3 vertices to define a plot boundary.'; return; }
+  plotPolygon = cadPts.slice();
+  plotShapeMode = 'polygon';
+  cadPlotMode = false; cadPts = []; cadCursor = null;
+  document.getElementById('rb-cadplot').classList.remove('act');
+  vp.style.cursor = 'grab';
+  hideCadInput();
+  regenerateNow('CAD drawn plot');
+  document.getElementById('cmdMsg').textContent = `✓ Plot boundary set (${plotPolygon.length} vertices) — plan regenerated inside the new plot.`;
+}
+function showCadInput(x,y){
+  if(cadInputEl) cadInputEl.remove();
+  cadInputEl = document.createElement('input');
+  cadInputEl.type='number'; cadInputEl.step='0.5'; cadInputEl.placeholder='type length…';
+  cadInputEl.style.cssText=`position:absolute;left:${x+12}px;top:${y-28}px;width:100px;background:#040c18;border:1.5px solid #4ADE80;color:#4ADE80;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;padding:3px 6px;border-radius:3px;z-index:999;outline:none`;
+  vp.appendChild(cadInputEl);
+  cadInputEl.focus();
+  cadInputEl.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      const val=parseFloat(cadInputEl.value);
+      if(!isNaN(val) && val>0 && cadPts.length>=1 && cadCursor){
+        const last=cadPts[cadPts.length-1];
+        const dx=cadCursor.x-last.x, dy=cadCursor.y-last.y, len=Math.hypot(dx,dy)||1;
+        const pt = applyOrtho(last,{x:last.x+dx/len*val, y:last.y+dy/len*val});
+        cadPts.push({x:snapVal(pt.x), y:snapVal(pt.y)});
+        hideCadInput();
+        render();
+      }
+    } else if(e.key==='Escape'){ hideCadInput(); }
+    e.stopPropagation();
+  });
+}
+function hideCadInput(){ if(cadInputEl){ cadInputEl.remove(); cadInputEl=null; } }
+function drawCADPlotOverlay(){
+  if(!cadPlotMode) return;
+  const allPts = cadCursor ? [...cadPts, cadCursor] : cadPts;
+  if(allPts.length<2) return;
+  ctx.save();
+  // polygon fill preview
+  if(allPts.length>=3){
+    ctx.fillStyle='rgba(74,222,128,.08)';
+    ctx.beginPath();
+    allPts.forEach((p,i)=>{ const s=worldToScreen(p.x,p.y); i===0?ctx.moveTo(s.x,s.y):ctx.lineTo(s.x,s.y); });
+    ctx.closePath(); ctx.fill();
+  }
+  // edges with length + angle labels
+  for(let i=0;i<allPts.length-1+(cadCursor?1:0);i++){
+    const p1=allPts[i], p2=allPts[(i+1)%allPts.length];
+    if(!p2) continue;
+    const s1=worldToScreen(p1.x,p1.y), s2=worldToScreen(p2.x,p2.y);
+    const isLastSeg = i===allPts.length-1||(cadCursor&&i===allPts.length-2);
+    ctx.strokeStyle = isLastSeg?'#4ADE80':'rgba(74,222,128,.6)';
+    ctx.lineWidth = isLastSeg?2:1.5;
+    ctx.setLineDash(isLastSeg?[5,4]:[]); ctx.beginPath(); ctx.moveTo(s1.x,s1.y); ctx.lineTo(s2.x,s2.y); ctx.stroke(); ctx.setLineDash([]);
+    const len=Math.hypot(p2.x-p1.x,p2.y-p1.y);
+    const angle=Math.atan2(p2.y-p1.y,p2.x-p1.x)*180/Math.PI;
+    const midX=(s1.x+s2.x)/2, midY=(s1.y+s2.y)/2;
+    ctx.fillStyle='#4ADE80'; ctx.font='700 10px IBM Plex Mono, monospace'; ctx.textAlign='center';
+    ctx.fillStyle='rgba(4,12,24,.8)'; ctx.fillRoundRect?ctx.fillRoundRect(midX-28,midY-16,56,32,4):ctx.fillRect(midX-28,midY-16,56,32);
+    ctx.fillStyle='#4ADE80'; ctx.fillText(displayVal(len),midX,midY+2);
+    if(isLastSeg){ ctx.fillStyle='rgba(245,190,24,.9)'; ctx.font='700 9px IBM Plex Mono, monospace'; ctx.fillText(angle.toFixed(1)+'°',midX,midY+14); }
+  }
+  // vertex dots + coords
+  cadPts.forEach((p,i)=>{
+    const s=worldToScreen(p.x,p.y);
+    ctx.fillStyle='#4ADE80'; ctx.beginPath(); ctx.arc(s.x,s.y,5,0,7); ctx.fill();
+    ctx.fillStyle='rgba(4,12,24,.85)'; ctx.fillRect?ctx.fillRect(s.x+8,s.y-20,60,18):null;
+    ctx.fillStyle='rgba(207,230,255,.8)'; ctx.font='700 8px IBM Plex Mono, monospace'; ctx.textAlign='left';
+    ctx.fillText(`P${i+1} (${displayVal(p.x)},${displayVal(p.y)})`,s.x+10,s.y-8);
+  });
+  // closing dashed line preview when >=3 points
+  if(cadPts.length>=3&&cadCursor){
+    const sFirst=worldToScreen(cadPts[0].x,cadPts[0].y), sLast=worldToScreen(cadCursor.x,cadCursor.y);
+    const closeDist=Math.hypot(cadCursor.x-cadPts[0].x,cadCursor.y-cadPts[0].y);
+    ctx.strokeStyle=closeDist<3?'#FB5B6E':'rgba(74,222,128,.3)'; ctx.lineWidth=1; ctx.setLineDash([3,6]);
+    ctx.beginPath(); ctx.moveTo(sLast.x,sLast.y); ctx.lineTo(sFirst.x,sFirst.y); ctx.stroke(); ctx.setLineDash([]);
+    if(closeDist<3){ ctx.fillStyle='#FB5B6E'; ctx.font='700 9px IBM Plex Mono, monospace'; ctx.textAlign='center'; ctx.fillText('CLOSE',sFirst.x,sFirst.y-12); }
+  }
+  ctx.restore();
+}
+
+/* ================= SATELLITE MAP (OpenStreetMap, free, no API key) ================= */
+let mapOverlay = null; // floating map div
+function showMapPanel(){
+  if(mapOverlay){ mapOverlay.remove(); mapOverlay=null; return; }
+  mapOverlay=document.createElement('div');
+  mapOverlay.style.cssText='position:absolute;top:50px;left:200px;width:460px;height:380px;background:#07111C;border:1.5px solid var(--b);border-radius:6px;z-index:2000;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.7);resize:both;overflow:hidden';
+  mapOverlay.innerHTML=`
+    <div style="display:flex;align-items:center;padding:7px 10px;background:#040c18;border-bottom:1px solid var(--sep);gap:6px;flex-shrink:0">
+      <span style="font-size:10px;font-weight:700;color:var(--as);font-family:'IBM Plex Mono',monospace">SATELLITE MAP (OpenStreetMap — Free)</span>
+      <input id="mapSearch" type="text" placeholder="Search location or paste lat,lon…" style="flex:1;background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 7px;border-radius:3px;outline:none">
+      <button onclick="searchMap()" style="background:var(--as);color:#04210f;border:none;padding:4px 9px;border-radius:3px;font-weight:700;font-size:9px;cursor:pointer">GO</button>
+      <button onclick="useMapLocation()" style="background:#1FA8D9;color:#fff;border:none;padding:4px 9px;border-radius:3px;font-weight:700;font-size:9px;cursor:pointer">USE COORDS</button>
+      <button onclick="mapOverlay.remove();mapOverlay=null" style="background:none;border:none;color:var(--m);font-size:14px;cursor:pointer">✕</button>
+    </div>
+    <div id="leafletMap" style="flex:1"></div>
+    <div id="mapCoordDisp" style="padding:4px 10px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--m);background:#040c18;flex-shrink:0">Click on map to see coordinates. "Use Coords" sets the plot location reference.</div>`;
+  vp.appendChild(mapOverlay);
+
+  if(!document.getElementById('leafletCSS')){
+    const lc=document.createElement('link'); lc.id='leafletCSS'; lc.rel='stylesheet';
+    lc.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(lc);
+  }
+  if(!window.L){
+    const ls=document.createElement('script'); ls.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    ls.onload=()=>initLeafletMap(); document.head.appendChild(ls);
+  } else { setTimeout(initLeafletMap,50); }
+}
+let leafletMap=null, mapMarker=null;
+function initLeafletMap(){
+  if(leafletMap){ leafletMap.remove(); leafletMap=null; }
+  const el=document.getElementById('leafletMap'); if(!el) return;
+  leafletMap=L.map(el).setView([25.2048,55.2708],13); // default Dubai
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(leafletMap);
+  // also add satellite (ESRI World Imagery, free)
+  const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,attribution:'© ESRI'});
+  L.control.layers({'Street Map':L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}),'Satellite':sat}).addTo(leafletMap);
+  leafletMap.on('click',e=>{
+    const {lat,lng}=e.latlng;
+    document.getElementById('mapCoordDisp').textContent=`Clicked: ${lat.toFixed(6)}, ${lng.toFixed(6)} — Click "USE COORDS" to register this location`;
+    if(mapMarker) mapMarker.remove();
+    mapMarker=L.marker([lat,lng]).addTo(leafletMap);
+    window._mapLat=lat; window._mapLng=lng;
+  });
+}
+function searchMap(){
+  const q=document.getElementById('mapSearch').value.trim();
+  if(!q) return;
+  // try lat,lon first
+  const ll=q.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+  if(ll&&leafletMap){ leafletMap.setView([+ll[1],+ll[2]],17); if(mapMarker)mapMarker.remove(); mapMarker=L.marker([+ll[1],+ll[2]]).addTo(leafletMap); window._mapLat=+ll[1];window._mapLng=+ll[2]; return; }
+  // Nominatim geocoding (free, no API key)
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`)
+    .then(r=>r.json()).then(data=>{
+      if(!data.length){ document.getElementById('mapCoordDisp').textContent='Location not found — try a more specific name'; return; }
+      const {lat,lon,display_name}=data[0];
+      leafletMap.setView([+lat,+lon],17);
+      if(mapMarker)mapMarker.remove();
+      mapMarker=L.marker([+lat,+lon]).addTo(leafletMap).bindPopup(display_name).openPopup();
+      window._mapLat=+lat; window._mapLng=+lon;
+      document.getElementById('mapCoordDisp').textContent=`Found: ${display_name} (${(+lat).toFixed(6)}, ${(+lon).toFixed(6)})`;
+    }).catch(()=>document.getElementById('mapCoordDisp').textContent='Search failed — check connection');
+}
+function useMapLocation(){
+  if(!window._mapLat){ document.getElementById('mapCoordDisp').textContent='Click on the map first to set a location'; return; }
+  document.getElementById('mapCoordDisp').textContent=`✓ Plot location set: ${window._mapLat.toFixed(6)}, ${window._mapLng.toFixed(6)}`;
+  document.getElementById('cmdMsg').textContent=`Plot location set to ${window._mapLat.toFixed(4)}, ${window._mapLng.toFixed(4)} — coordinates shown on plan.`;
+  window._plotLat=window._mapLat; window._plotLng=window._mapLng;
+  render();
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&mapOverlay){mapOverlay.remove();mapOverlay=null;} });
+
+/* ================= SOIL SBC LOOKUP (free, rule-of-thumb database) ================= */
+function showSBCLookup(){
+  const soilTypes=[
+    {name:'Hard rock',sbc:3000},{name:'Sound rock (granite)',sbc:1600},{name:'Soft rock / weathered',sbc:400},
+    {name:'Stiff gravel / dense sand',sbc:400},{name:'Medium dense gravel',sbc:200},{name:'Loose gravel',sbc:100},
+    {name:'Very stiff clay',sbc:300},{name:'Stiff clay',sbc:150},{name:'Firm clay',sbc:75},{name:'Soft clay',sbc:25},
+    {name:'Dense sand (fine)',sbc:200},{name:'Medium dense sand',sbc:150},{name:'Loose sand',sbc:100},
+    {name:'Silty / organic fill',sbc:50},{name:'Unknown (conservative)',sbc:100},
+  ];
+  const div=document.createElement('div');
+  div.style.cssText='position:absolute;top:80px;left:300px;width:360px;background:#07111C;border:1.5px solid var(--b);border-radius:6px;z-index:2100;padding:14px;box-shadow:0 8px 32px rgba(0,0,0,.6)';
+  div.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--as);font-family:'IBM Plex Mono',monospace;margin-bottom:10px">SOIL BEARING CAPACITY — select soil type</div>
+    ${soilTypes.map(s=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(31,168,217,.07)">
+      <span style="font-size:10px;color:var(--t)">${s.name}</span>
+      <button onclick="document.getElementById('sbcInput').value='${s.sbc}';generate();this.closest('div[style]').remove()" style="background:var(--as);color:#04210f;border:none;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700;cursor:pointer">${s.sbc} kPa ↓</button>
+    </div>`).join('')}
+    <div style="margin-top:8px;font-size:8.5px;color:var(--m);font-family:'IBM Plex Mono',monospace">Source: IS 1904 / BS 8004 guidance values. Conduct a geotechnical investigation for construction — these are preliminary estimates only.</div>
+    <button onclick="this.closest('div[style]').remove()" style="margin-top:8px;background:none;border:1px solid var(--sep);color:var(--m);padding:4px 12px;border-radius:3px;cursor:pointer;font-size:9px">Close</button>`;
+  vp.appendChild(div);
+}
+
+/* ================= ROOM PALETTE (drag & drop rooms directly onto canvas) ================= */
+function showRoomPalette(){
+  const existingPalette = document.getElementById('roomPalettePanel');
+  if(existingPalette){ existingPalette.remove(); return; }
+  const roomTypes=[
+    {name:'Master Bedroom',area:160,color:'#A78BFA'},{name:'Bedroom',area:120,color:'#818CF8'},
+    {name:'Attached Toilet',area:40,color:'#60A5FA'},{name:'Common Toilet',area:30,color:'#38BDF8'},
+    {name:'Living / Hall',area:180,color:'#34D399'},{name:'Kitchen',area:90,color:'#FBBF24'},
+    {name:'Dining',area:100,color:'#F97316'},{name:'Stair',area:50,color:'#9CA3AF'},
+    {name:'Parking',area:150,color:'#6B7280'},{name:'Study',area:80,color:'#A78BFA'},
+    {name:'Pooja Room',area:36,color:'#FCD34D'},{name:'Store',area:40,color:'#78716C'},
+    {name:'Balcony',area:40,color:'#86EFAC'},{name:'Utility',area:50,color:'#7DD3FC'},
+    {name:'Garage',area:200,color:'#4B5563'},{name:'Servant Room',area:70,color:'#9CA3AF'},
+  ];
+  const div=document.createElement('div'); div.id='roomPalettePanel';
+  div.style.cssText='position:absolute;top:60px;right:280px;width:220px;max-height:480px;overflow-y:auto;background:#07111C;border:1.5px solid var(--b);border-radius:6px;z-index:1800;box-shadow:0 8px 32px rgba(0,0,0,.5)';
+  div.innerHTML=`<div style="padding:8px 10px;background:#040c18;border-bottom:1px solid var(--sep);font-size:9px;font-weight:700;color:var(--as);font-family:'IBM Plex Mono',monospace;display:flex;justify-content:space-between"><span>ROOM PALETTE — drag to canvas</span><button onclick="this.closest('#roomPalettePanel').remove()" style="background:none;border:none;color:var(--m);cursor:pointer">✕</button></div>`;
+  roomTypes.forEach(rt=>{
+    const item=document.createElement('div');
+    item.style.cssText=`display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:grab;border-bottom:1px solid rgba(31,168,217,.05);transition:background .1s`;
+    item.innerHTML=`<div style="width:12px;height:12px;border-radius:2px;background:${rt.color};flex-shrink:0"></div><span style="font-size:10px;color:var(--t);flex:1">${rt.name}</span><span style="font-size:9px;color:var(--m)">${rt.area}sf</span>`;
+    item.draggable=true;
+    item.addEventListener('dragstart',e=>{ e.dataTransfer.setData('roomName',rt.name); e.dataTransfer.setData('roomArea',rt.area); });
+    item.addEventListener('mouseenter',()=>item.style.background='var(--bdim)');
+    item.addEventListener('mouseleave',()=>item.style.background='');
+    div.appendChild(item);
+  });
+  vp.appendChild(div);
+}
+// Wire drag-drop onto canvas
+canvas.addEventListener('dragover',e=>e.preventDefault());
+canvas.addEventListener('drop',e=>{
+  e.preventDefault();
+  const name=e.dataTransfer.getData('roomName'), areaF=parseFloat(e.dataTransfer.getData('roomArea'));
+  if(!name||!buildable) return;
+  const rect=canvas.getBoundingClientRect();
+  const wp=screenToWorld(e.clientX-rect.left, e.clientY-rect.top);
+  const rx=wp.x-buildable.x, ry=wp.y-buildable.y;
+  const side=Math.sqrt(areaF);
+  placed.push({name,area:areaF,x:clamp(rx-side/2,0,buildable.w-side),y:clamp(ry-side/2,0,buildable.h-side),w:side,h:side});
+  selected=placed.length-1;
+  finalizeManualEdit();
+  document.getElementById('cmdMsg').textContent=`Dropped "${name}" onto canvas. Drag handles to resize, or SET SIZE to exact dimensions.`;
+});
+
+/* ================= BUILDING STYLE (3D exterior) ================= */
+let buildingStyle3D = 'modern';
+const STYLE_PARAMS = {
+  modern:  {wallColor:0x1e3a5f, slabColor:0x162d47, windowColor:0x9fe0ff, fascia:0x1FA8D9, roofColor:0x0d1e30},
+  classic: {wallColor:0xd4c5a9, slabColor:0xc4b48e, windowColor:0xa8d0e6, fascia:0x8b7355, roofColor:0x8b5e3c},
+  minimal: {wallColor:0xe8e8e8, slabColor:0xd0d0d0, windowColor:0xbbddee, fascia:0xffffff, roofColor:0xc0c0c0},
+};
+function set3DStyle(s){ buildingStyle3D=s; if(viewMode==='3d') render3D(); document.getElementById('cmdMsg').textContent=`3D building style: ${s.toUpperCase()}`; }
+
+/* ================= FIX 3D BEAM HEIGHT — beams at TOP of columns under slab ================= */
+// This replaces the erroneous midpoint beam placement
+// Already embedded in render3D — beams are placed at baseY+floorHeight-depthM/2 instead of midway
+
+/* ================= STRUCTURAL PDF EXPORT (preliminary) ================= */
+function exportStructuralPDF(){
+  const w=window.open('','_blank');
+  const floors=+document.getElementById('floors').value||1;
+  const DL=+document.getElementById('dlInput').value||4.5;
+  const LL=+document.getElementById('llInput').value||2.0;
+  const fc=+document.getElementById('fcInput')?.value||25;
+  const fy=+document.getElementById('fyInput')?.value||415;
+  const rho=+document.getElementById('rhoInput')?.value||1.5;
+  const sbc=+document.getElementById('sbcInput')?.value||150;
+  const colRows=structModel.columns.map((c,i)=>`<tr><td>C${i+1}</td><td>${c.x.toFixed(1)}'</td><td>${c.y.toFixed(1)}'</td><td>${c.tribM2.toFixed(2)}</td><td>${c.loadKN.toFixed(1)}</td><td>${c.size}</td><td>${c.footSideM.toFixed(2)}×${c.footSideM.toFixed(2)}</td></tr>`).join('');
+  const beamRows=structModel.beams.map((b,i)=>`<tr><td>B${i+1}</td><td>${b.span.toFixed(1)}'</td><td>${b.widthMM}×${b.depthMM}mm</td><td>~${Math.round(b.span*0.3048*(b.widthMM/1000)*(b.depthMM/1000)*2400*9.81/1000)} kg/m</td></tr>`).join('');
+  w.document.write(`<!doctype html><html><head><title>Structural Report — Sky TerraEye Airsum</title><style>
+    body{font-family:'Arial',sans-serif;margin:30px;color:#111;font-size:11px}
+    h1{font-size:18px;color:#0d2d47;border-bottom:2px solid #1FA8D9;padding-bottom:6px}
+    h2{font-size:13px;color:#1FA8D9;margin-top:18px}
+    table{width:100%;border-collapse:collapse;margin-top:6px}
+    th{background:#0d2d47;color:#fff;padding:5px 8px;text-align:left;font-size:10px}
+    td{padding:4px 8px;border-bottom:1px solid #ddd;font-size:10px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+    .card{background:#f5f9ff;border:1px solid #1FA8D9;border-radius:4px;padding:8px 12px}
+    .lbl{font-size:8px;font-weight:700;color:#666;text-transform:uppercase}
+    .val{font-size:13px;font-weight:700;color:#0d2d47}
+    .disclaimer{margin-top:20px;padding:8px 12px;background:#fff8e1;border-left:3px solid #ffc107;font-size:9px;color:#555}
+    @page{margin:20mm}
+  </style></head><body>
+    <h1>STRUCTURAL DESIGN REPORT — PRELIMINARY</h1>
+    <p style="color:#555">Generated by Sky TerraEye Airsum &bull; ${new Date().toLocaleString()}</p>
+    <div class="grid">
+      <div class="card"><div class="lbl">Plot</div><div class="val">${plot.w}'×${plot.d}'</div></div>
+      <div class="card"><div class="lbl">Floors</div><div class="val">${floors}</div></div>
+      <div class="card"><div class="lbl">Dead Load</div><div class="val">${DL} kN/m²</div></div>
+      <div class="card"><div class="lbl">Live Load</div><div class="val">${LL} kN/m²</div></div>
+      <div class="card"><div class="lbl">f'c (concrete)</div><div class="val">${fc} N/mm²</div></div>
+      <div class="card"><div class="lbl">fy (steel)</div><div class="val">${fy} N/mm² (Fe${fy})</div></div>
+      <div class="card"><div class="lbl">Steel ρ</div><div class="val">${rho}%</div></div>
+      <div class="card"><div class="lbl">Soil SBC</div><div class="val">${sbc} kPa</div></div>
+    </div>
+    <h2>COLUMN SCHEDULE</h2>
+    <table><thead><tr><th>Col</th><th>X</th><th>Y</th><th>Trib m²</th><th>Load kN</th><th>Section</th><th>Footing m×m</th></tr></thead><tbody>${colRows}</tbody></table>
+    <h2>BEAM SCHEDULE</h2>
+    <table><thead><tr><th>Beam</th><th>Span</th><th>Size (mm)</th><th>Self wt</th></tr></thead><tbody>${beamRows}</tbody></table>
+    <h2>MATERIAL SPECIFICATION</h2>
+    <table><thead><tr><th>Item</th><th>Grade / Specification</th><th>Standard</th></tr></thead>
+    <tbody>
+      <tr><td>Concrete</td><td>M${fc} (f'c=${fc} N/mm²)</td><td>IS 456 / ACI 318</td></tr>
+      <tr><td>Main Rebar</td><td>Fe${fy} HYSD bars (TMT)</td><td>IS 1786</td></tr>
+      <tr><td>Stirrups / Links</td><td>Fe415 HYSD @150mm c/c (beams)</td><td>IS 1786</td></tr>
+      <tr><td>Cover (columns)</td><td>40mm minimum</td><td>IS 456 Cl.26.4</td></tr>
+      <tr><td>Cover (beams)</td><td>25mm minimum</td><td>IS 456 Cl.26.4</td></tr>
+      <tr><td>Cover (footings)</td><td>75mm minimum</td><td>IS 456 Cl.26.4.2</td></tr>
+      <tr><td>Cement</td><td>OPC 43 Grade or PPC</td><td>IS 8112 / IS 1489</td></tr>
+      <tr><td>Aggregate</td><td>20mm max coarse, Zone II fine</td><td>IS 383</td></tr>
+      <tr><td>Water/Cement ratio</td><td>≤ 0.45 (moderate exposure)</td><td>IS 456 Table 5</td></tr>
+    </tbody></table>
+    <div class="disclaimer"><strong>IMPORTANT DISCLAIMER:</strong> This is a PRELIMINARY SCHEMATIC report generated automatically from a conceptual layout. It is not a construction drawing or a structural engineer's design certificate. All member sizes, loads, and material specifications must be verified by a licensed structural engineer before any construction activity. Geotechnical investigation is required to confirm soil bearing capacity.</div>
+  </body></html>`);
+  w.document.close(); w.print();
+}
+
+/* ================= POLYGON PLOT TOOLS ================= */
 let plotShapeMode = 'rect'; // 'rect' | 'polygon'
 let plotPolygon = null;     // array of {x,y} in plan ft, when plotShapeMode==='polygon'
 let drawingPlotPolygon = false;
@@ -2717,6 +3609,23 @@ canvas.addEventListener('mousedown', e=>{
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX-rect.left, my = e.clientY-rect.top;
 
+  // CAD plot drawing mode
+  if(cadPlotMode && viewMode==='arch'){
+    const wp = screenToWorld(mx,my);
+    let pt = {x:snapVal(wp.x), y:snapVal(wp.y)};
+    if(orthoMode && cadPts.length>=1) pt = applyOrtho(cadPts[cadPts.length-1], pt);
+    // auto-close if clicking near the first vertex
+    if(cadPts.length>=3){
+      const first=cadPts[0];
+      if(Math.hypot(pt.x-first.x,pt.y-first.y)<2){ finishCADPlot(); return; }
+    }
+    cadPts.push(pt);
+    // show input box near the cursor for optional length entry
+    showCadInput(mx, my);
+    render();
+    return;
+  }
+
   if(drawingPlotPolygon && viewMode==='arch'){
     const wp = screenToWorld(mx,my);
     drawPolyPts.push({x: snapVal(wp.x), y: snapVal(wp.y)});
@@ -2780,8 +3689,14 @@ window.addEventListener('mousemove', e=>{
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX-rect.left, my = e.clientY-rect.top;
   const wp = screenToWorld(mx,my);
-  document.getElementById('mbCoord').textContent = `X: ${wp.x.toFixed(2)}'  Y: ${wp.y.toFixed(2)}'`;
+  document.getElementById('mbCoord').textContent = `X: ${displayVal(wp.x)}  Y: ${displayVal(wp.y)}`;
 
+  if(cadPlotMode && viewMode==='arch'){
+    let cursor={x:snapVal(wp.x), y:snapVal(wp.y)};
+    if(orthoMode && cadPts.length>=1) cursor=applyOrtho(cadPts[cadPts.length-1],cursor);
+    cadCursor=cursor;
+    render(); return;
+  }
   if(drawRect){
     drawRect.x1 = snapVal(wp.x-buildable.x); drawRect.y1 = snapVal(wp.y-buildable.y);
     render(); drawPreviewRect(); return;
@@ -2899,12 +3814,13 @@ function drawPreviewRect(){
   ctx.fillText(`${w.toFixed(1)}' \u00d7 ${h.toFixed(1)}'`, (s0.x+s1.x)/2, (s0.y+s1.y)/2);
 }
 canvas.addEventListener('dblclick', e=>{
+  if(cadPlotMode){ finishCADPlot(); return; }
   if(!drawingPlotPolygon) return;
   if(drawPolyPts.length < 3){ document.getElementById('cmdMsg').textContent = 'Need at least 3 points for a plot boundary.'; return; }
   plotPolygon = drawPolyPts.slice();
   plotShapeMode = 'polygon';
   drawingPlotPolygon = false; drawPolyPts = [];
-  document.getElementById('rb-polygon').classList.remove('act');
+  const rbpoly = document.getElementById('rb-polygon'); if(rbpoly) rbpoly.classList.remove('act');
   vp.style.cursor = 'grab';
   regenerateNow('Irregular plot');
 });
@@ -2931,9 +3847,17 @@ function zoomBy(f){
 }
 function zoomExt(){
   const vpw = canvas.width-80, vph = canvas.height-80;
-  scale = Math.max(2, Math.min(40, Math.min(vpw/plot.w, vph/plot.d)));
-  panX = (canvas.width - plot.w*scale)/2;
-  panY = (canvas.height - plot.d*scale)/2;
+  if(plotShapeMode==='polygon' && plotPolygon && plotPolygon.length>=3){
+    const pb = polygonBounds(plotPolygon);
+    const pw = pb.maxX-pb.minX, pd = pb.maxY-pb.minY;
+    scale = Math.max(2, Math.min(40, Math.min(vpw/Math.max(1,pw), vph/Math.max(1,pd))));
+    panX = (canvas.width - pw*scale)/2 - pb.minX*scale;
+    panY = (canvas.height - pd*scale)/2 - pb.minY*scale;
+  } else {
+    scale = Math.max(2, Math.min(40, Math.min(vpw/plot.w, vph/plot.d)));
+    panX = (canvas.width - plot.w*scale)/2;
+    panY = (canvas.height - plot.d*scale)/2;
+  }
   document.getElementById('st-zoom').textContent = Math.round(scale/9*100)+'%';
   render();
 }
