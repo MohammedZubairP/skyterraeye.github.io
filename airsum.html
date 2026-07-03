@@ -226,7 +226,7 @@ input,select{font-family:inherit}
   <div class="ribbon-panel" id="rp-3d">
     <div class="rg"><div class="rr"><button class="rb lg" id="rb-view-3d" onclick="setView('3d')"><span class="rb-i">🧊</span>3D ARCH</button><button class="rb lg" id="rb-view-frame" onclick="setView('frame')"><span class="rb-i">📐</span>3D FRAME</button></div><div class="rg-lbl">3D VIEWS</div></div>
     <div class="rg"><div class="rr"><button class="rb" onclick="orbit3DReset()"><span class="rb-i">🎯</span>RESET CAM</button></div><div class="rr" style="gap:4px;padding:2px 4px"><label style="font-size:8px;color:var(--t);display:flex;align-items:center;gap:2px"><input type="checkbox" id="layer3dArch" checked onchange="render3D()"> Arch</label><label style="font-size:8px;color:var(--t);display:flex;align-items:center;gap:2px"><input type="checkbox" id="layer3dStruct" checked onchange="render3D()"> Struct</label></div><div class="rg-lbl">3D LAYERS</div></div>
-    <div class="rg"><div class="rr"><button class="rb" onclick="set3DStyle('modern')"><span class="rb-i">🏢</span>MODERN</button><button class="rb" onclick="set3DStyle('classic')"><span class="rb-i">🏛️</span>CLASSIC</button><button class="rb" onclick="set3DStyle('minimal')"><span class="rb-i">◻️</span>MINIMAL</button></div><div class="rg-lbl">BUILDING STYLE</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="set3DStyle('modern')"><span class="rb-i">🏢</span>MODERN</button><button class="rb" onclick="set3DStyle('classic')"><span class="rb-i">🏛️</span>CLASSIC</button><button class="rb" onclick="set3DStyle('minimal')"><span class="rb-i">◻️</span>MINIMAL</button></div><div class="rr"><button class="rb" onclick="set3DStyle('brick')"><span class="rb-i">🧱</span>BRICK</button><button class="rb" onclick="set3DStyle('villa')"><span class="rb-i">🏡</span>VILLA</button><button class="rb" onclick="set3DStyle('glass')"><span class="rb-i">🪟</span>GLASS</button></div><div class="rg-lbl">BUILDING STYLE</div></div>
   </div>
 
   <!-- EXPORT -->
@@ -234,6 +234,9 @@ input,select{font-family:inherit}
     <div class="rg"><div class="rr"><button class="rb lg" onclick="exportPNG()"><span class="rb-i">🖼️</span>PNG</button><button class="rb lg" onclick="exportDXF()"><span class="rb-i">📐</span>DXF</button><button class="rb lg" onclick="printPlan()"><span class="rb-i">🖨️</span>PRINT</button></div><div class="rg-lbl">DRAWINGS</div></div>
     <div class="rg"><div class="rr"><button class="rb" onclick="exportRoomsCSV()"><span class="rb-i">📊</span>ROOMS CSV</button><button class="rb" onclick="exportStructCSV()"><span class="rb-i">📊</span>STRUCT CSV</button></div><div class="rr"><button class="rb" onclick="document.getElementById('csvImportFile').click()"><span class="rb-i">📥</span>IMPORT CSV</button></div><div class="rg-lbl">DATA</div></div>
     <div class="rg"><div class="rr"><button class="rb lg" onclick="exportStructuralPDF()"><span class="rb-i">📄</span>STRUCT REPORT</button></div><div class="rg-lbl">PDF REPORT</div></div>
+    <div class="rg"><div class="rr"><button class="rb lg" style="color:#F5BE18" onclick="exportClientReport()"><span class="rb-i">📋</span>CLIENT REPORT</button></div><div class="rg-lbl">FULL PDF</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="drawElevation('front')"><span class="rb-i">🏠</span>FRONT ELEV</button><button class="rb" onclick="drawElevation('left')"><span class="rb-i">🏠</span>SIDE ELEV</button></div><div class="rg-lbl">ELEVATIONS</div></div>
+    <div class="rg"><div class="rr"><button class="rb" onclick="runComplianceCheck()"><span class="rb-i">✓</span>CHECK CODE</button></div><div class="rg-lbl">COMPLIANCE</div></div>
   </div>
 
   <!-- SETTINGS -->
@@ -252,6 +255,33 @@ input,select{font-family:inherit}
 
   <div class="lpanel" id="lpanel">
     <div class="lp-scroll">
+
+      <!-- PROJECT INFORMATION -->
+      <div class="tg-title" style="cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">PROJECT INFO ▾</div>
+      <div id="projectInfoPanel">
+        <div class="fg"><label>Client Name</label><input class="pi" id="proj-client" placeholder="e.g. Mr. Ahmed Al-Rashid" type="text"></div>
+        <div class="fg"><label>Project Title</label><input class="pi" id="proj-title" placeholder="e.g. Residential Villa - Dubai" type="text"></div>
+        <div class="fg"><label>Plot / Address</label><input class="pi" id="proj-address" placeholder="e.g. Plot 7, Al Barsha, Dubai" type="text"></div>
+        <div class="g2">
+          <div class="fg"><label>Drawn by</label><input class="pi" id="proj-by" value="Sky TerraEye Airsum" type="text"></div>
+          <div class="fg"><label>Date</label><input class="pi" id="proj-date" type="date"></div>
+        </div>
+        <div class="fg"><label>Scale</label>
+          <select class="ps" id="proj-scale">
+            <option value="100">1:100</option><option value="50">1:50</option>
+            <option value="200" selected>1:200</option><option value="500">1:500</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- FLOOR MANAGEMENT -->
+      <div class="tg-title">FLOORS / LEVELS</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px" id="floorBtnRow"></div>
+      <div class="g2" style="margin-bottom:6px">
+        <button class="bo bw" onclick="addFloorLevel()" style="font-size:9px">+ ADD FLOOR</button>
+        <button class="bo" onclick="removeFloorLevel()" style="font-size:9px">− REMOVE</button>
+      </div>
+      <div class="note">Each floor is independent. Switch floors to design each level separately.</div>
 
       <div id="archInputs">
         <div class="tg-title">Plot</div>
@@ -424,7 +454,36 @@ input,select{font-family:inherit}
   <div class="vport" id="vport">
     <canvas id="cad"></canvas>
     <div id="cad3d-wrap" style="position:absolute;inset:0;display:none"></div>
-    <div id="cadframe-wrap" style="position:absolute;inset:0;display:none;flex-direction:column"></div>
+    <div id="cadframe-wrap" style="position:absolute;inset:0;display:none;flex-direction:column">
+      <!-- Frame member selection / budget panel -->
+      <div id="frameSelPanel" style="display:none;position:absolute;top:10px;right:10px;width:240px;background:rgba(4,12,24,.92);border:1.5px solid var(--b);border-radius:6px;padding:12px;z-index:100;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--t)">
+        <div id="frameSelTitle" style="font-weight:700;color:var(--as);margin-bottom:8px;font-size:11px">Select a member</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px">
+          <div style="color:var(--m);font-size:9px">Demand</div><div id="frameSelDemand">—</div>
+          <div style="color:var(--m);font-size:9px">Capacity</div><div id="frameSelCap">—</div>
+          <div style="color:var(--m);font-size:9px">Utilisation</div><div id="frameSelUtil" style="font-weight:700">—</div>
+          <div style="color:var(--m);font-size:9px">Status</div><div id="frameSelStatus">—</div>
+          <div style="color:var(--m);font-size:9px">Est. Cost</div><div id="frameSelCost">—</div>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">
+          <button id="frameRemBtn" onclick="toggleRemoveFrameMember()" disabled style="flex:1;background:#ff4466;color:#fff;border:none;padding:5px 8px;border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;font-family:'IBM Plex Mono',monospace">🗑 REMOVE</button>
+          <button id="frameStepBtn" onclick="stepDownSection()" style="flex:1;background:#F5BE18;color:#04210f;border:none;padding:5px 8px;border-radius:3px;font-size:9px;font-weight:700;cursor:pointer;font-family:'IBM Plex Mono',monospace">⬇ STEP DOWN</button>
+        </div>
+        <button onclick="restoreAllFrameMembers()" style="width:100%;margin-top:6px;background:none;border:1px solid var(--sep);color:var(--m);padding:4px;border-radius:3px;font-size:9px;cursor:pointer;font-family:'IBM Plex Mono',monospace">↩ RESTORE ALL</button>
+        <div id="frameCostTotal" style="margin-top:8px;font-size:9px;color:var(--m);border-top:1px solid var(--sep);padding-top:6px"></div>
+      </div>
+      <!-- Legend -->
+      <div style="position:absolute;bottom:10px;left:10px;background:rgba(4,12,24,.8);border:1px solid var(--sep);border-radius:4px;padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--m)">
+        <div style="font-weight:700;color:var(--t);margin-bottom:4px">MEMBER UTILISATION</div>
+        <div style="display:flex;gap:10px">
+          <span style="color:#4ADE80">■ &lt; 70%</span>
+          <span style="color:#F5BE18">■ 70–100%</span>
+          <span style="color:#ff4466">■ &gt; 100%</span>
+          <span style="color:#aaa">■ Removed</span>
+        </div>
+        <div style="margin-top:4px;color:var(--m)">Click any member to select · ⬇ Step Down = smaller/cheaper section</div>
+      </div>
+    </div>
     <div class="badge" id="genflag">REGENERATING&hellip;</div>
     <div class="badge" style="top:8px;left:8px" id="planBadge">PLOT <b>40' &times; 60'</b></div>
     <div class="badge" id="warnBadge">⚠ Preliminary structural schematic — not for construction</div>
@@ -453,6 +512,9 @@ input,select{font-family:inherit}
       <div class="rptab" id="rpt-boq" onclick="rpTab('boq')">BOQ</div>
       <div class="rptab" id="rpt-lateral" onclick="rpTab('lateral')">Lateral</div>
       <div class="rptab" id="rpt-frameresult" onclick="rpTab('frameresult')">Frame</div>
+      <div class="rptab" id="rpt-elev" onclick="rpTab('elev')">Elevation</div>
+      <div class="rptab" id="rpt-comply" onclick="rpTab('comply')">Comply</div>
+      <div class="rptab" id="rpt-services" onclick="rpTab('services')">Services</div>
       <div class="rptab" id="rpt-summary" onclick="rpTab('summary')">Summary</div>
     </div>
     <div class="rp-content">
@@ -552,6 +614,74 @@ input,select{font-family:inherit}
           <div class="pr"><span class="pl">Rooms placed</span><span class="pv" id="s-rooms">---</span></div>
         </div>
         <div style="padding:9px 10px;font-size:9.5px;color:var(--m);line-height:1.6">Rough quantity indicator only — not a substitute for a licensed structural engineer's BOQ.</div>
+      </div>
+
+      <!-- ELEVATION PANEL -->
+      <div class="rp-sec" id="rpsec-elev">
+        <div class="lh"><div class="lh-t">Elevation Drawings</div></div>
+        <div class="pg">
+          <div class="pgt">Select view to generate</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+            <button class="bo bw" onclick="drawElevation('front')" style="flex:1">FRONT</button>
+            <button class="bo bw" onclick="drawElevation('rear')" style="flex:1">REAR</button>
+            <button class="bo bw" onclick="drawElevation('left')" style="flex:1">LEFT</button>
+            <button class="bo bw" onclick="drawElevation('right')" style="flex:1">RIGHT</button>
+          </div>
+          <canvas id="elevCanvas" width="230" height="180" style="width:100%;background:#04090f;border:1px solid var(--sep);border-radius:3px"></canvas>
+          <div id="elevLabel" style="font-size:9px;color:var(--m);text-align:center;margin-top:4px">Select a direction above</div>
+        </div>
+        <div class="pg">
+          <button class="bo bw" style="width:100%" onclick="exportElevationPNG()">⬇ Export Elevation PNG</button>
+        </div>
+      </div>
+
+      <!-- COMPLIANCE PANEL -->
+      <div class="rp-sec" id="rpsec-comply">
+        <div class="lh"><div class="lh-t">Building Code Compliance Check</div></div>
+        <div class="pg">
+          <div class="pgt">Standard</div>
+          <select class="ps" id="codeStd" style="width:100%;margin-bottom:8px">
+            <option value="NBC">NBC India 2016</option>
+            <option value="DUBAI">Dubai Building Code</option>
+            <option value="ASCE">IBC / ASCE (USA)</option>
+          </select>
+          <button class="bp bw" style="width:100%;margin-bottom:8px" onclick="runComplianceCheck()">▶ Run Compliance Check</button>
+          <div id="complyResults" style="font-family:'IBM Plex Mono',monospace;font-size:9px;line-height:1.7">Click "Run Compliance Check" to verify your design.</div>
+        </div>
+        <div class="pg">
+          <div class="pgt">FAR / Coverage Check</div>
+          <div id="complyFAR" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--m);line-height:1.7">—</div>
+        </div>
+      </div>
+
+      <!-- SERVICES PANEL (Electrical + Plumbing) -->
+      <div class="rp-sec" id="rpsec-services">
+        <div class="lh"><div class="lh-t">Building Services Layout</div></div>
+        <div class="pg">
+          <div class="pgt">Electrical</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
+            <button class="bo bw" onclick="generateElectrical()" style="flex:1">⚡ AUTO ELECTRICAL</button>
+            <button class="bo" onclick="clearServices('elec')" style="flex:1">Clear</button>
+          </div>
+          <div class="note">Auto-places: light points, fans, switches, power outlets, TV points by room type.</div>
+          <div id="elecSummary" style="font-size:9px;color:var(--m);margin-top:4px"></div>
+        </div>
+        <div class="pg">
+          <div class="pgt">Plumbing</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
+            <button class="bo bw" onclick="generatePlumbing()" style="flex:1">🔧 AUTO PLUMBING</button>
+            <button class="bo" onclick="clearServices('plumb')" style="flex:1">Clear</button>
+          </div>
+          <div class="note">Auto-places: supply lines, drainage, floor traps in wet rooms (toilets, kitchen, utility).</div>
+          <div id="plumbSummary" style="font-size:9px;color:var(--m);margin-top:4px"></div>
+        </div>
+        <div class="pg">
+          <div class="pgt">View on plan</div>
+          <div style="display:flex;gap:6px">
+            <label style="font-size:9px;display:flex;align-items:center;gap:4px"><input type="checkbox" id="showElec" checked onchange="render()"> Electrical</label>
+            <label style="font-size:9px;display:flex;align-items:center;gap:4px"><input type="checkbox" id="showPlumb" onchange="render()"> Plumbing</label>
+          </div>
+        </div>
       </div>
       <div class="rp-sec" id="rpsec-frameresult">
         <div class="lh"><div class="lh-t">Direct Stiffness Frame Analysis</div></div>
@@ -1880,6 +2010,7 @@ function render(){
   if(drawMode && viewMode==='arch') drawPreviewRect();
   // CAD plot drawing overlay (live measurement, angle, vertex labels)
   drawCADPlotOverlay();
+  renderServicesOverlay();
 
   if(drawingPlotPolygon && drawPolyPts.length){
     ctx.strokeStyle = '#4ADE80'; ctx.lineWidth = 2; ctx.setLineDash([4,3]);
@@ -2252,7 +2383,7 @@ function buildWallWithOpenings(group, x1,y1,x2,y2, thicknessFt, wallHeightFt, ba
   if(len < 0.05) return;
   const ux=(x2-x1)/len, uy=(y2-y1)/len;
   const angle = -Math.atan2(y2-y1,x2-x1);
-  const wallMat = new THREE.MeshStandardMaterial({color:0xcfe6ff, roughness:0.85});
+  const wallMat = new THREE.MeshStandardMaterial({color:get3DTheme().wall, roughness:0.85});
 
   function addSolid(aLen,bLen,h0,h1){
     const segLen = bLen-aLen;
@@ -2319,6 +2450,7 @@ function render3D(){
 
   const floors = +document.getElementById('floors').value || 1;
   const floorHeight = 10; // ft per floor
+  const theme = get3DTheme();
   const extWallFt = (+document.getElementById('extWall').value || 9)/12;
   const intWallFt = (+document.getElementById('intWall').value || 4.5)/12;
   const showArch = document.getElementById('layer3dArch') ? document.getElementById('layer3dArch').checked : true;
@@ -2359,7 +2491,7 @@ function render3D(){
       });
       // floor slab
       const slabGeo = new THREE.BoxGeometry(buildable.w, 0.4, buildable.h);
-      const slabMat = new THREE.MeshStandardMaterial({color:0x1c3650, roughness:0.9});
+      const slabMat = new THREE.MeshStandardMaterial({color:theme.slab, roughness:0.9});
       const slab = new THREE.Mesh(slabGeo, slabMat);
       slab.position.set(buildable.x+buildable.w/2, baseY, buildable.y+buildable.h/2);
       threeModelGroup.add(slab);
@@ -2453,7 +2585,172 @@ function orbit3DReset(){
 
 
 /* ============================================================
-   ██████ EMBEDDED FRAME ANALYSIS ENGINE ██████
+   INTERACTIVE FRAME ANALYSIS ENGINE
+   - Click any column/beam in 3D to select it
+   - See its load, capacity utilisation, cost estimate
+   - Remove it and instantly re-analyse — see if structure still holds
+   - Budget mode: step down steel/sections one at a time
+   ============================================================ */
+
+let frameSelectedMemberId = null;       // currently selected member id
+let frameMeshRegistry = new Map();      // meshId → member data  
+let frameRemovedMembers = new Set();    // set of removed member ids
+let frameOrigMembers = [];              // backup of original member list before any removals
+
+/* ---- rough cost estimates per metre of member (USD, illustrative) ---- */
+const MEMBER_COST_PER_M = {
+  'RC 230x230': 45,  'RC 300x300': 70,  'RC 350x350': 100,
+  'RC 400x400': 140, 'RC 450x450': 185, 'RC 500x500': 240,
+  'RC 230x450': 55,  'RC 230x600': 80,  'RC 300x600': 110, 'RC 350x450': 90,
+};
+
+function frameMemberCost(m, sec){
+  const n1=frameNodes.find(n=>n.id===m.n1), n2=frameNodes.find(n=>n.id===m.n2);
+  if(!n1||!n2) return 0;
+  const len=Math.hypot(n2.x-n1.x,n2.y-n1.y);
+  return Math.round(len * (MEMBER_COST_PER_M[m._secName]||70));
+}
+
+function frameTotalCost(){
+  return frameMembers.reduce((s,m)=>{
+    if(frameRemovedMembers.has(m.id)) return s;
+    return s + frameMemberCost(m, FRAME_SECTIONS[m._secName]||{});
+  }, 0);
+}
+
+function selectFrameMember(memberId){
+  frameSelectedMemberId = memberId;
+  render3DFrame();
+  const m = frameMembers.find(x=>x.id===memberId);
+  if(!m||!frameResult) return;
+  const f = frameResult.memberForces.get(memberId);
+  const fc=+document.getElementById('fcInput')?.value||25;
+  const fy=+document.getElementById('fyInput')?.value||415;
+  const rho=+document.getElementById('rhoInput')?.value||1.5;
+  const sec=FRAME_SECTIONS[m._secName]||{w:300,d:300};
+  let demand='', cap='', util=0, capStr='', demStr='';
+  if(m.kind==='column'){
+    const Pu=Math.max(Math.abs(f.N1),Math.abs(f.N2))/1000;
+    const phiPn=colCapKN(sec.w,sec.d,fc,fy,rho);
+    util=Pu/phiPn; demand=Pu.toFixed(1)+' kN axial'; cap=phiPn.toFixed(1)+' kN';
+  } else {
+    let maxM=0,maxV=0;
+    for(let i=0;i<=20;i++){const x=f.L*i/20;const s=f.sample(x);maxM=Math.max(maxM,Math.abs(s.M));maxV=Math.max(maxV,Math.abs(s.V));}
+    const bc=beamCap(sec.w,sec.d,fc,fy,rho);
+    util=Math.max(maxM/1000/bc.phiMn,maxV/1000/bc.phiVn);
+    demand=(maxM/1000).toFixed(1)+' kN·m moment'; cap=bc.phiMn.toFixed(1)+' kN·m';
+  }
+  const cost=frameMemberCost(m,sec);
+  const status=util<0.7?'✓ SAFE':'⚠ NEAR LIMIT';
+  document.getElementById('frameSelPanel').style.display='block';
+  document.getElementById('frameSelTitle').textContent=`M${m.id} — ${m.kind.toUpperCase()} (${m._secName})`;
+  document.getElementById('frameSelDemand').textContent=demand;
+  document.getElementById('frameSelCap').textContent=cap;
+  document.getElementById('frameSelUtil').textContent=`${(util*100).toFixed(0)}%`;
+  document.getElementById('frameSelUtil').style.color=util<0.7?'#4ADE80':util<=1?'#F5BE18':'#ff4466';
+  document.getElementById('frameSelStatus').textContent=status;
+  document.getElementById('frameSelCost').textContent=`~$${cost.toLocaleString()}`;
+  document.getElementById('frameRemBtn').disabled=false;
+  document.getElementById('frameRemBtn').textContent=frameRemovedMembers.has(m.id)?'✓ RESTORE MEMBER':'🗑 REMOVE MEMBER';
+  document.getElementById('frameStepBtn').style.display=m.kind==='column'?'inline-block':'inline-block';
+}
+
+function toggleRemoveFrameMember(){
+  if(frameSelectedMemberId===null) return;
+  if(!frameOrigMembers.length) frameOrigMembers=[...frameMembers];
+  if(frameRemovedMembers.has(frameSelectedMemberId)){
+    frameRemovedMembers.delete(frameSelectedMemberId);
+  } else {
+    frameRemovedMembers.add(frameSelectedMemberId);
+  }
+  reanalyzeWithRemovals();
+}
+
+function stepDownSection(){
+  if(frameSelectedMemberId===null) return;
+  const m=frameMembers.find(x=>x.id===frameSelectedMemberId);
+  if(!m) return;
+  if(m.kind==='column'){
+    const order=['RC 230x230','RC 300x300','RC 350x350','RC 400x400','RC 450x450','RC 500x500'];
+    const idx=order.indexOf(m._secName);
+    if(idx>0){
+      m._secName=order[idx-1];
+      const s=FRAME_SECTIONS[m._secName];
+      Object.assign(m,{E:s.E,A:s.A,I:s.I});
+      document.getElementById('cmdMsg').textContent=`M${m.id} stepped down to ${m._secName} — re-analysing…`;
+    } else {
+      document.getElementById('cmdMsg').textContent=`M${m.id} is already at the smallest column section.`;
+      return;
+    }
+  } else {
+    const order=['RC 230x450','RC 230x600','RC 300x600','RC 350x450'];
+    const idx=order.indexOf(m._secName);
+    if(idx>0){
+      m._secName=order[idx-1];
+      const s=FRAME_SECTIONS[m._secName];
+      Object.assign(m,{E:s.E,A:s.A,I:s.I});
+    }
+  }
+  reanalyzeWithRemovals();
+}
+
+function reanalyzeWithRemovals(){
+  const activeMembers=frameMembers.filter(m=>!frameRemovedMembers.has(m.id));
+  const activeNodeIds=new Set([...activeMembers.flatMap(m=>[m.n1,m.n2])]);
+  const activeNodes=frameNodes.filter(n=>activeNodeIds.has(n.id));
+  if(activeNodes.length<2||activeMembers.length<1){
+    document.getElementById('frameStatus').textContent='⚠ Too many members removed — structure is unstable.';
+    return;
+  }
+  try{
+    frameResult=runDSMFrame({nodes:activeNodes,members:activeMembers,supports:frameSupports,nodalLoads:[]});
+    populateFrameResultsPanel();
+    render3DFrame();
+    if(frameSelectedMemberId!==null&&!frameRemovedMembers.has(frameSelectedMemberId)){
+      selectFrameMember(frameSelectedMemberId);
+    }
+    const cost=frameTotalCost();
+    document.getElementById('frameCostTotal').textContent=`~$${cost.toLocaleString()} total structure cost (${frameRemovedMembers.size} member(s) removed)`;
+  } catch(err){
+    document.getElementById('frameStatus').innerHTML='<span style="color:#ff4466">⚠ UNSTABLE: '+err.message+'</span>';
+  }
+}
+
+function restoreAllFrameMembers(){
+  frameRemovedMembers.clear();
+  if(frameOrigMembers.length){
+    frameMembers=JSON.parse(JSON.stringify(frameOrigMembers));
+    frameMembers.forEach(m=>{ m._secName=m._secName||'RC 300x300'; const s=FRAME_SECTIONS[m._secName]; if(s)Object.assign(m,s); });
+  }
+  reanalyzeWithRemovals();
+  document.getElementById('frameSelPanel').style.display='none';
+  document.getElementById('cmdMsg').textContent='All removed members restored.';
+}
+
+/* ---- Raycasting: click on a frame member mesh to select it ---- */
+function setupFrameRaycaster(){
+  if(!frameRender3Ready) return;
+  const canvas3d=frameRdr.domElement;
+  canvas3d.addEventListener('click',e=>{
+    const rect=canvas3d.getBoundingClientRect();
+    const mouse=new THREE.Vector2(
+      ((e.clientX-rect.left)/rect.width)*2-1,
+      -((e.clientY-rect.top)/rect.height)*2+1
+    );
+    const raycaster=new THREE.Raycaster();
+    raycaster.setFromCamera(mouse,frameCam);
+    const meshes=[...frameMeshRegistry.keys()].map(k=>k);
+    const hits=raycaster.intersectObjects(meshes,false);
+    if(hits.length){
+      const hitMesh=hits[0].object;
+      const memberId=frameMeshRegistry.get(hitMesh);
+      if(memberId!==undefined) selectFrameMember(memberId);
+    }
+  });
+}
+
+
+/* ============================================================
    Verified direct stiffness method — same solver as standalone Frame tool,
    verified against 4 closed-form textbook benchmarks.
    Auto-builds from Airsum's structModel when you enter the 3D FRAME view.
@@ -2665,6 +2962,7 @@ function initFrameThreeJS(){
   const fl2=new THREE.DirectionalLight(0x4488ff,0.3); fl2.position.set(-10,10,-10); frameSc.add(fl2);
   frameGroup=new THREE.Group(); frameSc.add(frameGroup);
   frameRender3Ready=true;
+  setupFrameRaycaster();
   (function af(){requestAnimationFrame(af);if(viewMode==='frame'){frameCtrl.update();frameRdr.render(frameSc,frameCam);}})();
   new ResizeObserver(()=>{
     if(!frameRender3Ready)return;
@@ -2678,24 +2976,24 @@ function render3DFrame(){
   if(!frameRender3Ready) return;
   frameSc.remove(frameGroup);
   frameGroup=new THREE.Group(); frameSc.add(frameGroup);
+  frameMeshRegistry.clear();
 
   if(!frameResult || !frameNodes.length){
-    // placeholder box if no analysis yet
     const ph=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x1FA8D9,wireframe:true}));
     ph.position.set(0,0.5,0); frameGroup.add(ph);
     frameCam.position.set(3,3,5); frameCtrl.target.set(0,1,0); frameCtrl.update();
     return;
   }
 
-  const fc = +document.getElementById('fcInput')?.value || 25;
-  const fy = +document.getElementById('fyInput')?.value || 415;
-  const rho = +document.getElementById('rhoInput')?.value || 1.5;
-  const maxDisp = Math.max(0.0001, ...[...frameResult.displacements.values()].map(d=>Math.hypot(d.u,d.v)));
-  const dispAmp = Math.min(0.5, 0.3/maxDisp); // exaggerated for visibility, capped
+  const fc=+document.getElementById('fcInput')?.value||25;
+  const fy=+document.getElementById('fyInput')?.value||415;
+  const rho=+document.getElementById('rhoInput')?.value||1.5;
+  const sbc=+document.getElementById('sbcInput')?.value||150;
+  const maxDisp=Math.max(0.0001,...[...frameResult.displacements.values()].map(d=>Math.hypot(d.u,d.v)));
+  const dispAmp=Math.min(0.5,0.3/maxDisp);
 
-  // --- ground grid ---
-  const minX = Math.min(...frameNodes.map(n=>n.x)), maxX = Math.max(...frameNodes.map(n=>n.x));
-  const gSize = (maxX-minX)+3;
+  const minX=Math.min(...frameNodes.map(n=>n.x)), maxX=Math.max(...frameNodes.map(n=>n.x));
+  const gSize=(maxX-minX)+3;
   const gg=new THREE.GridHelper(gSize+10,20,0x1FA8D9,0x0d2d48);
   gg.position.set((minX+maxX)/2,-0.01,0); frameGroup.add(gg);
 
@@ -2710,7 +3008,7 @@ function render3DFrame(){
   const allBeams = window._allFrameBeams || [];
   const totalFloors = window._frameFloors || 1;
   const floorH = window._frameFloorH || 3.0;
-  const sbc = +document.getElementById('sbcInput')?.value||150;
+  // sbc already declared above
 
   if(allCols.length){
     allCols.forEach(col=>{
@@ -2785,10 +3083,12 @@ function render3DFrame(){
   const matGround = new THREE.MeshStandardMaterial({color:0x8B6914, roughness:0.9});
 
   frameMembers.forEach(m=>{
+    const isRemoved = frameRemovedMembers.has(m.id);
+    const isSelected = m.id === frameSelectedMemberId;
     const n1=frameNodes.find(n=>n.id===m.n1), n2=frameNodes.find(n=>n.id===m.n2);
+    if(!n1||!n2) return;
     const d1=frameResult.displacements.get(m.n1)||{u:0,v:0};
     const d2=frameResult.displacements.get(m.n2)||{u:0,v:0};
-    // deformed positions
     const p1x=n1.x+d1.u*dispAmp, p1y=n1.y+d1.v*dispAmp;
     const p2x=n2.x+d2.u*dispAmp, p2y=n2.y+d2.v*dispAmp;
     const isCol = m.kind==='column';
@@ -2797,33 +3097,88 @@ function render3DFrame(){
     const len=Math.hypot(n2.x-n1.x,n2.y-n1.y);
     const angle=-Math.atan2(n2.y-n1.y,n2.x-n1.x);
 
-    // ACI capacity check — colour member by utilisation
+    // capacity utilisation → member colour
     const f=frameResult.memberForces.get(m.id);
     let util=0;
-    if(isCol){
-      const Pu=Math.max(Math.abs(f.N1),Math.abs(f.N2))/1000;
-      const cap=colCapKN(sec.w,sec.d,fc,fy,rho);
-      util=Pu/cap;
-    } else {
-      let maxMdem=0,maxVdem=0;
-      for(let i=0;i<=20;i++){const x=f.L*i/20;const s=f.sample(x);maxMdem=Math.max(maxMdem,Math.abs(s.M));maxVdem=Math.max(maxVdem,Math.abs(s.V));}
-      const cap=beamCap(sec.w,sec.d,fc,fy,rho);
-      util=Math.max(maxMdem/1000/cap.phiMn, maxVdem/1000/cap.phiVn);
+    if(f){
+      if(isCol){
+        const Pu=Math.max(Math.abs(f.N1),Math.abs(f.N2))/1000;
+        util=Pu/colCapKN(sec.w,sec.d,fc,fy,rho);
+      } else {
+        let maxMdem=0,maxVdem=0;
+        for(let i=0;i<=20;i++){const x=f.L*i/20;const s=f.sample(x);maxMdem=Math.max(maxMdem,Math.abs(s.M));maxVdem=Math.max(maxVdem,Math.abs(s.V));}
+        const cap=beamCap(sec.w,sec.d,fc,fy,rho);
+        util=Math.max(maxMdem/1000/cap.phiMn, maxVdem/1000/cap.phiVn);
+      }
     }
-    const col = util<0.7?0x4ADE80: util<=1.0?0xF5BE18: 0xff4466;
-    const mat=new THREE.MeshStandardMaterial({color:col,roughness:0.45});
+    let memberColor = util<0.7?0x4ADE80: util<=1.0?0xF5BE18: 0xff4466;
+    if(isRemoved) memberColor=0x333344;
+    if(isSelected) memberColor=0x00ffff;
 
-    // member as rectangular prism
+    const mat=new THREE.MeshStandardMaterial({
+      color:memberColor, roughness:0.45,
+      transparent:isRemoved, opacity:isRemoved?0.2:1,
+      wireframe:isRemoved
+    });
+
+    // member prism — register for raycasting
     const geo=new THREE.BoxGeometry(len, isCol?dM:wM, isCol?wM:dM);
     const mesh=new THREE.Mesh(geo,mat);
     const mx=(p1x+p2x)/2, my=(p1y+p2y)/2;
     mesh.position.set(mx,my,0);
     mesh.rotation.z=angle;
     frameGroup.add(mesh);
+    frameMeshRegistry.set(mesh, m.id); // register for click-select
 
-    // BMD ribbon along the member (in the Z plane for 2D frame)
-    const steps=30;
-    const bmdPts=[], sfdPts=[];
+    // selection ring highlight
+    if(isSelected){
+      const ringGeo=new THREE.BoxGeometry(len+0.1, (isCol?dM:wM)+0.06, (isCol?wM:dM)+0.06);
+      const ringMat=new THREE.MeshStandardMaterial({color:0x00ffff,wireframe:true,transparent:true,opacity:0.7});
+      const ring=new THREE.Mesh(ringGeo,ringMat);
+      ring.position.copy(mesh.position); ring.rotation.copy(mesh.rotation);
+      frameGroup.add(ring);
+    }
+
+    if(isRemoved) return; // skip BMD/arrows for removed members
+
+    // ── UDL LOAD ARROWS (beams only) ──────────────────────────────
+    if(!isCol && m.udl){
+      const udlKNm = Math.abs(m.udl)/1000;
+      const nArrows = Math.max(4, Math.round(len/0.5));
+      const arrowColor = 0xFB5B6E;
+      for(let ai=1;ai<nArrows;ai++){
+        const t=ai/nArrows;
+        const ax=n1.x+(n2.x-n1.x)*t, ay=n1.y+(n2.y-n1.y)*t;
+        const arrowH=Math.min(0.5,udlKNm/20);
+        const arrowGeo=new THREE.ConeGeometry(0.04,0.14,6);
+        const arrowMat=new THREE.MeshStandardMaterial({color:arrowColor});
+        const arrowMesh=new THREE.Mesh(arrowGeo,arrowMat);
+        arrowMesh.position.set(ax,ay+arrowH+0.07,0.1);
+        arrowMesh.rotation.z=Math.PI; // point downward
+        frameGroup.add(arrowMesh);
+        // arrow shaft
+        const shaftGeo=new THREE.CylinderGeometry(0.015,0.015,arrowH,6);
+        const shaft=new THREE.Mesh(shaftGeo,arrowMat);
+        shaft.position.set(ax,ay+arrowH/2,0.1);
+        frameGroup.add(shaft);
+      }
+      // UDL label
+      makeFrameLabel(`${udlKNm.toFixed(1)} kN/m`,n1.x+(n2.x-n1.x)*0.5,n1.y+(n2.y-n1.y)*0.5+0.7,0.2,0.07);
+    }
+
+    // ── AXIAL LOAD ARROWS (columns only) ─────────────────────────
+    if(isCol && f){
+      const PkN=Math.abs(f.N2)/1000;
+      const arrowDir=new THREE.Vector3(0,1,0);
+      const origin=new THREE.Vector3(n2.x,n2.y+0.3,0.1);
+      const arr=new THREE.ArrowHelper(arrowDir.negate(),origin,0.4,0xFB5B6E,0.12,0.06);
+      frameGroup.add(arr);
+      makeFrameLabel(`${PkN.toFixed(0)}kN`,n2.x,n2.y+0.6,0.1,0.07);
+    }
+
+    // ── BMD ribbon ────────────────────────────────────────────────
+    if(f){
+    const steps=30, bmdPts=[], sfdPts=[];
     for(let i=0;i<=steps;i++){
       const t=i/steps;
       const x=f.L*t;
@@ -2862,6 +3217,7 @@ function render3DFrame(){
         makeFrameLabel(`Fting\n${footSide.toFixed(2)}m`, n1.x, -0.8, 0);
       }
     }
+      } // end if(f)
   });
 
   // node dots
@@ -2965,9 +3321,14 @@ function runFrameAnalysis(){
     const restraintCount = [...frameModel.supports.values()].reduce((s,sup)=>s+(sup.ux?1:0)+(sup.uy?1:0)+(sup.rot?1:0),0);
     if(restraintCount<3) throw new Error('Insufficient restraints — check that base supports are fixed');
     frameResult = runDSMFrame(frameModel);
-    document.getElementById('frameStatus').innerHTML = `<span style="color:#4ADE80">✓ SOLVED</span> — ${frameNodes.length} nodes, ${frameMembers.length} members (${frameMembers.filter(m=>m.kind==='column').length} columns, ${frameMembers.filter(m=>m.kind==='beam').length} beams)`;
+    frameRemovedMembers.clear();
+    frameOrigMembers = JSON.parse(JSON.stringify(frameMembers));
+    document.getElementById('frameStatus').innerHTML = `<span style="color:#4ADE80">✓ SOLVED</span> — ${frameNodes.length} nodes, ${frameMembers.length} members (${frameMembers.filter(m=>m.kind==='column').length} columns, ${frameMembers.filter(m=>m.kind==='beam').length} beams) — <b>Click any member to inspect or remove</b>`;
     populateFrameResultsPanel();
     render3DFrame();
+    const cost=frameTotalCost();
+    document.getElementById('frameCostTotal').textContent=`~$${cost.toLocaleString()} total structure cost estimate`;
+    document.getElementById('frameSelPanel').style.display='block';
   } catch(err){
     document.getElementById('frameStatus').textContent = '⚠ Solve error: '+err.message;
     console.error(err);
@@ -3391,6 +3752,518 @@ function exportStructuralPDF(){
     <div class="disclaimer"><strong>IMPORTANT DISCLAIMER:</strong> This is a PRELIMINARY SCHEMATIC report generated automatically from a conceptual layout. It is not a construction drawing or a structural engineer's design certificate. All member sizes, loads, and material specifications must be verified by a licensed structural engineer before any construction activity. Geotechnical investigation is required to confirm soil bearing capacity.</div>
   </body></html>`);
   w.document.close(); w.print();
+}
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  MULTI-FLOOR PLAN MANAGEMENT                                     ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+let floorPlans = [{floor:0, label:'Ground Floor (G)', placed:[], plotPoly:null, plotMode:'rect'}];
+let activeFloor = 0;
+
+function initFloorDate(){
+  const d = document.getElementById('proj-date');
+  if(d && !d.value) d.value = new Date().toISOString().split('T')[0];
+}
+
+function syncFloorToActive(){
+  // save current placed[] to active floor
+  if(!floorPlans[activeFloor]) return;
+  floorPlans[activeFloor].placed = JSON.parse(JSON.stringify(placed));
+  floorPlans[activeFloor].plotPoly = plotPolygon ? JSON.parse(JSON.stringify(plotPolygon)) : null;
+  floorPlans[activeFloor].plotMode = plotShapeMode;
+}
+function loadFloor(idx){
+  syncFloorToActive();
+  activeFloor = idx;
+  const fp = floorPlans[idx];
+  placed = JSON.parse(JSON.stringify(fp.placed || []));
+  plotPolygon = fp.plotPoly ? JSON.parse(JSON.stringify(fp.plotPoly)) : null;
+  plotShapeMode = fp.plotMode || 'rect';
+  selected = null;
+  renderFloorBtns();
+  regenerateNow && buildStructModel();
+  render();
+  document.getElementById('cmdMsg').textContent = `Switched to: ${fp.label}`;
+}
+function addFloorLevel(){
+  syncFloorToActive();
+  const n = floorPlans.length;
+  const suffix = n===1?'1st Floor':n===2?'2nd Floor':n===3?'3rd Floor':`${n}th Floor`;
+  // copy ground floor layout as starting point
+  const basePlaced = JSON.parse(JSON.stringify(floorPlans[0].placed || []));
+  floorPlans.push({floor:n, label:suffix, placed: basePlaced, plotPoly: floorPlans[0].plotPoly?JSON.parse(JSON.stringify(floorPlans[0].plotPoly)):null, plotMode:floorPlans[0].plotMode||'rect'});
+  loadFloor(n);
+}
+function removeFloorLevel(){
+  if(floorPlans.length<=1){ document.getElementById('cmdMsg').textContent='Cannot remove the only floor.'; return; }
+  floorPlans.splice(activeFloor,1);
+  activeFloor = Math.min(activeFloor, floorPlans.length-1);
+  loadFloor(activeFloor);
+}
+function renderFloorBtns(){
+  const row = document.getElementById('floorBtnRow');
+  if(!row) return;
+  row.innerHTML = floorPlans.map((fp,i)=>
+    `<button onclick="loadFloor(${i})" style="font-size:9px;padding:3px 8px;border-radius:3px;border:1px solid var(--sep);background:${i===activeFloor?'var(--as)':'var(--bg3)'};color:${i===activeFloor?'#04210f':'var(--t)'};cursor:pointer;font-family:'IBM Plex Mono',monospace;font-weight:700">${fp.label}</button>`
+  ).join('');
+}
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  ELEVATION DRAWING GENERATOR                                     ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+function drawElevation(side){
+  const canvas2 = document.getElementById('elevCanvas');
+  if(!canvas2) return;
+  const ctx2 = canvas2.getContext('2d');
+  const floors = +document.getElementById('floors').value || 1;
+  const floorH = 10; // ft per floor
+  const totalH = floors * floorH;
+  const W = canvas2.width, H = canvas2.height;
+  ctx2.clearRect(0,0,W,H);
+  ctx2.fillStyle = '#04090f'; ctx2.fillRect(0,0,W,H);
+
+  const isHoriz = side==='front' || side==='rear';
+  const plotLen = isHoriz ? plot.w : plot.d;
+  const bldLen  = isHoriz ? buildable.w : buildable.h;
+  const bldStart= isHoriz ? buildable.x : buildable.y;
+
+  const margin = 16;
+  const scaleX = (W-margin*2) / Math.max(1,plotLen);
+  const scaleY = (H-margin*2) / Math.max(1,totalH*1.1+2); // +2 for ground
+  const gndY = H-margin;
+
+  // draw ground
+  ctx2.strokeStyle = '#4ADE80'; ctx2.lineWidth = 1.5;
+  ctx2.beginPath(); ctx2.moveTo(margin,gndY); ctx2.lineTo(W-margin,gndY); ctx2.stroke();
+
+  // draw building outline
+  const bx1 = margin + bldStart*scaleX;
+  const bx2 = margin + (bldStart+bldLen)*scaleX;
+  const bTopY = gndY - totalH*scaleY;
+  ctx2.strokeStyle = '#eaf4ff'; ctx2.lineWidth = 2;
+  ctx2.strokeRect(bx1, bTopY, bx2-bx1, totalH*scaleY);
+
+  // draw floor lines
+  ctx2.strokeStyle = 'rgba(207,230,255,.3)'; ctx2.lineWidth = 0.8;
+  for(let fl=1;fl<floors;fl++){
+    const fy = gndY - fl*floorH*scaleY;
+    ctx2.beginPath(); ctx2.moveTo(bx1,fy); ctx2.lineTo(bx2,fy); ctx2.stroke();
+  }
+  // draw roof slab
+  ctx2.fillStyle = 'rgba(28,54,80,.8)';
+  ctx2.fillRect(bx1, bTopY, bx2-bx1, totalH*scaleY);
+
+  // overlay rooms as windows/bays
+  placed.forEach(r=>{
+    const rStart = isHoriz ? r.x : r.y;
+    const rLen   = isHoriz ? r.w : r.h;
+    const isWet  = /toilet|kitchen|bath|utility/i.test(r.name);
+    const isBed  = /bed/i.test(r.name);
+    for(let fl=0;fl<floors;fl++){
+      const rx1=bx1+(rStart)*scaleX, rx2=bx1+(rStart+rLen)*scaleX;
+      const ry1=gndY-(fl+1)*floorH*scaleY, ry2=gndY-fl*floorH*scaleY;
+      const rw=rx2-rx1-2, rh=ry2-ry1-2;
+      if(rw<2) return;
+      // room bay fill
+      ctx2.fillStyle = isWet?'rgba(31,168,217,.1)':isBed?'rgba(167,139,250,.1)':'rgba(255,255,255,.04)';
+      ctx2.fillRect(rx1+1,ry1+1,rw,rh);
+      // window
+      const ww=Math.min(rw*0.55, 30), wh=Math.min(rh*0.45, 22);
+      const wx=(rx1+rx2)/2-ww/2, wy=ry1+(rh-wh)*0.45;
+      if(ww>6 && !isWet){
+        ctx2.fillStyle='rgba(159,224,255,.25)'; ctx2.fillRect(wx,wy,ww,wh);
+        ctx2.strokeStyle='rgba(159,224,255,.7)'; ctx2.lineWidth=0.8;
+        ctx2.strokeRect(wx,wy,ww,wh);
+        ctx2.beginPath(); ctx2.moveTo(wx+ww/2,wy); ctx2.lineTo(wx+ww/2,wy+wh); ctx2.stroke();
+      } else if(isWet && ww>4){
+        const vw=Math.min(rw*0.3,16), vh=Math.min(rh*0.35,16);
+        const vx=(rx1+rx2)/2-vw/2, vy=ry1+(rh-vh)*0.35;
+        ctx2.fillStyle='rgba(159,224,255,.15)'; ctx2.fillRect(vx,vy,vw,vh);
+        ctx2.strokeStyle='rgba(159,224,255,.5)'; ctx2.lineWidth=0.7; ctx2.strokeRect(vx,vy,vw,vh);
+      }
+    }
+  });
+
+  // road label / direction
+  ctx2.fillStyle='var(--as)||#1FA8D9'; ctx2.font='700 9px IBM Plex Mono, monospace'; ctx2.textAlign='center';
+  ctx2.fillStyle='#1FA8D9';
+  ctx2.fillText(`${side.toUpperCase()} ELEVATION — ${plotLen.toFixed(0)}' × ${totalH}' H`,W/2,12);
+
+  // floor height annotation
+  for(let fl=0;fl<floors;fl++){
+    const fy = gndY-(fl+0.5)*floorH*scaleY;
+    ctx2.fillStyle='rgba(207,230,255,.4)'; ctx2.font='8px IBM Plex Mono, monospace'; ctx2.textAlign='left';
+    ctx2.fillText(`F${fl+1}`,margin+2,fy+3);
+  }
+  document.getElementById('elevLabel').textContent = `${side.charAt(0).toUpperCase()+side.slice(1)} elevation — ${floors} floor(s), ${totalH}ft total height`;
+  rpTab('elev');
+}
+
+function exportElevationPNG(){
+  const canvas2 = document.getElementById('elevCanvas');
+  if(!canvas2) return;
+  const a = document.createElement('a');
+  a.href = canvas2.toDataURL('image/png');
+  a.download = `elevation-${new Date().toISOString().slice(0,10)}.png`;
+  a.click();
+}
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  BUILDING CODE COMPLIANCE CHECKER                                ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+const CODE_RULES = {
+  NBC:{
+    minRoom:9.5, minKitchen:5.0, minBath:1.8, minHall:9.5,
+    minCeiling:2.75, minSetbackFront:3, minSetbackSide:1,
+    maxFAR_res:1.5, maxCoverage:0.4,
+    name:'NBC India 2016 (Part 3 — Development Control Rules)',
+  },
+  DUBAI:{
+    minRoom:10.0, minKitchen:6.0, minBath:2.0, minHall:14.0,
+    minCeiling:3.0, minSetbackFront:6, minSetbackSide:3,
+    maxFAR_res:0.9, maxCoverage:0.5,
+    name:'Dubai Development Control Regulations 2020',
+  },
+  ASCE:{
+    minRoom:7.0, minKitchen:5.0, minBath:1.5, minHall:7.0,
+    minCeiling:2.44, minSetbackFront:6, minSetbackSide:1.5,
+    maxFAR_res:2.0, maxCoverage:0.5,
+    name:'IBC 2021 / IRC Section R304',
+  },
+};
+function runComplianceCheck(){
+  const code = document.getElementById('codeStd').value;
+  const rules = CODE_RULES[code];
+  if(!rules) return;
+  const sqm = ft=>ft*ft*0.0929;
+  const floors = +document.getElementById('floors').value || 1;
+  const items = [];
+  const plotArea = plot.w*plot.d*0.0929; // m²
+  const builtUpArea = buildable.w*buildable.h*0.0929*floors;
+  const far = builtUpArea/plotArea;
+  const cov = (buildable.w*buildable.h*0.0929)/plotArea;
+  const sbF = +document.getElementById('sbF').value||0;
+  const sbL = +document.getElementById('sbL').value||0;
+
+  const check=(label,pass,detail)=>items.push({label,pass,detail});
+  // setbacks
+  check(`Front setback (req ≥${rules.minSetbackFront}m = ${(rules.minSetbackFront/0.3048).toFixed(1)}ft)`, sbF/0.3048>=rules.minSetbackFront, `Provided: ${(sbF*0.3048).toFixed(1)}m`);
+  check(`Side setback (req ≥${rules.minSetbackSide}m)`, sbL/0.3048>=rules.minSetbackSide, `Provided: ${(sbL*0.3048).toFixed(1)}m`);
+  // FAR
+  check(`FAR (req ≤${rules.maxFAR_res})`, far<=rules.maxFAR_res, `Actual FAR: ${far.toFixed(2)}`);
+  check(`Ground coverage (req ≤${(rules.maxCoverage*100).toFixed(0)}%)`, cov<=rules.maxCoverage, `Actual: ${(cov*100).toFixed(0)}%`);
+  // room sizes
+  placed.forEach(r=>{
+    const areaM2 = r.w*r.h*0.0929;
+    const minW = Math.min(r.w,r.h)*0.3048;
+    if(/master.*bed|bedroom/i.test(r.name)) check(`${r.name} (≥${rules.minRoom}m²)`, areaM2>=rules.minRoom, `${areaM2.toFixed(1)}m²`);
+    if(/kitchen/i.test(r.name)) check(`${r.name} (≥${rules.minKitchen}m²)`, areaM2>=rules.minKitchen, `${areaM2.toFixed(1)}m²`);
+    if(/toilet|bath|wc/i.test(r.name)) check(`${r.name} (≥${rules.minBath}m²)`, areaM2>=rules.minBath, `${areaM2.toFixed(1)}m²`);
+    if(/hall|living|reception/i.test(r.name)) check(`${r.name} (≥${rules.minHall}m²)`, areaM2>=rules.minHall, `${areaM2.toFixed(1)}m²`);
+  });
+  const pass = items.filter(i=>i.pass).length;
+  const fail = items.filter(i=>!i.pass).length;
+  document.getElementById('complyResults').innerHTML =
+    `<div style="margin-bottom:6px;font-weight:700;color:${fail===0?'#4ADE80':'#F5BE18'}">${fail===0?'✓ ALL CHECKS PASS':fail+' check(s) failed'} (${pass}/${items.length})</div>` +
+    items.map(i=>`<div style="color:${i.pass?'#4ADE80':'#ff4466'};margin-bottom:2px">${i.pass?'✓':'✗'} ${i.label}: ${i.detail}</div>`).join('');
+  document.getElementById('complyFAR').innerHTML =
+    `FAR: ${far.toFixed(2)} (max ${rules.maxFAR_res}) &nbsp;|&nbsp; Coverage: ${(cov*100).toFixed(0)}% (max ${(rules.maxCoverage*100).toFixed(0)}%)<br>Standard: ${rules.name}`;
+  rpTab('comply');
+}
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  AUTO ELECTRICAL LAYOUT                                          ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+// rules: [type, offsetX_pct, offsetY_pct] — position within room (0-1 fractions)
+const ELEC_RULES = {
+  'master bedroom':    [{t:'light',x:.5,y:.5},{t:'fan',x:.5,y:.45},{t:'switch',x:.05,y:.9},{t:'outlet',x:.9,y:.25},{t:'outlet',x:.9,y:.75},{t:'ac',x:.5,y:.05}],
+  'bedroom':           [{t:'light',x:.5,y:.5},{t:'fan',x:.5,y:.45},{t:'switch',x:.05,y:.9},{t:'outlet',x:.9,y:.3},{t:'outlet',x:.9,y:.7}],
+  'living':            [{t:'light',x:.5,y:.5},{t:'fan',x:.5,y:.5},{t:'switch',x:.05,y:.9},{t:'outlet',x:.1,y:.2},{t:'outlet',x:.9,y:.2},{t:'tv',x:.5,y:.95},{t:'ac',x:.5,y:.05}],
+  'hall':              [{t:'light',x:.5,y:.5},{t:'fan',x:.5,y:.5},{t:'switch',x:.05,y:.9},{t:'outlet',x:.1,y:.2},{t:'outlet',x:.9,y:.2},{t:'tv',x:.5,y:.95},{t:'ac',x:.5,y:.05}],
+  'kitchen':           [{t:'light',x:.5,y:.5},{t:'switch',x:.05,y:.9},{t:'outlet',x:.1,y:.1},{t:'outlet',x:.9,y:.1},{t:'outlet',x:.5,y:.1},{t:'exhaust',x:.5,y:.02}],
+  'toilet':            [{t:'light',x:.5,y:.2},{t:'switch',x:.05,y:.9},{t:'exhaust',x:.5,y:.05}],
+  'stair':             [{t:'light',x:.5,y:.3},{t:'switch',x:.05,y:.9}],
+  'default':           [{t:'light',x:.5,y:.5},{t:'switch',x:.05,y:.9},{t:'outlet',x:.9,y:.3}],
+};
+let elecPoints = []; // [{room,x,y,type}]  x,y in world coords
+function generateElectrical(){
+  elecPoints = [];
+  placed.forEach(r=>{
+    const key = Object.keys(ELEC_RULES).find(k=>r.name.toLowerCase().includes(k)) || 'default';
+    const rules = ELEC_RULES[key] || ELEC_RULES['default'];
+    rules.forEach(rule=>{
+      elecPoints.push({
+        x: buildable.x + r.x + rule.x*r.w,
+        y: buildable.y + r.y + rule.y*r.h,
+        type: rule.t, room: r.name
+      });
+    });
+  });
+  document.getElementById('elecSummary').textContent =
+    `${elecPoints.length} points: ${[...new Set(elecPoints.map(p=>p.type))].join(', ')}`;
+  document.getElementById('showElec').checked = true;
+  render();
+  rpTab('services');
+  document.getElementById('cmdMsg').textContent = `Auto-electrical: ${elecPoints.length} points placed across ${placed.length} rooms.`;
+}
+function clearServices(type){
+  if(type==='elec') elecPoints=[];
+  else plumbLines=[];
+  render();
+}
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  AUTO PLUMBING LAYOUT                                            ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+let plumbLines = []; // [{x1,y1,x2,y2,type:'supply'|'drain'}]
+function generatePlumbing(){
+  plumbLines = [];
+  const wetRooms = placed.filter(r=>/toilet|kitchen|bath|utility|wc|laundry/i.test(r.name));
+  if(!wetRooms.length){ document.getElementById('cmdMsg').textContent='No wet rooms (toilet/kitchen/utility) found — add them first.'; return; }
+  // main supply riser runs along front edge of buildable
+  const riserX = buildable.x + 1.5, riserY1 = buildable.y, riserY2 = buildable.y+buildable.h;
+  plumbLines.push({x1:riserX,y1:riserY1,x2:riserX,y2:riserY2,type:'supply',label:'Supply Riser'});
+  // main drain runs along rear edge
+  const drainX = buildable.x + buildable.w - 1.5;
+  plumbLines.push({x1:drainX,y1:riserY1,x2:drainX,y2:riserY2,type:'drain',label:'Drain Stack'});
+
+  wetRooms.forEach(r=>{
+    const cx=buildable.x+r.x+r.w/2, cy=buildable.y+r.y+r.h/2;
+    // branch supply line from riser to room
+    plumbLines.push({x1:riserX,y1:cy,x2:cx,y2:cy,type:'supply',label:`${r.name} supply`});
+    // drain from room to drain stack
+    plumbLines.push({x1:cx,y1:cy,x2:drainX,y2:cy,type:'drain',label:`${r.name} drain`});
+    // floor trap symbol
+    plumbLines.push({x1:cx-0.3,y1:cy-0.3,x2:cx+0.3,y2:cy+0.3,type:'trap',label:`${r.name} trap`});
+  });
+  document.getElementById('plumbSummary').textContent =
+    `${wetRooms.length} wet rooms, ${plumbLines.length} pipe segments`;
+  document.getElementById('showPlumb').checked = true;
+  render();
+  rpTab('services');
+}
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  SERVICES OVERLAY RENDERING (on ARCH plan canvas)               ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+function renderServicesOverlay(){
+  const showE = document.getElementById('showElec')?.checked;
+  const showP = document.getElementById('showPlumb')?.checked;
+  if(showE && elecPoints.length){
+    const ELEC_ICONS = {
+      light:'☀', fan:'◎', switch:'⬛', outlet:'⊕', tv:'📺', ac:'❄', exhaust:'⤴'
+    };
+    elecPoints.forEach(pt=>{
+      const s=worldToScreen(pt.x,pt.y);
+      ctx.font=`${Math.max(9,scale*0.4)}px monospace`;
+      ctx.fillStyle='#F5BE18';
+      ctx.textAlign='center';
+      ctx.fillText(ELEC_ICONS[pt.type]||'•',s.x,s.y);
+    });
+  }
+  if(showP && plumbLines.length){
+    plumbLines.forEach(ln=>{
+      const s1=worldToScreen(ln.x1,ln.y1), s2=worldToScreen(ln.x2,ln.y2);
+      ctx.strokeStyle = ln.type==='supply'?'#60a5fa':ln.type==='drain'?'#4ADE80':'#F5BE18';
+      ctx.lineWidth = ln.type==='trap'?1:1.5;
+      ctx.setLineDash(ln.type==='drain'?[4,3]:[]);
+      ctx.beginPath();
+      if(ln.type==='trap'){
+        ctx.arc((s1.x+s2.x)/2,(s1.y+s2.y)/2,Math.max(4,scale*0.15),0,Math.PI*2);
+      } else {
+        ctx.moveTo(s1.x,s1.y); ctx.lineTo(s2.x,s2.y);
+      }
+      ctx.stroke(); ctx.setLineDash([]);
+    });
+  }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  ENHANCED BOQ — proper quantities + unit rates + totals         ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+function buildDetailedBOQ(){
+  const floors = +document.getElementById('floors').value || 1;
+  const DL = +document.getElementById('dlInput').value || 4.5;
+  const totalAreaFt2 = placed.reduce((s,r)=>s+r.area,0)*floors;
+  const totalAreaM2  = totalAreaFt2*0.0929;
+  const extWallFt = (+document.getElementById('extWall').value||9)/12; // ft
+  const intWallFt = (+document.getElementById('intWall').value||4.5)/12;
+  const perimFt = (buildable.w+buildable.h)*2;
+  const intPartFt = placed.reduce((s,r)=>s+(r.w+r.h)*2,0)/2; // rough internal wall length
+
+  // Rough unit rates (AED for Dubai, adjust per market)
+  const rates = {
+    earthwork:  {unit:'m³', rate:25,  qty: totalAreaM2*1.2,       desc:'Earthwork excavation (1.2m depth average)'},
+    PCC:        {unit:'m³', rate:280, qty: totalAreaM2*0.1,        desc:'PCC M10 under foundations'},
+    RCC_found:  {unit:'m³', rate:650, qty: totalAreaM2*0.25*floors,desc:'RCC M25 foundations & footings'},
+    RCC_col:    {unit:'m³', rate:750, qty: structModel.columns.length*0.09*floors*3.05, desc:`RCC M25 columns (${structModel.columns.length} cols × ${floors} flrs)`},
+    RCC_beam:   {unit:'m³', rate:700, qty: structModel.beams.reduce((s,b)=>s+Math.hypot(b.x2-b.x1,b.y2-b.y1),0)*0.3048*(0.23*0.45)*floors, desc:`RCC M25 beams (${structModel.beams.length} beams)`},
+    RCC_slab:   {unit:'m³', rate:680, qty: totalAreaM2*0.15*floors,desc:`RCC M25 slab (${floors} floor(s))`},
+    Masonry:    {unit:'m³', rate:350, qty: (perimFt*0.3048)*(2.75*floors)*extWallFt*0.3048, desc:'Brick/block masonry (ext walls)'},
+    IntMasonry: {unit:'m³', rate:300, qty: (intPartFt*0.3048)*(2.75*floors)*intWallFt*0.3048, desc:'Block masonry (int partitions)'},
+    Plaster:    {unit:'m²', rate:45,  qty: (perimFt+intPartFt)*0.3048*2.75*floors*2, desc:'Internal + external plastering'},
+    Flooring:   {unit:'m²', rate:180, qty: totalAreaM2*1.1,        desc:'Vitrified tile flooring (incl. wastage)'},
+    Paint:      {unit:'m²', rate:35,  qty: totalAreaM2*floors*3.5, desc:'Interior emulsion paint (2 coats)'},
+    ExtPaint:   {unit:'m²', rate:55,  qty: perimFt*0.3048*2.75*floors*2, desc:'Exterior texture/waterproof paint'},
+    Doors:      {unit:'No.', rate:1800,qty: placed.reduce((s,r)=>s+(r.manualOpenings||[]).filter(o=>o.type==='door').length,0)||Math.ceil(placed.length*0.8), desc:'Internal + external doors (average)'},
+    Windows:    {unit:'No.', rate:1200,qty: placed.reduce((s,r)=>s+(r.manualOpenings||[]).filter(o=>o.type==='window').length,0)||Math.ceil(placed.length*1.2), desc:'UPVC/aluminium windows'},
+    Electrical: {unit:'pt', rate:250, qty: elecPoints.length||Math.ceil(totalAreaM2*0.8), desc:'Electrical points (wiring + fixtures)'},
+    Plumbing:   {unit:'pt', rate:900, qty: placed.filter(r=>/toilet|kitchen|bath|utility/i.test(r.name)).length*4, desc:'Plumbing (supply + drainage)'},
+    Waterproof: {unit:'m²', rate:95,  qty: totalAreaM2*floors,    desc:'Waterproofing (wet areas + roof)'},
+  };
+  return rates;
+}
+function renderDetailedBOQ(){
+  const boq = buildDetailedBOQ();
+  let totalAED = 0;
+  const rows = Object.entries(boq).map(([key,item])=>{
+    const amount = item.qty*item.rate;
+    totalAED += amount;
+    return `<tr><td style="padding:4px 6px;border-bottom:1px solid rgba(31,168,217,.07)">${item.desc}</td><td style="padding:4px 6px;border-bottom:1px solid rgba(31,168,217,.07);text-align:right">${item.qty.toFixed(2)}</td><td style="padding:4px 6px;border-bottom:1px solid rgba(31,168,217,.07);text-align:center">${item.unit}</td><td style="padding:4px 6px;border-bottom:1px solid rgba(31,168,217,.07);text-align:right">${item.rate.toLocaleString()}</td><td style="padding:4px 6px;border-bottom:1px solid rgba(31,168,217,.07);text-align:right;font-weight:700">${Math.round(amount).toLocaleString()}</td></tr>`;
+  }).join('');
+  const contingency = totalAED*0.1;
+  return {rows, totalAED, contingency};
+}
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  PROFESSIONAL CLIENT REPORT (PDF)                               ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+function exportClientReport(){
+  syncFloorToActive();
+  const client=document.getElementById('proj-client')?.value||'Client';
+  const title=document.getElementById('proj-title')?.value||'Residential Project';
+  const address=document.getElementById('proj-address')?.value||'—';
+  const drawnBy=document.getElementById('proj-by')?.value||'Sky TerraEye Airsum';
+  const date=document.getElementById('proj-date')?.value||new Date().toISOString().split('T')[0];
+  const floors=+document.getElementById('floors').value||1;
+  const fc=+document.getElementById('fcInput')?.value||25;
+  const fy=+document.getElementById('fyInput')?.value||415;
+  const rho=+document.getElementById('rhoInput')?.value||1.5;
+  const sbc=+document.getElementById('sbcInput')?.value||150;
+  const totalArea=placed.reduce((s,r)=>s+r.area,0)*floors;
+  const boqData=renderDetailedBOQ();
+  const totalCost=boqData.totalAED+boqData.contingency;
+
+  const colRows=structModel.columns.map((c,i)=>`<tr><td>C${i+1}</td><td>${c.x.toFixed(1)}'</td><td>${c.y.toFixed(1)}'</td><td>${c.loadKN.toFixed(1)}</td><td>${c.size}</td><td>${c.footSideM.toFixed(2)}×${c.footSideM.toFixed(2)}</td></tr>`).join('');
+  const roomRows=placed.map(r=>`<tr><td>${r.name}</td><td>${r.w.toFixed(1)}'×${r.h.toFixed(1)}'</td><td>${r.area.toFixed(0)}</td><td>${(r.area*0.0929).toFixed(1)}</td></tr>`).join('');
+
+  const w=window.open('','_blank');
+  w.document.write(`<!doctype html><html><head><title>${title} — Client Report</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:Arial,sans-serif;font-size:11px;color:#111}
+    .cover{page-break-after:always;height:100vh;background:linear-gradient(160deg,#0d2d47,#04090f);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:40px}
+    .cover h1{font-size:32px;font-weight:900;color:#1FA8D9;margin-bottom:12px;letter-spacing:2px}
+    .cover h2{font-size:22px;font-weight:400;margin-bottom:8px;color:#cfe6ff}
+    .cover p{font-size:13px;color:rgba(255,255,255,.6);margin:3px 0}
+    .cover .logo{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#4ADE80;margin-bottom:24px}
+    .cover .meta{margin-top:32px;padding:20px 32px;border:1px solid rgba(31,168,217,.3);border-radius:8px;background:rgba(31,168,217,.07)}
+    .cover .meta p{font-size:12px;margin:6px 0;color:rgba(255,255,255,.8)}
+    .cover .meta strong{color:#1FA8D9}
+    section{padding:24px 32px;page-break-inside:avoid}
+    h2.sec{font-size:15px;color:#0d2d47;border-bottom:2px solid #1FA8D9;padding-bottom:5px;margin-bottom:12px;margin-top:24px}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th{background:#0d2d47;color:#fff;padding:6px 8px;text-align:left;font-size:10px}
+    td{padding:4px 8px;border-bottom:1px solid #e5eef5;font-size:10px}
+    tr:nth-child(even) td{background:#f5f9ff}
+    .stat{display:inline-block;background:#f0f7ff;border:1px solid #1FA8D9;border-radius:4px;padding:8px 16px;margin:4px;text-align:center}
+    .stat .v{font-size:18px;font-weight:700;color:#0d2d47}
+    .stat .l{font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.5px}
+    .total-row td{background:#0d2d47!important;color:#fff!important;font-weight:700}
+    .pass{color:#16a34a}.fail{color:#dc2626}
+    .disclaimer{margin:20px 32px;padding:10px 16px;background:#fff8e1;border-left:3px solid #ffc107;font-size:9px;color:#555;line-height:1.6}
+    @page{margin:15mm}@media print{.no-print{display:none}}
+  </style></head><body>
+  <div class="cover">
+    <div class="logo">Sky TerraEye · Airsum</div>
+    <h1>${title.toUpperCase()}</h1>
+    <h2>${address}</h2>
+    <div class="meta">
+      <p><strong>Client:</strong> ${client}</p>
+      <p><strong>Project Area:</strong> ${totalArea.toFixed(0)} sqft (${(totalArea*0.0929).toFixed(0)} m²) — ${floors} floor(s)</p>
+      <p><strong>Plot:</strong> ${plot.w}'×${plot.d}'</p>
+      <p><strong>Drawn by:</strong> ${drawnBy}</p>
+      <p><strong>Date:</strong> ${date}</p>
+      <p><strong>Estimated Cost:</strong> AED ${Math.round(totalCost).toLocaleString()} (~USD ${Math.round(totalCost/3.67).toLocaleString()})</p>
+    </div>
+  </div>
+
+  <section>
+    <h2 class="sec">1. PROJECT OVERVIEW</h2>
+    <div>
+      <span class="stat"><div class="v">${plot.w}'×${plot.d}'</div><div class="l">Plot Size</div></span>
+      <span class="stat"><div class="v">${floors}</div><div class="l">Floors</div></span>
+      <span class="stat"><div class="v">${placed.length}</div><div class="l">Rooms</div></span>
+      <span class="stat"><div class="v">${totalArea.toFixed(0)} sqft</div><div class="l">Built-up Area</div></span>
+      <span class="stat"><div class="v">${structModel.columns.length}</div><div class="l">Columns</div></span>
+      <span class="stat"><div class="v">${structModel.beams.length}</div><div class="l">Beams</div></span>
+    </div>
+    <h2 class="sec" style="margin-top:16px">2. ROOM SCHEDULE</h2>
+    <table><thead><tr><th>Room</th><th>Dimensions</th><th>Area (sqft)</th><th>Area (m²)</th></tr></thead><tbody>${roomRows}</tbody></table>
+  </section>
+
+  <section style="page-break-before:always">
+    <h2 class="sec">3. STRUCTURAL PARAMETERS</h2>
+    <table><thead><tr><th>Parameter</th><th>Value</th><th>Standard</th></tr></thead>
+    <tbody>
+      <tr><td>Concrete grade (f'c)</td><td>M${fc} (${fc} N/mm²)</td><td>IS 456 / ACI 318</td></tr>
+      <tr><td>Steel grade (fy)</td><td>Fe${fy} HYSD TMT bars</td><td>IS 1786</td></tr>
+      <tr><td>Steel ratio (ρ)</td><td>${rho}%</td><td>ACI 318 §10.6.1</td></tr>
+      <tr><td>Soil bearing capacity</td><td>${sbc} kPa</td><td>IS 1904 / BS 8004</td></tr>
+      <tr><td>Dead load (DL)</td><td>${document.getElementById('dlInput').value||4.5} kN/m²</td><td>IS 875 Part 1</td></tr>
+      <tr><td>Live load (LL)</td><td>${document.getElementById('llInput').value||2.0} kN/m²</td><td>IS 875 Part 2</td></tr>
+    </tbody></table>
+    <h2 class="sec">4. COLUMN SCHEDULE</h2>
+    <table><thead><tr><th>Column</th><th>X</th><th>Y</th><th>Load (kN)</th><th>Section</th><th>Footing (m×m)</th></tr></thead><tbody>${colRows}</tbody></table>
+  </section>
+
+  <section style="page-break-before:always">
+    <h2 class="sec">5. BILL OF QUANTITIES (PRELIMINARY ESTIMATE)</h2>
+    <table>
+      <thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th>Rate (AED)</th><th>Amount (AED)</th></tr></thead>
+      <tbody>${boqData.rows}
+      <tr><td colspan="4">Contingency (10%)</td><td style="font-weight:700;text-align:right">${Math.round(boqData.contingency).toLocaleString()}</td></tr>
+      <tr class="total-row"><td colspan="4">TOTAL ESTIMATE</td><td style="text-align:right">AED ${Math.round(totalCost).toLocaleString()}</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:6px;font-size:9px;color:#666">Rates are indicative for Dubai/UAE market (2025). Actual costs may vary with market conditions, contractor margins, and finishes specifications.</p>
+  </section>
+
+  <div class="disclaimer">
+    <strong>DISCLAIMER:</strong> This is a PRELIMINARY design and cost estimate generated by Sky TerraEye Airsum for conceptual purposes only.
+    It has NOT been reviewed by a licensed structural engineer or architect. All structural calculations, room dimensions, building code compliance,
+    and cost estimates must be independently verified before any construction commences. The generating party accepts no liability for any decisions
+    made on the basis of this document.
+  </div>
+  </body></html>`);
+  w.document.close(); setTimeout(()=>w.print(),500);
+}
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  3D MATERIAL / TEXTURE THEMES                                    ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+const MATERIAL_THEMES_3D = {
+  modern:  {wall:0x1e3a5f, slab:0x162d47, roof:0x0d1e30, trim:0x1FA8D9, window:0x9fe0ff, name:'Modern Concrete'},
+  classic: {wall:0xe8dcc8, slab:0xd4c5a9, roof:0x8b5e3c, trim:0x8b7355, window:0xa8d0e6, name:'Classic Brick'},
+  minimal: {wall:0xf0f0f0, slab:0xe0e0e0, roof:0xc0c0c0, trim:0xffffff, window:0xbbddee, name:'Minimal White'},
+  brick:   {wall:0xb5602a, slab:0x1c3650, roof:0x5c3a1e, trim:0xc87941, window:0x9fe0ff, name:'Red Brick'},
+  villa:   {wall:0xfbf0e3, slab:0xf0e0c8, roof:0xc47f3a, trim:0xd4a574, window:0xa8d0e6, name:'Spanish Villa'},
+  glass:   {wall:0x1e3a5f, slab:0x0d2d47, roof:0x0d1e30, trim:0x60a5fa, window:0x60a5fa, name:'Glass & Steel'},
+};
+let current3DTheme = 'modern';
+function set3DStyle(style){
+  current3DTheme = style;
+  if(viewMode==='3d') render3D();
+  document.getElementById('cmdMsg').textContent=`3D building style: ${MATERIAL_THEMES_3D[style]?.name||style}`;
+}
+function get3DTheme(){ return MATERIAL_THEMES_3D[current3DTheme] || MATERIAL_THEMES_3D.modern; }
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  EXPORT BUTTONS (add to ribbon Export group)                     ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+function openClientReportDialog(){
+  rpTab('summary');
+  exportClientReport();
 }
 
 /* ================= POLYGON PLOT TOOLS ================= */
@@ -4795,6 +5668,8 @@ onSystemChange();
 renderRoomRows();
 populatePresetSelect();
 populateOpeningPickers();
+initFloorDate();
+renderFloorBtns();
 syncLLDefault();
 ['A','B','C'].forEach(k=>document.getElementById('opt'+k).classList.toggle('act', k==='A'));
 fitCanvas();
