@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TerraView Pro | Sky TerraEye — Thermography & Topography Client Viewer</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230A2540'/><text x='16' y='22' font-size='14' font-weight='800' font-family='Arial' fill='%231FA8D9' text-anchor='middle'>ST</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -1150,6 +1151,18 @@ const Ortho={
     map.fitBounds(o.bounds,{padding:[30,30]});
     if(window.Log)Log.add('Ortho loaded: <b>'+esc(o.name)+'</b>'+(o.thermal?' (thermal)':''));
     toast('Ortho loaded: <b>'+esc(o.name)+'</b>'+(o.thermal?' · thermal probe ready':''));
+    if(!o.thermal&&o.kind==='rgb'&&window.Recover){
+      setTimeout(()=>{ try{
+        const img=new Image();
+        img.onload=()=>{const cv=document.createElement('canvas');
+          const sc=Math.min(1,400/Math.max(img.width,img.height));
+          cv.width=Math.max(1,img.width*sc|0);cv.height=Math.max(1,img.height*sc|0);
+          const cx=cv.getContext('2d',{willReadFrequently:true});cx.drawImage(img,0,0,cv.width,cv.height);
+          const det=Recover.detectPalette(cx.getImageData(0,0,cv.width,cv.height).data,cv.width,cv.height);
+          if(det.confident&&det.palette!=='whitehot'&&det.palette!=='blackhot')
+            toast('🌡 <b>'+esc(o.name)+'</b> looks like a colorized thermal ('+Math.round(det.frac*100)+'% '+det.palette+' match). Use <b>Recover temperatures</b> on its layer card to enable probing & ⚡ detection.','warn');};
+        img.src=o.dataURL;
+      }catch(e){} },400);}
     Sync.push();
   },
   toggle(id){const o=S.orthos.find(x=>x.id===id);if(!o)return;o.visible=!o.visible;
@@ -1178,6 +1191,7 @@ const Ortho={
         <input type="checkbox" ${o.visible?'checked':''} onchange="Ortho.toggle('${o.id}')" title="Visible">
         <input type="range" min="0" max="1" step="0.05" value="${o.opacity}" oninput="Ortho.setOpacity('${o.id}',this.value)" title="Opacity">
       </div>
+      ${!o.thermal&&o.kind==='rgb'?`<div class="row" style="margin-top:6px"><button class="btn small edit-only" style="border-color:rgba(245,190,24,.5);color:var(--gold)" onclick="Recover.open('${o.id}')" title="Colorized thermal? Reverse the palette into a temperature layer">🌡 Recover temperatures</button></div>`:''}
       ${o.thermal?`<div class="mut" style="margin-top:5px;font-size:10.5px">Range ${fmt(o.thermal.min,1)} – ${fmt(o.thermal.max,1)} ${o.thermal.unit||''} <span class="dim">· probe with T</span></div>
         ${o.thermal.rtype==='dem'?`<div class="row" style="margin-top:6px"><button class="btn small edit-only" onclick="Contours.open('${o.id}')">≋ Contours</button><button class="btn small" onclick="Profile.start('${o.id}')">⤢ Elevation profile</button></div>`:`<div class="temp-strip" style="margin-top:4px"></div>`}`:''}`;
       el.appendChild(c);
@@ -2689,7 +2703,7 @@ const Pop={
 const Detect={
   open(){
     const th=S.orthos.filter(o=>o.thermal&&o.thermal.rtype==='thermal');
-    if(!th.length){toast('Upload a radiometric thermal GeoTIFF first — detection reads its pixel temperatures','warn');return;}
+    if(!th.length){toast('Detection needs pixel temperatures. Upload a radiometric (single-band) thermal GeoTIFF — or, for a colorized thermal RGB like an ironbow render, click <b>🌡 Recover temperatures</b> on its layer card first.','warn');return;}
     UI.openModal('⚡ Auto-detect hotspots',
       `<p class="mut" style="margin-bottom:12px">Scans the thermal ortho pixel grid, finds connected hot regions above the baseline, creates classified features with T max — and estimates the class from ΔT and blob size.</p>
       <label class="f">Thermal ortho</label>
@@ -3004,6 +3018,89 @@ const DEMO_GJ=JSON.stringify({type:'FeatureCollection',features:(function(){
   out.push({type:'Feature',id:'demo_str',geometry:{type:'Polygon',coordinates:[[[lo0-0.0012,la0+0.0011],[lo0-0.0001,la0+0.0011],[lo0-0.0001,la0+0.00135],[lo0-0.0012,la0+0.00135],[lo0-0.0012,la0+0.0011]]]},
     properties:{id:'demo_str',name:'',class:'String Hot',status:'Open',t_max:37.2,t_amb:34,block:'B1',string:'S-02',notes:'Full string warm — check fuse'}});
   return out;})()});
+
+/* ---------- temperature recovery from colorized (RGB) thermal orthos ---------- */
+const Recover={
+  palettes(){
+    const N=256,mk=f=>{const a=new Uint8Array(N*3);for(let i=0;i<N;i++){const c=f(i/(N-1));a[i*3]=c[0];a[i*3+1]=c[1];a[i*3+2]=c[2];}return a;};
+    return{
+      ironbow:{label:'Ironbow (purple→orange→yellow)',lut:mk(ironbow)},
+      whitehot:{label:'White hot (grayscale)',lut:mk(t=>[t*255,t*255,t*255])},
+      blackhot:{label:'Black hot (inverted gray)',lut:mk(t=>[(1-t)*255,(1-t)*255,(1-t)*255])},
+      rainbow:{label:'Rainbow / Jet',lut:mk(t=>{const r=Math.max(0,Math.min(1,1.5-Math.abs(4*t-3)));
+        const g=Math.max(0,Math.min(1,1.5-Math.abs(4*t-2)));const b=Math.max(0,Math.min(1,1.5-Math.abs(4*t-1)));
+        return[r*255,g*255,b*255];})}
+    };},
+  buildMap(lut){
+    const B=32,map=new Float32Array(B*B*B),dist=new Float32Array(B*B*B);
+    for(let r=0;r<B;r++)for(let g=0;g<B;g++)for(let b=0;b<B;b++){
+      const R=r*8+4,G=g*8+4,Bl=b*8+4;let bd=1e9,bt=0;
+      for(let i=0;i<256;i+=2){const dr=R-lut[i*3],dg=G-lut[i*3+1],db=Bl-lut[i*3+2];
+        const d=dr*dr+dg*dg+db*db;if(d<bd){bd=d;bt=i/255;}}
+      map[(r*B+g)*B+b]=bt;dist[(r*B+g)*B+b]=Math.sqrt(bd);}
+    return{map,dist};},
+  detectPalette(px,w,h){
+    const pals=this.palettes();const maps={};for(const k in pals)maps[k]=this.buildMap(pals[k].lut);
+    const step=Math.max(4,Math.floor((w*h)/8000))*4;
+    const score={};for(const k in pals)score[k]={ok:0,n:0};
+    for(let i=0;i<px.length;i+=step){ if(px[i+3]<10)continue;
+      const bi=(((px[i]>>3)*32+(px[i+1]>>3))*32+(px[i+2]>>3));
+      for(const k in pals){score[k].n++;if(maps[k].dist[bi]<34)score[k].ok++;}}
+    let best=null,bf=0;
+    for(const k in pals){const f=score[k].n?score[k].ok/score[k].n:0;if(f>bf){bf=f;best=k;}}
+    if((best==='whitehot'||best==='blackhot')&&bf<0.9)return{palette:best,frac:bf,confident:false};
+    return{palette:best,frac:bf,confident:bf>=0.6};},
+  open(orthoId){
+    const o=S.orthos.find(x=>x.id===orthoId);if(!o)return;
+    toast('Analysing colours…');
+    const img=new Image();
+    img.onload=()=>{
+      const cv=document.createElement('canvas');cv.width=img.width;cv.height=img.height;
+      const ctx=cv.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0);
+      const px=ctx.getImageData(0,0,cv.width,cv.height).data;
+      const det=this.detectPalette(px,cv.width,cv.height);
+      this._ctx={o,px,w:cv.width,h:cv.height};
+      const pals=this.palettes();
+      UI.openModal('🌡 Recover temperatures — '+esc(o.name),
+        `<p class="mut" style="margin-bottom:12px">This ortho is an RGB image with the thermal palette baked in. TerraView can reverse the palette into a temperature layer so the <b>probe</b> and <b>⚡ auto-detection</b> work. ${det.confident?('Detected palette: <b style="color:var(--gold)">'+pals[det.palette].label+'</b> ('+Math.round(det.frac*100)+'% colour match).'):'Palette match is uncertain — pick it manually below.'}</p>
+        <label class="f">Colour palette</label>
+        <select id="rcPal">${Object.entries(pals).map(([k,p])=>`<option value="${k}" ${det.palette===k?'selected':''}>${p.label}</option>`).join('')}</select>
+        <div class="grid2">
+          <div><label class="f">Scale minimum (°C)</label><input id="rcMin" type="number" step="0.1" value="${S.project.ambient!=null?(S.project.ambient-5).toFixed(0):'25'}"></div>
+          <div><label class="f">Scale maximum (°C)</label><input id="rcMax" type="number" step="0.1" value="80"></div>
+        </div>
+        <div class="mut" style="margin-top:10px;font-size:11px">Enter the min/max of the colour bar used when this ortho was rendered (DJI Terra / Pix4D export settings, or the legend on the deliverable). Recovered values are approximate — the palette quantises temperature — but ΔT-based detection and classification work well. For measurement-grade values, export a <b>single-band radiometric GeoTIFF</b>.</div>`,
+        `<button class="btn" onclick="UI.closeModal()">Cancel</button>
+         <button class="btn gold" onclick="Recover.run()">🌡 Recover temperature layer</button>`);
+    };
+    img.onerror=()=>toast('Could not read the ortho image','err');
+    img.src=o.dataURL;},
+  run(){
+    const {o,px,w,h}=this._ctx;
+    const pal=$('rcPal').value;const tmin=+$('rcMin').value,tmax=+$('rcMax').value;
+    if(!(tmax>tmin)){toast('Scale maximum must be greater than minimum','warn');return;}
+    UI.closeModal();toast('Recovering temperatures…');
+    setTimeout(()=>{
+      const lut=this.palettes()[pal].lut;
+      const {map,dist}=this.buildMap(lut);
+      const data=new Float32Array(w*h);
+      let ok=0;
+      for(let i=0;i<w*h;i++){const j=i*4;
+        if(px[j+3]<10){data[i]=NaN;continue;}
+        const bi=(((px[j]>>3)*32+(px[j+1]>>3))*32+(px[j+2]>>3));
+        if(dist[bi]>60){data[i]=NaN;continue;}
+        data[i]=tmin+map[bi]*(tmax-tmin);ok++;
+      }
+      if(!ok){toast('No palette colours found — try a different palette','err');return;}
+      o.thermal={data,w,h,min:tmin,max:tmax,p2:tmin,p98:tmax,nodata:undefined,unit:'°C',rtype:'thermal',bounds:o.bounds};
+      o.kind='thermal';
+      Ortho.renderList();S.dirty=true;
+      Log.add('🌡 Temperature layer recovered from <b>'+esc(o.name)+'</b> ('+pal+', '+tmin+'–'+tmax+' °C)');
+      toast('🌡 Done — '+Math.round(ok*100/(w*h))+'% of pixels recovered ('+tmin+'–'+tmax+' °C). Probe with <b>T</b>, then run <b>⚡ auto-detect</b>.');
+      this._ctx=null;
+    },50);}
+};
+window.Recover=Recover;
 
 /* ---------- contour generation (marching squares) ---------- */
 const Contours={
