@@ -2735,9 +2735,11 @@ const Detect={
         </select></div>
         <div><label class="f">Panels are…</label>
         <select id="detPanelSide">
-          <option value="cool" selected>Cooler than the ground (typical desert daytime)</option>
+          <option value="auto" selected>Auto — panels are the smoother surface (recommended)</option>
+          <option value="cool">Cooler than the ground</option>
           <option value="hot">Hotter than the ground</option>
         </select></div>
+        <div style="align-self:end"><button class="btn small" style="width:100%" onclick="Detect.preview()">👁 Preview panel mask on the map</button></div>
         <div><label class="f">Module technology</label>
         <select id="detTech">
           <option value="halfcell" ${S.project.moduleTech==='halfcell'?'selected':''}>Half Cell</option>
@@ -2751,6 +2753,92 @@ const Detect={
     setTimeout(()=>{const sel=$('detOrtho');if(!sel)return;
       const cur=S.orthos.find(x=>x.id===sel.value);
       if(cur&&cur.thermal&&cur.thermal.recovered){$('detPreset').value='con';Detect.preset('con');}},60);},
+  buildMask(o,area,panelSide){
+    if(area==='all')return null;
+    const th=o.thermal,d=th.data,w=th.w,h=th.h;
+    const bnd=o.bounds;const latSpan=bnd[1][0]-bnd[0][0],lngSpan=bnd[1][1]-bnd[0][1];
+    const mPerPxY=latSpan*111320/h, mPerPxX=lngSpan*111320*Math.cos(bnd[0][0]*Math.PI/180)/w;
+    const valid=v=>v!==th.nodata&&!isNaN(v);
+    const mc=Math.max(2,Math.round(0.5/Math.max(0.01,(mPerPxX+mPerPxY)/2)));
+    const mgx=Math.max(1,Math.ceil(w/mc)),mgy=Math.max(1,Math.ceil(h/mc));
+    if(area==='blocks'){
+      if(!S.blocks.length)return null;
+      const inB=new Uint8Array(mgx*mgy);
+      for(let gy2=0;gy2<mgy;gy2++)for(let gx2=0;gx2<mgx;gx2++){
+        const ll=L.latLng(bnd[1][0]-((gy2+0.5)*mc/(h-1))*latSpan, bnd[0][1]+((gx2+0.5)*mc/(w-1))*lngSpan);
+        inB[gy2*mgx+gx2]=Blocks.at(ll)?1:0;}
+      return{maskAt:(x,y)=>inB[((y/mc)|0)*mgx+((x/mc)|0)]===1,isPanel:inB,mgx,mgy,mc,side:'blocks',pct:Math.round(100*inB.reduce((s,v)=>s+v,0)/(mgx*mgy))};}
+    /* panels: fine cells -> trimmed mean + variance -> Otsu -> texture-based side -> closing */
+    const s1=new Float64Array(mgx*mgy),c1=new Uint32Array(mgx*mgy);
+    for(let y=0;y<h;y++){const gy2=(y/mc)|0;for(let x=0;x<w;x++){const v=d[y*w+x];
+      if(!valid(v))continue;const gi=gy2*mgx+((x/mc)|0);s1[gi]+=v;c1[gi]++;}}
+    const cm1=new Float32Array(mgx*mgy);
+    for(let i=0;i<mgx*mgy;i++)cm1[i]=c1[i]?s1[i]/c1[i]:NaN;
+    s1.fill(0);c1.fill(0);
+    const sq=new Float64Array(mgx*mgy);
+    for(let y=0;y<h;y++){const gy2=(y/mc)|0;for(let x=0;x<w;x++){const v=d[y*w+x];
+      if(!valid(v))continue;const gi=gy2*mgx+((x/mc)|0);
+      if(!isNaN(cm1[gi])&&v>cm1[gi]+3)continue;s1[gi]+=v;sq[gi]+=v*v;c1[gi]++;}}
+    const cellT=new Float32Array(mgx*mgy),cellV=new Float32Array(mgx*mgy);
+    let lo=1e9,hi=-1e9;
+    for(let i=0;i<mgx*mgy;i++){ if(!c1[i]){cellT[i]=NaN;cellV[i]=NaN;continue;}
+      const m=s1[i]/c1[i];cellT[i]=m;cellV[i]=Math.max(0,sq[i]/c1[i]-m*m);
+      if(cellT[i]<lo)lo=cellT[i];if(cellT[i]>hi)hi=cellT[i];}
+    const H2=new Float64Array(128);let nC=0;
+    for(let i=0;i<mgx*mgy;i++){const v=cellT[i];if(isNaN(v))continue;
+      H2[Math.max(0,Math.min(127,((v-lo)/((hi-lo)||1)*127)|0))]++;nC++;}
+    let sumAll=0;for(let i=0;i<128;i++)sumAll+=i*H2[i];
+    let wB=0,sumB=0,bestVar=-1,bT1=64,bT2=64;
+    for(let t=0;t<128;t++){wB+=H2[t];if(!wB)continue;const wF=nC-wB;if(!wF)break;
+      sumB+=t*H2[t];
+      const mB=sumB/wB,mF=(sumAll-sumB)/wF,vb=wB*wF*(mB-mF)*(mB-mF);
+      if(vb>bestVar+1e-9){bestVar=vb;bT1=t;bT2=t;}
+      else if(vb>=bestVar-1e-9)bT2=t;} // flat maximum between modes -> take the valley midpoint
+    const thr=lo+(((bT1+bT2)/2)/127)*(hi-lo);
+    let side=panelSide;
+    if(side==='auto'){
+      /* panels are the SMOOTHER class: glass is thermally uniform, soil/vegetation is noisy */
+      const vc=[],vh=[];
+      for(let i=0;i<mgx*mgy;i++){ if(isNaN(cellT[i])||isNaN(cellV[i]))continue;
+        (cellT[i]<=thr?vc:vh).push(cellV[i]);}
+      const med=a2=>{if(!a2.length)return 1e9;a2.sort((x,y)=>x-y);return a2[a2.length>>1];};
+      side=med(vc)<=med(vh)?'cool':'hot';
+    }
+    let m0=new Uint8Array(mgx*mgy);
+    for(let i=0;i<mgx*mgy;i++){const v=cellT[i];if(isNaN(v))continue;
+      m0[i]=(side==='cool'?(v<=thr):(v>=thr))?1:0;}
+    const morph=(src,grow)=>{const out=new Uint8Array(mgx*mgy);
+      for(let gy2=0;gy2<mgy;gy2++)for(let gx2=0;gx2<mgx;gx2++){
+        let hit=false;
+        for(let dy=-1;dy<=1&&!hit;dy++)for(let dx=-1;dx<=1&&!hit;dx++){
+          const yy=gy2+dy,xx=gx2+dx;
+          if(yy<0||yy>=mgy||xx<0||xx>=mgx)continue;
+          if(grow?src[yy*mgx+xx]===1:src[yy*mgx+xx]===0)hit=true;}
+        out[gy2*mgx+gx2]=grow?(hit?1:src[gy2*mgx+gx2]):(hit?0:src[gy2*mgx+gx2]);}
+      return out;};
+    for(let k=0;k<2;k++)m0=morph(m0,true);
+    for(let k=0;k<2;k++)m0=morph(m0,false);
+    let pc=0,tot=0;for(let i=0;i<mgx*mgy;i++){if(!isNaN(cellT[i]))tot++;pc+=m0[i];}
+    const pct=tot?Math.round(100*pc/tot):0;
+    if(pc<mgx*mgy*0.05)return null; // degenerate -> no masking
+    return{maskAt:(x,y)=>m0[((y/mc)|0)*mgx+((x/mc)|0)]===1,isPanel:m0,mgx,mgy,mc,side,thr,pct};},
+  preview(){
+    const o=S.orthos.find(x=>x.id===$('detOrtho').value);if(!o?.thermal)return;
+    const area=($('detArea')&&$('detArea').value)||'panels';
+    const panelSide=($('detPanelSide')&&$('detPanelSide').value)||'auto';
+    const bm=this.buildMask(o,area==='all'?'panels':area,panelSide);
+    if(!bm){toast('Segmentation came back degenerate — mask disabled (Everywhere mode)','warn');return;}
+    this.showMask(o,bm);
+    toast('👁 <b>Cyan = detection area</b> ('+bm.pct+'% of the ortho'+(bm.side==='cool'?', panels = cooler class':bm.side==='hot'?', panels = hotter class':'')+').'+((bm.pct<15||bm.pct>85)?' <b style="color:var(--gold)">That looks off — try flipping "Panels are…".</b>':' If the cyan is on the GROUND instead of the modules, flip "Panels are…" and preview again.'),bm.pct<15||bm.pct>85?'warn':undefined);},
+  showMask(o,bm){
+    if(this._maskLayer){map.removeLayer(this._maskLayer);this._maskLayer=null;}
+    const cv=document.createElement('canvas');cv.width=bm.mgx;cv.height=bm.mgy;
+    const x=cv.getContext('2d');const img=x.createImageData(bm.mgx,bm.mgy);
+    for(let i=0;i<bm.mgx*bm.mgy;i++){ if(bm.isPanel[i]){img.data[i*4]=31;img.data[i*4+1]=168;img.data[i*4+2]=217;img.data[i*4+3]=110;}}
+    x.putImageData(img,0,0);
+    this._maskLayer=L.imageOverlay(cv.toDataURL(),o.bounds,{opacity:.85,interactive:false}).addTo(map);
+    clearTimeout(this._maskTimer);
+    this._maskTimer=setTimeout(()=>{if(this._maskLayer){map.removeLayer(this._maskLayer);this._maskLayer=null;}},15000);},
   preset(p){const v={high:[4,3],bal:[6,4],con:[9,6]}[p];if(v){$('detDt').value=v[0];$('detMin').value=v[1];}},
   run(){
     const o=S.orthos.find(x=>x.id===$('detOrtho').value);
@@ -2758,7 +2846,7 @@ const Detect={
     const baseMode=$('detBase')?$('detBase').value:'local';
     const tech=($('detTech')&&$('detTech').value)||S.project.moduleTech||'halfcell';
     const area=($('detArea')&&$('detArea').value)||'all';
-    const panelSide=($('detPanelSide')&&$('detPanelSide').value)||'cool';
+    const panelSide=($('detPanelSide')&&$('detPanelSide').value)||'auto';
     S.project.moduleTech=tech;
     UI.closeModal();
     toast('⚡ Scanning '+esc(o.name)+(area==='panels'?' (panels only)':'')+'…');
@@ -2768,68 +2856,9 @@ const Detect={
       const mPerPxY=latSpan*111320/h, mPerPxX=lngSpan*111320*Math.cos(bnd[0][0]*Math.PI/180)/w;
       const pxArea=mPerPxX*mPerPxY;
       const valid=v=>v!==th.nodata&&!isNaN(v);
-      /* ---- detection-area mask (cell level) ---- */
-      let maskAt=null;
-      if(area==='panels'){
-        /* fine cells (~0.5 m) -> trimmed mean -> Otsu split -> morphological closing.
-           Closing radius 2 cells fills defect "holes" up to ~2 m inside panel rows
-           while inter-row ground gaps (>2 m) stay excluded. */
-        const mc=Math.max(2,Math.round(0.5/Math.max(0.01,(mPerPxX+mPerPxY)/2)));
-        const mgx=Math.max(1,Math.ceil(w/mc)),mgy=Math.max(1,Math.ceil(h/mc));
-        const s1=new Float64Array(mgx*mgy),c1=new Uint32Array(mgx*mgy);
-        for(let y=0;y<h;y++){const gy2=(y/mc)|0;for(let x=0;x<w;x++){const v=d[y*w+x];
-          if(!valid(v))continue;const gi=gy2*mgx+((x/mc)|0);s1[gi]+=v;c1[gi]++;}}
-        const cm1=new Float32Array(mgx*mgy);
-        for(let i=0;i<mgx*mgy;i++)cm1[i]=c1[i]?s1[i]/c1[i]:NaN;
-        s1.fill(0);c1.fill(0);
-        for(let y=0;y<h;y++){const gy2=(y/mc)|0;for(let x=0;x<w;x++){const v=d[y*w+x];
-          if(!valid(v))continue;const gi=gy2*mgx+((x/mc)|0);
-          if(!isNaN(cm1[gi])&&v>cm1[gi]+3)continue;s1[gi]+=v;c1[gi]++;}}
-        const cellT=new Float32Array(mgx*mgy);
-        let lo=1e9,hi=-1e9;
-        for(let i=0;i<mgx*mgy;i++){cellT[i]=c1[i]?s1[i]/c1[i]:NaN;
-          if(!isNaN(cellT[i])){if(cellT[i]<lo)lo=cellT[i];if(cellT[i]>hi)hi=cellT[i];}}
-        const H2=new Float64Array(128);let nC=0;
-        for(let i=0;i<mgx*mgy;i++){const v=cellT[i];if(isNaN(v))continue;
-          H2[Math.max(0,Math.min(127,((v-lo)/((hi-lo)||1)*127)|0))]++;nC++;}
-        let sumAll=0;for(let i=0;i<128;i++)sumAll+=i*H2[i];
-        let wB=0,sumB=0,bestVar=-1,bestT=64;
-        for(let t=0;t<128;t++){wB+=H2[t];if(!wB)continue;const wF=nC-wB;if(!wF)break;
-          sumB+=t*H2[t];
-          const mB=sumB/wB,mF=(sumAll-sumB)/wF,vb=wB*wF*(mB-mF)*(mB-mF);
-          if(vb>bestVar){bestVar=vb;bestT=t;}}
-        const thr=lo+(bestT/127)*(hi-lo);
-        let m0=new Uint8Array(mgx*mgy);
-        for(let i=0;i<mgx*mgy;i++){const v=cellT[i];if(isNaN(v))continue;
-          m0[i]=(panelSide==='cool'?(v<=thr):(v>=thr))?1:0;}
-        const morph=(src,grow)=>{const out=new Uint8Array(mgx*mgy);
-          for(let gy2=0;gy2<mgy;gy2++)for(let gx2=0;gx2<mgx;gx2++){
-            let hit=false;
-            for(let dy=-1;dy<=1&&!hit;dy++)for(let dx=-1;dx<=1&&!hit;dx++){
-              const yy=gy2+dy,xx=gx2+dx;
-              if(yy<0||yy>=mgy||xx<0||xx>=mgx)continue;
-              if(grow?src[yy*mgx+xx]===1:src[yy*mgx+xx]===0)hit=true;}
-            out[gy2*mgx+gx2]=grow?(hit?1:src[gy2*mgx+gx2]):(hit?0:src[gy2*mgx+gx2]);}
-          return out;};
-        const R=2; // closing radius in cells (~1 m each way)
-        for(let k=0;k<R;k++)m0=morph(m0,true);   // dilate
-        for(let k=0;k<R;k++)m0=morph(m0,false);  // erode
-        const isPanel=m0;
-        let pc=0;for(let i=0;i<mgx*mgy;i++)pc+=isPanel[i];
-        if(pc<mgx*mgy*0.05){ // segmentation degenerate -> fall back to everywhere
-          maskAt=null;
-          console.warn('panel segmentation degenerate, masking disabled');
-        }else maskAt=(x,y)=>isPanel[((y/mc)|0)*mgx+((x/mc)|0)]===1;
-      }else if(area==='blocks'&&S.blocks.length){      }else if(area==='blocks'&&S.blocks.length){
-        const mc=Math.max(4,Math.round(2.5/Math.max(0.01,(mPerPxX+mPerPxY)/2)));
-        const mgx=Math.max(1,Math.ceil(w/mc)),mgy=Math.max(1,Math.ceil(h/mc));
-        const inB=new Uint8Array(mgx*mgy);
-        const latSpan2=bnd[1][0]-bnd[0][0],lngSpan2=bnd[1][1]-bnd[0][1];
-        for(let gy2=0;gy2<mgy;gy2++)for(let gx2=0;gx2<mgx;gx2++){
-          const ll=L.latLng(bnd[1][0]-((gy2+0.5)*mc/(h-1))*latSpan2, bnd[0][1]+((gx2+0.5)*mc/(w-1))*lngSpan2);
-          inB[gy2*mgx+gx2]=Blocks.at(ll)?1:0;}
-        maskAt=(x,y)=>inB[((y/mc)|0)*mgx+((x/mc)|0)]===1;
-      }
+      /* ---- detection-area mask ---- */
+      const bm=this.buildMask(o,area,panelSide);
+      const maskAt=bm?bm.maskAt:null;
       const inArea=(x,y)=>!maskAt||maskAt(x,y);
       Detect._dbgMask=maskAt; // test/inspection hook
       /* ---- baseline field ---- */
@@ -2961,13 +2990,14 @@ const Detect={
         });
       }
       S.activeClassId=wasActive;
+      if(bm&&bm.isPanel)this.showMask(o,bm);
       made.forEach(f=>Feat.draw(f));
       Cls.render();Feat.renderList();railCounts();Analytics.render();Legend.render();Sync.push();
       if(made.length&&S.features.length)map.fitBounds(featureGroup.getBounds().pad(.05));
       if(made.length)Log.add('⚡ <b>'+made.length+'</b> anomalies auto-detected on '+esc(o.name)+' ('+TECHS[tech].label+(merged?', '+merged+' patchwork merges':'')+')');
-      this.results(made,merged,dtTh,baseMode,area);
+      this.results(made,merged,dtTh,baseMode,area,bm);
     },50);},
-  results(made,merged,dtTh,baseMode,areaMode){
+  results(made,merged,dtTh,baseMode,areaMode,maskInfo){
     if(!made.length){UI.openModal('⚡ Detection results',
       '<div class="empty"><b>No regions found</b>Nothing exceeded the baseline by '+dtTh+' K. Try the High preset or the Local adaptive baseline, and check that the ortho is radiometric.</div>');return;}
     const byC={};made.forEach(f=>{const nm=(Cls.byId(f.classId)||{}).name||'—';byC[nm]=(byC[nm]||0)+1;});
@@ -2981,7 +3011,7 @@ const Detect={
       <table class="blk-table">${Object.entries(byC).sort((x,y)=>y[1]-x[1]).map(([nm,v])=>{
         const c=S.classes.find(x=>x.name===nm);
         return '<tr><td><span class="swatch" style="display:inline-block;width:10px;height:10px;background:'+(c?c.color:'#888')+';vertical-align:-1px;margin-right:6px"></span>'+esc(nm)+'</td><td style="text-align:right"><b>'+v+'</b></td></tr>';}).join('')}</table>
-      <div class="mut" style="margin-top:10px;font-size:11px">Baseline: ${baseMode==='local'?'local adaptive (±15 m)':baseMode==='amb'?'site ambient':'global median'} · area: ${areaMode==='panels'?'panels only (auto-segmented)':areaMode==='blocks'?'inside site blocks':'everywhere'} · threshold +${dtTh} K · every item carries its measured size and a QC-review note.${made.length>250?' <b style=\"color:var(--gold)\">Large count — consider the Conservative preset or check the panel-side setting.</b>':''}</div>`,
+      <div class="mut" style="margin-top:10px;font-size:11px">Baseline: ${baseMode==='local'?'local adaptive (±15 m)':baseMode==='amb'?'site ambient':'global median'} · area: ${areaMode==='panels'?('panels only — '+(maskInfo?maskInfo.pct+'% of ortho, panels = '+(maskInfo.side==='cool'?'cooler':'hotter')+' class':'mask degenerate, ran everywhere')):(areaMode==='blocks'?'inside site blocks':'everywhere')} · threshold +${dtTh} K · every item carries its measured size and a QC-review note.${made.length>250?' <b style=\"color:var(--gold)\">Large count — consider the Conservative preset or check the panel-side setting.</b>':''}</div>`,
       `<button class="btn danger" onclick="Hist.doUndo();UI.closeModal()">↶ Undo detection</button>
        <span style="flex:1"></span>
        <button class="btn" onclick="UI.closeModal()">Keep</button>
