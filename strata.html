@@ -975,8 +975,6 @@ input,select{font-family:inherit}
   </div>
   <div class="meas-overlay" id="measOverlay">📏 <b id="measVal">—</b></div>
   <div class="cleg" id="contourLegend"><div class="cleg-title">Contours</div><div id="clegBody"></div></div>
-  <div class="meas-overlay" id="measOverlay">📏 <b id="measVal">—</b></div>
-  <div class="cleg" id="contourLegend"><div class="cleg-title">Contours</div><div id="clegBody"></div></div>
     <div class="map-controls">
     <button class="map-btn" id="btnMap" onclick="toggleMap()" title="Toggle Map Background">🗺</button>
     <button class="map-btn" id="btnMapSat" onclick="setMapLayer('sat')" title="Satellite">🛰</button>
@@ -1396,27 +1394,15 @@ input,select{font-family:inherit}
   </div>
 </div>
 
-<!-- EXPORT -->
-<div class="mo" id="moExport">
-  <div class="modal w">
-    <div class="mh"><div class="mh-t"><span class="i">💾</span>Export Drawing</div><span class="mc" onclick="closeMo('moExport')">✕</span></div>
-    <div class="mb">
-      <div class="fsect">Format</div>
-      <div class="oc-g">
-        <div class="oc sel" onclick="selCard(this)"><div class="oc-i">📄</div><div class="oc-t">DXF</div><div class="oc-d">Exchange format</div></div>
-        <div class="oc" onclick="selCard(this)"><div class="oc-i">📄</div><div class="oc-t">DWG</div><div class="oc-d">Strata CAD native</div></div>
-        <div class="oc" onclick="selCard(this)"><div class="oc-i">🖨️</div><div class="oc-t">PDF / Plot</div><div class="oc-d">Print-ready</div></div>
-        <div class="oc" onclick="selCard(this)"><div class="oc-i">🖼️</div><div class="oc-t">SVG / PNG</div><div class="oc-d">Image export</div></div>
-        <div class="oc" onclick="selCard(this)"><div class="oc-i">🏗️</div><div class="oc-t">IFC</div><div class="oc-d">BIM format</div></div>
-        <div class="oc" onclick="selCard(this)"><div class="oc-i">📊</div><div class="oc-t">CSV / Excel</div><div class="oc-d">Attribute data</div></div>
-      </div>
-      <div class="fr"><div class="fg"><label class="fl">Version</label><select class="fs"><option>Strata CAD 2024</option><option>Strata CAD 2018</option><option>Strata CAD 2013</option></select></div><div class="fg"><label class="fl">Scale</label><select class="fs"><option>1:1</option><option>1:50</option><option>1:100</option><option>1:500</option></select></div></div>
-      <label class="fck"><input type="checkbox" checked> Include all layers</label>
-      <label class="fck"><input type="checkbox" checked> Include blocks and attributes</label>
-    </div>
-    <div class="mf"><button class="btn s" onclick="closeMo('moExport')">Cancel</button><button class="btn st" onclick="doExport()">Export</button></div>
-  </div>
-</div>
+<!-- EXPORT — REMOVED: this was a duplicate "moExport" modal that collided
+     with the fully-functional one later in the document. Because
+     document.getElementById() always returns the FIRST match,
+     openMo() always opened THIS simple card-based modal instead of the
+     real one — and this one's "Export" button called doExport() with
+     no format argument, which is a silent no-op (the switch(fmt)
+     statement matches nothing). The complete, correctly-wired modal
+     (layer list, geometry-type filters, per-format buttons) is preserved
+     further down and is now the only element with that id. -->
 
 <!-- EXPORT LAYERS -->
 <div class="mo" id="moExportLayers">
@@ -3331,7 +3317,11 @@ canvas.addEventListener('mousedown',ev=>{
   if(tip) tip.style.display='none';
 
   // Middle mouse button or pan tool = pan
-  if(ev.button===1||(ev.button===0&&ST.tool==='pan')){
+  // FIX: skip middle-mouse pan when 3D mode is on — the 3D orbit controls
+  // (setupOrbitControls) also bind middle-mouse-drag to rotate the camera.
+  // Without this guard, both systems fired on the same drag simultaneously,
+  // causing jittery/conflicting camera movement in 3D mode.
+  if((ev.button===1&&!(window.ST3&&ST3.enabled))||(ev.button===0&&ST.tool==='pan')){
     ST.panning=true;
     const r=canvas.getBoundingClientRect();
     ST.panStart={x:ev.clientX-r.left,y:ev.clientY-r.top};
@@ -7120,7 +7110,47 @@ function parseSVGPath(d,ents,mk){
 // ── EXPORT ───────────────────────────────────────────────────────
 // doExport() replaced — see doExport(fmt) below
 
-function exportGeoJSON(){const feats=[];ST.entities.forEach(e=>{let g=null;switch(e.type){case'line':g={type:'LineString',coordinates:[[e.x1,e.y1],[e.x2,e.y2]]};break;case'circle':g={type:'Point',coordinates:[e.cx,e.cy]};break;case'polyline':if(e.pts?.length>=2)g={type:'LineString',coordinates:e.pts.map(p=>[p.x,p.y])};break;}if(g)feats.push({type:'Feature',geometry:g,properties:{layer:e.layer}});});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({type:'FeatureCollection',features:feats},null,2)],{type:'application/json'}));a.download='strata_export.geojson';a.click();toast('GeoJSON exported','ok');}
+function exportGeoJSON(ents){
+  // FIX: this previously ignored its own parameter and always used
+  // ST.entities directly — meaning the layer-filter checkboxes and the
+  // "export selected only" option had zero effect specifically for
+  // GeoJSON exports, even though every other format respected them.
+  // It also silently dropped point/rect/text/arc/polygon entities.
+  ents = ents || ST.entities;
+  const feats=[];
+  ents.forEach(e=>{
+    let g=null;
+    switch(e.type){
+      case 'line': g={type:'LineString',coordinates:[[e.x1,e.y1],[e.x2,e.y2]]}; break;
+      case 'circle': g={type:'Point',coordinates:[e.cx,e.cy]}; break;
+      case 'arc': g={type:'Point',coordinates:[e.cx,e.cy]}; break;
+      case 'point': g={type:'Point',coordinates:[e.x,e.y]}; break;
+      case 'text': g={type:'Point',coordinates:[e.x,e.y]}; break;
+      case 'polyline':
+        if(e.pts?.length>=2){
+          if(e.closed){
+            const ring=e.pts.map(p=>[p.x,p.y]);
+            ring.push(ring[0]); // GeoJSON polygon rings must be closed
+            g={type:'Polygon',coordinates:[ring]};
+          } else {
+            g={type:'LineString',coordinates:e.pts.map(p=>[p.x,p.y])};
+          }
+        }
+        break;
+      case 'rect':
+        g={type:'Polygon',coordinates:[[[e.x,e.y],[e.x+e.w,e.y],[e.x+e.w,e.y+e.h],[e.x,e.y+e.h],[e.x,e.y]]]};
+        break;
+      case 'polygon': {
+        const n=e.sides||6, r=e.r||10;
+        const ring=Array.from({length:n+1},(_,i)=>{const a=(i%n/n)*Math.PI*2-Math.PI/2;return [e.cx+r*Math.cos(a), e.cy+r*Math.sin(a)];});
+        g={type:'Polygon',coordinates:[ring]};
+        break;
+      }
+    }
+    if(g)feats.push({type:'Feature',geometry:g,properties:{layer:e.layer,type:e.type}});
+  });
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({type:'FeatureCollection',features:feats},null,2)],{type:'application/json'}));a.download='strata_export.geojson';a.click();toast('GeoJSON exported: '+feats.length+' features','ok');
+}
 
 // ── TERRAIN ───────────────────────────────────────────────────────
 function buildTIN(){
@@ -8258,6 +8288,19 @@ function exportDXF(ents, filename) {
     else if(e.type==='rect'){
       const pts=[{x:e.x,y:e.y},{x:e.x+e.w,y:e.y},{x:e.x+e.w,y:e.y+e.h},{x:e.x,y:e.y+e.h}];
       dxf+=`0\nLWPOLYLINE\n8\n${ln}\n90\n4\n70\n1\n`;
+      pts.forEach(p=>dxf+=`10\n${p.x}\n20\n${p.y}\n`);
+    }
+    // FIX: 'point' and 'polygon' entities were previously silently dropped
+    // entirely from DXF export — a serious data-loss bug for a surveying
+    // tool, since survey points are core data and were vanishing on export
+    // with no warning.
+    else if(e.type==='point'){
+      dxf+=`0\nPOINT\n8\n${ln}\n10\n${e.x}\n20\n${e.y}\n30\n${e.z||0}\n`;
+    }
+    else if(e.type==='polygon'){
+      const n=e.sides||6, r=e.r||10;
+      const pts=Array.from({length:n},(_,i)=>{const a=(i/n)*Math.PI*2-Math.PI/2;return {x:e.cx+r*Math.cos(a), y:e.cy+r*Math.sin(a)};});
+      dxf+=`0\nLWPOLYLINE\n8\n${ln}\n90\n${pts.length}\n70\n1\n`;
       pts.forEach(p=>dxf+=`10\n${p.x}\n20\n${p.y}\n`);
     }
   });
@@ -9728,7 +9771,17 @@ function openExportModal() {
 function doExport(fmt) {
   const layChecks = document.querySelectorAll('#exportLayerList input[type=checkbox]');
   const selectedLayers = new Set(Array.from(layChecks).filter(cb=>cb.checked).map(cb=>parseInt(cb.value)));
-  const ents = ST.entities.filter(e => selectedLayers.has(e.layer) || selectedLayers.size===0);
+  let ents = ST.entities.filter(e => selectedLayers.has(e.layer) || selectedLayers.size===0);
+
+  // FIX: "Export selected only" checkbox existed in the UI but was never
+  // actually read here — checking it had no effect on what got exported.
+  const onlySelChk = document.getElementById('exportOnlySelected');
+  if (onlySelChk && onlySelChk.checked) {
+    const selEnts = ents.filter(e => e.selected);
+    if (selEnts.length) ents = selEnts;
+    else toast('Nothing selected — exporting all entities on checked layers instead', 'warn');
+  }
+  if (!ents.length) { toast('No entities to export', 'warn'); return; }
 
   switch(fmt) {
     case 'dxf':     exportDXF(ents); break;
@@ -9738,6 +9791,18 @@ function doExport(fmt) {
     case 'kml':     exportKML(ents); break;
     case 'shapefile': exportShapefileCSV(ents); break;
     case 'pdf':     exportPDF(); break;
+    case 'dwg':
+      // FIX: previously silently did nothing — 'dwg' matched no case.
+      // DWG is Autodesk's proprietary binary format; honestly out of
+      // scope to generate correctly here. Point users to DXF instead,
+      // which every major CAD package (including real AutoCAD/Civil 3D)
+      // reads and can re-save as DWG.
+      toast('Native DWG export isn\'t supported — exporting DXF instead (opens in any CAD app, including AutoCAD)', 'warn');
+      exportDXF(ents);
+      break;
+    default:
+      toast('Unknown export format: '+fmt, 'err');
+      return;
   }
   closeMo('moExport');
 }
@@ -9752,6 +9817,22 @@ function exportCSV(ents) {
     else if(e.type==='circle'){x1=e.cx;y1=e.cy;len=(2*Math.PI*e.r).toFixed(4);area=(Math.PI*e.r*e.r).toFixed(4);}
     else if(e.type==='rect'){x1=e.x;y1=e.y;x2=e.x+e.w;y2=e.y+e.h;area=Math.abs(e.w*e.h).toFixed(4);}
     else if(e.type==='polygon'){x1=e.cx;y1=e.cy;}
+    // FIX: point entities previously got blank X1/Y1 (coordinates lost);
+    // polyline wasn't handled at all (every column blank despite being
+    // one of the most common entity types in survey/contour data).
+    else if(e.type==='point'){x1=e.x;y1=e.y;}
+    else if(e.type==='text'){x1=e.x;y1=e.y;}
+    else if(e.type==='polyline'&&e.pts?.length){
+      x1=e.pts[0].x; y1=e.pts[0].y;
+      const last=e.pts[e.pts.length-1]; x2=last.x; y2=last.y;
+      let l=0; for(let i=1;i<e.pts.length;i++) l+=Math.hypot(e.pts[i].x-e.pts[i-1].x, e.pts[i].y-e.pts[i-1].y);
+      if(e.closed) l+=Math.hypot(e.pts[0].x-last.x, e.pts[0].y-last.y);
+      len=l.toFixed(4);
+      if(e.closed){
+        let a=0; for(let i=0;i<e.pts.length;i++){const j=(i+1)%e.pts.length; a+=e.pts[i].x*e.pts[j].y-e.pts[j].x*e.pts[i].y;}
+        area=Math.abs(a/2).toFixed(4);
+      }
+    }
     rows.push(`${e._id},${e.type},${lay},${x1},${y1},${x2},${y2},${len},${area}`);
   });
   _download('strata_export.csv', rows.join('\n'), 'text/csv');
@@ -9761,18 +9842,42 @@ function exportCSV(ents) {
 // Export as KML (for Google Earth)
 function exportKML(ents) {
   if(!_mapCal?.ready) { toast('Calibrate drawing to map first for correct KML coordinates','warn'); }
-  let kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
+  let kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\n';
+  let count=0;
   ents.forEach(e => {
     if(e.type==='line') {
       kml += `<Placemark><LineString><coordinates>${e.x1},${e.y1},0 ${e.x2},${e.y2},0</coordinates></LineString></Placemark>\n`;
-    } else if(e.type==='polyline' && e.pts) {
-      const coords = e.pts.map(p=>`${p.x},${p.y},0`).join(' ');
-      kml += `<Placemark><LineString><coordinates>${coords}</coordinates></LineString></Placemark>\n`;
+      count++;
+    } else if(e.type==='polyline' && e.pts && e.pts.length>=2) {
+      let pts = e.pts.slice();
+      if(e.closed) pts.push(pts[0]); // close the ring for visual consistency
+      const coords = pts.map(p=>`${p.x},${p.y},0`).join(' ');
+      kml += e.closed
+        ? `<Placemark><Polygon><outerBoundaryIs><LinearRing><coordinates>${coords}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>\n`
+        : `<Placemark><LineString><coordinates>${coords}</coordinates></LineString></Placemark>\n`;
+      count++;
+    }
+    // FIX: point entities (survey markers — arguably the most important
+    // thing to see in Google Earth for a surveying tool) were previously
+    // dropped entirely, along with circle/rect/text/polygon.
+    else if(e.type==='point') {
+      kml += `<Placemark><Point><coordinates>${e.x},${e.y},0</coordinates></Point></Placemark>\n`;
+      count++;
+    } else if(e.type==='circle') {
+      kml += `<Placemark><Point><coordinates>${e.cx},${e.cy},0</coordinates></Point></Placemark>\n`;
+      count++;
+    } else if(e.type==='text' && e.txt) {
+      kml += `<Placemark><name>${e.txt.replace(/[<>&]/g,'')}</name><Point><coordinates>${e.x},${e.y},0</coordinates></Point></Placemark>\n`;
+      count++;
+    } else if(e.type==='rect') {
+      const x2=e.x+e.w, y2=e.y+e.h;
+      kml += `<Placemark><Polygon><outerBoundaryIs><LinearRing><coordinates>${e.x},${e.y},0 ${x2},${e.y},0 ${x2},${y2},0 ${e.x},${y2},0 ${e.x},${e.y},0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>\n`;
+      count++;
     }
   });
-  kml += '</Document>\n</kml>';
+  kml += '</Document></kml>';
   _download('strata_export.kml', kml, 'application/vnd.google-earth.kml+xml');
-  toast('Exported as KML','ok');
+  toast('Exported as KML: '+count+' features','ok');
 }
 
 // Export as Shapefile-compatible CSV (can be imported to QGIS)
@@ -9797,6 +9902,9 @@ function exportShapefileCSV(ents) {
       // Approximate circle as 32-segment polygon
       const pts=Array.from({length:33},(_,i)=>{const a=(i%32/32)*Math.PI*2;return `${(e.cx+e.r*Math.cos(a)).toFixed(4)} ${(e.cy+e.r*Math.sin(a)).toFixed(4)}`;});
       wkt=`POLYGON ((${pts.join(', ')}))`;
+    } else if(e.type==='point'){
+      // FIX: point entities were previously dropped entirely (no WKT case)
+      wkt=`POINT (${e.x} ${e.y})`;
     }
     if(wkt) rows.push(`"${wkt}",${e._id},${e.type},${lay},${len}`);
   });
@@ -9822,6 +9930,15 @@ function exportSVG(ents) {
     else if(e.type==='circle') svgBody+=`<circle cx="${tx(e.cx)}" cy="${ty(e.cy)}" r="${(e.r*scale).toFixed(2)}" fill="none" stroke="${col}" stroke-width="1"/>`;
     else if(e.type==='rect') svgBody+=`<rect x="${tx(e.x)}" y="${ty(e.y+e.h)}" width="${(Math.abs(e.w)*scale).toFixed(2)}" height="${(Math.abs(e.h)*scale).toFixed(2)}" fill="none" stroke="${col}" stroke-width="1"/>`;
     else if(e.type==='text') svgBody+=`<text x="${tx(e.x)}" y="${ty(e.y)}" fill="${col}" font-size="10">${e.txt||''}</text>`;
+    // FIX: point entities contributed to the bounding box (via entBBox)
+    // but were never actually drawn — invisible in the output SVG despite
+    // being core survey data.
+    else if(e.type==='point') svgBody+=`<circle cx="${tx(e.x)}" cy="${ty(e.y)}" r="2.5" fill="${col}" stroke="none"/>`;
+    else if(e.type==='polygon'){
+      const n=e.sides||6, r=e.r||10;
+      const pts=Array.from({length:n},(_,i)=>{const a=(i/n)*Math.PI*2-Math.PI/2;return tx(e.cx+r*Math.cos(a))+','+ty(e.cy+r*Math.sin(a));});
+      svgBody+=`<polygon points="${pts.join(' ')}" fill="none" stroke="${col}" stroke-width="1"/>`;
+    }
   });
 
   const svg=`<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="${(W2*scale).toFixed(0)}" height="${(H2*scale).toFixed(0)}" viewBox="0 0 ${(W2*scale).toFixed(0)} ${(H2*scale).toFixed(0)}">${svgBody}</svg>`;
@@ -9834,267 +9951,7 @@ function exportPDF() {
   const printWin = window.open('', '_blank');
   if(!printWin){toast('Allow popups to export PDF','warn');return;}
   const canvas2 = document.getElementById('cad');
-  printWin.document.write(`<html><body style="margin:0"><img src="${canvas2.toDataURL()}" style="max-width:100%;page-break-inside:avoid"><script>window.onload=()=>{window.print();window.close();}<\/script>
-<!-- XREF (External Reference) Warning & Merge Modal -->
-<div class="mo" id="moXref">
-  <div class="modal w" style="max-width:600px">
-    <div class="mh">
-      <div class="mh-t"><span class="i">🔗</span>External References (XREFs) Detected</div>
-      <span class="mc" onclick="closeMo('moXref')">✕</span>
-    </div>
-    <div class="mb">
-      <div class="xref-note" id="xrefNote">XREFs detected in this drawing.</div>
-
-      <div style="font-size:9px;font-weight:700;color:var(--st);letter-spacing:1px;text-transform:uppercase;padding-bottom:4px;border-bottom:1px solid var(--sep);margin-bottom:8px;font-family:'IBM Plex Mono',monospace">Referenced External Files</div>
-      <div id="xrefFileList"></div>
-
-      <div style="font-size:9px;font-weight:700;color:var(--b);letter-spacing:1px;text-transform:uppercase;padding:10px 0 5px;border-top:1px solid var(--sep);margin-top:10px;font-family:'IBM Plex Mono',monospace">Upload XREF DXF Files</div>
-      <div class="xref-drop-zone" id="xrefDropZone"
-        onclick="document.getElementById('xrefFileIn').click()"
-        ondragover="event.preventDefault();this.classList.add('dov')"
-        ondragleave="this.classList.remove('dov')"
-        ondrop="event.preventDefault();this.classList.remove('dov');[...event.dataTransfer.files].forEach(f=>loadXrefFile(f))">
-        <div style="font-size:28px">📂</div>
-        <div class="xref-drop-label">Drop XREF DXF files here or click to browse</div>
-        <div style="font-size:9px;color:var(--m);margin-top:4px">Upload all DXF files that were linked to the original DWG</div>
-      </div>
-      <input type="file" id="xrefFileIn" accept=".dxf,.dwg" multiple style="display:none"
-        onchange="[...this.files].forEach(f=>loadXrefFile(f));this.value=''">
-
-      <div style="margin-top:12px;padding:10px;background:rgba(31,168,217,.07);border:1px solid rgba(31,168,217,.2);border-radius:5px">
-        <div style="font-size:9px;font-weight:800;color:var(--b);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Best Solution: Bind XREFs Before Export</div>
-        <div style="font-size:9.5px;color:var(--m);line-height:1.7">
-          In <b style="color:var(--t)">Strata CAD / DWG TrueView:</b><br>
-          &nbsp;1. Open the DWG file<br>
-          &nbsp;2. Type <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--g)">XREF</code> → right-click each reference → <b style="color:var(--t)">Bind</b> → <b>Insert</b><br>
-          &nbsp;3. Save → re-export as DXF → import here<br><br>
-          This creates a single self-contained DXF with everything embedded.
-        </div>
-      </div>
-    </div>
-    <div class="mf">
-      <button class="btn s" onclick="closeMo('moXref')">Close</button>
-      <button class="btn" onclick="closeMo('moXref');openMo('moImport')">Import Different File</button>
-    </div>
-  </div>
-</div>
-
-
-
-<!-- CIVIL 3D TOOLSPACE PANEL -->
-<div id="c3dToolspace" style="display:none;position:fixed;left:0;top:60px;width:250px;bottom:50px;background:#1a2535;border-right:2px solid #0078d4;z-index:400;flex-direction:column;overflow:hidden;box-shadow:4px 0 20px rgba(0,0,0,.7)">
-  <div class="ts-header">
-    <span class="ts-title">Toolspace</span>
-    <span onclick="toggleToolspace()" style="cursor:pointer;color:var(--m);font-size:12px">✕</span>
-  </div>
-  <div class="ts-tabs">
-    <div class="ts-tab act" onclick="switchTsTab('prospector')" id="tst-prospector">Prospector</div>
-    <div class="ts-tab" onclick="switchTsTab('settings')" id="tst-settings">Settings</div>
-    <div class="ts-tab" onclick="switchTsTab('survey')" id="tst-survey" style="color:var(--ora)">Survey</div>
-    <div class="ts-tab" onclick="switchTsTab('toolbox')" id="tst-toolbox">Toolbox</div>
-  </div>
-  <!-- PROSPECTOR TAB -->
-  <div id="tscont-prospector" class="ts-content">
-    <div class="ts-heading">Active Drawing</div>
-    <div class="ts-node act" id="tsn-drawing" onclick="tsSelectNode('drawing')">
-      <span class="ts-node-icon">📄</span>
-      <span class="ts-node-lbl" id="tsDrawingName">Drawing1.dwg</span>
-    </div>
-    <div style="padding-left:14px">
-      <div class="ts-node" onclick="tsSelectNode('points')" id="tsn-points">
-        <span class="ts-node-icon">⊕</span>
-        <span class="ts-node-lbl">Points</span>
-        <span class="ts-node-count" id="tsCount-points">0</span>
-      </div>
-      <div class="ts-node" onclick="tsSelectNode('pointgroups')" id="tsn-pointgroups">
-        <span class="ts-node-icon">⊞</span>
-        <span class="ts-node-lbl">Point Groups</span>
-        <span class="ts-node-count" id="tsCount-pointgroups">0</span>
-      </div>
-      <div class="ts-node" onclick="tsSelectNode('surfaces')" id="tsn-surfaces">
-        <span class="ts-node-icon">△</span>
-        <span class="ts-node-lbl">Surfaces</span>
-        <span class="ts-node-count" id="tsCount-surfaces">0</span>
-      </div>
-      <div class="ts-node" onclick="tsSelectNode('alignments')" id="tsn-alignments">
-        <span class="ts-node-icon">⟶</span>
-        <span class="ts-node-lbl">Alignments</span>
-        <span class="ts-node-count" id="tsCount-alignments">0</span>
-      </div>
-      <div class="ts-node" onclick="tsSelectNode('featurelines')" id="tsn-featurelines">
-        <span class="ts-node-icon">⌒</span>
-        <span class="ts-node-lbl">Feature Lines</span>
-        <span class="ts-node-count" id="tsCount-featurelines">0</span>
-      </div>
-      <div class="ts-node" onclick="tsSelectNode('sites')" id="tsn-sites">
-        <span class="ts-node-icon">⬡</span>
-        <span class="ts-node-lbl">Sites</span>
-        <span class="ts-node-count" id="tsCount-sites">0</span>
-      </div>
-      <div class="ts-node" onclick="tsSelectNode('corridors')" id="tsn-corridors">
-        <span class="ts-node-icon">🛣</span>
-        <span class="ts-node-lbl">Corridors</span>
-        <span class="ts-node-count" id="tsCount-corridors">0</span>
-      </div>
-      <div class="ts-node" onclick="tsSelectNode('pipenetworks')" id="tsn-pipenetworks">
-        <span class="ts-node-icon">⬜</span>
-        <span class="ts-node-lbl">Pipe Networks</span>
-        <span class="ts-node-count" id="tsCount-pipenetworks">0</span>
-      </div>
-    </div>
-    <div class="ts-heading">Data Shortcuts</div>
-    <div class="ts-node ts-child" onclick="openMo('moCsvImport')">
-      <span class="ts-node-icon">📊</span><span class="ts-node-lbl">Import Survey CSV</span>
-    </div>
-    <div class="ts-node ts-child" onclick="typeof buildTIN==='function'&&buildTIN()">
-      <span class="ts-node-icon">△</span><span class="ts-node-lbl">Build TIN Surface</span>
-    </div>
-    <div class="ts-node ts-child" onclick="openMo('moContour')">
-      <span class="ts-node-icon">〰</span><span class="ts-node-lbl">Generate Contours</span>
-    </div>
-  </div>
-  <!-- SETTINGS TAB -->
-  <div id="tscont-settings" class="ts-content" style="display:none">
-    <div class="ts-heading">Drawing Settings</div>
-    <div class="ts-node" onclick="openMo('moSettings')"><span class="ts-node-icon">⚙</span><span class="ts-node-lbl">Drawing Settings</span></div>
-    <div class="ts-node" onclick="openMo('moSettings')"><span class="ts-node-icon">📐</span><span class="ts-node-lbl">Ambient Settings</span></div>
-    <div class="ts-heading">Object Layers</div>
-    <div id="tsLayerList" style="padding:4px 8px;font-size:10px;color:var(--m)">Loading layers…</div>
-  </div>
-  <!-- SURVEY TAB -->
-  <div id="tscont-survey" class="ts-content" style="display:none">
-    <div class="ts-heading">Survey Database</div>
-    <div class="ts-node" onclick="openMo('moCsvImport')"><span class="ts-node-icon">📥</span><span class="ts-node-lbl">Import Points (CSV)</span></div>
-    <div class="ts-node" onclick="showTab('survey');toggleRP()"><span class="ts-node-icon">📍</span><span class="ts-node-lbl">View Survey Points</span></div>
-    <div class="ts-heading">Figures</div>
-    <div class="ts-node" style="opacity:.5"><span class="ts-node-icon">📏</span><span class="ts-node-lbl">Traverse</span></div>
-  </div>
-  <!-- TOOLBOX TAB -->
-  <div id="tscont-toolbox" class="ts-content" style="display:none">
-    <div class="ts-heading">Reports Manager</div>
-    <div class="ts-node" onclick="typeof showStats==='function'&&showStats()"><span class="ts-node-icon">📊</span><span class="ts-node-lbl">Drawing Statistics</span></div>
-    <div class="ts-node" onclick="typeof openAttrTable==='function'&&openAttrTable()"><span class="ts-node-icon">📋</span><span class="ts-node-lbl">Attribute Table</span></div>
-    <div class="ts-heading">Miscellaneous Utilities</div>
-    <div class="ts-node" onclick="typeof purgeEntities==='function'&&purgeEntities()"><span class="ts-node-icon">🗑</span><span class="ts-node-lbl">Purge Objects</span></div>
-    <div class="ts-node" onclick="openMo('moProcessing')"><span class="ts-node-icon">⚙</span><span class="ts-node-lbl">Processing Toolbox</span></div>
-  </div>
-  <!-- Preview -->
-  <div class="ts-preview" id="tsPreview">
-    <span style="color:var(--m);font-size:9px">Select item to preview</span>
-  </div>
-</div>
-
-<!-- MAP EXPORT DIALOG — MAPEXPORT command -->
-<div class="mo" id="moMapExport">
-  <div class="modal xl" style="max-width:580px">
-    <div class="mh"><div class="mh-t"><span class="i">🗺</span>Export (MAPEXPORT)</div><span class="mc" onclick="closeMo('moMapExport')">✕</span></div>
-    <div class="mb">
-      <!-- Tabs -->
-      <div style="display:flex;border-bottom:1px solid var(--sep);margin-bottom:10px">
-        <div id="mxt-sel" onclick="switchMapExpTab('sel')" style="padding:5px 14px;font-size:10px;cursor:pointer;border-bottom:2px solid #1FA8D9;color:#1FA8D9;font-weight:700">Selection</div>
-        <div id="mxt-data" onclick="switchMapExpTab('data')" style="padding:5px 14px;font-size:10px;cursor:pointer;border-bottom:2px solid transparent;color:var(--m)">Data</div>
-        <div id="mxt-opt" onclick="switchMapExpTab('opt')" style="padding:5px 14px;font-size:10px;cursor:pointer;border-bottom:2px solid transparent;color:var(--m)">Options</div>
-      </div>
-      <!-- Selection tab -->
-      <div id="mxc-sel">
-        <div class="fsect">Object Type</div>
-        <div style="display:flex;gap:20px;margin-bottom:12px">
-          <label class="mapexp-radio"><input type="radio" name="mxObjType" value="point" checked> Point</label>
-          <label class="mapexp-radio"><input type="radio" name="mxObjType" value="line"> Line</label>
-          <label class="mapexp-radio"><input type="radio" name="mxObjType" value="polygon"> Polygon</label>
-          <label class="mapexp-radio"><input type="radio" name="mxObjType" value="text"> Text</label>
-        </div>
-        <div class="fsect">Select Objects to Export</div>
-        <div style="display:flex;gap:20px;margin-bottom:12px">
-          <label class="mapexp-radio"><input type="radio" name="mxSelMode" value="all" checked> Select all</label>
-          <label class="mapexp-radio"><input type="radio" name="mxSelMode" value="manual"> Select manually</label>
-        </div>
-        <div class="fsect">Filter Selection</div>
-        <div class="fr"><div class="fg"><label class="fl">Layers:</label><input class="fi" id="mxLayerFilter" value="*" placeholder="* = all layers"></div></div>
-        <div class="fr"><div class="fg"><label class="fl">Object Classes:</label><input class="fi" id="mxClassFilter" value="*" placeholder="* = all classes"></div></div>
-        <div class="fsect">Select Polygon Topology</div>
-        <div class="fr"><div class="fg"><label class="fl">Name:</label>
-          <select class="fs" id="mxTopology"><option value="">&lt;None&gt;</option><option value="boundary">Boundary</option><option value="region">Region</option></select>
-        </div></div>
-        <label class="fck"><input type="checkbox" id="mxGroupPoly"> Group complex polygons</label>
-      </div>
-      <!-- Data tab -->
-      <div id="mxc-data" style="display:none">
-        <div class="fsect">Output File</div>
-        <div class="fr"><div class="fg"><label class="fl">Format</label>
-          <select class="fs" id="mxFormat">
-            <option value="shp">ESRI Shapefile (.shp)</option>
-            <option value="geojson">GeoJSON (.geojson)</option>
-            <option value="kml">KML (.kml)</option>
-            <option value="dxf">DXF</option>
-            <option value="csv">CSV with coordinates</option>
-            <option value="dwg">DWG (via CloudConvert)</option>
-          </select>
-        </div></div>
-        <div class="fsect">Coordinate System</div>
-        <div class="fr"><div class="fg"><label class="fl">Current</label>
-          <select class="fs" id="mxCRS">
-            <option>Local / None</option><option>WGS84 (EPSG:4326)</option>
-            <option>UTM Zone 37N (EPSG:32637)</option><option>UTM Zone 38N (EPSG:32638)</option>
-            <option>UTM Zone 39N (EPSG:32639)</option><option>UAE National Grid</option>
-            <option>India Zone I (EPSG:24371)</option>
-          </select>
-        </div></div>
-      </div>
-      <!-- Options tab -->
-      <div id="mxc-opt" style="display:none">
-        <div class="fsect">Export Options</div>
-        <label class="fck"><input type="checkbox" checked> Include all visible layers</label>
-        <label class="fck"><input type="checkbox" checked> Preserve layer names</label>
-        <label class="fck"><input type="checkbox"> Include attributes/properties</label>
-        <label class="fck"><input type="checkbox"> Compress output (ZIP)</label>
-        <div class="fsect">Saved Profiles</div>
-        <div class="fr"><button class="btn s" onclick="toast('Load profile','ok')">Load…</button><button class="btn s" onclick="toast('Profile saved','ok')">Save…</button><span style="font-size:9px;color:var(--m);padding-left:8px">Current profile: (none)</span></div>
-      </div>
-    </div>
-    <div class="mf">
-      <button class="btn s" onclick="closeMo('moMapExport')">Cancel</button>
-      <button class="btn" onclick="closeMo('moMapExport')">Help</button>
-      <button class="btn st" onclick="doMapExport()">OK</button>
-    </div>
-  </div>
-</div>
-
-<!-- QUICK SELECT DIALOG -->
-<div class="mo" id="moQuickSelect">
-  <div class="modal" style="max-width:400px">
-    <div class="mh"><div class="mh-t"><span class="i">⬡</span>Quick Select</div><span class="mc" onclick="closeMo('moQuickSelect')">✕</span></div>
-    <div class="mb">
-      <div class="fr3">
-        <div class="fg"><label class="fl">Apply to</label><select class="fs"><option>Entire drawing</option><option>Current selection</option></select></div>
-        <div class="fg"><label class="fl">Object type</label><select class="fs" id="qsObjType"><option>Multiple</option><option>Line</option><option>Circle</option><option>Polyline</option><option>Text</option><option>Point</option></select></div>
-      </div>
-      <div class="fsect">Properties</div>
-      <div class="fr3">
-        <div class="fg"><label class="fl">Properties</label><select class="fs" id="qsProp"><option>Layer</option><option>Color</option><option>Linetype</option><option>Lineweight</option></select></div>
-        <div class="fg"><label class="fl">Operator</label><select class="fs"><option>= Equals</option><option>&lt;&gt; Not Equal</option><option>&gt; Greater than</option></select></div>
-        <div class="fg"><label class="fl">Value</label><input class="fi" id="qsValue" placeholder="Layer name…"></div>
-      </div>
-      <div class="fsect">How to Apply</div>
-      <label class="fck"><input type="radio" name="qsHow" checked> Include in new selection set</label>
-      <label class="fck"><input type="radio" name="qsHow"> Exclude from new selection set</label>
-      <label class="fck"><input type="checkbox" id="qsAppend"> Append to current selection set</label>
-    </div>
-    <div class="mf"><button class="btn s" onclick="closeMo('moQuickSelect')">Cancel</button><button class="btn st" onclick="doQuickSelect()">OK</button></div>
-  </div>
-</div>
-
-<!-- COLOR PICKER TOOLTIP -->
-<div id="lmColorPick" style="display:none;position:fixed;z-index:9999;background:#050F1C;border:1px solid var(--bl);border-radius:6px;padding:8px">
-  <div style="display:grid;grid-template-columns:repeat(10,14px);gap:2px;margin-bottom:6px" id="aciPalette"></div>
-  <div style="display:flex;gap:6px;align-items:center">
-    <input type="color" id="lmColorCustom" style="width:28px;height:20px;border:none;background:none;cursor:pointer;padding:0">
-    <span style="font-size:9px;color:var(--m)">Custom</span>
-    <button class="btn st" style="font-size:8.5px;padding:2px 8px;margin-left:auto" onclick="applyLmColor()">OK</button>
-  </div>
-</div>
-
-</body></html>`);
+  printWin.document.write(`<html><body style="margin:0"><img src="${canvas2.toDataURL()}" style="max-width:100%;page-break-inside:avoid"><script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
   printWin.document.close();
   toast('PDF export: use browser print dialog','ok');
 }
@@ -11695,7 +11552,11 @@ function closeCM() {
 // The main mousedown handler already has middle-button pan.
 // Patch to ensure it works everywhere:
 canvas.addEventListener('mousedown', ev => {
-  if(ev.button === 1) {  // middle click = pan
+  // FIX: don't force 2D pan on middle-click when 3D mode is active —
+  // the 3D orbit controls own middle-mouse-drag in that mode (see
+  // setupOrbitControls). This handler runs in the capture phase, so
+  // without this guard it always won the race against the 3D handler.
+  if(ev.button === 1 && !(window.ST3 && ST3.enabled)) {  // middle click = pan
     ev.preventDefault();
     ST.panning = true;
     const r = canvas.getBoundingClientRect();
@@ -11918,7 +11779,14 @@ openMo = function(id) {
 // ════════════════════════════════════════════════════════════════════
 
 function openExportModalFull() {
-  // Rebuild export layer list
+  // FIX: this function is wired to the main toolbar/ribbon "EXPORT" button
+  // (the most prominent export entry point in the app) but it only ever
+  // rebuilt the #exportLayerList contents and never called openMo() to
+  // actually display the modal — clicking EXPORT did nothing visible.
+  // Delegate to openExportModal(), which rebuilds the layer list, injects
+  // the "export selected only" checkbox, AND opens the modal.
+  if (typeof openExportModal === 'function') { openExportModal(); return; }
+  // Fallback (should not normally be reached)
   const layList = document.getElementById('exportLayerList');
   if(layList) {
     layList.innerHTML = ST.layers.map(l => `
@@ -11929,6 +11797,7 @@ function openExportModalFull() {
         <span style="color:var(--m);margin-left:auto">${ST.entities.filter(e=>e.layer===l.id).length}</span>
       </label>`).join('');
   }
+  openMo('moExport');
 }
 
 // Enhanced _download with file picker
@@ -15062,23 +14931,26 @@ window.doAdvExportV2 = function() {
 
   if (!ents.length) { toast('No entities to export (check filters)', 'warn'); return; }
 
-  if (fmt === 'csv' || fmt === 'shp') {
+  if (fmt === 'shp') {
+    // FIX: previously unreachable — 'shp' was caught by the CSV branch
+    // above it, so the real binary shapefile writer never ran and a
+    // CSV got downloaded with a misleading "shapefile_export.csv" name.
+    var toExp2 = getAdvEntities();
+    var name2 = (ST.projectName||'export').replace(/[^a-zA-Z0-9_-]/g,'_');
+    if (typeof exportRealShapefile === 'function') exportRealShapefile(toExp2, name2);
+    else toast('Shapefile exporter not available', 'err');
+    return;
+
+  } else if (fmt === 'csv') {
     var header = attrs.join(',');
     var rows = [header];
     ents.forEach(function(e,i){ rows.push(getEntityRow(e,i,attrs).join(',')); });
     var csv = rows.join('\r\n');
     var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = fmt==='shp' ? 'shapefile_export.csv' : 'export.csv';
+    a.download = 'export.csv';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    toast((fmt==='shp'?'Shapefile CSV':'CSV')+' exported: '+ents.length+' rows, '+attrs.length+' columns', 'ok');
-
-  } else if (fmt === 'shp') {
-    // Override: use real binary shapefile export
-    var toExp2 = getAdvEntities();
-    var name2 = (ST.projectName||'export').replace(/[^a-zA-Z0-9_-]/g,'_');
-    exportRealShapefile && exportRealShapefile(toExp2, name2);
-    return;
+    toast('CSV exported: '+ents.length+' rows, '+attrs.length+' columns', 'ok');
 
   } else if (fmt === 'geojson') {
     var features = ents.map(function(e,i) {
@@ -15836,16 +15708,11 @@ window.openDwgSettingsDialog = function() {
     +'<div class="fg"><label class="fl">Snap spacing</label><input type="number" class="fi" id="dwgSnap" value="10" onkeydown="event.stopPropagation()"></div></div>'
     +'<label class="fck"><input type="checkbox" id="dwgGridVis" checked> Show Grid</label>'
     +'<label class="fck"><input type="checkbox" id="dwgSnapOn"> Enable Snap</label>'
-    // OSNAP
-    +'<div style="font-size:9px;font-weight:700;color:#1FA8D9;text-transform:uppercase;letter-spacing:.8px;font-family:IBM Plex Mono,monospace;margin:12px 0 8px">Object Snap (OSNAP)</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">'
-    +'<label class="fck"><input type="checkbox" id="osEndpt" checked> Endpoint</label>'
-    +'<label class="fck"><input type="checkbox" id="osMidpt" checked> Midpoint</label>'
-    +'<label class="fck"><input type="checkbox" id="osCenter" checked> Center</label>'
-    +'<label class="fck"><input type="checkbox" id="osNear"> Nearest</label>'
-    +'<label class="fck"><input type="checkbox" id="osInter"> Intersection</label>'
-    +'<label class="fck"><input type="checkbox" id="osPerp"> Perpendicular</label>'
-    +'</div>'
+    // OSNAP — REMOVED: this checkbox grid duplicated ids ("osCenter",
+    // "osPerp") with the real, working #osnapPanel, AND applyDwgSettings()
+    // never actually read these values (it just hardcodes ST.osnap=true) —
+    // so toggling these always did nothing. Use the real OSNAP panel
+    // (status bar OSNAP button / F3) to configure individual snap types.
     // Linetype
     +'<div style="font-size:9px;font-weight:700;color:#1FA8D9;text-transform:uppercase;letter-spacing:.8px;font-family:IBM Plex Mono,monospace;margin:12px 0 8px">Display</div>'
     +'<div class="fr"><div class="fg"><label class="fl">Background color</label><input type="color" class="fi" id="dwgBgColor" value="#060E1A"></div>'
@@ -16359,14 +16226,30 @@ function QTreeNode(x, y, w, h, depth) {
   this.items=[]; this.nodes=null;
   this.MAX_ITEMS=12; this.MAX_DEPTH=8;
 }
+// PERF: bounds are cached per-entity per-rebuild-pass via WeakMap so a
+// huge polyline (e.g. 11,000+ pts from a Civil3D contour import) doesn't
+// recompute its bbox from scratch at every recursive insert/query call.
+// Cache is cleared at the top of every rebuildIndex() call.
+var _boundsCache = new WeakMap();
 QTreeNode.prototype.getBounds = function(e) {
-  if (e.x1!==undefined) return {minX:Math.min(e.x1,e.x2),maxX:Math.max(e.x1,e.x2),minY:Math.min(e.y1,e.y2),maxY:Math.max(e.y1,e.y2)};
-  if (e.cx!==undefined) {var rr=Math.max(e.r||0,1); return {minX:e.cx-rr,maxX:e.cx+rr,minY:e.cy-rr,maxY:e.cy+rr};}
-  if (e.type==='rect') return {minX:e.x,maxX:e.x+(e.w||1),minY:e.y,maxY:e.y+(e.h||1)};
-  if (e.pts&&e.pts.length) { var xs=e.pts.map(function(p){return p.x;}),ys=e.pts.map(function(p){return p.y;}); return {minX:Math.min.apply(null,xs),maxX:Math.max.apply(null,xs),minY:Math.min.apply(null,ys),maxY:Math.max.apply(null,ys)}; }
-  // point, text or other — give 10-unit radius so they're always queryable
-  var px=e.x||e.cx||0,py=e.y||e.cy||0;
-  return {minX:px-10,maxX:px+10,minY:py-10,maxY:py+10};
+  var cached = _boundsCache.get(e);
+  if (cached) return cached;
+  var b;
+  if (e.x1!==undefined) b = {minX:Math.min(e.x1,e.x2),maxX:Math.max(e.x1,e.x2),minY:Math.min(e.y1,e.y2),maxY:Math.max(e.y1,e.y2)};
+  else if (e.cx!==undefined) {var rr=Math.max(e.r||0,1); b = {minX:e.cx-rr,maxX:e.cx+rr,minY:e.cy-rr,maxY:e.cy+rr};}
+  else if (e.type==='rect') b = {minX:e.x,maxX:e.x+(e.w||1),minY:e.y,maxY:e.y+(e.h||1)};
+  else if (e.pts&&e.pts.length) {
+    var minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+    for (var i=0;i<e.pts.length;i++) {
+      var p=e.pts[i];
+      if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x;
+      if(p.y<minY)minY=p.y; if(p.y>maxY)maxY=p.y;
+    }
+    b = {minX:minX,maxX:maxX,minY:minY,maxY:maxY};
+  }
+  else { var px=e.x||e.cx||0,py=e.y||e.cy||0; b = {minX:px-10,maxX:px+10,minY:py-10,maxY:py+10}; }
+  _boundsCache.set(e, b);
+  return b;
 };
 QTreeNode.prototype.overlaps = function(b) {
   return b.minX<=this.x+this.w && b.maxX>=this.x && b.minY<=this.y+this.h && b.maxY>=this.y;
@@ -16418,12 +16301,24 @@ var _indexTimer   = 0;
 
 function rebuildIndex() {
   var ents=ST.entities; if(!ents||!ents.length) return;
+  // Clear bounds cache — entities may have moved/edited since last rebuild
+  _boundsCache = new WeakMap();
   // Compute world bounds with margin
   var minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
   for(var i=0;i<ents.length;i++){
-    var e=ents[i],b;
+    var e=ents[i];
     if(e.x1!==undefined){minX=Math.min(minX,e.x1,e.x2);maxX=Math.max(maxX,e.x1,e.x2);minY=Math.min(minY,e.y1,e.y2);maxY=Math.max(maxY,e.y1,e.y2);}
     else if(e.cx!==undefined){minX=Math.min(minX,e.cx-e.r);maxX=Math.max(maxX,e.cx+e.r);minY=Math.min(minY,e.cy-e.r);maxY=Math.max(maxY,e.cy+e.r);}
+    else if(e.pts&&e.pts.length){
+      // FIX: polylines were previously skipped from world-bounds calc —
+      // a drawing made entirely of large imported polylines (contours,
+      // boundaries) could get a wrong/default index extent.
+      for(var pi=0;pi<e.pts.length;pi++){
+        var p=e.pts[pi];
+        if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x;
+        if(p.y<minY)minY=p.y; if(p.y>maxY)maxY=p.y;
+      }
+    }
     else if(e.x!==undefined){minX=Math.min(minX,e.x);maxX=Math.max(maxX,e.x);minY=Math.min(minY,e.y);maxY=Math.max(maxY,e.y);}
   }
   if(!isFinite(minX)){minX=-100000;maxX=100000;minY=-100000;maxY=100000;}
@@ -16436,7 +16331,21 @@ function rebuildIndex() {
 window.queryVisibleEntities = function(worldMinX, worldMinY, worldMaxX, worldMaxY) {
   if (_indexDirty || !_spatialIndex) rebuildIndex();
   if (!_spatialIndex) return ST.entities;
-  return _spatialIndex.query({minX:worldMinX,minY:worldMinY,maxX:worldMaxX,maxY:worldMaxY},[]);
+  var raw = _spatialIndex.query({minX:worldMinX,minY:worldMinY,maxX:worldMaxX,maxY:worldMaxY},[]);
+  // FIX: an entity whose bbox spans multiple quadrants gets inserted into
+  // each overlapping leaf, so it can appear more than once in raw results
+  // — without dedup this means double/triple-drawing the same entity
+  // every frame (visible as extra-thick lines and wasted draw calls).
+  if (raw.length > 1) {
+    var seen = Object.create(null), out = [];
+    for (var i=0;i<raw.length;i++) {
+      var id = raw[i]._id;
+      if (id===undefined) { out.push(raw[i]); continue; }
+      if (!seen[id]) { seen[id]=true; out.push(raw[i]); }
+    }
+    return out;
+  }
+  return raw;
 };
 
 window.invalidateSpatialIndex = function() { _indexDirty=true; };
@@ -16520,6 +16429,25 @@ window.render = function renderOptimized() {
   _renderPending = true;
   if (_rafId) cancelAnimationFrame(_rafId);
   _rafId = requestAnimationFrame(_doRender);
+};
+
+// ── After-render hook registry ──────────────────────────────────────
+// PERF FIX: previously, several features (vertex grips, selection gizmo,
+// entity-count display) re-wrapped window.render() and ran their DOM work
+// SYNCHRONOUSLY on every call to render() — and render() is called on every
+// mousemove (dozens of times/sec). Only the actual canvas paint was
+// RAF-throttled; the DOM side-effects were not, causing major input lag
+// with large drawings (e.g. 10,000+ vertex polylines).
+// Fix: side-effect work now registers a hook here and runs once per
+// actual painted frame (inside _doRender), not once per render() call.
+var _afterRenderHookFns = [];
+window._registerAfterRenderHook = function(fn) {
+  if (typeof fn === 'function') _afterRenderHookFns.push(fn);
+};
+window._afterRenderHooks = function() {
+  for (var i = 0; i < _afterRenderHookFns.length; i++) {
+    try { _afterRenderHookFns[i](); } catch(e) { /* one bad hook shouldn't break the rest */ }
+  }
 };
 
 function _doRender() {
@@ -16703,6 +16631,14 @@ function _doRender() {
       }
     }
     ctx2.restore();
+  }
+
+  // Run heavy per-frame side effects (grips/gizmo/entity-count) HERE —
+  // i.e. only once per actual painted frame, not once per render() call.
+  // This is the fix for input lag: render() can be called dozens of times
+  // per second (every mousemove), but _doRender only runs once per RAF tick.
+  if (typeof window._afterRenderHooks === 'function') {
+    try { window._afterRenderHooks(); } catch(e) {}
   }
 
   _renderMS = performance.now()-t0;
@@ -17292,13 +17228,12 @@ setTimeout(function(){
   var sb=document.querySelector('.statbar,.sb');
   if(sb&&!document.getElementById('entCount')) sb.appendChild(countEl);
 
-  // Update entity count on render
-  var _prevRender=window.render;
-  window.render=function(){
-    _prevRender();
+  // Entity count is now updated inside _afterRenderHooks (once per painted
+  // frame) instead of synchronously on every render() call — see perf fix.
+  window._registerAfterRenderHook(function(){
     var el=document.getElementById('entCount');
     if(el) el.textContent=ST.entities.length+' ent';
-  };
+  });
 
   // Hook entity additions to invalidate index
   var _origPush=Array.prototype.push;
@@ -18306,22 +18241,19 @@ if (typeof CAD_ACTIONS !== 'undefined') {
 // ═══════════════════════════════════════════════════════
 // 7. RENDER HOOK — show gizmo + fix polygon ghost
 // ═══════════════════════════════════════════════════════
-var _baseRender2 = window.render;
-window.render = function() {
-  if (typeof _baseRender2 === 'function') _baseRender2();
-
-  // [polygon ghost handled inside _doRender RAF]
-
-  // Show gizmo when entities selected (not during active drawing)
+// Gizmo visibility check moved into _afterRenderHooks (once per painted
+// frame instead of on every render() call) — see perf fix.
+window._registerAfterRenderHook(function(){
   if (!ST.tool || ST.tool === 'select') {
     var sels = ST.entities ? ST.entities.filter(function(e){return e.selected;}) : [];
     if (sels.length > 0) {
-      if(ST.entities&&ST.entities.some(function(e){return e.selected;})) setTimeout(showRotateScaleGizmo,0);
-    } else {
+      if (!window._gizmoShown) { window._gizmoShown = true; setTimeout(showRotateScaleGizmo,0); }
+    } else if (window._gizmoShown) {
+      window._gizmoShown = false;
       hideRotateScaleGizmo && hideRotateScaleGizmo();
     }
   }
-};
+});
 
 // ═══════════════════════════════════════════════════════
 // 8. ENHANCED KEYBOARD — Escape clears polygon
@@ -18387,65 +18319,90 @@ setTimeout(function() {
   var _gripOverlay = null;
 
   // After render, draw grip squares on selected polylines
-  var _baseRender3 = window.render;
-  window.render = function() {
-    if (typeof _baseRender3 === 'function') _baseRender3();
-    // Always call drawGrips — it clears the overlay when nothing is selected
-    drawGrips();
-  };
+  // drawGrips now runs inside _afterRenderHooks (once per painted frame,
+  // not once per render() call) — fixes major input-lag source.
+  // Also pools DOM nodes instead of innerHTML='' + recreate every frame,
+  // and decimates vertices for huge polylines (e.g. 11,000+ pt contours)
+  // so we never create thousands of grip divs at once.
+  var _gripPool = {};
+  window._registerAfterRenderHook(drawGrips);
 
   function drawGrips() {
-    // Skip if nothing selected (avoids ghost grips after delete)
+    // FIX: grips use the 2D w2s() screen-projection. In 3D mode the camera
+    // uses a different (perspective/orbit) projection, so 2D grip squares
+    // would float at the wrong screen position relative to the 3D-rendered
+    // entity. Just clear them while 3D mode is active.
+    if (window.ST3 && ST3.enabled) { clearGripOverlay(); return; }
     var sels = ST.entities.filter(function(e){return e.selected&&e.pts&&e.pts.length;});
-    if (!sels.length) return; // nothing to draw
     var cad2 = document.getElementById('cad');
     if (!sels.length || !cad2) { clearGripOverlay(); return; }
 
     ensureGripOverlay(cad2);
     var overlay = document.getElementById('gripOverlay');
     if (!overlay) return;
-    overlay.innerHTML = '';
 
+    // Cap total grips drawn — beyond this, decimate (show every Nth vertex)
+    // rather than creating one DOM node per vertex.
+    var MAX_GRIPS = 400;
+    var totalPts = 0;
+    sels.forEach(function(e){ totalPts += e.pts.length; });
+    var stride = totalPts > MAX_GRIPS ? Math.ceil(totalPts / MAX_GRIPS) : 1;
+
+    var seenKeys = {};
     sels.forEach(function(ent) {
       ent.pts.forEach(function(pt, idx) {
+        if (stride > 1 && idx % stride !== 0 && idx !== ent.pts.length-1) return;
+        var key = ent._id + ':' + idx;
+        seenKeys[key] = true;
         var ss = w2s(pt.x, pt.y);
-        var grip = document.createElement('div');
-        grip.style.cssText = 'position:absolute;width:10px;height:10px;background:#060E1A;'
-          +'border:2px solid #1FA8D9;cursor:move;box-sizing:border-box;'
-          +'left:'+(ss.x-5)+'px;top:'+(ss.y-5)+'px;z-index:510';
+        var grip = _gripPool[key];
+        if (!grip) {
+          grip = document.createElement('div');
+          grip.style.cssText = 'position:absolute;width:10px;height:10px;background:#060E1A;'
+            +'border:2px solid #1FA8D9;cursor:move;box-sizing:border-box;z-index:510';
+          grip.addEventListener('mouseover', function(){this.style.background='#1FA8D9';});
+          grip.addEventListener('mouseout',  function(){this.style.background='#060E1A';});
+          grip.addEventListener('mousedown', function(ev) {
+            ev.preventDefault(); ev.stopPropagation();
+            _gripEnt = ent; _gripIdx = idx; _gripDragging = true;
+            pushUndo && pushUndo('grip edit');
+            document.body.style.cursor = 'move';
+
+            function onMove(e2) {
+              if (!_gripDragging) return;
+              var r2 = cad2.getBoundingClientRect();
+              var wp = typeof snapPoint==='function'
+                ? snapPoint(e2.clientX-r2.left, e2.clientY-r2.top)
+                : s2w(e2.clientX-r2.left, e2.clientY-r2.top);
+              _gripEnt.pts[_gripIdx] = {x: wp.x, y: wp.y};
+              invalidateSpatialIndex && invalidateSpatialIndex();
+              render();
+            }
+            function onUp() {
+              _gripDragging = false; _gripEnt = null;
+              document.body.style.cursor = '';
+              document.removeEventListener('mousemove', onMove);
+              document.removeEventListener('mouseup', onUp);
+            }
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+          });
+          overlay.appendChild(grip);
+          _gripPool[key] = grip;
+        }
         grip.title = 'Vertex '+idx+' ('+pt.x.toFixed(3)+', '+pt.y.toFixed(3)+')';
-
-        grip.addEventListener('mouseover', function(){this.style.background='#1FA8D9';});
-        grip.addEventListener('mouseout',  function(){this.style.background='#060E1A';});
-
-        grip.addEventListener('mousedown', function(ev) {
-          ev.preventDefault(); ev.stopPropagation();
-          _gripEnt = ent; _gripIdx = idx; _gripDragging = true;
-          pushUndo && pushUndo('grip edit');
-          document.body.style.cursor = 'move';
-
-          function onMove(e2) {
-            if (!_gripDragging) return;
-            var r2 = cad2.getBoundingClientRect();
-            var wp = typeof snapPoint==='function'
-              ? snapPoint(e2.clientX-r2.left, e2.clientY-r2.top)
-              : s2w(e2.clientX-r2.left, e2.clientY-r2.top);
-            _gripEnt.pts[_gripIdx] = {x: wp.x, y: wp.y};
-            invalidateSpatialIndex && invalidateSpatialIndex();
-            render();
-          }
-          function onUp() {
-            _gripDragging = false; _gripEnt = null;
-            document.body.style.cursor = '';
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('mouseup', onUp);
-          }
-          document.addEventListener('mousemove', onMove);
-          document.addEventListener('mouseup', onUp);
-        });
-
-        overlay.appendChild(grip);
+        grip.style.left = (ss.x-5)+'px';
+        grip.style.top  = (ss.y-5)+'px';
       });
+    });
+
+    // Remove grips that are no longer needed (deselected / out of stride)
+    Object.keys(_gripPool).forEach(function(key){
+      if (!seenKeys[key]) {
+        var el = _gripPool[key];
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+        delete _gripPool[key];
+      }
     });
   }
 
@@ -18467,6 +18424,7 @@ setTimeout(function() {
   function clearGripOverlay() {
     var ov = document.getElementById('gripOverlay');
     if (ov) ov.innerHTML = '';
+    _gripPool = {};
   }
   // Expose globally so delSel / _forceRender can clear grips directly
   window.clearGripOverlay = clearGripOverlay;
@@ -18970,6 +18928,15 @@ window._doRender = function() {
 
   // FPS
   if(typeof updateFPSDisplay==='function') updateFPSDisplay(performance.now()-t0);
+
+  // FIX: the 2D _doRender fires _afterRenderHooks (grip overlay sync, gizmo
+  // visibility, entity count) but this 3D override replaces it entirely and
+  // never called those hooks — meaning 2D vertex-grip squares could stay
+  // visibly floating over the 3D viewport after switching modes, and the
+  // entity count / gizmo state would silently go stale while in 3D.
+  if (typeof window._afterRenderHooks === 'function') {
+    try { window._afterRenderHooks(); } catch(e) {}
+  }
 };
 
 function drawViewCube(ctx, W, H) {
@@ -28968,6 +28935,786 @@ setTimeout(function(){
 
 })(); // end StrataBasicsFeatures
 
+
+
+
+(function(){
+'use strict';
+
+// ── Shared state ──────────────────────────────────────────────────────
+if(!ST.pointGroups) ST.pointGroups=[];
+if(!ST.pointStyles) ST.pointStyles={
+  'Basic':       {marker:'cross',    color:'#1FA8D9',size:2.5},
+  'Benchmark':   {marker:'circle_cross',color:'red',size:3},
+  'Bound':       {marker:'square',   color:'#FFFF00',size:2.5},
+  'Catch Basin': {marker:'circle',   color:'#4eff91',size:3},
+  'Drill Hole':  {marker:'x',        color:'#FF8800',size:3},
+  'Gas Valve':   {marker:'plus',     color:'#FF8800',size:2.5},
+  'Hydrant (existing)':{marker:'circle_cross',color:'red',size:3},
+  'Hydrant (proposed)':{marker:'circle_plus',color:'#FF8800',size:3},
+  'Iron Pin':    {marker:'dot',      color:'#888888',size:2},
+  'Sanitary Sewer Manhole':{marker:'circle',color:'#884400',size:3},
+  'Standard':    {marker:'cross',    color:'#1FA8D9',size:2.5},
+  'Storm Sewer Manhole':{marker:'circle',color:'#0044FF',size:3},
+  'Test Pit':    {marker:'x',        color:'#CC6600',size:3},
+  'Tree':        {marker:'circle',   color:'#00AA44',size:3.5},
+  'Utility Pole':{marker:'plus',     color:'#884400',size:2.5},
+  'Water Valve': {marker:'square',   color:'#0088FF',size:2.5},
+  'Well':        {marker:'circle',   color:'#0055AA',size:3},
+  'STA':         {marker:'tick',     color:'#FFAA00',size:2.5},
+  'Guy Pole':    {marker:'tick',     color:'#aaaaaa',size:2.5},
+};
+if(!ST.labelStyles) ST.labelStyles={
+  '<none>':{fields:[]},
+  'Point Number Only':{fields:['ptnum']},
+  'Description Only':{fields:['desc']},
+  'Elevation Only':{fields:['elev']},
+  'Elevation and Description':{fields:['elev','desc']},
+  'Northing and Easting':{fields:['north','east']},
+  'Point#-Elevation-Description':{fields:['ptnum','elev','desc']},
+  'Point# and Description':{fields:['ptnum','desc']},
+};
+if(!ST.drawingScale) ST.drawingScale=1000;
+if(!ST.crsCat) ST.crsCat='No Datum, No Projection';
+if(!ST.crsName) ST.crsName='No Datum, No Projection';
+var _pgSerial=ST.pointGroups.length;
+
+// ── ACI 256-Color Picker ──────────────────────────────────────────────
+var ACI=[
+ '#FF0000','#FFFF00','#00FF00','#00FFFF','#0000FF','#FF00FF','#FFFFFF','#808080','#C0C0C0',
+ '#FF4040','#FF8080','#FFC0C0','#FFFF40','#FFFF80','#FFFFC0','#40FF40','#80FF80','#C0FFC0',
+ '#40FFFF','#80FFFF','#C0FFFF','#4040FF','#8080FF','#C0C0FF','#FF40FF','#FF80FF','#FFC0FF',
+ '#FF8040','#FFA040','#FFC040','#FFE040','#FF8000','#FFA000','#FFC000','#FFE000','#FF6000',
+ '#806000','#A08000','#C0A000','#E0C000','#80FF40','#40FF00','#00E000','#00C000','#00A000',
+ '#008000','#006000','#004000','#00FF80','#40FFA0','#80FFC0','#C0FFE0','#00FFB0','#00D090',
+ '#00B070','#009050','#007030','#005010','#00C080','#80FF00','#A0FF20','#C0FF40','#E0FF60',
+ '#60D000','#40B000','#209000','#007000','#005000','#C0FF00','#D0FF20','#E0FF40','#F0FF60',
+ '#A0D000','#80B000','#609000','#407000','#FFFF20','#F0E000','#D0C000','#B0A000','#908000',
+ '#FFE000','#FFD020','#FFC040','#FFB060','#E09000','#C07000','#A05000','#FFC000','#FFB020',
+ '#FFA040','#FF9060','#E06000','#C04000','#A02000','#800000','#FF8000','#FF9020','#FFA040',
+ '#FFB060','#D07000','#B05000','#903000','#FF6000','#FF7020','#FF8040','#FF9060','#C04000',
+ '#FF4000','#FF5020','#FF6040','#FF7060','#D03000','#FF2000','#FF3020','#FF4040','#FF5060',
+ '#FF0020','#FF0040','#FF0060','#FF0080','#FF00A0','#FF00C0','#FF00E0','#E000C0','#C000A0',
+ '#A00080','#800060','#600040','#F0F0F0','#E0E0E0','#D0D0D0','#C0C0C0','#B0B0B0','#A0A0A0',
+ '#909090','#808080','#707070','#606060','#505050','#404040','#303030','#202020','#101010','#000000',
+];
+
+window.openACIColorPicker=function(cur,onSel){
+  var old=document.getElementById('_aciDlg'); if(old)old.remove();
+  var sel=cur||'#1FA8D9';
+  var ov=document.createElement('div');
+  ov.id='_aciDlg';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:25000;display:flex;align-items:center;justify-content:center';
+  ov.innerHTML='<div style="background:#050F1C;border:1px solid #1FA8D9;border-radius:8px;padding:16px;width:420px">'
+   +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+   +'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;font-weight:800;color:#1FA8D9">Select Color</span>'
+   +'<button onclick="document.getElementById(\'_aciDlg\').remove()" style="background:none;border:none;color:#667;font-size:18px;cursor:pointer">✕</button></div>'
+   +'<div style="display:grid;grid-template-columns:repeat(24,16px);gap:1px;margin-bottom:10px" id="_aciGrid"></div>'
+   +'<div style="display:flex;gap:6px;margin-bottom:10px" id="_aciQuick"></div>'
+   +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">'
+   +'<span style="font-size:9.5px;color:#aaa;font-family:IBM Plex Mono,monospace">Color:</span>'
+   +'<input id="_aciInp" value="'+(sel)+'" style="background:#0a1525;border:1px solid #1FA8D9;color:#4eff91;font-family:IBM Plex Mono,monospace;font-size:11px;padding:2px 6px;width:110px;outline:none" onkeydown="event.stopPropagation()">'
+   +'<div id="_aciPrev" style="width:40px;height:24px;background:'+sel+';border:1px solid #334;flex-shrink:0"></div>'
+   +'</div>'
+   +'<div style="display:flex;justify-content:flex-end;gap:8px">'
+   +'<button onclick="document.getElementById(\'_aciDlg\').remove()" style="padding:4px 14px;background:none;border:1px solid #334;color:#888;cursor:pointer;font-size:10px;border-radius:3px">Cancel</button>'
+   +'<button onclick="(function(){var v=document.getElementById(\'_aciInp\').value.trim();document.getElementById(\'_aciDlg\').remove();if(typeof window._aciCB===\'function\')window._aciCB(v);})()" style="padding:4px 14px;background:rgba(31,168,217,.15);border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:10px;font-weight:700;border-radius:3px">OK</button>'
+   +'</div></div>';
+  document.body.appendChild(ov);
+  window._aciCB=onSel;
+  // Grid
+  var grid=document.getElementById('_aciGrid');
+  ACI.forEach(function(c,i){
+    var d=document.createElement('div');
+    d.style.cssText='width:14px;height:14px;background:'+c+';border:1px solid rgba(255,255,255,.12);cursor:pointer;box-sizing:border-box';
+    d.title='ACI '+(i+1);
+    d.onclick=function(){ sel=c; var inp=document.getElementById('_aciInp'); var prev=document.getElementById('_aciPrev'); if(inp)inp.value=c; if(prev)prev.style.background=c; };
+    grid.appendChild(d);
+  });
+  // Quick colors
+  var quick=document.getElementById('_aciQuick');
+  ['#FF0000','#FFFF00','#00FF00','#00FFFF','#0000FF','#FF00FF','#FFFFFF','#000000'].forEach(function(c){
+    var d=document.createElement('div');
+    d.style.cssText='width:20px;height:20px;background:'+c+';border:1px solid rgba(255,255,255,.3);cursor:pointer';
+    d.onclick=function(){ var inp=document.getElementById('_aciInp'); var prev=document.getElementById('_aciPrev'); if(inp)inp.value=c; if(prev)prev.style.background=c; };
+    quick.appendChild(d);
+  });
+  ['ByLayer','ByBlock'].forEach(function(lbl){
+    var b=document.createElement('button');
+    b.textContent=lbl; b.style.cssText='padding:2px 8px;background:#1a2535;border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:9px;border-radius:3px';
+    b.onclick=function(){ var inp=document.getElementById('_aciInp'); if(inp)inp.value=lbl; };
+    quick.appendChild(b);
+  });
+  ov.addEventListener('click',function(e){ if(e.target===ov)ov.remove(); });
+};
+
+// ── CRS Data ─────────────────────────────────────────────────────────
+var CRS_CATS={
+ 'No Datum, No Projection':['No Datum, No Projection'],
+ 'Lat Longs':['WGS84 Geographic (Lat/Long)','GCS_WGS_1984'],
+ 'Dubai':['Dubai Local Transverse Mercator (DLTM), east of 54 deg East','UAE National Grid','UTM Zone 40N / WGS84'],
+ 'Egypt':['Egypt 1930 / Blue Belt','Egypt 1930 / Red Belt','UTM Zone 36N','UTM Zone 37N'],
+ 'Saudi Arabia':['Saudi Arabia Lambert','Saudi Arabia TM 36','Saudi Arabia TM 39'],
+ 'India':['India Zone I','India Zone II','India Zone IIA','India Zone III','India Zone IV'],
+ 'USA':['NAD83 / UTM zone 10N','NAD83 / UTM zone 11N','NAD83 State Plane California I'],
+ 'UK':['British National Grid (OSGB36)','Irish Grid','Irish Transverse Mercator'],
+ 'Australia':['GDA94 / MGA Zone 49','GDA94 / MGA Zone 50','GDA94 / MGA Zone 51','GDA94 / MGA Zone 55'],
+ 'New Zealand':['NZGD2000 / New Zealand TM 2000','New Zealand Map Grid'],
+ 'Canada':['NAD83 / UTM zone 10N','NAD83 / UTM zone 11N','NAD83(CSRS) UTM zone 17N'],
+ 'Germany':['DHDN / Gauss-Kruger zone 2','DHDN / Gauss-Kruger zone 3','ETRS89 / UTM zone 32N'],
+ 'France':['RGF93 / Lambert-93','NTF / Lambert zone I','NTF / Lambert zone II'],
+ 'China':['Xian 1980 / Gauss-Kruger zone 18','CGCS2000 / Gauss-Kruger zone 18'],
+ 'Japan':['JGD2000 / Japan Plane Rectangular I','JGD2000 / Japan Plane Rectangular II'],
+ 'Singapore':['SVY21 / Singapore TM','Kertau (RSO) / RSO Malaya'],
+ 'Pakistan':['Pakistan National Grid','Pakistan TM Zone 1','Pakistan TM Zone 2','Pakistan TM Zone 3'],
+ 'Nigeria':['Minna / Nigeria West Belt','Minna / Nigeria Mid Belt','Minna / Nigeria East Belt'],
+ 'Kenya':['Arc 1960 / UTM zone 36S','Arc 1960 / UTM zone 37S'],
+ 'South Africa':['Hartebeesthoek94 / Lo25','Hartebeesthoek94 / Lo27','Cape / TM 25'],
+ 'Brazil':['SAD69 / Brazil Polyconic','SIRGAS 2000 / UTM zone 23S'],
+ 'Russia':['Pulkovo 1942 / Gauss-Kruger zone 4','Pulkovo 1942 / 3-degree GK zone 12'],
+};
+var CRS_INFO={
+ 'No Datum, No Projection':{code:'.',desc:'No Datum, No Projection',proj:'None',datum:'Unknown'},
+ 'Dubai Local Transverse Mercator (DLTM), east of 54 deg East':{code:'DUB-DLTM',desc:'Dubai Local Transverse Mercator (DLTM), east of 54 deg East',proj:'TM',datum:'WGS84'},
+ 'UAE National Grid':{code:'EPSG:3857',desc:'WGS 84 / Pseudo-Mercator',proj:'Mercator',datum:'WGS84'},
+ 'UTM Zone 40N / WGS84':{code:'EPSG:32640',desc:'WGS 84 / UTM zone 40N',proj:'TM',datum:'WGS84'},
+ 'WGS84 Geographic (Lat/Long)':{code:'EPSG:4326',desc:'WGS 84 Geodetic',proj:'Longitude / Latitude',datum:'WGS84'},
+ 'British National Grid (OSGB36)':{code:'EPSG:27700',desc:'OSGB 1936 / British National Grid',proj:'TM',datum:'OSGB36'},
+ 'GDA94 / MGA Zone 55':{code:'EPSG:28355',desc:'GDA94 / MGA Zone 55',proj:'TM',datum:'GDA94'},
+ 'Egypt 1930 / Red Belt':{code:'EG-RB',desc:'Egypt 1930 / Red Belt',proj:'TM',datum:'Egypt 1930'},
+ 'Pakistan National Grid':{code:'PK-NG',desc:'Pakistan National Grid',proj:'TM',datum:'WGS84'},
+};
+function crsInfo(n){return CRS_INFO[n]||{code:'LOCAL',desc:n,proj:'TM',datum:'Unknown'};}
+
+// ── Drawing Settings (EDITDRAWINGSETTINGS) ───────────────────────────
+window.openEditDrawingSettings=function(){
+ var e=document.getElementById('_dlgDS'); if(e){e.style.display='flex';return;}
+ var ov=document.createElement('div');
+ ov.id='_dlgDS';
+ ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:15000;display:flex;align-items:center;justify-content:center';
+ var cats=Object.keys(CRS_CATS);
+ var curCat=ST.crsCat||'No Datum, No Projection';
+ var curSys=ST.crsName||'No Datum, No Projection';
+ var scales=['1:100','1:200','1:250','1:500','1:1000','1:2000','1:5000','1:10000','Custom'];
+ var scS='1:'+ST.drawingScale;
+ function catOpts(c){return cats.map(function(x){return'<option'+(x===c?' selected':'')+'>'+x+'</option>';}).join('');}
+ function sysOpts(c,s){return(CRS_CATS[c]||['No Datum, No Projection']).map(function(x){return'<option'+(x===s?' selected':'')+'>'+x+'</option>';}).join('');}
+ var ci=crsInfo(curSys);
+ ov.innerHTML='<div style="background:#050F1C;border:1px solid #1FA8D9;border-radius:8px;width:580px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column">'
+  +'<div style="background:#0a1525;padding:10px 16px;display:flex;align-items:center;border-bottom:1px solid #1a2535">'
+  +'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;font-weight:800;color:#ccc">Drawing Settings - '+( ST.projectName||'Drawing2')+'</span>'
+  +'<button onclick="document.getElementById(\'_dlgDS\').remove()" style="margin-left:auto;background:none;border:none;color:#667;font-size:18px;cursor:pointer">✕</button></div>'
+  +'<div style="display:flex;border-bottom:1px solid #1a2535;overflow-x:auto">'
+  +['Units and Zone','Transformation','Object Layers','Abbreviations','Ambient Settings'].map(function(t,i){
+    return'<button onclick="window._dsTab('+i+')" id="_dsT'+i+'" style="padding:6px 14px;font-size:9.5px;cursor:pointer;border:none;border-bottom:2px solid '+(i===0?'#1FA8D9':'transparent')+';background:none;color:'+(i===0?'#1FA8D9':'#778')+';font-family:IBM Plex Mono,monospace;white-space:nowrap">'+t+'</button>';
+  }).join('')+'</div>'
+  +'<div id="_dsBod" style="flex:1;overflow-y:auto;padding:16px">'
+  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px">'
+  +'<div><div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:4px">Drawing units:</div>'
+  +'<select id="_dsU" style="width:100%;background:#0a1525;border:1px solid #1a2a3a;color:#ccc;font-size:10px;padding:4px;outline:none" onkeydown="event.stopPropagation()">'
+  +'<option'+(ST.units==='m'?' selected':'')+'>Meters</option><option'+(ST.units==='ft'?' selected':'')+'>Feet</option><option'+((!ST.units||ST.units==='mm')?' selected':'')+'>Millimeters</option></select></div>'
+  +'<div><div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:4px">Scale:</div>'
+  +'<select id="_dsScl" onchange="window._dsScaleChg(this)" style="width:100%;background:#0a1525;border:1px solid #1a2a3a;color:#ccc;font-size:10px;padding:4px;outline:none" onkeydown="event.stopPropagation()">'
+  +scales.map(function(s){return'<option'+(s===scS?' selected':'')+'>'+s+'</option>';}).join('')+'</select></div></div>'
+  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">'
+  +'<div><div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:4px">Angular units:</div>'
+  +'<select id="_dsA" style="width:100%;background:#0a1525;border:1px solid #1a2a3a;color:#ccc;font-size:10px;padding:4px;outline:none" onkeydown="event.stopPropagation()">'
+  +'<option>Degrees</option><option>Grads</option><option>Radians</option></select></div>'
+  +'<div><div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:4px">Custom scale:</div>'
+  +'<input id="_dsCS" value="'+ST.drawingScale+'" style="background:#0a1525;border:1px solid #1a2a3a;color:#ccc;font-size:10px;padding:4px;outline:none;width:100%;box-sizing:border-box" onkeydown="event.stopPropagation()"></div></div>'
+  +'<hr style="border:none;border-top:1px solid #1a2535;margin:12px 0">'
+  +'<div style="font-size:10px;font-weight:700;color:#1FA8D9;margin-bottom:10px">Zone</div>'
+  +'<div style="display:grid;grid-template-columns:80px 1fr;gap:6px;align-items:center;margin-bottom:8px">'
+  +'<span style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace">Categories:</span>'
+  +'<select id="_dsCt" onchange="window._dsCatChg(this)" style="background:#0a1525;border:1px solid #1a2a3a;color:#ccc;font-size:10px;padding:4px;outline:none" onkeydown="event.stopPropagation()">'+catOpts(curCat)+'</select></div>'
+  +'<div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:4px">Available coordinate systems:</div>'
+  +'<select id="_dsSy" onchange="window._dsSysChg(this)" style="width:100%;background:#0a1525;border:1px solid #1a2a3a;color:#ccc;font-size:10px;padding:4px;outline:none;margin-bottom:10px" onkeydown="event.stopPropagation()">'+sysOpts(curCat,curSys)+'</select>'
+  +'<div style="display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;margin-bottom:8px">'
+  +'<span style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace">Selected coordinate system code:</span>'
+  +'<span id="_dsCd" style="font-family:IBM Plex Mono,monospace;font-size:11px;color:#4eff91">'+ci.code+'</span></div>'
+  +'<div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:3px">Description:</div>'
+  +'<div id="_dsDe" style="font-size:10px;color:#aaa;padding:4px 8px;background:#0a1525;border:1px solid #1a2535;border-radius:3px;margin-bottom:8px">'+ci.desc+'</div>'
+  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+  +'<div><div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:3px">Projection:</div>'
+  +'<div id="_dsPr" style="font-size:10px;color:#aaa;padding:4px 8px;background:#0a1525;border:1px solid #1a2535;border-radius:3px">'+ci.proj+'</div></div>'
+  +'<div><div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:3px">Datum:</div>'
+  +'<div id="_dsDa" style="font-size:10px;color:#aaa;padding:4px 8px;background:#0a1525;border:1px solid #1a2535;border-radius:3px">'+ci.datum+'</div></div></div>'
+  +'</div>'
+  +'<div style="display:flex;justify-content:flex-end;gap:8px;padding:10px 16px;border-top:1px solid #1a2535">'
+  +'<button onclick="document.getElementById(\'_dlgDS\').remove()" style="padding:4px 14px;border:1px solid #334;background:none;color:#889;cursor:pointer;font-size:10px;border-radius:4px">Cancel</button>'
+  +'<button onclick="window._dsApply()" style="padding:4px 14px;border:1px solid #1FA8D9;background:#0a1a2a;color:#1FA8D9;cursor:pointer;font-size:10px;border-radius:4px">Apply</button>'
+  +'<button onclick="window._dsApply();document.getElementById(\'_dlgDS\').remove()" style="padding:4px 14px;border:1px solid #1FA8D9;background:rgba(31,168,217,.15);color:#1FA8D9;cursor:pointer;font-size:10px;font-weight:700;border-radius:4px">OK</button>'
+  +'<button style="padding:4px 14px;border:1px solid #334;background:none;color:#778;cursor:pointer;font-size:10px;border-radius:4px">Help</button>'
+  +'</div></div>';
+ document.body.appendChild(ov);
+ ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+ window._dsCatChg=function(s){curCat=s.value;var sy=document.getElementById('_dsSy');if(sy){sy.innerHTML=sysOpts(curCat,curCat);curSys=sy.value;window._dsSysChg(sy);}};
+ window._dsSysChg=function(s){curSys=s.value;var ci=crsInfo(curSys);var set=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};set('_dsCd',ci.code);set('_dsDe',ci.desc);set('_dsPr',ci.proj);set('_dsDa',ci.datum);};
+ window._dsScaleChg=function(s){if(s.value!=='Custom'){var inp=document.getElementById('_dsCS');if(inp)inp.value=s.value.replace('1:','');}};
+ window._dsApply=function(){
+  var u=document.getElementById('_dsU')?.value;if(u)ST.units=u==='Meters'?'m':u==='Feet'?'ft':'mm';
+  var cs=document.getElementById('_dsCS')?.value;if(cs)ST.drawingScale=parseInt(cs)||1000;
+  ST.crsCat=curCat;ST.crsName=curSys;ST.crs=crsInfo(curSys).code;
+  var pill=document.getElementById('unitPill');if(pill)pill.textContent=ST.units;
+  if(typeof toast==='function')toast('Drawing settings applied — CRS:'+ST.crs,'ok');
+  if(typeof render==='function')render();
+ };
+ window._dsTab=function(i){[0,1,2,3,4].forEach(function(j){var b=document.getElementById('_dsT'+j);if(b){b.style.borderBottomColor=j===i?'#1FA8D9':'transparent';b.style.color=j===i?'#1FA8D9':'#778';}});
+  if(i>0&&typeof toast==='function')toast(['Units and Zone','Transformation','Object Layers','Abbreviations','Ambient Settings'][i]+' — edit via this tab','ok');
+ };
+};
+
+// ── Drawing Units (UN) ────────────────────────────────────────────────
+window.openDrawingUnitsDialog=function(){
+ var e=document.getElementById('_dlgUN');if(e){e.style.display='flex';return;}
+ var ov=document.createElement('div');ov.id='_dlgUN';
+ ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:15000;display:flex;align-items:center;justify-content:center';
+ ov.innerHTML='<div style="background:#f4f4f4;border:1px solid #999;border-radius:4px;width:430px;font-size:12px;font-family:Segoe UI,Arial,sans-serif;color:#111">'
+  +'<div style="background:#e4e4e4;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ccc">'
+  +'<span style="font-weight:600">Drawing Units</span>'
+  +'<span onclick="document.getElementById(\'_dlgUN\').remove()" style="cursor:pointer;font-size:16px;color:#444">✕</span></div>'
+  +'<div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:20px">'
+  +'<div><div style="font-weight:600;margin-bottom:8px">Length</div>'
+  +'<div style="margin-bottom:6px"><label style="display:block;color:#444;margin-bottom:2px">Type:</label>'
+  +'<select id="_unLT" style="width:100%;padding:3px;border:1px solid #aaa" onkeydown="event.stopPropagation()"><option>Decimal</option><option>Engineering</option><option>Fractional</option><option>Scientific</option></select></div>'
+  +'<div><label style="display:block;color:#444;margin-bottom:2px">Precision:</label>'
+  +'<select id="_unLP" style="width:100%;padding:3px;border:1px solid #aaa" onkeydown="event.stopPropagation()"><option>0</option><option>0.0</option><option>0.00</option><option selected>0.000</option><option>0.0000</option></select></div></div>'
+  +'<div><div style="font-weight:600;margin-bottom:8px">Angle</div>'
+  +'<div style="margin-bottom:6px"><label style="display:block;color:#444;margin-bottom:2px">Type:</label>'
+  +'<select id="_unAT" style="width:100%;padding:3px;border:1px solid #aaa" onkeydown="event.stopPropagation()"><option>Deg/Min/Sec</option><option>Decimal Degrees</option><option>Grads</option><option>Radians</option></select></div>'
+  +'<div style="margin-bottom:6px"><label style="display:block;color:#444;margin-bottom:2px">Precision:</label>'
+  +'<select id="_unAP" style="width:100%;padding:3px;border:1px solid #aaa" onkeydown="event.stopPropagation()"><option>0d00\'00\"</option><option>0d00\'</option><option>0d</option><option>0</option></select></div>'
+  +'<div><label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="_unCW"> Clockwise</label></div></div></div>'
+  +'<div style="padding:0 16px 10px"><div style="font-weight:600;margin-bottom:5px">Insertion scale</div>'
+  +'<div style="font-size:11px;color:#555;margin-bottom:4px">Units to scale inserted content:</div>'
+  +'<select id="_unIS" style="width:200px;padding:3px;border:1px solid #aaa" onkeydown="event.stopPropagation()"><option>Millimeters</option><option selected>Meters</option><option>Feet</option><option>Unitless</option></select></div>'
+  +'<div style="padding:8px 16px 10px;background:#e8e8e8;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin-bottom:8px">'
+  +'<div style="font-weight:600;margin-bottom:3px">Sample Output</div>'
+  +'<div style="font-size:11px;color:#333">1.500, 2.004, 0.000<br>3.000 &lt;45d0\'0\", 0.000</div></div>'
+  +'<div style="padding:0 16px 10px"><div style="font-weight:600;margin-bottom:4px">Lighting</div>'
+  +'<div style="font-size:11px;color:#555;margin-bottom:4px">Units for specifying the intensity of lighting:</div>'
+  +'<select style="width:200px;padding:3px;border:1px solid #aaa" onkeydown="event.stopPropagation()"><option>International</option></select></div>'
+  +'<div style="display:flex;justify-content:space-between;padding:8px 16px;border-top:1px solid #ccc">'
+  +'<button onclick="if(typeof toast!==\'undefined\')toast(\'Base angle direction: East = 0°, counter-clockwise\',\'ok\')" style="padding:4px 12px;border:1px solid #aaa;background:#e4e4e4;cursor:pointer">Direction...</button>'
+  +'<div style="display:flex;gap:8px">'
+  +'<button onclick="(function(){var u=document.getElementById(\'_unIS\').value;ST.units=u===\'Meters\'?\'m\':u===\'Feet\'?\'ft\':u===\'Millimeters\'?\'mm\':ST.units;var p=document.getElementById(\'unitPill\');if(p)p.textContent=ST.units;document.getElementById(\'_dlgUN\').remove();if(typeof toast!==\'undefined\')toast(\'Drawing units updated\',\'ok\');})()" style="padding:4px 14px;border:1px solid #aaa;background:#e4e4e4;cursor:pointer;font-weight:600">OK</button>'
+  +'<button onclick="document.getElementById(\'_dlgUN\').remove()" style="padding:4px 14px;border:1px solid #aaa;background:#e4e4e4;cursor:pointer">Cancel</button>'
+  +'<button style="padding:4px 14px;border:1px solid #aaa;background:#e4e4e4;cursor:pointer">Help</button>'
+  +'</div></div></div>';
+ document.body.appendChild(ov);
+ ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+};
+
+// ── Point Group Properties ─────────────────────────────────────────────
+window.openPointGroupProperties=function(pg){
+ var isNew=!pg;
+ if(isNew){pg={id:++_pgSerial,name:'Point Group - ('+_pgSerial+')',desc:'',pointStyle:'Basic',labelStyle:'Point#-Elevation-Description',locked:false,points:[]};ST.pointGroups.push(pg);}
+ var did='_dlgPG_'+pg.id;
+ var e=document.getElementById(did);if(e){e.style.display='flex';return;}
+ var ov=document.createElement('div');ov.id=did;
+ ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:16000;display:flex;align-items:center;justify-content:center';
+ var tabs=['Information','Point Groups','Raw Desc Matching','Include','Exclude','Query Builder','Overrides','Point List','Summary'];
+ var psOpts=Object.keys(ST.pointStyles).map(function(s){return'<option'+(s===pg.pointStyle?' selected':'')+'>'+s+'</option>';}).join('');
+ var lsOpts=Object.keys(ST.labelStyles).map(function(s){return'<option'+(s===pg.labelStyle?' selected':'')+'>'+s+'</option>';}).join('');
+ function infoTab(){
+  return'<div style="margin-bottom:10px"><div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:4px">Name:</div>'
+   +'<input id="_pgN'+pg.id+'" value="'+pg.name+'" style="width:100%;background:#0a1525;border:1px solid #1a2a3a;color:#ccc;font-size:11px;padding:4px 6px;outline:none;box-sizing:border-box" onkeydown="event.stopPropagation()"></div>'
+   +'<div style="margin-bottom:12px"><div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:4px">Description:</div>'
+   +'<textarea id="_pgD'+pg.id+'" style="width:100%;height:50px;background:#0a1525;border:1px solid #1a2a3a;color:#ccc;font-size:10px;padding:4px;resize:none;box-sizing:border-box;outline:none" onkeydown="event.stopPropagation()">'+pg.desc+'</textarea></div>'
+   +'<div style="background:#0a1525;border:1px solid #1a2535;border-radius:4px;padding:12px;margin-bottom:10px">'
+   +'<div style="font-size:9.5px;font-weight:700;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:8px">Default styles</div>'
+   +'<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:6px;align-items:center;margin-bottom:8px">'
+   +'<span style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;white-space:nowrap">Point style:</span>'
+   +'<select id="_pgPS'+pg.id+'" style="background:#050F1C;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none" onkeydown="event.stopPropagation()">'+psOpts+'</select>'
+   +'<button onclick="window.openPointStyleEditor(document.getElementById(\'_pgPS'+pg.id+'\').value)" style="padding:2px 8px;background:#0a1a2a;border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:9px;border-radius:3px">✎</button>'
+   +'<button style="padding:2px 8px;background:#0a1a2a;border:1px solid #1a2535;color:#aaa;cursor:pointer;font-size:9px;border-radius:3px">▼</button></div>'
+   +'<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:6px;align-items:center">'
+   +'<span style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;white-space:nowrap">Point label style:</span>'
+   +'<select id="_pgLS'+pg.id+'" style="background:#050F1C;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none" onkeydown="event.stopPropagation()">'+lsOpts+'</select>'
+   +'<button onclick="window.openLabelStyleComposer(document.getElementById(\'_pgLS'+pg.id+'\').value)" style="padding:2px 8px;background:#0a1a2a;border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:9px;border-radius:3px">✎</button>'
+   +'<button style="padding:2px 8px;background:#0a1a2a;border:1px solid #1a2535;color:#aaa;cursor:pointer;font-size:9px;border-radius:3px">▼</button></div></div>'
+   +'<label style="display:flex;align-items:center;gap:6px;font-size:9.5px;color:#aaa;cursor:pointer"><input type="checkbox" id="_pgL'+pg.id+'" '+(pg.locked?'checked':'')+' style="accent-color:#1FA8D9"> Object locked</label>';
+ }
+ function ptListTab(){
+  if(!pg.points.length)return'<div style="color:#556;font-size:10px;text-align:center;padding:30px">No points in this group</div>';
+  var rows=pg.points.slice(0,50).map(function(p){return'<tr><td style="padding:4px 8px;border-bottom:1px solid #1a2535">'+p.num+'</td><td style="padding:4px 8px;border-bottom:1px solid #1a2535;text-align:right">'+((p.easting||p.x||0)).toFixed(3)+'</td><td style="padding:4px 8px;border-bottom:1px solid #1a2535;text-align:right">'+((p.northing||p.y||0)).toFixed(3)+'</td><td style="padding:4px 8px;border-bottom:1px solid #1a2535;text-align:right">'+((p.elevation||p.z||0)).toFixed(3)+'</td><td style="padding:4px 8px;border-bottom:1px solid #1a2535">'+(p.desc||'')+'</td></tr>';}).join('');
+  return'<div style="overflow:auto;max-height:280px"><table style="width:100%;border-collapse:collapse;font-size:10px;color:#aaa"><thead><tr style="background:#0a1525;font-family:IBM Plex Mono,monospace;font-size:9.5px;color:#1FA8D9"><th style="padding:5px 8px;text-align:left;border-bottom:1px solid #1a2535">Pt#</th><th style="padding:5px 8px;text-align:right;border-bottom:1px solid #1a2535">Easting</th><th style="padding:5px 8px;text-align:right;border-bottom:1px solid #1a2535">Northing</th><th style="padding:5px 8px;text-align:right;border-bottom:1px solid #1a2535">Elevation</th><th style="padding:5px 8px;text-align:left;border-bottom:1px solid #1a2535">Desc</th></thead><tbody>'+rows+'</tbody></table></div>';
+ }
+ function sumTab(){return'<div style="font-size:10px;color:#aaa;line-height:2;font-family:IBM Plex Mono,monospace"><b style="color:#1FA8D9">Name:</b> '+pg.name+'<br><b style="color:#1FA8D9">Points:</b> '+pg.points.length+'<br><b style="color:#1FA8D9">Point Style:</b> '+pg.pointStyle+'<br><b style="color:#1FA8D9">Label Style:</b> '+pg.labelStyle+'<br><b style="color:#1FA8D9">Locked:</b> '+(pg.locked?'Yes':'No')+'</div>';}
+ ov.innerHTML='<div style="background:#050F1C;border:1px solid #1FA8D9;border-radius:6px;width:620px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column">'
+  +'<div style="background:#0a1525;padding:8px 14px;display:flex;align-items:center;border-bottom:1px solid #1a2535">'
+  +'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;font-weight:800;color:#ccc">Point Group Properties - '+pg.name+'</span>'
+  +'<button onclick="document.getElementById(\''+did+'\').remove()" style="margin-left:auto;background:none;border:none;color:#667;font-size:18px;cursor:pointer">✕</button></div>'
+  +'<div style="display:flex;border-bottom:1px solid #1a2535;overflow-x:auto;flex-shrink:0">'
+  +tabs.map(function(t,i){return'<button id="_pgTab_'+did+'_'+i+'" onclick="window._pgShowTab(\''+did+'\','+i+','+pg.id+')" style="padding:5px 10px;font-size:9.5px;cursor:pointer;border:none;border-bottom:2px solid '+(i===0?'#1FA8D9':'transparent')+';background:none;color:'+(i===0?'#1FA8D9':'#778')+';font-family:IBM Plex Mono,monospace;white-space:nowrap">'+t+'</button>';}).join('')+'</div>'
+  +'<div id="_pgBod_'+did+'" style="flex:1;overflow-y:auto;padding:14px">'+infoTab()+'</div>'
+  +'<div style="display:flex;justify-content:flex-end;gap:8px;padding:10px 14px;border-top:1px solid #1a2535">'
+  +'<button onclick="document.getElementById(\''+did+'\').remove()" style="padding:4px 14px;border:1px solid #334;background:none;color:#889;cursor:pointer;font-size:10px;border-radius:4px">Cancel</button>'
+  +'<button onclick="window._pgApply(\''+did+'\','+pg.id+')" style="padding:4px 14px;border:1px solid #1FA8D9;background:#0a1a2a;color:#1FA8D9;cursor:pointer;font-size:10px;border-radius:4px">Apply</button>'
+  +'<button onclick="window._pgApply(\''+did+'\','+pg.id+');document.getElementById(\''+did+'\').remove()" style="padding:4px 14px;border:1px solid #1FA8D9;background:rgba(31,168,217,.15);color:#1FA8D9;cursor:pointer;font-size:10px;font-weight:700;border-radius:4px">OK</button>'
+  +'<button style="padding:4px 14px;border:1px solid #334;background:none;color:#778;cursor:pointer;font-size:10px;border-radius:4px">Help</button></div></div>';
+ document.body.appendChild(ov);
+ ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+ window._pgShowTab=function(did,idx,pgid){
+  tabs.forEach(function(_,j){var b=document.getElementById('_pgTab_'+did+'_'+j);if(b){b.style.borderBottomColor=j===idx?'#1FA8D9':'transparent';b.style.color=j===idx?'#1FA8D9':'#778';}});
+  var g=ST.pointGroups.find(function(g){return g.id===pgid;});if(!g)return;
+  var bod=document.getElementById('_pgBod_'+did);if(!bod)return;
+  if(idx===0)bod.innerHTML=infoTab();
+  else if(idx===7)bod.innerHTML=ptListTab();
+  else if(idx===8)bod.innerHTML=sumTab();
+  else bod.innerHTML='<div style="color:#aaa;font-size:10px;padding:20px 0">'+tabs[idx]+' — configure this tab to filter/override points in this group.</div>';
+ };
+ window._pgApply=function(did,pgid){
+  var g=ST.pointGroups.find(function(g){return g.id===pgid;});if(!g)return;
+  var n=document.getElementById('_pgN'+pgid);if(n)g.name=n.value||g.name;
+  var d=document.getElementById('_pgD'+pgid);if(d)g.desc=d.value;
+  var ps=document.getElementById('_pgPS'+pgid);if(ps)g.pointStyle=ps.value;
+  var ls=document.getElementById('_pgLS'+pgid);if(ls)g.labelStyle=ls.value;
+  var lk=document.getElementById('_pgL'+pgid);if(lk)g.locked=lk.checked;
+  if(typeof toast==='function')toast('Point Group "'+g.name+'" saved','ok');
+  if(typeof render==='function')render();
+ };
+};
+
+// ── Point Style Editor ────────────────────────────────────────────────
+window.openPointStyleEditor=function(sn){
+ sn=sn||'Basic';
+ var ps=ST.pointStyles[sn]||{marker:'cross',color:'#1FA8D9',size:2.5};
+ var old=document.getElementById('_dlgPtStyle');if(old)old.remove();
+ var ov=document.createElement('div');ov.id='_dlgPtStyle';
+ ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:17000;display:flex;align-items:center;justify-content:center';
+ var mrks=[{id:'dot',sym:'•'},{id:'empty',sym:'○'},{id:'plus',sym:'+'},{id:'x',sym:'×'},{id:'tick',sym:'|'},{id:'square',sym:'□'},{id:'circle',sym:'○'}];
+ function mkBtns(){return mrks.map(function(m){var a=ps.marker===m.id;return'<button id="_psB_'+m.id+'" onclick="window._psSelMrk(\''+m.id+'\')" style="width:32px;height:32px;font-size:16px;border:2px solid '+(a?'#1FA8D9':'#1a2535')+';background:'+(a?'rgba(31,168,217,.2)':'#0a1525')+';color:'+ps.color+';cursor:pointer;border-radius:4px">'+m.sym+'</button>';}).join('');}
+ ov.innerHTML='<div style="background:#050F1C;border:1px solid #1FA8D9;border-radius:6px;width:580px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column">'
+  +'<div style="background:#0a1525;padding:8px 14px;display:flex;align-items:center;border-bottom:1px solid #1a2535">'
+  +'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;font-weight:800;color:#ccc">Point Style - '+sn+'</span>'
+  +'<button onclick="document.getElementById(\'_dlgPtStyle\').remove()" style="margin-left:auto;background:none;border:none;color:#667;font-size:18px;cursor:pointer">✕</button></div>'
+  +'<div style="display:flex;border-bottom:1px solid #1a2535">'
+  +['Information','Marker','3D Geometry','Display','Summary'].map(function(t,i){return'<button style="padding:5px 12px;font-size:9.5px;cursor:pointer;border:none;border-bottom:2px solid '+(i===1?'#1FA8D9':'transparent')+';background:none;color:'+(i===1?'#1FA8D9':'#778')+';font-family:IBM Plex Mono,monospace">'+t+'</button>';}).join('')+'</div>'
+  +'<div style="flex:1;overflow-y:auto;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:16px">'
+  +'<div>'
+  +'<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">'
+  +'<label style="display:flex;align-items:center;gap:6px;font-size:9.5px;color:#aaa;cursor:pointer"><input type="radio" name="_psMT" value="auto"> Use AutoCAD POINT for marker</label>'
+  +'<label style="display:flex;align-items:center;gap:6px;font-size:9.5px;color:#aaa;cursor:pointer"><input type="radio" name="_psMT" value="custom" checked> Use custom marker</label></div>'
+  +'<div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:6px">Custom marker style:</div>'
+  +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px" id="_psMrkBtns">'+mkBtns()+'</div>'
+  +'<hr style="border:none;border-top:1px solid #1a2535;margin:10px 0">'
+  +'<div style="font-size:9.5px;font-weight:700;color:#1FA8D9;margin-bottom:8px">Size</div>'
+  +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">'
+  +'<select style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px;outline:none;flex:1" onkeydown="event.stopPropagation()"><option>Use drawing scale</option><option>Fixed</option><option>Absolute</option></select>'
+  +'<span style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace">mm</span></div>'
+  +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">'
+  +'<span style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;min-width:30px">Size:</span>'
+  +'<input id="_psSz" type="number" value="'+ps.size+'" step="0.5" min="0.5" max="50" style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none;width:70px" onkeydown="event.stopPropagation()" oninput="window._psUpdPrev()">'
+  +'<span style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace">mm</span></div>'
+  +'<div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:6px">Marker color:</div>'
+  +'<div style="display:flex;align-items:center;gap:8px">'
+  +'<div id="_psCSw" style="width:28px;height:20px;background:'+ps.color+';border:1px solid #334;cursor:pointer;border-radius:2px" onclick="openACIColorPicker(\''+ps.color+'\',function(c){ps_col=c;document.getElementById(\'_psCSw\').style.background=c;document.getElementById(\'_psCNm\').textContent=c;window._psUpdPrev();})"></div>'
+  +'<span id="_psCNm" style="font-size:10px;color:#aaa;font-family:IBM Plex Mono,monospace">'+ps.color+'</span></div></div>'
+  +'<div>'
+  +'<div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:8px">Preview</div>'
+  +'<canvas id="_psPrv" width="180" height="140" style="background:#0a0a14;border:1px solid #1a2535;border-radius:4px;display:block"></canvas>'
+  +'<div style="margin-top:12px"><div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:4px">Marker rotation angle:</div>'
+  +'<div style="display:flex;gap:6px;align-items:center"><input value="0" style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none;width:60px" onkeydown="event.stopPropagation()">'
+  +'<span style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace">(d)</span></div></div>'
+  +'<div style="margin-top:12px"><div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:4px">Orientation Reference:</div>'
+  +'<select style="width:100%;background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px;outline:none" onkeydown="event.stopPropagation()"><option>World Coordinate System</option><option>Object</option></select></div></div></div>'
+  +'<div style="display:flex;justify-content:flex-end;gap:8px;padding:10px 14px;border-top:1px solid #1a2535">'
+  +'<button onclick="document.getElementById(\'_dlgPtStyle\').remove()" style="padding:4px 14px;border:1px solid #334;background:none;color:#889;cursor:pointer;font-size:10px;border-radius:4px">Cancel</button>'
+  +'<button onclick="window._psApply(\''+sn+'\')" style="padding:4px 14px;border:1px solid #1FA8D9;background:#0a1a2a;color:#1FA8D9;cursor:pointer;font-size:10px;border-radius:4px">Apply</button>'
+  +'<button onclick="window._psApply(\''+sn+'\');document.getElementById(\'_dlgPtStyle\').remove()" style="padding:4px 14px;border:1px solid #1FA8D9;background:rgba(31,168,217,.15);color:#1FA8D9;cursor:pointer;font-size:10px;font-weight:700;border-radius:4px">OK</button>'
+  +'</div></div>';
+ document.body.appendChild(ov);
+ ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+ var ps_col=ps.color; var ps_mrk=ps.marker;
+ function drawPrev(){
+  var c=document.getElementById('_psPrv');if(!c)return;
+  var ctx=c.getContext('2d'),W=c.width,H=c.height,cx=W/2,cy=H/2;
+  var sz=Math.max((parseFloat(document.getElementById('_psSz')?.value||2.5))*10,4);
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,H);ctx.moveTo(0,cy);ctx.lineTo(W,cy);ctx.stroke();
+  ctx.strokeStyle=ps_col;ctx.fillStyle=ps_col;ctx.lineWidth=1.5;
+  if(ps_mrk==='dot'){ctx.beginPath();ctx.arc(cx,cy,sz/3,0,Math.PI*2);ctx.fill();}
+  else if(ps_mrk==='plus'||ps_mrk==='cross'){ctx.beginPath();ctx.moveTo(cx-sz,cy);ctx.lineTo(cx+sz,cy);ctx.moveTo(cx,cy-sz);ctx.lineTo(cx,cy+sz);ctx.stroke();}
+  else if(ps_mrk==='x'){ctx.beginPath();ctx.moveTo(cx-sz,cy-sz);ctx.lineTo(cx+sz,cy+sz);ctx.moveTo(cx+sz,cy-sz);ctx.lineTo(cx-sz,cy+sz);ctx.stroke();}
+  else if(ps_mrk==='circle'||ps_mrk==='circle_cross'){ctx.beginPath();ctx.arc(cx,cy,sz,0,Math.PI*2);ctx.stroke();if(ps_mrk==='circle_cross'){ctx.beginPath();ctx.moveTo(cx-sz,cy);ctx.lineTo(cx+sz,cy);ctx.moveTo(cx,cy-sz);ctx.lineTo(cx,cy+sz);ctx.stroke();}}
+  else if(ps_mrk==='square'){ctx.strokeRect(cx-sz,cy-sz,sz*2,sz*2);}
+  else if(ps_mrk==='tick'){ctx.beginPath();ctx.moveTo(cx,cy-sz);ctx.lineTo(cx,cy+sz);ctx.stroke();}
+ }
+ setTimeout(drawPrev,50);
+ window._psSelMrk=function(m){ps_mrk=m;mrks.forEach(function(x){var b=document.getElementById('_psB_'+x.id);if(b){b.style.borderColor=x.id===m?'#1FA8D9':'#1a2535';b.style.background=x.id===m?'rgba(31,168,217,.2)':'#0a1525';}});drawPrev();};
+ window._psUpdPrev=drawPrev;
+ window._psApply=function(name){var sz=parseFloat(document.getElementById('_psSz')?.value||2.5);ST.pointStyles[name]={marker:ps_mrk,color:ps_col,size:sz};if(typeof toast==='function')toast('Point Style "'+name+'" saved','ok');if(typeof render==='function')render();};
+};
+
+// ── Label Style Composer ──────────────────────────────────────────────
+window.openLabelStyleComposer=function(sn){
+ sn=sn||'Northing and Easting';
+ var ls=ST.labelStyles[sn]||{fields:['north','east']};
+ var old=document.getElementById('_dlgLabelStyle');if(old)old.remove();
+ var ov=document.createElement('div');ov.id='_dlgLabelStyle';
+ ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:17000;display:flex;align-items:center;justify-content:center';
+ var fmap={ptnum:'Point Number',north:'Northing',east:'Easting',elev:'Point Elevation',desc:'Raw Description',fulldesc:'Full Description',name:'Point Name'};
+ var formula=sn==='Northing and Easting'?'N:<Northing(Um|P2|RN|AP|Sn|OF)>\\nE:<Easting(Um|P2|RN|AP|Sn|OF)>':ls.fields.map(function(f){return'<'+(fmap[f]||f)+'(OF)>';}).join('\\n');
+ var prevHtml=ls.fields.length?'<div style="font-family:IBM Plex Mono,monospace;font-size:9.5px;color:#1FA8D9;line-height:1.6">× '+ls.fields.map(function(f){var v=f==='ptnum'?'#1':f==='north'?'N: 502880.82':f==='east'?'E: 2796840.73':f==='elev'?'Z: -29.289':f==='desc'?'BM1':'';return v;}).join('<br>  ')+'</div>':'<div style="color:#556;font-size:9.5px">No label fields</div>';
+ var fieldOpts=Object.entries(fmap).map(function(kv){return'<option value="'+kv[0]+'">'+kv[1]+'</option>';}).join('');
+ ov.innerHTML='<div style="background:#050F1C;border:1px solid #1FA8D9;border-radius:6px;width:680px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column">'
+  +'<div style="background:#0a1525;padding:8px 14px;display:flex;align-items:center;border-bottom:1px solid #1a2535">'
+  +'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;font-weight:800;color:#ccc">Label Style Composer - '+sn+'</span>'
+  +'<button onclick="document.getElementById(\'_dlgLabelStyle\').remove()" style="margin-left:auto;background:none;border:none;color:#667;font-size:18px;cursor:pointer">✕</button></div>'
+  +'<div style="display:flex;border-bottom:1px solid #1a2535">'
+  +['Information','General','Layout','Dragged State','Summary'].map(function(t,i){return'<button style="padding:5px 12px;font-size:9.5px;cursor:pointer;border:none;border-bottom:2px solid '+(i===2?'#1FA8D9':'transparent')+';background:none;color:'+(i===2?'#1FA8D9':'#778')+';font-family:IBM Plex Mono,monospace">'+t+'</button>';}).join('')+'</div>'
+  +'<div style="flex:1;overflow-y:auto;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:16px">'
+  +'<div>'
+  +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">'
+  +'<span style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;white-space:nowrap">Component name:</span>'
+  +'<select style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none;flex:1" onkeydown="event.stopPropagation()"><option>'+sn+'</option></select></div>'
+  +'<table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:10px"><thead><tr style="background:#0a1525"><th style="padding:5px 8px;text-align:left;border:1px solid #1a2535;color:#1FA8D9;font-family:IBM Plex Mono,monospace;font-size:9.5px">Property</th><th style="padding:5px 8px;text-align:left;border:1px solid #1a2535;color:#1FA8D9;font-family:IBM Plex Mono,monospace;font-size:9.5px">Value</th></thead><tbody style="color:#aaa">'
+  +'<tr><td style="padding:4px 8px;border:1px solid #1a2535;font-weight:700;color:#ccc" colspan="2">General</td></tr>'
+  +'<tr><td style="padding:4px 8px;border:1px solid #1a2535">Name</td><td style="padding:4px 8px;border:1px solid #1a2535">'+sn+'</td></tr>'
+  +'<tr><td style="padding:4px 8px;border:1px solid #1a2535">Visibility</td><td style="padding:4px 8px;border:1px solid #1a2535">True</td></tr>'
+  +'<tr><td style="padding:4px 8px;border:1px solid #1a2535;font-weight:700;color:#ccc" colspan="2">Text</td></tr>'
+  +'<tr><td style="padding:4px 8px;border:1px solid #1a2535">Contents</td><td style="padding:4px 8px;border:1px solid #1a2535"><span style="font-size:8.5px;color:#aaa">'+formula.substring(0,35)+'...</span><button onclick="window.openTextComponentEditor(\''+sn+'\')" style="margin-left:4px;padding:1px 6px;font-size:8.5px;background:#0a1a2a;border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;border-radius:2px">Edit...</button></td></tr>'
+  +'<tr><td style="padding:4px 8px;border:1px solid #1a2535">Text Height</td><td style="padding:4px 8px;border:1px solid #1a2535"><input value="2.50mm" style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:2px 4px;outline:none;width:70px" onkeydown="event.stopPropagation()"></td></tr>'
+  +'<tr><td style="padding:4px 8px;border:1px solid #1a2535">Rotation Angle</td><td style="padding:4px 8px;border:1px solid #1a2535">0.0000 (d)</td></tr>'
+  +'<tr><td style="padding:4px 8px;border:1px solid #1a2535">Color</td><td style="padding:4px 8px;border:1px solid #1a2535"><div style="display:flex;align-items:center;gap:4px"><div id="_lsCSw" style="width:14px;height:14px;background:#1FA8D9;border:1px solid #334;cursor:pointer" onclick="openACIColorPicker(\'BYLAYER\',function(c){document.getElementById(\'_lsCSw\').style.background=c;})"></div><span style="font-size:9px;color:#aaa;font-family:IBM Plex Mono,monospace">BYLAYER</span></div></td></tr>'
+  +'<tr><td style="padding:4px 8px;border:1px solid #1a2535">Maximum Width</td><td style="padding:4px 8px;border:1px solid #1a2535">0.00mm</td></tr>'
+  +'</tbody></table>'
+  +'<div style="margin-top:10px"><div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:6px">Fields:</div>'
+  +'<div id="_lsFlds" style="display:flex;flex-wrap:wrap;gap:4px">'+ls.fields.map(function(f){return'<span style="background:#0a1525;border:1px solid #1FA8D9;color:#1FA8D9;font-family:IBM Plex Mono,monospace;font-size:9px;padding:2px 8px;border-radius:3px">'+(fmap[f]||f)+'</span>';}).join('')+'</div>'
+  +'<div style="display:flex;gap:6px;margin-top:8px"><select id="_lsAddF" style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px;outline:none;flex:1" onkeydown="event.stopPropagation()">'+fieldOpts+'</select>'
+  +'<button onclick="(function(){var f=document.getElementById(\'_lsAddF\').value;if(f&&!ls.fields.includes(f)){ls.fields.push(f);var el=document.getElementById(\'_lsFlds\');if(el){var s=document.createElement(\'span\');s.style.cssText=\'background:#0a1525;border:1px solid #1FA8D9;color:#1FA8D9;font-family:IBM Plex Mono,monospace;font-size:9px;padding:2px 8px;border-radius:3px\';s.textContent=fmap[f]||f;el.appendChild(s);}}})()" style="padding:3px 10px;background:#0a1a2a;border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:9.5px;border-radius:3px">Add</button></div></div></div>'
+  +'<div>'
+  +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace">Preview</span><span style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace">Point Label Style</span></div>'
+  +'<div style="background:#0a0a14;border:1px solid #1a2535;border-radius:4px;height:160px;display:flex;align-items:center;justify-content:center;position:relative">'
+  +'<div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 29px,rgba(31,168,217,.04) 30px),repeating-linear-gradient(90deg,transparent,transparent 29px,rgba(31,168,217,.04) 30px)"></div>'
+  +'<div style="position:relative;text-align:center">'+prevHtml+'</div></div></div></div>'
+  +'<div style="display:flex;justify-content:flex-end;gap:8px;padding:10px 14px;border-top:1px solid #1a2535">'
+  +'<button onclick="document.getElementById(\'_dlgLabelStyle\').remove()" style="padding:4px 14px;border:1px solid #334;background:none;color:#889;cursor:pointer;font-size:10px;border-radius:4px">Cancel</button>'
+  +'<button onclick="ST.labelStyles[\''+sn+'\']=ls;if(typeof toast!==\'undefined\')toast(\'Label style saved\',\'ok\');document.getElementById(\'_dlgLabelStyle\').remove()" style="padding:4px 14px;border:1px solid #1FA8D9;background:rgba(31,168,217,.15);color:#1FA8D9;cursor:pointer;font-size:10px;font-weight:700;border-radius:4px">OK</button>'
+  +'<button style="padding:4px 14px;border:1px solid #334;background:none;color:#778;cursor:pointer;font-size:10px;border-radius:4px">Help</button></div></div>';
+ document.body.appendChild(ov);
+ ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+};
+
+// ── Text Component Editor ─────────────────────────────────────────────
+window.openTextComponentEditor=function(sn){
+ sn=sn||'Northing and Easting';
+ var ls=ST.labelStyles[sn]||{fields:['north','east']};
+ var old=document.getElementById('_dlgTC');if(old)old.remove();
+ var ov=document.createElement('div');ov.id='_dlgTC';
+ ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:18000;display:flex;align-items:center;justify-content:center';
+ var fmap={ptnum:'Point Number',north:'Northing',east:'Easting',elev:'Point Elevation',desc:'Raw Description',name:'Point Name',fulldesc:'Full Description',gridN:'Grid Northing',gridE:'Grid Easting',lon:'Longitude',lat:'Latitude',scale:'Scale Factor',conv:'Convergence',survPt:'Survey Point',locked:'Locked Point'};
+ var formula=sn==='Northing and Easting'?'N:<Northing(Um|P2|RN|AP|Sn|OF)>\nE:<Easting(Um|P2|RN|AP|Sn|OF)>':ls.fields.map(function(f){return'<'+(fmap[f]||f)+'(OF)>';}).join('\n');
+ var propData={ptnum:[['Digit grouping symbol','comma \',\''],['Digit grouping','123456789']],north:[['Unit','meter'],['Precision','0.01'],['Rounding','round normal'],['Decimal character','period \'.\''],['Digit grouping symbol','comma \',\''],['Digit grouping','123456789'],['Sign','sign negative \'-\''],['Output','full']],east:[['Unit','meter'],['Precision','0.01'],['Rounding','round normal'],['Decimal character','period \'.\''],['Digit grouping symbol','comma \',\''],['Digit grouping','123456789'],['Sign','sign negative \'-\''],['Output','full']],elev:[['Unit','meter'],['Precision','0.001'],['Rounding','round normal'],['Decimal character','period \'.\''],['Digit grouping symbol','comma \',\''],['Digit grouping','123456789'],['Sign','sign negative \'-\''],['Output','full']],desc:[['Case conversion','none'],['Strip spaces','no']]};
+ var selF=ls.fields[0]||'north';
+ function mkPropRows(f){return(propData[f]||[]).map(function(r){return'<tr><td style="padding:4px 8px;border:1px solid #ddd;font-size:11px">'+r[0]+'</td><td style="padding:4px 8px;border:1px solid #ddd;font-size:11px;background:#fffde7">'+r[1]+'</td></tr>';}).join('');}
+ var fOpts=Object.entries(fmap).map(function(kv){return'<option value="'+kv[0]+'"'+(kv[0]===selF?' selected':'')+'>'+kv[1]+'</option>';}).join('');
+ ov.innerHTML='<div style="background:#fff;border:1px solid #999;border-radius:4px;width:600px;max-width:95vw;font-size:12px;font-family:Segoe UI,Arial,sans-serif;color:#111;display:flex;flex-direction:column;max-height:88vh">'
+  +'<div style="background:#e8e8e8;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ccc">'
+  +'<span style="font-weight:600">Text Component Editor - Contents</span>'
+  +'<span onclick="document.getElementById(\'_dlgTC\').remove()" style="cursor:pointer;font-size:16px;color:#444">✕</span></div>'
+  +'<div style="display:flex;border-bottom:1px solid #ddd">'
+  +'<button style="padding:4px 12px;font-size:11px;cursor:pointer;border:none;border-bottom:2px solid #0078d4;background:none;color:#0078d4;font-weight:600">Format</button>'
+  +'<button style="padding:4px 12px;font-size:11px;cursor:pointer;border:none;background:none;color:#444">Properties</button></div>'
+  +'<div style="display:grid;grid-template-columns:240px 1fr;flex:1;overflow:hidden">'
+  +'<div style="border-right:1px solid #ddd;padding:10px;overflow-y:auto">'
+  +'<div style="font-size:11px;font-weight:600;margin-bottom:6px">Properties:</div>'
+  +'<select id="_tcF" style="width:100%;padding:3px;border:1px solid #aaa;font-size:11px;margin-bottom:8px" onchange="window._tcUpdF(this.value)" onkeydown="event.stopPropagation()">'+fOpts+'</select>'
+  +'<button onclick="(function(){var f=document.getElementById(\'_tcF\').value;if(f&&!ls.fields.includes(f))ls.fields.push(f);if(typeof toast!==\'undefined\')toast(\'Field inserted into formula\',\'ok\');})()" style="width:100%;padding:4px;background:#0078d4;border:none;color:#fff;cursor:pointer;font-size:11px;border-radius:2px;margin-bottom:10px">→ Insert</button>'
+  +'<table style="width:100%;border-collapse:collapse"><thead><tr style="background:#f0f0f0"><th style="padding:4px 8px;text-align:left;border:1px solid #ddd;font-size:10.5px">Modifier</th><th style="padding:4px 8px;text-align:left;border:1px solid #ddd;font-size:10.5px">Value</th></thead>'
+  +'<tbody id="_tcPR">'+mkPropRows(selF)+'</tbody></table></div>'
+  +'<div style="padding:10px;display:flex;flex-direction:column">'
+  +'<div style="font-size:11px;font-weight:600;margin-bottom:6px">Formula:</div>'
+  +'<div style="background:#0a0a14;border:1px solid #ccc;padding:8px;font-family:Consolas,monospace;font-size:10px;color:#4eff91;min-height:100px;word-break:break-all;flex:1;border-radius:2px;white-space:pre">'+formula+'</div>'
+  +'<div style="font-size:10px;color:#666;margin-top:6px">Ln 1 Col 1 &nbsp;&nbsp; AutoCAPS</div></div></div>'
+  +'<div style="padding:8px 12px;border-top:1px solid #ddd;display:flex;justify-content:space-between;align-items:center">'
+  +'<button style="padding:4px 12px;border:1px solid #aaa;background:#e8e8e8;cursor:pointer;font-size:11px">Import Text...</button>'
+  +'<div style="display:flex;gap:8px">'
+  +'<button onclick="document.getElementById(\'_dlgTC\').remove()" style="padding:4px 14px;border:1px solid #aaa;background:#e8e8e8;cursor:pointer;font-size:11px;font-weight:600">OK</button>'
+  +'<button onclick="document.getElementById(\'_dlgTC\').remove()" style="padding:4px 14px;border:1px solid #aaa;background:#e8e8e8;cursor:pointer;font-size:11px">Cancel</button>'
+  +'<button style="padding:4px 14px;border:1px solid #aaa;background:#e8e8e8;cursor:pointer;font-size:11px">Help</button></div></div></div>';
+ document.body.appendChild(ov);
+ ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+ window._tcUpdF=function(f){var t=document.getElementById('_tcPR');if(t)t.innerHTML=mkPropRows(f);};
+};
+
+// ── Import Points Dialog ──────────────────────────────────────────────
+window.openImportPoints=function(){
+ var old=document.getElementById('_dlgIP');if(old){old.style.display='flex';return;}
+ var ov=document.createElement('div');ov.id='_dlgIP';
+ ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:15000;display:flex;align-items:center;justify-content:center';
+ var grpOpts=(ST.pointGroups.length?ST.pointGroups.map(function(g){return'<option>'+g.name+'</option>';}).join(''):'')+'<option>_All Points</option><option>— Create new group —</option>';
+ ov.innerHTML='<div style="background:#050F1C;border:1px solid #1FA8D9;border-radius:6px;width:620px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column">'
+  +'<div style="background:#0a1525;padding:8px 14px;display:flex;align-items:center;border-bottom:1px solid #1a2535">'
+  +'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;font-weight:800;color:#ccc">Import Points</span>'
+  +'<button onclick="document.getElementById(\'_dlgIP\').remove()" style="margin-left:auto;background:none;border:none;color:#667;font-size:18px;cursor:pointer">✕</button></div>'
+  +'<div style="flex:1;overflow-y:auto;padding:16px">'
+  +'<div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:5px">Selected file:</div>'
+  +'<div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:14px">'
+  +'<input id="_ipFN" placeholder="No file selected" style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:4px 6px;outline:none;box-sizing:border-box" readonly onkeydown="event.stopPropagation()">'
+  +'<button onclick="document.getElementById(\'_ipFIn\').click()" style="padding:4px 14px;background:#0a1a2a;border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:10px;border-radius:3px">Browse...</button></div>'
+  +'<input type="file" id="_ipFIn" accept=".csv,.txt,.xyz,.enz,.nez,.xls,.xlsx" style="display:none" onchange="window._ipChosen(this)">'
+  +'<div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:6px">Specify point file format:</div>'
+  +'<div id="_ipFmts" style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:14px">'
+  +['ENZ (comma delimited)','XYZ_LIDAR Classification','NEZ (comma delimited)','XYZ_Intensity (comma delimited)','XYZ_RGB (comma delimited)','PENZ (comma delimited)'].map(function(f,i){
+    return'<label style="display:flex;align-items:center;gap:5px;font-size:9.5px;color:#ccc;padding:5px 8px;background:#0a1525;border:1px solid #1a2535;border-radius:4px;cursor:pointer"><input type="radio" name="_ipFmt" value="'+f+'" '+(i===0?'checked':'')+' onchange="window._ipSelFmt(\''+f+'\')"> '+f+'</label>';
+  }).join('')+'</div>'
+  +'<div id="_ipPrev" style="background:#0a1525;border:1px solid #1a2535;border-radius:4px;min-height:80px;padding:10px;font-family:IBM Plex Mono,monospace;font-size:9.5px;color:#4eff91;overflow-y:auto;max-height:110px;margin-bottom:14px">'
+  +'<span style="color:#556">No file loaded — select a CSV/ENZ/XYZ/NEZ file to preview</span></div>'
+  +'<div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:5px">Add Points to Point Group:</div>'
+  +'<div style="display:flex;gap:8px;margin-bottom:14px"><select id="_ipGrp" style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:4px;outline:none;flex:1" onkeydown="event.stopPropagation()">'+grpOpts+'</select></div>'
+  +'<div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:6px">Advanced options</div>'
+  +'<div style="display:flex;flex-direction:column;gap:5px">'
+  +'<label style="display:flex;align-items:center;gap:6px;font-size:9.5px;color:#aaa;cursor:pointer"><input type="checkbox" id="_ipElev" checked style="accent-color:#1FA8D9"> Do elevation adjustment if possible</label>'
+  +'<label style="display:flex;align-items:center;gap:6px;font-size:9.5px;color:#aaa;cursor:pointer"><input type="checkbox" id="_ipCoord" checked style="accent-color:#1FA8D9"> Do coordinate transformation if possible</label>'
+  +'<label style="display:flex;align-items:center;gap:6px;font-size:9.5px;color:#aaa;cursor:pointer"><input type="checkbox" style="accent-color:#1FA8D9"> Do coordinate data expansion if possible</label>'
+  +'</div></div>'
+  +'<div style="display:flex;justify-content:flex-end;gap:8px;padding:10px 14px;border-top:1px solid #1a2535">'
+  +'<button onclick="document.getElementById(\'_dlgIP\').remove()" style="padding:4px 14px;border:1px solid #334;background:none;color:#889;cursor:pointer;font-size:10px;border-radius:4px">Cancel</button>'
+  +'<button onclick="window._ipDoImport()" style="padding:4px 14px;border:1px solid #1FA8D9;background:rgba(31,168,217,.15);color:#1FA8D9;cursor:pointer;font-size:10px;font-weight:700;border-radius:4px">OK</button>'
+  +'<button style="padding:4px 14px;border:1px solid #334;background:none;color:#778;cursor:pointer;font-size:10px;border-radius:4px">Help</button></div></div>';
+ document.body.appendChild(ov);
+ ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+ var _raw=[]; var _fmt='ENZ';
+ window._ipSelFmt=function(f){_fmt=f;window._ipShowPrev();};
+ window._ipChosen=function(inp){
+  if(!inp.files||!inp.files[0])return;
+  var fi=inp.files[0];
+  var fn=document.getElementById('_ipFN');if(fn)fn.value=fi.name;
+  var r=new FileReader();r.onload=function(e){_raw=e.target.result.split(/\r?\n/).filter(function(l){return l.trim();});window._ipShowPrev();};r.readAsText(fi);inp.value='';
+ };
+ window._ipShowPrev=function(){
+  var p=document.getElementById('_ipPrev');if(!p)return;
+  if(!_raw.length){p.innerHTML='<span style="color:#556">No data</span>';return;}
+  var easting=[], northing=[], elev=[];
+  _raw.slice(0,4).forEach(function(l){
+   var pts=l.trim().split(/[,\s\t]+/);
+   var e,n,z;
+   if(_fmt.startsWith('ENZ')||_fmt.startsWith('XYZ')){e=+pts[0];n=+pts[1];z=+pts[2];}
+   else if(_fmt.startsWith('NEZ')){n=+pts[0];e=+pts[1];z=+pts[2];}
+   else if(_fmt.startsWith('PENZ')){e=+pts[1];n=+pts[2];z=+pts[3];}
+   else{e=+pts[0];n=+pts[1];z=+pts[2];}
+   easting.push(isNaN(e)?pts[0]:e.toFixed(3));northing.push(isNaN(n)?pts[1]:n.toFixed(3));elev.push(isNaN(z)?pts[2]:z.toFixed(3));
+  });
+  var html='<b style="color:#1FA8D9">Preview: '+_fmt+' | '+_raw.length+' rows</b><br><br>';
+  html+='<table style="border-collapse:collapse"><tr><th style="padding:2px 10px;color:#1FA8D9">Easting</th><th style="padding:2px 10px;color:#1FA8D9">Northing</th><th style="padding:2px 10px;color:#1FA8D9">Point Elevation</th></tr>';
+  easting.forEach(function(e,i){html+='<tr><td style="padding:2px 10px">'+e+'</td><td style="padding:2px 10px">'+northing[i]+'</td><td style="padding:2px 10px">'+elev[i]+'</td></tr>';});
+  html+='</table>';
+  p.innerHTML=html;
+ };
+ window._ipDoImport=function(){
+  if(!_raw.length){if(typeof toast!=='undefined')toast('No file loaded','warn');return;}
+  var grpName=document.getElementById('_ipGrp')?.value||'_All Points';
+  var pts=[]; var ptNum=(ST.surveyPts||[]).length+1;
+  _raw.forEach(function(line){
+   var p=line.trim().split(/[,\s\t]+/); if(p.length<2)return;
+   var e,n,z=0,d='';
+   if(_fmt.startsWith('NEZ')){n=+p[0];e=+p[1];z=p[2]?+p[2]:0;d=p[3]||'';}
+   else if(_fmt.startsWith('PENZ')){ptNum=parseInt(p[0])||ptNum;e=+p[1];n=+p[2];z=p[3]?+p[3]:0;d=p[4]||'';}
+   else{e=+p[0];n=+p[1];z=p[2]?+p[2]:0;d=p[3]||'';}
+   if(isNaN(e)||isNaN(n))return;
+   pts.push({num:ptNum++,easting:e,northing:n,elevation:z,desc:d});
+  });
+  if(!pts.length){if(typeof toast!=='undefined')toast('No valid points — check format','err');return;}
+  if(!ST.surveyPts)ST.surveyPts=[];
+  var grp=ST.pointGroups.find(function(g){return g.name===grpName;});
+  if(!grp&&grpName!=='_All Points'){grp={id:++_pgSerial,name:grpName,desc:'',pointStyle:'Basic',labelStyle:'Point#-Elevation-Description',locked:false,points:[]};ST.pointGroups.push(grp);}
+  pts.forEach(function(p){
+   var ent={_id:++ST._eid,type:'point',x:p.easting,y:p.northing,z:p.elevation,ptnum:p.num,desc:p.desc,layer:ST.curLayer,selected:false};
+   ST.entities.push(ent);
+   ST.surveyPts.push({num:p.num,x:p.easting,y:p.northing,z:p.elevation,desc:p.desc});
+   if(grp)grp.points.push({num:p.num,x:p.easting,y:p.northing,z:p.elevation,desc:p.desc});
+  });
+  if(typeof invalidateSpatialIndex==='function')invalidateSpatialIndex();
+  if(typeof rebuildIndex==='function'){try{rebuildIndex();}catch(e){}}
+  if(typeof render==='function')render();
+  ov.remove();
+  if(typeof toast!=='undefined')toast('Imported '+pts.length+' points'+(grp?' into "'+grp.name+'"':''),'ok');
+  setTimeout(function(){if(typeof zoomExt==='function')zoomExt();},100);
+ };
+};
+
+// ── Create Points Toolbar ─────────────────────────────────────────────
+window.openCreatePointsToolbar=function(){
+ var old=document.getElementById('_cptTB');if(old){old.style.display=old.style.display==='none'?'flex':'none';return;}
+ var tb=document.createElement('div');tb.id='_cptTB';
+ tb.style.cssText='position:fixed;top:170px;left:300px;background:#050F1C;border:1px solid #1FA8D9;border-radius:6px;z-index:12000;display:flex;flex-direction:column;min-width:230px;box-shadow:0 4px 20px rgba(0,0,0,.8)';
+ var methods=[
+  {id:'click',icon:'➕',hint:'Click canvas to place points'},
+  {id:'coords',icon:'📍',hint:'Enter Northing and Easting coordinates'},
+  {id:'import',icon:'📥',hint:'Import from file (ENZ/XYZ/CSV)'},
+  {id:'polyline',icon:'〰️',hint:'Place points along polyline'},
+  {id:'object',icon:'📐',hint:'Snap points to entity'},
+  {id:'divide',icon:'÷',hint:'Divide entity into equal parts'},
+  {id:'measure',icon:'📏',hint:'Place points at measured intervals'},
+  {id:'intersect',icon:'✚',hint:'At intersection of two entities'},
+  {id:'align',icon:'⟺',hint:'Redistribute points along a line'},
+ ];
+ tb.innerHTML='<div id="_cptHdr" style="background:#0a1525;padding:6px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1a2535;cursor:move;border-radius:6px 6px 0 0">'
+  +'<span style="font-family:IBM Plex Mono,monospace;font-size:9.5px;font-weight:700;color:#1FA8D9">📌 Create Points</span>'
+  +'<button onclick="document.getElementById(\'_cptTB\').remove()" style="background:none;border:none;color:#667;font-size:14px;cursor:pointer;line-height:1">✕</button></div>'
+  +'<div style="padding:8px 10px">'
+  +'<div id="_cptHint" style="font-family:IBM Plex Mono,monospace;font-size:9px;color:#556;min-height:14px;margin-bottom:6px">Select a command from the point creation tools</div>'
+  +'<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">'
+  +methods.map(function(m){return'<button onclick="window._cptAct(\''+m.id+'\')" title="'+m.hint+'" style="width:30px;height:30px;font-size:16px;border:1px solid #1a2535;background:#0a1525;cursor:pointer;border-radius:3px" onmouseenter="document.getElementById(\'_cptHint\').textContent=\''+m.hint+'\'" onmouseleave="document.getElementById(\'_cptHint\').textContent=\'Select a command from the point creation tools\'">'+m.icon+'</button>';}).join('')+'</div>'
+  +'<div style="border-top:1px solid #1a2535;padding-top:8px">'
+  +'<div style="display:grid;grid-template-columns:auto auto 1fr;gap:5px;align-items:center;margin-bottom:6px">'
+  +'<span style="font-size:9px;color:#556;font-family:IBM Plex Mono,monospace">Pt#:</span>'
+  +'<input id="_cptPtN" type="number" value="'+((ST.surveyPts||[]).length+1)+'" style="width:55px;background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:2px 4px;outline:none" onkeydown="event.stopPropagation()">'
+  +'<span></span></div>'
+  +'<div style="display:grid;grid-template-columns:auto 1fr auto 1fr;gap:5px;align-items:center;margin-bottom:5px">'
+  +'<span style="font-size:9px;color:#556;font-family:IBM Plex Mono,monospace">N:</span><input id="_cptN" type="number" placeholder="Northing" style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:2px 4px;outline:none" onkeydown="event.stopPropagation()">'
+  +'<span style="font-size:9px;color:#556;font-family:IBM Plex Mono,monospace">E:</span><input id="_cptE" type="number" placeholder="Easting" style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:2px 4px;outline:none" onkeydown="event.stopPropagation()"></div>'
+  +'<div style="display:grid;grid-template-columns:auto 1fr 1fr auto;gap:5px;align-items:center">'
+  +'<span style="font-size:9px;color:#556;font-family:IBM Plex Mono,monospace">Z:</span><input id="_cptZ" type="number" placeholder="0" value="0" style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:2px 4px;outline:none" onkeydown="event.stopPropagation()">'
+  +'<input id="_cptDsc" placeholder="Desc" style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:2px 4px;outline:none" onkeydown="event.stopPropagation()">'
+  +'<button onclick="window._cptAdd()" style="padding:2px 8px;background:#0a1a2a;border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:9.5px;border-radius:3px">Add</button></div></div></div>';
+ document.body.appendChild(tb);
+ // Drag
+ var hdr=document.getElementById('_cptHdr'),drag={on:false,ox:0,oy:0};
+ if(hdr){hdr.addEventListener('mousedown',function(e){drag.on=true;var r=tb.getBoundingClientRect();drag.ox=e.clientX-r.left;drag.oy=e.clientY-r.top;});
+  document.addEventListener('mousemove',function(e){if(drag.on){tb.style.left=(e.clientX-drag.ox)+'px';tb.style.top=(e.clientY-drag.oy)+'px';}});
+  document.addEventListener('mouseup',function(){drag.on=false;});}
+ window._cptAct=function(m){
+  if(m==='click'){ST.tool='pointPlace';if(typeof setMsg==='function')setMsg('POINT — click canvas to place  |  ESC=cancel');}
+  else if(m==='import')window.openImportPoints();
+  else if(m==='coords'){var n=document.getElementById('_cptN');if(n)n.focus();}
+  else if(typeof toast!=='undefined')toast(m+' point creation — coming soon','warn');
+ };
+ window._cptAdd=function(){
+  var n=parseFloat(document.getElementById('_cptN')?.value);
+  var e=parseFloat(document.getElementById('_cptE')?.value);
+  if(isNaN(n)||isNaN(e)){if(typeof toast!=='undefined')toast('Enter Northing and Easting','warn');return;}
+  var z=parseFloat(document.getElementById('_cptZ')?.value)||0;
+  var d=document.getElementById('_cptDsc')?.value||'';
+  var pn=parseInt(document.getElementById('_cptPtN')?.value)||((ST.surveyPts||[]).length+1);
+  var ent={_id:++ST._eid,type:'point',x:e,y:n,z:z,ptnum:pn,desc:d,layer:ST.curLayer,selected:false};
+  ST.entities.push(ent);
+  if(!ST.surveyPts)ST.surveyPts=[];
+  ST.surveyPts.push({num:pn,x:e,y:n,z:z,desc:d});
+  var np=document.getElementById('_cptPtN');if(np)np.value=pn+1;
+  if(typeof invalidateSpatialIndex==='function')invalidateSpatialIndex();
+  if(typeof render==='function')render();
+  if(typeof toast!=='undefined')toast('Point #'+pn+' added  N:'+n.toFixed(3)+'  E:'+e.toFixed(3),'ok');
+ };
+};
+
+// ── Canvas point-click handler ────────────────────────────────────────
+(function(){
+ var cad=document.getElementById('cad');if(!cad)return;
+ cad.addEventListener('click',function(e){
+  if(ST.tool!=='pointPlace')return;
+  var r=cad.getBoundingClientRect();
+  var wp=typeof s2w==='function'?s2w(e.clientX-r.left,e.clientY-r.top):{x:e.clientX-r.left,y:e.clientY-r.top};
+  if(typeof snapPoint==='function')wp=snapPoint(e.clientX-r.left,e.clientY-r.top);
+  var pn=(ST.surveyPts||[]).length+1;
+  var ent={_id:++ST._eid,type:'point',x:wp.x,y:wp.y,z:0,ptnum:pn,desc:'',layer:ST.curLayer,selected:false};
+  ST.entities.push(ent);
+  if(!ST.surveyPts)ST.surveyPts=[];
+  ST.surveyPts.push({num:pn,x:wp.x,y:wp.y,z:0,desc:''});
+  if(typeof invalidateSpatialIndex==='function')invalidateSpatialIndex();
+  if(typeof render==='function')render();
+  var np=document.getElementById('_cptPtN');if(np)np.value=pn+1;
+ });
+})();
+
+// ── Point label rendering ─────────────────────────────────────────────
+if(typeof window._registerAfterRenderHook==='function'){
+ window._registerAfterRenderHook(function(){
+  if(window.ST3&&ST3.enabled)return;
+  var cad=document.getElementById('cad');if(!cad)return;
+  var ctx=cad.getContext('2d');if(!ctx)return;
+  var z=ST.zoom||1;
+  var pts=ST.entities.filter(function(e){return e.type==='point'&&(e.ptnum||e.z!==undefined)&&typeof w2s==='function';});
+  if(!pts.length)return;
+  ctx.save();
+  pts.forEach(function(e){
+   var grp=ST.pointGroups.find(function(g){return g.points&&g.points.some(function(p){return p.num===e.ptnum;});});
+   var psn=grp?grp.pointStyle:'Basic';
+   var ps=ST.pointStyles[psn]||ST.pointStyles['Basic']||{marker:'cross',color:'#1FA8D9',size:2.5};
+   var lsn=grp?grp.labelStyle:'Point#-Elevation-Description';
+   var ls=ST.labelStyles[lsn]||{fields:['ptnum','elev','desc']};
+   var sc=w2s(e.x,e.y);
+   var sz=Math.max((ps.size||2.5)*z*0.18,2);
+   var col=ps.color||'#1FA8D9';
+   ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1.2;
+   var m=ps.marker||'cross';
+   if(m==='dot'){ctx.beginPath();ctx.arc(sc.x,sc.y,sz/2,0,Math.PI*2);ctx.fill();}
+   else if(m==='plus'||m==='cross'){ctx.beginPath();ctx.moveTo(sc.x-sz,sc.y);ctx.lineTo(sc.x+sz,sc.y);ctx.moveTo(sc.x,sc.y-sz);ctx.lineTo(sc.x,sc.y+sz);ctx.stroke();}
+   else if(m==='x'){ctx.beginPath();ctx.moveTo(sc.x-sz,sc.y-sz);ctx.lineTo(sc.x+sz,sc.y+sz);ctx.moveTo(sc.x+sz,sc.y-sz);ctx.lineTo(sc.x-sz,sc.y+sz);ctx.stroke();}
+   else if(m==='circle'||m==='circle_cross'){ctx.beginPath();ctx.arc(sc.x,sc.y,sz,0,Math.PI*2);ctx.stroke();if(m==='circle_cross'){ctx.beginPath();ctx.moveTo(sc.x-sz,sc.y);ctx.lineTo(sc.x+sz,sc.y);ctx.moveTo(sc.x,sc.y-sz);ctx.lineTo(sc.x,sc.y+sz);ctx.stroke();}}
+   else if(m==='square'){ctx.strokeRect(sc.x-sz,sc.y-sz,sz*2,sz*2);}
+   else if(m==='tick'){ctx.beginPath();ctx.moveTo(sc.x,sc.y-sz);ctx.lineTo(sc.x,sc.y+sz);ctx.stroke();}
+   else if(m==='circle_plus'){ctx.beginPath();ctx.arc(sc.x,sc.y,sz,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(sc.x-sz,sc.y);ctx.lineTo(sc.x+sz,sc.y);ctx.moveTo(sc.x,sc.y-sz);ctx.lineTo(sc.x,sc.y+sz);ctx.stroke();}
+   if(z>0.04){
+    var fs=Math.max(7,Math.min(11,z*1.8));
+    ctx.font=fs+'px IBM Plex Mono,monospace';ctx.fillStyle=col;ctx.textAlign='left';
+    var lines=[];
+    ls.fields.forEach(function(f){
+     if(f==='ptnum'&&e.ptnum!==undefined)lines.push('N: '+e.ptnum);
+     else if(f==='north')lines.push('N: '+(e.y||0).toFixed(3));
+     else if(f==='east')lines.push('E: '+(e.x||0).toFixed(3));
+     else if(f==='elev'&&e.z!==undefined)lines.push('Z: '+(e.z||0).toFixed(3));
+     else if(f==='desc'&&e.desc)lines.push(e.desc);
+    });
+    lines.forEach(function(ln,i){ctx.fillText(ln,sc.x+sz+3,sc.y+(i*(fs+1)));});
+   }
+  });
+  ctx.restore();
+ });
+}
+
+// ── Context menu for Point Groups in Toolspace ─────────────────────────
+document.addEventListener('contextmenu',function(e){
+ var tgt=e.target.closest('[data-pg-id]');if(!tgt)return;
+ e.preventDefault();
+ var pgid=parseInt(tgt.getAttribute('data-pg-id'));
+ var pg=ST.pointGroups.find(function(g){return g.id===pgid;});if(!pg)return;
+ var old=document.getElementById('_pgCtx');if(old)old.remove();
+ var menu=document.createElement('div');menu.id='_pgCtx';
+ menu.style.cssText='position:fixed;left:'+e.clientX+'px;top:'+e.clientY+'px;background:#050F1C;border:1px solid #1FA8D9;border-radius:4px;z-index:20000;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,.8)';
+ var items=[
+  {label:'Properties...',fn:function(){window.openPointGroupProperties(pg);}},
+  {label:'New...',fn:function(){window.openPointGroupProperties(null);}},
+  {sep:true},
+  {label:'Show Changes...',fn:function(){if(typeof toast!=='undefined')toast('No changes since last update','ok');}},
+  {label:'Update',fn:function(){if(typeof render==='function')render();if(typeof toast!=='undefined')toast('Point group updated','ok');}},
+  {sep:true},
+  {label:'Export LandXML...',fn:function(){window._expLandXML(pg);}},
+  {label:'Refresh',fn:function(){if(typeof render==='function')render();}},
+ ];
+ menu.innerHTML=items.map(function(it,i){
+  if(it.sep)return'<div style="height:1px;background:#1a2535;margin:2px 0"></div>';
+  return'<div data-mni="'+i+'" style="padding:6px 14px;font-size:10px;color:#ccc;cursor:pointer;font-family:IBM Plex Mono,monospace" onmouseenter="this.style.background=\'rgba(31,168,217,.15)\'" onmouseleave="this.style.background=\'\'" onclick="window._pgMI('+i+')">'+it.label+'</div>';
+ }).join('');
+ document.body.appendChild(menu);
+ window._pgMI=function(i){menu.remove();var it=items[i];if(it&&it.fn)it.fn();};
+ document.addEventListener('click',function(){menu.remove();},{once:true});
+});
+
+// ── LandXML export ────────────────────────────────────────────────────
+window._expLandXML=function(pg){
+ var xml='<?xml version="1.0" encoding="UTF-8"?>\n<LandXML version="1.2" xmlns="http://www.landxml.org/schema/LandXML-1.2">\n  <CgPoints>\n';
+ pg.points.forEach(function(p){xml+='    <CgPoint name="'+p.num+'" desc="'+(p.desc||'')+'">'+(p.northing||p.y||0).toFixed(6)+' '+(p.easting||p.x||0).toFixed(6)+' '+(p.elevation||p.z||0).toFixed(6)+'</CgPoint>\n';});
+ xml+='  </CgPoints>\n</LandXML>';
+ var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([xml],{type:'application/xml'}));a.download=(pg.name||'points').replace(/[^a-zA-Z0-9_-]/g,'_')+'.xml';a.click();
+ if(typeof toast!=='undefined')toast('LandXML exported: '+pg.points.length+' points','ok');
+};
+
+// ── Wire commands ──────────────────────────────────────────────────────
+if(!window.CAD_COMMANDS)window.CAD_COMMANDS={};
+if(!window.CAD_ACTIONS)window.CAD_ACTIONS={};
+var _c3dCmds={'UN':'drawunits','UNITS':'drawunits','DDUNITS':'drawunits','EDITDRAWINGSETTINGS':'editdrawingsettings','DRAWINGSETTINGS':'editdrawingsettings','CREATEPOINTGROUP':'createpointgroup','POINTGROUP':'createpointgroup','PG':'createpointgroup','IMPORTPOINTS':'importpoints','IPTFROMFILE':'importpoints','CREATEPOINTS':'createpoints','CPTS':'createpoints','POINTSTYLE':'pointstyle','EDITPOINTSTYLE':'pointstyle','LABELSTYLE':'labelstyle','EDITLABELSTYLE':'labelstyle'};
+var _c3dActs={'drawunits':function(){window.openDrawingUnitsDialog();},'editdrawingsettings':function(){window.openEditDrawingSettings();},'createpointgroup':function(){window.openPointGroupProperties(null);},'importpoints':function(){window.openImportPoints();},'createpoints':function(){window.openCreatePointsToolbar();},'pointstyle':function(){window.openPointStyleEditor();},'labelstyle':function(){window.openLabelStyleComposer();}};
+Object.assign(window.CAD_COMMANDS,_c3dCmds);
+Object.assign(window.CAD_ACTIONS,_c3dActs);
+
+console.log('[Civil3D Features] Loaded: DrawingSettings✓ Units✓ PointGroups✓ PointStyle✓ LabelStyle✓ ACI✓ ImportPoints✓ CreatePoints✓ PointLabels✓');
+})();
+
+
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════
@@ -29359,6 +30106,214 @@ setTimeout(function(){
 .osnap-chk input{accent-color:var(--b);cursor:pointer}
 </style>
 
+
+<!-- ═══════════════════════════════════════════════════════════
+     RECOVERED: these modals were accidentally trapped inside
+     exportPDF()'s unterminated template literal (never real DOM
+     elements). Restored here so Toolspace / MAPEXPORT / Quick
+     Select actually work. -->
+<!-- CIVIL 3D TOOLSPACE PANEL -->
+<div id="c3dToolspace" style="display:none;position:fixed;left:0;top:60px;width:250px;bottom:50px;background:#1a2535;border-right:2px solid #0078d4;z-index:400;flex-direction:column;overflow:hidden;box-shadow:4px 0 20px rgba(0,0,0,.7)">
+  <div class="ts-header">
+    <span class="ts-title">Toolspace</span>
+    <span onclick="toggleToolspace()" style="cursor:pointer;color:var(--m);font-size:12px">✕</span>
+  </div>
+  <div class="ts-tabs">
+    <div class="ts-tab act" onclick="switchTsTab('prospector')" id="tst-prospector">Prospector</div>
+    <div class="ts-tab" onclick="switchTsTab('settings')" id="tst-settings">Settings</div>
+    <div class="ts-tab" onclick="switchTsTab('survey')" id="tst-survey" style="color:var(--ora)">Survey</div>
+    <div class="ts-tab" onclick="switchTsTab('toolbox')" id="tst-toolbox">Toolbox</div>
+  </div>
+  <!-- PROSPECTOR TAB -->
+  <div id="tscont-prospector" class="ts-content">
+    <div class="ts-heading">Active Drawing</div>
+    <div class="ts-node act" id="tsn-drawing" onclick="tsSelectNode('drawing')">
+      <span class="ts-node-icon">📄</span>
+      <span class="ts-node-lbl" id="tsDrawingName">Drawing1.dwg</span>
+    </div>
+    <div style="padding-left:14px">
+      <div class="ts-node" onclick="tsSelectNode('points')" id="tsn-points">
+        <span class="ts-node-icon">⊕</span>
+        <span class="ts-node-lbl">Points</span>
+        <span class="ts-node-count" id="tsCount-points">0</span>
+      </div>
+      <div class="ts-node" onclick="tsSelectNode('pointgroups')" id="tsn-pointgroups">
+        <span class="ts-node-icon">⊞</span>
+        <span class="ts-node-lbl">Point Groups</span>
+        <span class="ts-node-count" id="tsCount-pointgroups">0</span>
+      </div>
+      <div class="ts-node" onclick="tsSelectNode('surfaces')" id="tsn-surfaces">
+        <span class="ts-node-icon">△</span>
+        <span class="ts-node-lbl">Surfaces</span>
+        <span class="ts-node-count" id="tsCount-surfaces">0</span>
+      </div>
+      <div class="ts-node" onclick="tsSelectNode('alignments')" id="tsn-alignments">
+        <span class="ts-node-icon">⟶</span>
+        <span class="ts-node-lbl">Alignments</span>
+        <span class="ts-node-count" id="tsCount-alignments">0</span>
+      </div>
+      <div class="ts-node" onclick="tsSelectNode('featurelines')" id="tsn-featurelines">
+        <span class="ts-node-icon">⌒</span>
+        <span class="ts-node-lbl">Feature Lines</span>
+        <span class="ts-node-count" id="tsCount-featurelines">0</span>
+      </div>
+      <div class="ts-node" onclick="tsSelectNode('sites')" id="tsn-sites">
+        <span class="ts-node-icon">⬡</span>
+        <span class="ts-node-lbl">Sites</span>
+        <span class="ts-node-count" id="tsCount-sites">0</span>
+      </div>
+      <div class="ts-node" onclick="tsSelectNode('corridors')" id="tsn-corridors">
+        <span class="ts-node-icon">🛣</span>
+        <span class="ts-node-lbl">Corridors</span>
+        <span class="ts-node-count" id="tsCount-corridors">0</span>
+      </div>
+      <div class="ts-node" onclick="tsSelectNode('pipenetworks')" id="tsn-pipenetworks">
+        <span class="ts-node-icon">⬜</span>
+        <span class="ts-node-lbl">Pipe Networks</span>
+        <span class="ts-node-count" id="tsCount-pipenetworks">0</span>
+      </div>
+    </div>
+    <div class="ts-heading">Data Shortcuts</div>
+    <div class="ts-node ts-child" onclick="openMo('moCsvImport')">
+      <span class="ts-node-icon">📊</span><span class="ts-node-lbl">Import Survey CSV</span>
+    </div>
+    <div class="ts-node ts-child" onclick="typeof buildTIN==='function'&&buildTIN()">
+      <span class="ts-node-icon">△</span><span class="ts-node-lbl">Build TIN Surface</span>
+    </div>
+    <div class="ts-node ts-child" onclick="openMo('moContour')">
+      <span class="ts-node-icon">〰</span><span class="ts-node-lbl">Generate Contours</span>
+    </div>
+  </div>
+  <!-- SETTINGS TAB -->
+  <div id="tscont-settings" class="ts-content" style="display:none">
+    <div class="ts-heading">Drawing Settings</div>
+    <div class="ts-node" onclick="openMo('moSettings')"><span class="ts-node-icon">⚙</span><span class="ts-node-lbl">Drawing Settings</span></div>
+    <div class="ts-node" onclick="openMo('moSettings')"><span class="ts-node-icon">📐</span><span class="ts-node-lbl">Ambient Settings</span></div>
+    <div class="ts-heading">Object Layers</div>
+    <div id="tsLayerList" style="padding:4px 8px;font-size:10px;color:var(--m)">Loading layers…</div>
+  </div>
+  <!-- SURVEY TAB -->
+  <div id="tscont-survey" class="ts-content" style="display:none">
+    <div class="ts-heading">Survey Database</div>
+    <div class="ts-node" onclick="openMo('moCsvImport')"><span class="ts-node-icon">📥</span><span class="ts-node-lbl">Import Points (CSV)</span></div>
+    <div class="ts-node" onclick="showTab('survey');toggleRP()"><span class="ts-node-icon">📍</span><span class="ts-node-lbl">View Survey Points</span></div>
+    <div class="ts-heading">Figures</div>
+    <div class="ts-node" style="opacity:.5"><span class="ts-node-icon">📏</span><span class="ts-node-lbl">Traverse</span></div>
+  </div>
+  <!-- TOOLBOX TAB -->
+  <div id="tscont-toolbox" class="ts-content" style="display:none">
+    <div class="ts-heading">Reports Manager</div>
+    <div class="ts-node" onclick="typeof showStats==='function'&&showStats()"><span class="ts-node-icon">📊</span><span class="ts-node-lbl">Drawing Statistics</span></div>
+    <div class="ts-node" onclick="typeof openAttrTable==='function'&&openAttrTable()"><span class="ts-node-icon">📋</span><span class="ts-node-lbl">Attribute Table</span></div>
+    <div class="ts-heading">Miscellaneous Utilities</div>
+    <div class="ts-node" onclick="typeof purgeEntities==='function'&&purgeEntities()"><span class="ts-node-icon">🗑</span><span class="ts-node-lbl">Purge Objects</span></div>
+    <div class="ts-node" onclick="openMo('moProcessing')"><span class="ts-node-icon">⚙</span><span class="ts-node-lbl">Processing Toolbox</span></div>
+  </div>
+  <!-- Preview -->
+  <div class="ts-preview" id="tsPreview">
+    <span style="color:var(--m);font-size:9px">Select item to preview</span>
+  </div>
+</div>
+
+<!-- MAP EXPORT DIALOG — MAPEXPORT command -->
+<div class="mo" id="moMapExport">
+  <div class="modal xl" style="max-width:580px">
+    <div class="mh"><div class="mh-t"><span class="i">🗺</span>Export (MAPEXPORT)</div><span class="mc" onclick="closeMo('moMapExport')">✕</span></div>
+    <div class="mb">
+      <!-- Tabs -->
+      <div style="display:flex;border-bottom:1px solid var(--sep);margin-bottom:10px">
+        <div id="mxt-sel" onclick="switchMapExpTab('sel')" style="padding:5px 14px;font-size:10px;cursor:pointer;border-bottom:2px solid #1FA8D9;color:#1FA8D9;font-weight:700">Selection</div>
+        <div id="mxt-data" onclick="switchMapExpTab('data')" style="padding:5px 14px;font-size:10px;cursor:pointer;border-bottom:2px solid transparent;color:var(--m)">Data</div>
+        <div id="mxt-opt" onclick="switchMapExpTab('opt')" style="padding:5px 14px;font-size:10px;cursor:pointer;border-bottom:2px solid transparent;color:var(--m)">Options</div>
+      </div>
+      <!-- Selection tab -->
+      <div id="mxc-sel">
+        <div class="fsect">Object Type</div>
+        <div style="display:flex;gap:20px;margin-bottom:12px">
+          <label class="mapexp-radio"><input type="radio" name="mxObjType" value="point" checked> Point</label>
+          <label class="mapexp-radio"><input type="radio" name="mxObjType" value="line"> Line</label>
+          <label class="mapexp-radio"><input type="radio" name="mxObjType" value="polygon"> Polygon</label>
+          <label class="mapexp-radio"><input type="radio" name="mxObjType" value="text"> Text</label>
+        </div>
+        <div class="fsect">Select Objects to Export</div>
+        <div style="display:flex;gap:20px;margin-bottom:12px">
+          <label class="mapexp-radio"><input type="radio" name="mxSelMode" value="all" checked> Select all</label>
+          <label class="mapexp-radio"><input type="radio" name="mxSelMode" value="manual"> Select manually</label>
+        </div>
+        <div class="fsect">Filter Selection</div>
+        <div class="fr"><div class="fg"><label class="fl">Layers:</label><input class="fi" id="mxLayerFilter" value="*" placeholder="* = all layers"></div></div>
+        <div class="fr"><div class="fg"><label class="fl">Object Classes:</label><input class="fi" id="mxClassFilter" value="*" placeholder="* = all classes"></div></div>
+        <div class="fsect">Select Polygon Topology</div>
+        <div class="fr"><div class="fg"><label class="fl">Name:</label>
+          <select class="fs" id="mxTopology"><option value="">&lt;None&gt;</option><option value="boundary">Boundary</option><option value="region">Region</option></select>
+        </div></div>
+        <label class="fck"><input type="checkbox" id="mxGroupPoly"> Group complex polygons</label>
+      </div>
+      <!-- Data tab -->
+      <div id="mxc-data" style="display:none">
+        <div class="fsect">Output File</div>
+        <div class="fr"><div class="fg"><label class="fl">Format</label>
+          <select class="fs" id="mxFormat">
+            <option value="shp">ESRI Shapefile (.shp)</option>
+            <option value="geojson">GeoJSON (.geojson)</option>
+            <option value="kml">KML (.kml)</option>
+            <option value="dxf">DXF</option>
+            <option value="csv">CSV with coordinates</option>
+            <option value="dwg">DWG (via CloudConvert)</option>
+          </select>
+        </div></div>
+        <div class="fsect">Coordinate System</div>
+        <div class="fr"><div class="fg"><label class="fl">Current</label>
+          <select class="fs" id="mxCRS">
+            <option>Local / None</option><option>WGS84 (EPSG:4326)</option>
+            <option>UTM Zone 37N (EPSG:32637)</option><option>UTM Zone 38N (EPSG:32638)</option>
+            <option>UTM Zone 39N (EPSG:32639)</option><option>UAE National Grid</option>
+            <option>India Zone I (EPSG:24371)</option>
+          </select>
+        </div></div>
+      </div>
+      <!-- Options tab -->
+      <div id="mxc-opt" style="display:none">
+        <div class="fsect">Export Options</div>
+        <label class="fck"><input type="checkbox" checked> Include all visible layers</label>
+        <label class="fck"><input type="checkbox" checked> Preserve layer names</label>
+        <label class="fck"><input type="checkbox"> Include attributes/properties</label>
+        <label class="fck"><input type="checkbox"> Compress output (ZIP)</label>
+        <div class="fsect">Saved Profiles</div>
+        <div class="fr"><button class="btn s" onclick="toast('Load profile','ok')">Load…</button><button class="btn s" onclick="toast('Profile saved','ok')">Save…</button><span style="font-size:9px;color:var(--m);padding-left:8px">Current profile: (none)</span></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn s" onclick="closeMo('moMapExport')">Cancel</button>
+      <button class="btn" onclick="closeMo('moMapExport')">Help</button>
+      <button class="btn st" onclick="doMapExport()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK SELECT DIALOG -->
+<div class="mo" id="moQuickSelect">
+  <div class="modal" style="max-width:400px">
+    <div class="mh"><div class="mh-t"><span class="i">⬡</span>Quick Select</div><span class="mc" onclick="closeMo('moQuickSelect')">✕</span></div>
+    <div class="mb">
+      <div class="fr3">
+        <div class="fg"><label class="fl">Apply to</label><select class="fs"><option>Entire drawing</option><option>Current selection</option></select></div>
+        <div class="fg"><label class="fl">Object type</label><select class="fs" id="qsObjType"><option>Multiple</option><option>Line</option><option>Circle</option><option>Polyline</option><option>Text</option><option>Point</option></select></div>
+      </div>
+      <div class="fsect">Properties</div>
+      <div class="fr3">
+        <div class="fg"><label class="fl">Properties</label><select class="fs" id="qsProp"><option>Layer</option><option>Color</option><option>Linetype</option><option>Lineweight</option></select></div>
+        <div class="fg"><label class="fl">Operator</label><select class="fs"><option>= Equals</option><option>&lt;&gt; Not Equal</option><option>&gt; Greater than</option></select></div>
+        <div class="fg"><label class="fl">Value</label><input class="fi" id="qsValue" placeholder="Layer name…"></div>
+      </div>
+      <div class="fsect">How to Apply</div>
+      <label class="fck"><input type="radio" name="qsHow" checked> Include in new selection set</label>
+      <label class="fck"><input type="radio" name="qsHow"> Exclude from new selection set</label>
+      <label class="fck"><input type="checkbox" id="qsAppend"> Append to current selection set</label>
+    </div>
+    <div class="mf"><button class="btn s" onclick="closeMo('moQuickSelect')">Cancel</button><button class="btn st" onclick="doQuickSelect()">OK</button></div>
+  </div>
+</div>
 
 <!-- XREF (External Reference) Warning & Merge Modal -->
 <div class="mo" id="moXref">
