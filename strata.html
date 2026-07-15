@@ -438,7 +438,18 @@ input,select{font-family:inherit}
 .lm-search{width:100%;background:var(--bg2);border:1px solid var(--sep);color:var(--t);font-size:9px;padding:4px 8px;border-radius:3px;outline:none;font-family:'IBM Plex Mono',monospace;box-sizing:border-box}
 
 /* ── Civil 3D Toolspace ──────────────────────────────────────── */
-#c3dToolspace{position:fixed;left:0;top:58px;width:260px;background:#07111C;border-right:2px solid #0078d4;z-index:1200;display:none;flex-direction:column;overflow:hidden;box-shadow:4px 0 24px rgba(0,0,0,.85);bottom:30px;}
+/* Toolspace: a flex-sibling in the workspace row (like Civil 3D) */
+#c3dToolspace{
+  width:0; min-width:0; flex-shrink:0; overflow:hidden;
+  background:#07111C; border-right:1px solid #0078d4;
+  display:flex; flex-direction:column;
+  transition:width .25s ease, min-width .25s ease;
+  position:relative; z-index:1;
+}
+#c3dToolspace.ts-open{width:260px;min-width:260px;}
+#c3dToolspace.ts-mini{width:36px;min-width:36px;}
+.ts-resize-handle{position:absolute;right:0;top:0;bottom:0;width:4px;cursor:col-resize;z-index:10;background:transparent}
+.ts-resize-handle:hover{background:#0078d4;}
 .ts-header{padding:6px 10px;background:#0a1520;border-bottom:1px solid #0078d4;display:flex;align-items:center;justify-content:space-between}
 .ts-title{font-size:10px;font-weight:700;color:#1FA8D9;font-family:'IBM Plex Mono',monospace;letter-spacing:1px;text-transform:uppercase}
 .ts-tabs{display:flex;border-bottom:1px solid var(--sep)}
@@ -958,6 +969,209 @@ input,select{font-family:inherit}
     </div>
   </div>
 </div>
+
+<!-- CIVIL 3D TOOLSPACE PANEL -->
+<div id="c3dToolspace" style="">
+  <!-- Mini-mode: just show icons when collapsed -->
+  <div id="ts-mini-bar" style="display:none;flex-direction:column;align-items:center;padding:8px 4px;gap:8px;width:36px;box-sizing:border-box">
+    <button onclick="toggleToolspace()" title="Expand Toolspace" style="background:none;border:none;color:#1FA8D9;cursor:pointer;font-size:16px;padding:4px">⊞</button>
+    <button onclick="toggleToolspace();switchTsTab('prospector')" title="Prospector" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;padding:4px">📋</button>
+    <button onclick="toggleToolspace();switchTsTab('survey')" title="Survey" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;padding:4px">📍</button>
+    <button onclick="toggleToolspace();switchTsTab('settings')" title="Settings" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;padding:4px">⚙</button>
+    <button onclick="toggleToolspace();switchTsTab('toolbox')" title="Toolbox" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;padding:4px">🔧</button>
+  </div>
+  <!-- Full content -->
+  <div id="ts-full-content" style="display:flex;flex-direction:column;flex:1;overflow:hidden;min-width:0">
+    <!-- Header -->
+    <div class="ts-header" style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:#0a1a2a;border-bottom:1px solid #0078d4;flex-shrink:0">
+      <span class="ts-title" style="font-family:IBM Plex Mono,monospace;font-size:10px;font-weight:700;color:#1FA8D9;letter-spacing:.5px">TOOLSPACE</span>
+      <div style="display:flex;gap:4px;align-items:center">
+        <button onclick="window._tsMini()" title="Minimize" style="background:none;border:none;color:#556;cursor:pointer;font-size:13px;padding:2px 4px;line-height:1" title="Minimize to icon bar">◀</button>
+      </div>
+    </div>
+    <!-- Tabs -->
+    <div class="ts-tabs" style="display:flex;border-bottom:1px solid #1a2535;background:#050f1c;flex-shrink:0;overflow-x:auto">
+      <div class="ts-tab act" onclick="switchTsTab('prospector')" id="tst-prospector" style="padding:5px 10px;font-size:9px;cursor:pointer;font-family:IBM Plex Mono,monospace;border-bottom:2px solid #0078d4;color:#1FA8D9;white-space:nowrap">PROSPECTOR</div>
+      <div class="ts-tab" onclick="switchTsTab('settings')" id="tst-settings" style="padding:5px 10px;font-size:9px;cursor:pointer;font-family:IBM Plex Mono,monospace;border-bottom:2px solid transparent;color:#778;white-space:nowrap">SETTINGS</div>
+      <div class="ts-tab" onclick="switchTsTab('survey')" id="tst-survey" style="padding:5px 10px;font-size:9px;cursor:pointer;font-family:IBM Plex Mono,monospace;border-bottom:2px solid transparent;color:#778;white-space:nowrap">SURVEY</div>
+      <div class="ts-tab" onclick="switchTsTab('toolbox')" id="tst-toolbox" style="padding:5px 10px;font-size:9px;cursor:pointer;font-family:IBM Plex Mono,monospace;border-bottom:2px solid transparent;color:#778;white-space:nowrap">TOOLBOX</div>
+    </div>
+  <!-- PROSPECTOR TAB — fully functional Civil 3D-style tree -->
+  <div id="tscont-prospector" class="ts-content" style="overflow-y:auto;flex:1">
+    <div class="ts-heading" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Active Drawing</span>
+      <select id="tsViewSelect" style="background:#0a1525;border:none;color:#aaa;font-size:8.5px;outline:none;cursor:pointer" onchange="">
+        <option>Active Drawing View</option>
+      </select>
+    </div>
+    <!-- Drawing root node -->
+    <div class="ts-node act" id="tsn-drawing" onclick="tsSelectNode('drawing');window._tsToggle('tsgrp-drawing')">
+      <span style="font-size:9px;color:#aaa;margin-right:2px" id="tsgrp-drawing-arrow">▼</span>
+      <span class="ts-node-icon">📁</span>
+      <span class="ts-node-lbl" id="tsDrawingName">Drawing (0 ents)</span>
+    </div>
+    <div id="tsgrp-drawing" style="padding-left:16px">
+      <!-- Points -->
+      <div class="ts-node" onclick="tsSelectNode('points');window._tsToggle('tsgrp-points')" id="tsn-points"
+           oncontextmenu="event.preventDefault();window._tsCtx('points',event)">
+        <span style="font-size:9px;color:#aaa;margin-right:2px" id="tsgrp-points-arrow">▶</span>
+        <span class="ts-node-icon" style="color:#4eff91">⊕</span>
+        <span class="ts-node-lbl">Points</span>
+        <span class="ts-node-count" id="tsCount-points">0</span>
+      </div>
+      <div id="tsgrp-points" style="padding-left:16px;display:none">
+        <div class="ts-node ts-child" style="font-size:9px;color:#556;font-family:IBM Plex Mono,monospace;padding:3px 6px">
+          <span class="ts-node-icon">—</span><span>No points loaded</span>
+        </div>
+      </div>
+      <!-- Point Groups -->
+      <div class="ts-node" onclick="tsSelectNode('pointgroups');window._tsToggle('tsgrp-pg')" id="tsn-pointgroups"
+           oncontextmenu="event.preventDefault();window._tsCtx('pointgroups',event)">
+        <span style="font-size:9px;color:#aaa;margin-right:2px" id="tsgrp-pg-arrow">▶</span>
+        <span class="ts-node-icon" style="color:#1FA8D9">⊞</span>
+        <span class="ts-node-lbl">Point Groups</span>
+        <span class="ts-node-count" id="tsCount-pointgroups">0</span>
+      </div>
+      <div id="tsgrp-pg" style="padding-left:16px;display:none" id="tsgrp-pg-list">
+        <div class="ts-node ts-child" style="font-size:9px;color:#556;font-family:IBM Plex Mono,monospace;padding:3px 6px">
+          <span>No groups — right-click to create</span>
+        </div>
+      </div>
+      <!-- Surfaces -->
+      <div class="ts-node" onclick="tsSelectNode('surfaces');window._tsToggle('tsgrp-surfaces')" id="tsn-surfaces"
+           oncontextmenu="event.preventDefault();window._tsCtx('surfaces',event)">
+        <span style="font-size:9px;color:#aaa;margin-right:2px" id="tsgrp-surfaces-arrow">▶</span>
+        <span class="ts-node-icon" style="color:#FFAA00">△</span>
+        <span class="ts-node-lbl">Surfaces</span>
+        <span class="ts-node-count" id="tsCount-surfaces">0</span>
+      </div>
+      <div id="tsgrp-surfaces" style="padding-left:16px;display:none">
+        <div class="ts-node ts-child" style="font-size:9px;color:#556;padding:3px 6px">
+          <span>No surfaces — import CSV + Build TIN</span>
+        </div>
+      </div>
+      <!-- Alignments -->
+      <div class="ts-node" onclick="tsSelectNode('alignments')" id="tsn-alignments"
+           oncontextmenu="event.preventDefault();window._tsCtx('alignments',event)">
+        <span style="font-size:9px;color:#aaa;margin-right:2px">▶</span>
+        <span class="ts-node-icon" style="color:#FF8800">⟶</span>
+        <span class="ts-node-lbl">Alignments</span>
+        <span class="ts-node-count" id="tsCount-alignments">0</span>
+      </div>
+      <!-- Feature Lines -->
+      <div class="ts-node" onclick="tsSelectNode('featurelines')" id="tsn-featurelines">
+        <span style="font-size:9px;color:#aaa;margin-right:2px">▶</span>
+        <span class="ts-node-icon" style="color:#FF8800">⌒</span>
+        <span class="ts-node-lbl">Feature Lines</span>
+        <span class="ts-node-count" id="tsCount-featurelines">0</span>
+      </div>
+      <!-- Sites -->
+      <div class="ts-node" onclick="tsSelectNode('sites')" id="tsn-sites">
+        <span style="font-size:9px;color:#aaa;margin-right:2px">▶</span>
+        <span class="ts-node-icon" style="color:#AA88FF">⬡</span>
+        <span class="ts-node-lbl">Sites</span>
+        <span class="ts-node-count" id="tsCount-sites">0</span>
+      </div>
+      <!-- Corridors -->
+      <div class="ts-node" onclick="tsSelectNode('corridors')" id="tsn-corridors">
+        <span style="font-size:9px;color:#aaa;margin-right:2px">▶</span>
+        <span class="ts-node-icon" style="color:#FF6644">🛣</span>
+        <span class="ts-node-lbl">Corridors</span>
+        <span class="ts-node-count" id="tsCount-corridors">0</span>
+      </div>
+      <!-- Pipe Networks -->
+      <div class="ts-node" onclick="tsSelectNode('pipenetworks')" id="tsn-pipenetworks">
+        <span style="font-size:9px;color:#aaa;margin-right:2px">▶</span>
+        <span class="ts-node-icon" style="color:#44AAFF">⬜</span>
+        <span class="ts-node-lbl">Pipe Networks</span>
+        <span class="ts-node-count" id="tsCount-pipenetworks">0</span>
+      </div>
+    </div>
+    <!-- Data Shortcuts -->
+    <div class="ts-heading">Data Shortcuts</div>
+    <div class="ts-node ts-child" onclick="window.openImportPoints&&window.openImportPoints()"
+         title="Import survey points from ENZ/XYZ/NEZ CSV file">
+      <span class="ts-node-icon" style="color:#4eff91">📥</span>
+      <span class="ts-node-lbl">Import Survey CSV</span>
+    </div>
+    <div class="ts-node ts-child" onclick="typeof buildTIN==='function'&&buildTIN()"
+         title="Build TIN surface from survey points">
+      <span class="ts-node-icon" style="color:#FFAA00">△</span>
+      <span class="ts-node-lbl">Build TIN Surface</span>
+    </div>
+    <div class="ts-node ts-child" onclick="typeof openMo==='function'&&openMo('moContour')"
+         title="Generate contour lines from TIN surface">
+      <span class="ts-node-icon" style="color:#1FA8D9">〰</span>
+      <span class="ts-node-lbl">Generate Contours</span>
+    </div>
+  </div>
+  <!-- SETTINGS TAB -->
+  <div id="tscont-settings" class="ts-content" style="display:none;overflow-y:auto;flex:1">
+    <div class="ts-heading">Drawing Settings</div>
+    <div class="ts-node" onclick="window.openEditDrawingSettings&&window.openEditDrawingSettings()">
+      <span class="ts-node-icon">⚙</span><span class="ts-node-lbl">Drawing Settings (EDITDRAWINGSETTINGS)</span>
+    </div>
+    <div class="ts-node" onclick="window.openDrawingUnitsDialog&&window.openDrawingUnitsDialog()">
+      <span class="ts-node-icon">📐</span><span class="ts-node-lbl">Drawing Units (UN)</span>
+    </div>
+    <div class="ts-node" onclick="typeof openMo!=='undefined'&&openMo('moSettings')">
+      <span class="ts-node-icon">🎛</span><span class="ts-node-lbl">Ambient Settings</span>
+    </div>
+    <div class="ts-heading">Object Layers</div>
+    <div id="tsLayerList" style="padding:4px 6px;font-size:10px;color:var(--m)">Loading layers…</div>
+    <div class="ts-heading" style="margin-top:8px">CRS / Coordinate System</div>
+    <div class="ts-node" onclick="window.openEditDrawingSettings&&window.openEditDrawingSettings()">
+      <span class="ts-node-icon" style="color:#4eff91">🌐</span>
+      <span class="ts-node-lbl" id="tsCRSLabel">No Datum, No Projection</span>
+    </div>
+  </div>
+  <!-- SURVEY TAB -->
+  <div id="tscont-survey" class="ts-content" style="display:none;overflow-y:auto;flex:1">
+    <div class="ts-heading">Survey Database</div>
+    <div class="ts-node" onclick="window.openImportPoints&&window.openImportPoints()">
+      <span class="ts-node-icon" style="color:#4eff91">📥</span><span class="ts-node-lbl">Import Points (ENZ/XYZ/NEZ)</span>
+    </div>
+    <div class="ts-node" onclick="window.openCreatePointsToolbar&&window.openCreatePointsToolbar()">
+      <span class="ts-node-icon" style="color:#1FA8D9">📍</span><span class="ts-node-lbl">Create Points Toolbar</span>
+    </div>
+    <div class="ts-node" onclick="typeof showTab!=='undefined'&&showTab('survey')">
+      <span class="ts-node-icon">📋</span><span class="ts-node-lbl">View Survey Points Table</span>
+    </div>
+    <div class="ts-heading">Point Styles</div>
+    <div class="ts-node" onclick="window.openPointStyleEditor&&window.openPointStyleEditor('Basic')">
+      <span class="ts-node-icon" style="color:#1FA8D9">🎯</span><span class="ts-node-lbl">Edit Point Style...</span>
+    </div>
+    <div class="ts-node" onclick="window.openLabelStyleComposer&&window.openLabelStyleComposer('Northing and Easting')">
+      <span class="ts-node-icon" style="color:#1FA8D9">🏷</span><span class="ts-node-lbl">Edit Label Style...</span>
+    </div>
+    <div class="ts-heading">Surface Tools</div>
+    <div class="ts-node" onclick="typeof buildTIN!=='undefined'&&buildTIN()">
+      <span class="ts-node-icon" style="color:#FFAA00">△</span><span class="ts-node-lbl">Build TIN Surface</span>
+    </div>
+    <div class="ts-node" onclick="typeof openMo!=='undefined'&&openMo('moContour')">
+      <span class="ts-node-icon" style="color:#1FA8D9">〰</span><span class="ts-node-lbl">Generate Contours</span>
+    </div>
+    <div class="ts-heading">Export</div>
+    <div class="ts-node" onclick="window._expLandXML&&ST.pointGroups&&ST.pointGroups.length?window._expLandXML(ST.pointGroups[0]):alert('No point groups to export')">
+      <span class="ts-node-icon" style="color:#4eff91">📤</span><span class="ts-node-lbl">Export LandXML...</span>
+    </div>
+  </div>
+  <!-- TOOLBOX TAB -->
+  <div id="tscont-toolbox" class="ts-content" style="display:none">
+    <div class="ts-heading">Reports Manager</div>
+    <div class="ts-node" onclick="typeof showStats==='function'&&showStats()"><span class="ts-node-icon">📊</span><span class="ts-node-lbl">Drawing Statistics</span></div>
+    <div class="ts-node" onclick="typeof openAttrTable==='function'&&openAttrTable()"><span class="ts-node-icon">📋</span><span class="ts-node-lbl">Attribute Table</span></div>
+    <div class="ts-heading">Miscellaneous Utilities</div>
+    <div class="ts-node" onclick="typeof purgeEntities==='function'&&purgeEntities()"><span class="ts-node-icon">🗑</span><span class="ts-node-lbl">Purge Objects</span></div>
+    <div class="ts-node" onclick="openMo('moProcessing')"><span class="ts-node-icon">⚙</span><span class="ts-node-lbl">Processing Toolbox</span></div>
+  </div>
+  <!-- Preview -->
+  <div class="ts-preview" id="tsPreview" style="padding:6px 8px;font-size:9px;color:var(--m);background:#050f1c;border-top:1px solid #1a2535;flex-shrink:0;min-height:32px">
+    <span>Select item to preview</span>
+  </div>
+  </div><!-- end ts-full-content -->
+  <div class="ts-resize-handle" id="tsResizeHandle" title="Drag to resize"></div>
+</div><!-- end c3dToolspace outer - moved from here, now part of workspace flex row -->
 
 <!-- VIEWPORT -->
 <div class="vport" id="vp" ondragover="e=>{e.preventDefault();document.getElementById('dz').style.display='flex'}" ondragleave="document.getElementById('dz').style.display='none'" ondrop="vpDrop(event)">
@@ -13906,13 +14120,148 @@ window.applyLmColor = function() {
 window.toggleToolspace = function() {
   var ts = document.getElementById('c3dToolspace');
   if (!ts) return;
-  var vis = ts.style.display !== 'none' && ts.style.display !== '';
-  ts.style.display = vis ? 'none' : 'flex';
-  if (!vis) {
-    updateToolspaceCounts();
+  var isOpen = ts.classList.contains('ts-open');
+  if (isOpen) {
+    ts.classList.remove('ts-open');
+    ts.classList.add('ts-mini');
+  } else {
+    ts.classList.add('ts-open');
+    ts.classList.remove('ts-mini');
+    updateToolspaceCounts && updateToolspaceCounts();
     window._tsRefreshPointGroups && window._tsRefreshPointGroups();
   }
+  // resize canvas
+  var cad = document.getElementById('cad');
+  if (cad && typeof resizeCanvas === 'function') setTimeout(resizeCanvas, 280);
+  else if (typeof window.render === 'function') setTimeout(render, 280);
 };
+
+// Minimize to icon bar
+window._tsMini = function() {
+  var ts = document.getElementById('c3dToolspace');
+  var mini = document.getElementById('ts-mini-bar');
+  var full = document.getElementById('ts-full-content');
+  if (!ts) return;
+  ts.classList.remove('ts-open');
+  ts.classList.add('ts-mini');
+  if (mini) mini.style.display = 'flex';
+  if (full) full.style.display = 'none';
+  var cad = document.getElementById('cad');
+  if (typeof resizeCanvas === 'function') setTimeout(resizeCanvas, 280);
+  else if (typeof render === 'function') setTimeout(render, 280);
+};
+
+// Override toggleToolspace to also handle mini/full switch
+window.toggleToolspace = function() {
+  var ts = document.getElementById('c3dToolspace');
+  var mini = document.getElementById('ts-mini-bar');
+  var full = document.getElementById('ts-full-content');
+  if (!ts) return;
+  var isMini = ts.classList.contains('ts-mini');
+  var isOpen = ts.classList.contains('ts-open');
+  if (isOpen) {
+    // Close → mini
+    window._tsMini();
+  } else if (isMini) {
+    // Mini → open
+    ts.classList.add('ts-open');
+    ts.classList.remove('ts-mini');
+    if (mini) mini.style.display = 'none';
+    if (full) full.style.display = 'flex';
+    updateToolspaceCounts && updateToolspaceCounts();
+    window._tsRefreshPointGroups && window._tsRefreshPointGroups();
+    if (typeof resizeCanvas === 'function') setTimeout(resizeCanvas, 280);
+    else if (typeof render === 'function') setTimeout(render, 280);
+  } else {
+    // Closed → open
+    ts.classList.add('ts-open');
+    ts.classList.remove('ts-mini');
+    if (mini) mini.style.display = 'none';
+    if (full) full.style.display = 'flex';
+    updateToolspaceCounts && updateToolspaceCounts();
+    window._tsRefreshPointGroups && window._tsRefreshPointGroups();
+    if (typeof resizeCanvas === 'function') setTimeout(resizeCanvas, 280);
+    else if (typeof render === 'function') setTimeout(render, 280);
+  }
+};
+
+// Resize drag
+(function(){
+  var handle = document.getElementById('tsResizeHandle');
+  var ts = document.getElementById('c3dToolspace');
+  if (!handle || !ts) return;
+  var dragging = false, startX = 0, startW = 0;
+  handle.addEventListener('mousedown', function(e) {
+    dragging = true; startX = e.clientX; startW = ts.offsetWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    var newW = Math.max(180, Math.min(500, startW + (e.clientX - startX)));
+    ts.style.width = newW + 'px';
+    ts.style.minWidth = newW + 'px';
+  });
+  document.addEventListener('mouseup', function() {
+    if (!dragging) return;
+    dragging = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    if (typeof resizeCanvas === 'function') resizeCanvas();
+    else if (typeof render === 'function') render();
+  });
+})();
+
+// Override switchTsTab to handle new structure
+var _origSwitchTsTab = window.switchTsTab;
+window.switchTsTab = function(name) {
+  // Tab buttons
+  ['prospector','settings','survey','toolbox'].forEach(function(t) {
+    var tab = document.getElementById('tst-'+t);
+    if (!tab) return;
+    var isAct = t === name;
+    tab.style.borderBottomColor = isAct ? '#0078d4' : 'transparent';
+    tab.style.color = isAct ? '#1FA8D9' : '#778';
+    // Tab content
+    var cont = document.getElementById('tscont-'+t);
+    if (cont) cont.style.display = t === name ? '' : 'none';
+  });
+
+  if (name === 'settings') {
+    var llist = document.getElementById('tsLayerList');
+    if (llist) {
+      llist.innerHTML = (ST.layers || []).map(function(l) {
+        return '<div style="display:flex;align-items:center;gap:5px;padding:4px 6px;cursor:pointer;font-size:9.5px;border-radius:3px" onclick="setCurrentLayer('+l.id+')" onmouseenter="this.style.background=\'rgba(31,168,217,.08)\'" onmouseleave="this.style.background=\'\'">'
+         +'<span style="width:9px;height:9px;border-radius:50%;background:'+l.color+';flex-shrink:0;display:inline-block"></span>'
+         +'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ccc">'+l.name+'</span>'
+         +'<span style="color:#556;font-size:8px">'+ST.entities.filter(function(e){return e.layer===l.id;}).length+'</span>'
+         +'</div>';
+      }).join('');
+    }
+    var crsEl = document.getElementById('tsCRSLabel');
+    if (crsEl) crsEl.textContent = ST.crsName || ST.crs || 'No Datum, No Projection';
+  }
+  if (name === 'prospector' || name === 'survey') {
+    typeof updateToolspaceCounts === 'function' && updateToolspaceCounts();
+  }
+};
+
+// Initial state: open on load
+(function(){
+  var ts = document.getElementById('c3dToolspace');
+  var mini = document.getElementById('ts-mini-bar');
+  var full = document.getElementById('ts-full-content');
+  if (ts) {
+    ts.classList.add('ts-open');
+    if (mini) mini.style.display = 'none';
+    if (full) full.style.display = 'flex';
+    setTimeout(function(){
+      updateToolspaceCounts && updateToolspaceCounts();
+      window._tsRefreshPointGroups && window._tsRefreshPointGroups();
+    }, 1000);
+  }
+})();
 
 // Toggle expand/collapse of a tree group
 window._tsToggle = function(id) {
@@ -30233,192 +30582,7 @@ console.log('[Civil3D Features] Loaded: DrawingSettings✓ Units✓ PointGroups�
      exportPDF()'s unterminated template literal (never real DOM
      elements). Restored here so Toolspace / MAPEXPORT / Quick
      Select actually work. -->
-<!-- CIVIL 3D TOOLSPACE PANEL -->
-<div id="c3dToolspace" style="display:none;position:fixed;left:0;top:58px;width:260px;bottom:30px;background:#07111C;border-right:2px solid #0078d4;z-index:1200;flex-direction:column;overflow:hidden;box-shadow:4px 0 24px rgba(0,0,0,.85)">
-  <div class="ts-header">
-    <span class="ts-title">Toolspace</span>
-    <span onclick="toggleToolspace()" style="cursor:pointer;color:var(--m);font-size:12px">✕</span>
-  </div>
-  <div class="ts-tabs">
-    <div class="ts-tab act" onclick="switchTsTab('prospector')" id="tst-prospector">Prospector</div>
-    <div class="ts-tab" onclick="switchTsTab('settings')" id="tst-settings">Settings</div>
-    <div class="ts-tab" onclick="switchTsTab('survey')" id="tst-survey" style="color:var(--ora)">Survey</div>
-    <div class="ts-tab" onclick="switchTsTab('toolbox')" id="tst-toolbox">Toolbox</div>
-  </div>
-  <!-- PROSPECTOR TAB — fully functional Civil 3D-style tree -->
-  <div id="tscont-prospector" class="ts-content" style="overflow-y:auto;flex:1">
-    <div class="ts-heading" style="display:flex;align-items:center;justify-content:space-between">
-      <span>Active Drawing</span>
-      <select id="tsViewSelect" style="background:#0a1525;border:none;color:#aaa;font-size:8.5px;outline:none;cursor:pointer" onchange="">
-        <option>Active Drawing View</option>
-      </select>
-    </div>
-    <!-- Drawing root node -->
-    <div class="ts-node act" id="tsn-drawing" onclick="tsSelectNode('drawing');window._tsToggle('tsgrp-drawing')">
-      <span style="font-size:9px;color:#aaa;margin-right:2px" id="tsgrp-drawing-arrow">▼</span>
-      <span class="ts-node-icon">📁</span>
-      <span class="ts-node-lbl" id="tsDrawingName">Drawing (0 ents)</span>
-    </div>
-    <div id="tsgrp-drawing" style="padding-left:16px">
-      <!-- Points -->
-      <div class="ts-node" onclick="tsSelectNode('points');window._tsToggle('tsgrp-points')" id="tsn-points"
-           oncontextmenu="event.preventDefault();window._tsCtx('points',event)">
-        <span style="font-size:9px;color:#aaa;margin-right:2px" id="tsgrp-points-arrow">▶</span>
-        <span class="ts-node-icon" style="color:#4eff91">⊕</span>
-        <span class="ts-node-lbl">Points</span>
-        <span class="ts-node-count" id="tsCount-points">0</span>
-      </div>
-      <div id="tsgrp-points" style="padding-left:16px;display:none">
-        <div class="ts-node ts-child" style="font-size:9px;color:#556;font-family:IBM Plex Mono,monospace;padding:3px 6px">
-          <span class="ts-node-icon">—</span><span>No points loaded</span>
-        </div>
-      </div>
-      <!-- Point Groups -->
-      <div class="ts-node" onclick="tsSelectNode('pointgroups');window._tsToggle('tsgrp-pg')" id="tsn-pointgroups"
-           oncontextmenu="event.preventDefault();window._tsCtx('pointgroups',event)">
-        <span style="font-size:9px;color:#aaa;margin-right:2px" id="tsgrp-pg-arrow">▶</span>
-        <span class="ts-node-icon" style="color:#1FA8D9">⊞</span>
-        <span class="ts-node-lbl">Point Groups</span>
-        <span class="ts-node-count" id="tsCount-pointgroups">0</span>
-      </div>
-      <div id="tsgrp-pg" style="padding-left:16px;display:none" id="tsgrp-pg-list">
-        <div class="ts-node ts-child" style="font-size:9px;color:#556;font-family:IBM Plex Mono,monospace;padding:3px 6px">
-          <span>No groups — right-click to create</span>
-        </div>
-      </div>
-      <!-- Surfaces -->
-      <div class="ts-node" onclick="tsSelectNode('surfaces');window._tsToggle('tsgrp-surfaces')" id="tsn-surfaces"
-           oncontextmenu="event.preventDefault();window._tsCtx('surfaces',event)">
-        <span style="font-size:9px;color:#aaa;margin-right:2px" id="tsgrp-surfaces-arrow">▶</span>
-        <span class="ts-node-icon" style="color:#FFAA00">△</span>
-        <span class="ts-node-lbl">Surfaces</span>
-        <span class="ts-node-count" id="tsCount-surfaces">0</span>
-      </div>
-      <div id="tsgrp-surfaces" style="padding-left:16px;display:none">
-        <div class="ts-node ts-child" style="font-size:9px;color:#556;padding:3px 6px">
-          <span>No surfaces — import CSV + Build TIN</span>
-        </div>
-      </div>
-      <!-- Alignments -->
-      <div class="ts-node" onclick="tsSelectNode('alignments')" id="tsn-alignments"
-           oncontextmenu="event.preventDefault();window._tsCtx('alignments',event)">
-        <span style="font-size:9px;color:#aaa;margin-right:2px">▶</span>
-        <span class="ts-node-icon" style="color:#FF8800">⟶</span>
-        <span class="ts-node-lbl">Alignments</span>
-        <span class="ts-node-count" id="tsCount-alignments">0</span>
-      </div>
-      <!-- Feature Lines -->
-      <div class="ts-node" onclick="tsSelectNode('featurelines')" id="tsn-featurelines">
-        <span style="font-size:9px;color:#aaa;margin-right:2px">▶</span>
-        <span class="ts-node-icon" style="color:#FF8800">⌒</span>
-        <span class="ts-node-lbl">Feature Lines</span>
-        <span class="ts-node-count" id="tsCount-featurelines">0</span>
-      </div>
-      <!-- Sites -->
-      <div class="ts-node" onclick="tsSelectNode('sites')" id="tsn-sites">
-        <span style="font-size:9px;color:#aaa;margin-right:2px">▶</span>
-        <span class="ts-node-icon" style="color:#AA88FF">⬡</span>
-        <span class="ts-node-lbl">Sites</span>
-        <span class="ts-node-count" id="tsCount-sites">0</span>
-      </div>
-      <!-- Corridors -->
-      <div class="ts-node" onclick="tsSelectNode('corridors')" id="tsn-corridors">
-        <span style="font-size:9px;color:#aaa;margin-right:2px">▶</span>
-        <span class="ts-node-icon" style="color:#FF6644">🛣</span>
-        <span class="ts-node-lbl">Corridors</span>
-        <span class="ts-node-count" id="tsCount-corridors">0</span>
-      </div>
-      <!-- Pipe Networks -->
-      <div class="ts-node" onclick="tsSelectNode('pipenetworks')" id="tsn-pipenetworks">
-        <span style="font-size:9px;color:#aaa;margin-right:2px">▶</span>
-        <span class="ts-node-icon" style="color:#44AAFF">⬜</span>
-        <span class="ts-node-lbl">Pipe Networks</span>
-        <span class="ts-node-count" id="tsCount-pipenetworks">0</span>
-      </div>
-    </div>
-    <!-- Data Shortcuts -->
-    <div class="ts-heading">Data Shortcuts</div>
-    <div class="ts-node ts-child" onclick="window.openImportPoints&&window.openImportPoints()"
-         title="Import survey points from ENZ/XYZ/NEZ CSV file">
-      <span class="ts-node-icon" style="color:#4eff91">📥</span>
-      <span class="ts-node-lbl">Import Survey CSV</span>
-    </div>
-    <div class="ts-node ts-child" onclick="typeof buildTIN==='function'&&buildTIN()"
-         title="Build TIN surface from survey points">
-      <span class="ts-node-icon" style="color:#FFAA00">△</span>
-      <span class="ts-node-lbl">Build TIN Surface</span>
-    </div>
-    <div class="ts-node ts-child" onclick="typeof openMo==='function'&&openMo('moContour')"
-         title="Generate contour lines from TIN surface">
-      <span class="ts-node-icon" style="color:#1FA8D9">〰</span>
-      <span class="ts-node-lbl">Generate Contours</span>
-    </div>
-  </div>
-  <!-- SETTINGS TAB -->
-  <div id="tscont-settings" class="ts-content" style="display:none;overflow-y:auto;flex:1">
-    <div class="ts-heading">Drawing Settings</div>
-    <div class="ts-node" onclick="window.openEditDrawingSettings&&window.openEditDrawingSettings()">
-      <span class="ts-node-icon">⚙</span><span class="ts-node-lbl">Drawing Settings (EDITDRAWINGSETTINGS)</span>
-    </div>
-    <div class="ts-node" onclick="window.openDrawingUnitsDialog&&window.openDrawingUnitsDialog()">
-      <span class="ts-node-icon">📐</span><span class="ts-node-lbl">Drawing Units (UN)</span>
-    </div>
-    <div class="ts-node" onclick="typeof openMo!=='undefined'&&openMo('moSettings')">
-      <span class="ts-node-icon">🎛</span><span class="ts-node-lbl">Ambient Settings</span>
-    </div>
-    <div class="ts-heading">Object Layers</div>
-    <div id="tsLayerList" style="padding:4px 6px;font-size:10px;color:var(--m)">Loading layers…</div>
-    <div class="ts-heading" style="margin-top:8px">CRS / Coordinate System</div>
-    <div class="ts-node" onclick="window.openEditDrawingSettings&&window.openEditDrawingSettings()">
-      <span class="ts-node-icon" style="color:#4eff91">🌐</span>
-      <span class="ts-node-lbl" id="tsCRSLabel">No Datum, No Projection</span>
-    </div>
-  </div>
-  <!-- SURVEY TAB -->
-  <div id="tscont-survey" class="ts-content" style="display:none;overflow-y:auto;flex:1">
-    <div class="ts-heading">Survey Database</div>
-    <div class="ts-node" onclick="window.openImportPoints&&window.openImportPoints()">
-      <span class="ts-node-icon" style="color:#4eff91">📥</span><span class="ts-node-lbl">Import Points (ENZ/XYZ/NEZ)</span>
-    </div>
-    <div class="ts-node" onclick="window.openCreatePointsToolbar&&window.openCreatePointsToolbar()">
-      <span class="ts-node-icon" style="color:#1FA8D9">📍</span><span class="ts-node-lbl">Create Points Toolbar</span>
-    </div>
-    <div class="ts-node" onclick="typeof showTab!=='undefined'&&showTab('survey')">
-      <span class="ts-node-icon">📋</span><span class="ts-node-lbl">View Survey Points Table</span>
-    </div>
-    <div class="ts-heading">Point Styles</div>
-    <div class="ts-node" onclick="window.openPointStyleEditor&&window.openPointStyleEditor('Basic')">
-      <span class="ts-node-icon" style="color:#1FA8D9">🎯</span><span class="ts-node-lbl">Edit Point Style...</span>
-    </div>
-    <div class="ts-node" onclick="window.openLabelStyleComposer&&window.openLabelStyleComposer('Northing and Easting')">
-      <span class="ts-node-icon" style="color:#1FA8D9">🏷</span><span class="ts-node-lbl">Edit Label Style...</span>
-    </div>
-    <div class="ts-heading">Surface Tools</div>
-    <div class="ts-node" onclick="typeof buildTIN!=='undefined'&&buildTIN()">
-      <span class="ts-node-icon" style="color:#FFAA00">△</span><span class="ts-node-lbl">Build TIN Surface</span>
-    </div>
-    <div class="ts-node" onclick="typeof openMo!=='undefined'&&openMo('moContour')">
-      <span class="ts-node-icon" style="color:#1FA8D9">〰</span><span class="ts-node-lbl">Generate Contours</span>
-    </div>
-    <div class="ts-heading">Export</div>
-    <div class="ts-node" onclick="window._expLandXML&&ST.pointGroups&&ST.pointGroups.length?window._expLandXML(ST.pointGroups[0]):alert('No point groups to export')">
-      <span class="ts-node-icon" style="color:#4eff91">📤</span><span class="ts-node-lbl">Export LandXML...</span>
-    </div>
-  </div>
-  <!-- TOOLBOX TAB -->
-  <div id="tscont-toolbox" class="ts-content" style="display:none">
-    <div class="ts-heading">Reports Manager</div>
-    <div class="ts-node" onclick="typeof showStats==='function'&&showStats()"><span class="ts-node-icon">📊</span><span class="ts-node-lbl">Drawing Statistics</span></div>
-    <div class="ts-node" onclick="typeof openAttrTable==='function'&&openAttrTable()"><span class="ts-node-icon">📋</span><span class="ts-node-lbl">Attribute Table</span></div>
-    <div class="ts-heading">Miscellaneous Utilities</div>
-    <div class="ts-node" onclick="typeof purgeEntities==='function'&&purgeEntities()"><span class="ts-node-icon">🗑</span><span class="ts-node-lbl">Purge Objects</span></div>
-    <div class="ts-node" onclick="openMo('moProcessing')"><span class="ts-node-icon">⚙</span><span class="ts-node-lbl">Processing Toolbox</span></div>
-  </div>
-  <!-- Preview -->
-  <div class="ts-preview" id="tsPreview">
-    <span style="color:var(--m);font-size:9px">Select item to preview</span>
-  </div>
-</div>
+<!-- c3dToolspace moved into workspace row --></div>
 
 <!-- MAP EXPORT DIALOG — MAPEXPORT command -->
 <div class="mo" id="moMapExport">
