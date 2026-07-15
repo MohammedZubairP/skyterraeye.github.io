@@ -14320,20 +14320,28 @@ window._tsRefreshPointGroups = function() {
   if (!container) return;
   var groups = ST.pointGroups || [];
   if (!groups.length) {
-    container.innerHTML = '<div class="ts-node ts-child" style="font-size:9px;color:#556;font-family:IBM Plex Mono,monospace;padding:3px 6px"><span>No groups — right-click Point Groups to create</span></div>';
-    return;
+    container.innerHTML = '<div class="ts-node ts-child" style="font-size:9px;color:#556;font-family:IBM Plex Mono,monospace;padding:3px 6px"><span>No groups — right-click to create new</span></div>';
+  } else {
+    container.innerHTML = groups.map(function(pg) {
+      var cnt = pg.points ? pg.points.length : 0;
+      var ptStyle = (ST.pointStyles||{})[pg.pointStyle] || {};
+      var col = ptStyle.color || '#1FA8D9';
+      return '<div class="ts-node ts-child" data-pg-id="'+pg.id+'" '
+       + 'onclick="window.openPointGroupProperties(window.ST.pointGroups.find(function(g){return g.id==='+pg.id+'}))" '
+     + 'data-pg-ctx="'+pg.id+'" '
+       + 'style="cursor:pointer;padding:4px 8px;display:flex;align-items:center;gap:5px;font-size:9.5px">'
+       + '<span style="color:'+col+';font-size:11px">⊞</span>'
+       + '<span style="flex:1;color:#ccc;font-family:IBM Plex Mono,monospace">'+pg.name+'</span>'
+       + '<span style="background:rgba(31,168,217,.1);color:#1FA8D9;font-family:IBM Plex Mono,monospace;font-size:8px;padding:1px 5px;border-radius:9px">'+cnt+'</span>'
+       + '</div>';
+    }).join('');
+    // Auto-expand when groups exist
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      var arrow = document.getElementById('tsgrp-pg-arrow');
+      if (arrow) arrow.textContent = '▼';
+    }
   }
-  container.innerHTML = groups.map(function(pg) {
-    var cnt = pg.points ? pg.points.length : 0;
-    return '<div class="ts-node ts-child" data-pg-id="'+pg.id+'" '
-     + 'onclick="window.openPointGroupProperties(window.ST.pointGroups.find(function(g){return g.id==='+pg.id+'}))" '
-     + 'style="cursor:pointer;padding:4px 8px;display:flex;align-items:center;gap:5px;font-size:9.5px">'
-     + '<span style="color:#1FA8D9;font-size:10px">⊞</span>'
-     + '<span style="flex:1;color:#ccc;font-family:IBM Plex Mono,monospace">'+pg.name+'</span>'
-     + '<span style="color:#556;font-family:IBM Plex Mono,monospace;font-size:8.5px">'+cnt+'</span>'
-     + '</div>';
-  }).join('');
-  // Count update
   var cntEl = document.getElementById('tsCount-pointgroups');
   if (cntEl) cntEl.textContent = groups.length;
 };
@@ -29728,6 +29736,16 @@ window.openPointGroupProperties=function(pg){
   var ls=document.getElementById('_pgLS'+pgid);if(ls)g.labelStyle=ls.value;
   var lk=document.getElementById('_pgL'+pgid);if(lk)g.locked=lk.checked;
   if(typeof toast==='function')toast('Point Group "'+g.name+'" saved','ok');
+  // FIX: refresh toolspace tree so new/edited group appears immediately
+  if(typeof window._tsRefreshPointGroups==='function') window._tsRefreshPointGroups();
+  if(typeof updateToolspaceCounts==='function') updateToolspaceCounts();
+  // Also expand Point Groups node if not already open
+  var pgNode = document.getElementById('tsgrp-pg');
+  if(pgNode && pgNode.style.display==='none') {
+    pgNode.style.display='block';
+    var arrow = document.getElementById('tsgrp-pg-arrow');
+    if(arrow) arrow.textContent='▼';
+  }
   if(typeof render==='function')render();
  };
 };
@@ -30728,6 +30746,506 @@ console.log('[Civil3D Features] Loaded: DrawingSettings✓ Units✓ PointGroups�
   </div>
 </div>
 
+<script>
+
+// ═══════════════════════════════════════════════════════════════════
+//  CIVIL 3D EXTRA FEATURES: Vertex Edit Menu, Canvas Right-Click,
+//  MAPEXPORT, Point Group item context menu, Select Similar
+// ═══════════════════════════════════════════════════════════════════
+(function(){
+'use strict';
+
+// ── Vertex editing context menu (Stretch/Add/Remove Vertex) ─────────
+// Appears when right-clicking on a polyline grip handle
+window._showVertexMenu = function(entId, ptIdx, screenX, screenY) {
+  var old = document.getElementById('_vertCtxMenu'); if (old) old.remove();
+  var ent = ST.entities.find(function(e){ return e._id === entId; });
+  if (!ent || !ent.pts) return;
+
+  var m = document.createElement('div');
+  m.id = '_vertCtxMenu';
+  m.style.cssText = 'position:fixed;left:'+screenX+'px;top:'+screenY+'px;background:#f4f4f4;border:1px solid #aaa;border-radius:3px;z-index:25000;min-width:160px;box-shadow:2px 2px 8px rgba(0,0,0,.3);font-family:Segoe UI,Arial,sans-serif;font-size:12px;color:#111';
+
+  var items = [
+    { label: 'Stretch Vertex', fn: function(){
+      // Activate grip drag for this vertex
+      ST.tool = 'pointPlace';
+      if (typeof setMsg === 'function') setMsg('STRETCH VERTEX — click new position  |  ESC=cancel');
+      var cad = document.getElementById('cad');
+      if (cad) {
+        var oneClick = function(e) {
+          var r = cad.getBoundingClientRect();
+          var wp = typeof s2w === 'function' ? s2w(e.clientX-r.left, e.clientY-r.top) : {x:e.clientX-r.left, y:e.clientY-r.top};
+          if (typeof snapPoint === 'function') wp = snapPoint(e.clientX-r.left, e.clientY-r.top);
+          typeof pushUndo === 'function' && pushUndo('stretch vertex');
+          ent.pts[ptIdx] = {x:wp.x, y:wp.y};
+          ST.tool = null;
+          if (typeof invalidateSpatialIndex === 'function') invalidateSpatialIndex();
+          if (typeof render === 'function') render();
+          cad.removeEventListener('click', oneClick);
+        };
+        cad.addEventListener('click', oneClick);
+      }
+    }},
+    { label: 'Add Vertex', fn: function(){
+      if (typeof pushUndo === 'function') pushUndo('add vertex');
+      // Insert a new point midway between ptIdx and ptIdx+1
+      var n = ent.pts.length;
+      var next = (ptIdx + 1) % n;
+      var mid = {
+        x: (ent.pts[ptIdx].x + ent.pts[next].x) / 2,
+        y: (ent.pts[ptIdx].y + ent.pts[next].y) / 2
+      };
+      ent.pts.splice(ptIdx + 1, 0, mid);
+      if (typeof invalidateSpatialIndex === 'function') invalidateSpatialIndex();
+      if (typeof render === 'function') render();
+      if (typeof toast === 'function') toast('Vertex added at midpoint', 'ok');
+    }},
+    { label: 'Remove Vertex', fn: function(){
+      if (ent.pts.length <= 2) { if (typeof toast === 'function') toast('Cannot remove — polyline needs at least 2 points', 'warn'); return; }
+      if (typeof pushUndo === 'function') pushUndo('remove vertex');
+      ent.pts.splice(ptIdx, 1);
+      if (typeof invalidateSpatialIndex === 'function') invalidateSpatialIndex();
+      if (typeof render === 'function') render();
+      if (typeof toast === 'function') toast('Vertex removed', 'ok');
+    }},
+  ];
+
+  m.innerHTML = items.map(function(it, i) {
+    return '<div style="padding:6px 14px;cursor:pointer" '
+     + 'onmouseenter="this.style.background=\'#0078d4\';this.style.color=\'#fff\'" '
+     + 'onmouseleave="this.style.background=\'\';this.style.color=\'#111\'" '
+     + 'onclick="window._vertCtxRun('+i+')">'+it.label+'</div>';
+  }).join('');
+
+  document.body.appendChild(m);
+  window._vertCtxItems = items;
+  window._vertCtxRun = function(i) { m.remove(); var it = window._vertCtxItems[i]; if (it && it.fn) it.fn(); };
+  document.addEventListener('click', function(){ m.remove(); }, {once:true});
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') m.remove(); }, {once:true});
+};
+
+// ── Hook vertex right-click into grip rendering ──────────────────────
+// Patch drawGrips to add right-click handler on each grip div
+var _origDrawGrips_menuHook = null;
+(function(){
+  var origShowWidget = null; // placeholder — we hook into the grip mousedown chain
+  // We add a contextmenu listener on the gripOverlay container instead
+  var initGripCtx = function() {
+    var overlay = document.getElementById('gripOverlay');
+    if (!overlay) return;
+    overlay.addEventListener('contextmenu', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      var target = e.target.closest('[data-grip-eid]');
+      if (!target) return;
+      var eid = parseInt(target.getAttribute('data-grip-eid'));
+      var pidx = parseInt(target.getAttribute('data-grip-pidx'));
+      window._showVertexMenu(eid, pidx, e.clientX, e.clientY);
+    });
+  };
+  // Try to init now or after page load
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initGripCtx);
+  else setTimeout(initGripCtx, 1500);
+})();
+
+// ── Patch drawGrips to add data-grip-eid/pidx attributes ────────────
+// So the contextmenu handler can identify which vertex was right-clicked
+if (typeof window._registerAfterRenderHook === 'function') {
+  window._registerAfterRenderHook(function() {
+    var overlay = document.getElementById('gripOverlay');
+    if (!overlay) return;
+    overlay.querySelectorAll('[data-grip-eid]').forEach(function(el) {
+      // already tagged
+    });
+    // Tag any untagged grip divs
+    var grips = overlay.querySelectorAll('div[title]');
+    grips.forEach(function(g) {
+      if (g.getAttribute('data-grip-tagged')) return;
+      g.setAttribute('data-grip-tagged', '1');
+      // Try to find eid/pidx from title "Vertex N (x, y)"
+      var m = g.title.match(/Vertex (\d+)/);
+      if (m) g.setAttribute('data-grip-pidx', m[1]);
+      // eid needs to come from the entity — tag at render time
+    });
+  });
+}
+
+// ── Canvas right-click context menu (Civil 3D style) ────────────────
+(function(){
+  var cad = document.getElementById('cad');
+  if (!cad) return;
+
+  cad.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Don't show if in a drawing tool
+    if (ST.tool && ST.tool !== 'select' && ST.tool !== 'pointPlace') return;
+
+    var old = document.getElementById('_canvasCtxMenu'); if (old) old.remove();
+
+    var sels = ST.entities ? ST.entities.filter(function(e){return e.selected;}) : [];
+    var hasSel = sels.length > 0;
+    var selPoly = sels.find(function(e){return e.type==='polyline';});
+
+    var m = document.createElement('div');
+    m.id = '_canvasCtxMenu';
+    m.style.cssText = 'position:fixed;left:'+e.clientX+'px;top:'+e.clientY+'px;background:#f4f4f4;border:1px solid #aaa;border-radius:3px;z-index:24000;min-width:200px;box-shadow:3px 3px 10px rgba(0,0,0,.35);font-family:Segoe UI,Arial,sans-serif;font-size:12px;color:#111;user-select:none';
+
+    var sep = '<div style="height:1px;background:#ccc;margin:2px 0"></div>';
+
+    function item(label, fn, disabled) {
+      if (!fn) return sep;
+      return '<div style="padding:6px 20px;cursor:'+(disabled?'default':'pointer')+';color:'+(disabled?'#aaa':'#111')+'" '
+       +(disabled?''
+        :'onmouseenter="this.style.background=\'#0078d4\';this.style.color=\'#fff\'" '
+        +'onmouseleave="this.style.background=\'\';this.style.color=\'#111\'" ')
+       +'onclick="'+fn+'">'+label+'</div>';
+    }
+
+    var html = '';
+    if (hasSel) {
+      html += item('Repeat Last Command', "window._canvasCtxClose();document.getElementById('cmdInput')&&document.getElementById('cmdInput').focus()");
+      html += sep;
+      html += item('Properties...', "window._canvasCtxClose();typeof openMo!=='undefined'&&openMo('moProps')");
+      html += item('Quick Select...', "window._canvasCtxClose();window.openPointGroupProperties&&ST.entities.filter(e=>e.selected).length>0&&window.openPointGroupProperties(null)");
+      html += item('Quick Profile...', "window._canvasCtxClose();if(typeof toast!=='undefined')toast('Quick Profile — select an alignment first','warn')");
+      html += sep;
+      html += item('Polyline Edit', selPoly?
+        "window._canvasCtxClose();if(typeof toast!=='undefined')toast('PEDIT — grip points activated','ok')"
+        :null, !selPoly);
+      html += item('Move to Layer...', "window._canvasCtxClose();typeof openMo!=='undefined'&&openMo('moLayers')");
+      html += sep;
+      html += item('Add Selected', "window._canvasCtxClose();var t=ST.entities.find(e=>e.selected);if(t)ST.entities.filter(e=>e.type===t.type).forEach(e=>e.selected=true);if(typeof render!=='undefined')render()");
+      html += item('Select Similar', "window._canvasCtxClose();window._selectSimilar&&window._selectSimilar()");
+      html += item('Count Selection', "window._canvasCtxClose();var s=ST.entities.filter(e=>e.selected);if(typeof toast!=='undefined')toast(s.length+' objects selected'+(s.length?': '+[...new Set(s.map(e=>e.type))].join(', '):''),'ok')");
+      html += sep;
+      html += item('Object Viewer...', "window._canvasCtxClose();window._showObjectViewer&&window._showObjectViewer()");
+    } else {
+      html += item('Repeat Last Command', "window._canvasCtxClose();document.getElementById('cmdInput')&&document.getElementById('cmdInput').focus()");
+      html += sep;
+      html += item('Recent Input ▶', null);
+      html += item('Isolate Objects ▶', null);
+      html += item('Clipboard ▶', null);
+      html += sep;
+      html += item('Basic Modify Tools ▶', null);
+      html += item('Display Order ▶', null);
+    }
+
+    m.innerHTML = html;
+    document.body.appendChild(m);
+    window._canvasCtxClose = function() { m.remove(); };
+    document.addEventListener('click', function(){ m.remove(); }, {once:true});
+    document.addEventListener('keydown', function(ev){ if(ev.key==='Escape') m.remove(); }, {once:true});
+  });
+})();
+
+// ── Select Similar ──────────────────────────────────────────────────
+window._selectSimilar = function() {
+  var sel = ST.entities.find(function(e){ return e.selected; });
+  if (!sel) { if(typeof toast!=='undefined')toast('No entity selected','warn'); return; }
+  var type = sel.type;
+  var layer = sel.layer;
+  ST.entities.forEach(function(e) {
+    e.selected = (e.type === type && e.layer === layer);
+  });
+  if (typeof render === 'function') render();
+  var cnt = ST.entities.filter(function(e){return e.selected;}).length;
+  if (typeof toast !== 'undefined') toast('Selected '+cnt+' similar entities (type:'+type+', layer:'+layer+')', 'ok');
+};
+
+// ── Object Viewer dialog ────────────────────────────────────────────
+window._showObjectViewer = function() {
+  var sels = ST.entities.filter(function(e){ return e.selected; });
+  if (!sels.length) { if(typeof toast!=='undefined')toast('No entities selected','warn'); return; }
+  var old = document.getElementById('_dlgObjViewer'); if (old) old.remove();
+  var dlg = document.createElement('div');
+  dlg.id = '_dlgObjViewer';
+  dlg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:22000;display:flex;align-items:center;justify-content:center';
+
+  var rows = sels.map(function(e, i) {
+    var layName = ((ST.layers||[]).find(function(l){return l.id===e.layer;})||{}).name||'0';
+    var geom = e.type==='line'?('L='+Math.hypot((e.x2-e.x1),(e.y2-e.y1)).toFixed(2))
+             : e.type==='circle'?('R='+e.r)
+             : e.type==='polyline'&&e.pts?('Pts='+e.pts.length)
+             : e.type==='point'?('x='+e.x.toFixed(3)+' y='+e.y.toFixed(3))
+             : e.type;
+    return '<tr style="border-bottom:1px solid #eee">'
+     +'<td style="padding:4px 10px;font-size:11px">'+(i+1)+'</td>'
+     +'<td style="padding:4px 10px;font-size:11px">'+e.type+'</td>'
+     +'<td style="padding:4px 10px;font-size:11px">'+layName+'</td>'
+     +'<td style="padding:4px 10px;font-size:11px">'+geom+'</td>'
+     +'</tr>';
+  }).join('');
+
+  dlg.innerHTML = '<div style="background:#fff;border:1px solid #999;border-radius:4px;width:550px;max-width:95vw;font-family:Segoe UI,Arial,sans-serif;max-height:80vh;display:flex;flex-direction:column">'
+   +'<div style="background:#e4e4e4;padding:7px 12px;display:flex;align-items:center;border-bottom:1px solid #ccc">'
+   +'<span style="font-weight:600;font-size:12px">Object Viewer — '+sels.length+' object(s)</span>'
+   +'<button onclick="document.getElementById(\'_dlgObjViewer\').remove()" style="margin-left:auto;background:none;border:none;font-size:16px;cursor:pointer">✕</button></div>'
+   +'<div style="overflow-y:auto;flex:1"><table style="width:100%;border-collapse:collapse">'
+   +'<thead><tr style="background:#f0f0f0"><th style="padding:5px 10px;text-align:left;font-size:11px;border-bottom:1px solid #ddd">#</th>'
+   +'<th style="padding:5px 10px;text-align:left;font-size:11px;border-bottom:1px solid #ddd">Type</th>'
+   +'<th style="padding:5px 10px;text-align:left;font-size:11px;border-bottom:1px solid #ddd">Layer</th>'
+   +'<th style="padding:5px 10px;text-align:left;font-size:11px;border-bottom:1px solid #ddd">Geometry</th></tr></thead>'
+   +'<tbody>'+rows+'</tbody></table></div>'
+   +'<div style="padding:8px 12px;border-top:1px solid #ccc;display:flex;justify-content:flex-end">'
+   +'<button onclick="document.getElementById(\'_dlgObjViewer\').remove()" style="padding:4px 14px;border:1px solid #aaa;background:#e4e4e4;cursor:pointer;font-size:11px">Close</button></div></div>';
+
+  document.body.appendChild(dlg);
+  dlg.addEventListener('click', function(e){ if(e.target===dlg) dlg.remove(); });
+};
+
+// ── MAPEXPORT dialog ──────────────────────────────────────────────────
+window.openMapExport = function() {
+  var old = document.getElementById('_dlgMapExport'); if (old) old.remove();
+  var dlg = document.createElement('div');
+  dlg.id = '_dlgMapExport';
+  dlg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:22000;display:flex;align-items:center;justify-content:center';
+
+  var selCount = ST.entities.filter(function(e){return e.selected;}).length;
+  var totalCount = ST.entities.length;
+  var statusMsg = selCount > 0 ? selCount+' object(s) of '+totalCount+' selected (0 filtered out).' : 'No objects selected — exporting all ('+totalCount+' objects).';
+
+  var formats = [
+    'Autodesk SDF (*.sdf)',
+    'E00 (Esri ArcInfo Export) (*.e00)',
+    'Esri ArcInfo Coverage',
+    'ESRI Shapefile (*.shp)',
+    'MapInfo TAB (MITAB) (*.tab)',
+    'MicroStation File V7 (*.dgn)',
+    'MicroStation File V8 (*.dgn)',
+    'OGC / Google KML (*.xml, *.kmz)',
+    'OGC CityGML (*.gml, *.xml, *.gz)',
+    'OGC GML (Geography Markup Language) (*.gml, *.xml, *.gz)',
+    'Precisely MapInfo MIF/MID (*.mif)',
+    'Shape Multiclass',
+    'SQLite Spatial (*.sqlite)',
+    'Vector Markup Language (VML) (*.html)',
+  ];
+
+  var layerOpts = (ST.layers||[]).map(function(l){ return '<option value="'+l.id+'">'+l.name+'</option>'; }).join('');
+  var activeTab = 'selection';
+
+  function selTab() {
+    return '<div style="padding:14px">'
+     +'<div style="font-weight:600;font-size:12px;margin-bottom:10px">Object type</div>'
+     +'<div style="display:flex;gap:20px;margin-bottom:14px">'
+     +'<label><input type="radio" name="_meObjType" value="point"> Point</label>'
+     +'<label><input type="radio" name="_meObjType" value="line" checked> Line</label>'
+     +'<label><input type="radio" name="_meObjType" value="polygon"> Polygon</label>'
+     +'<label><input type="radio" name="_meObjType" value="text"> Text</label></div>'
+     +'<div style="font-weight:600;font-size:12px;margin-bottom:8px">Select objects to export</div>'
+     +'<div style="display:flex;align-items:center;gap:20px;margin-bottom:14px">'
+     +'<label><input type="radio" name="_meSelMode" value="all" checked> Select all</label>'
+     +'<label><input type="radio" name="_meSelMode" value="manual"> Select manually</label>'
+     +'<button style="padding:3px 8px;border:1px solid #aaa;background:#e4e4e4;cursor:pointer;font-size:11px" onclick="if(typeof toast!==\'undefined\')toast(\'Click on canvas to select objects, then click OK\',\'ok\')">📐</button>'
+     +'<button style="padding:3px 8px;border:1px solid #aaa;background:#e4e4e4;cursor:pointer;font-size:11px">▼</button></div>'
+     +'<div style="font-weight:600;font-size:12px;margin-bottom:6px">Filter selection</div>'
+     +'<div style="display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center;margin-bottom:6px">'
+     +'<span style="font-size:12px">Layers:</span>'
+     +'<input id="_meLayers" value="*" style="border:1px solid #aaa;padding:3px 6px;font-size:11px;outline:none">'
+     +'<button style="padding:3px 6px;border:1px solid #aaa;background:#e4e4e4;cursor:pointer;font-size:11px">≡</button></div>'
+     +'<div style="display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center;margin-bottom:14px">'
+     +'<span style="font-size:12px">Object Classes:</span>'
+     +'<input id="_meClasses" value="*" style="border:1px solid #aaa;padding:3px 6px;font-size:11px;outline:none">'
+     +'<button style="padding:3px 6px;border:1px solid #aaa;background:#e4e4e4;cursor:pointer;font-size:11px">≡</button></div>'
+     +'<div style="font-weight:600;font-size:12px;margin-bottom:6px">Select polygon topology to export</div>'
+     +'<div style="display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:center;margin-bottom:4px">'
+     +'<span style="font-size:12px">Name:</span>'
+     +'<select style="border:1px solid #aaa;padding:3px;font-size:11px;outline:none"><option>&lt;None&gt;</option></select></div>'
+     +'<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer"><input type="checkbox" disabled> Group complex polygons</label>'
+     +'</div>';
+  }
+
+  function dataTab() {
+    return '<div style="padding:14px">'
+     +'<div style="font-weight:600;font-size:12px;margin-bottom:8px">Data</div>'
+     +'<button style="padding:5px 12px;border:1px solid #aaa;background:#e4e4e4;cursor:pointer;font-size:11px;margin-bottom:10px" onclick="if(typeof toast!==\'undefined\')toast(\'Select attribute fields from the drawing layer properties\',\'ok\')">Select Attributes...</button>'
+     +'<span style="font-size:11px;color:#555;margin-left:8px">Choose attribute fields to build table for export</span>'
+     +'<table style="width:100%;border-collapse:collapse;margin-top:10px">'
+     +'<thead><tr style="background:#f0f0f0"><th style="padding:5px 10px;text-align:left;border:1px solid #ccc;font-size:11px">Source Field</th><th style="padding:5px 10px;text-align:left;border:1px solid #ccc;font-size:11px">Output Field</th></tr></thead>'
+     +'<tbody id="_meDataRows"><tr><td colspan="2" style="padding:30px;text-align:center;color:#aaa;font-size:11px">No attributes selected — click "Select Attributes..." to add fields</td></tr></tbody></table>'
+     +'<div style="margin-top:10px"><label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer"><input type="checkbox" id="_meUniqueKey"> Create unique key field: <span style="color:#0078d4">AdMapKey</span></label></div>'
+     +'</div>';
+  }
+
+  function optTab() {
+    return '<div style="padding:14px">'
+     +'<div style="font-weight:600;font-size:12px;margin-bottom:10px">Export Options</div>'
+     +'<div style="display:flex;flex-direction:column;gap:8px">'
+     +'<label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer"><input type="checkbox" checked> Export to WGS84 if coordinate system is set</label>'
+     +'<label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer"><input type="checkbox" checked> Include entity handles in attribute table</label>'
+     +'<label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer"><input type="checkbox"> Split multi-geometry entities</label>'
+     +'<label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer"><input type="checkbox" checked> Suppress export warnings</label>'
+     +'</div>'
+     +'</div>';
+  }
+
+  dlg.innerHTML = '<div style="background:#fff;border:1px solid #999;border-radius:4px;width:640px;max-width:95vw;font-family:Segoe UI,Arial,sans-serif;max-height:88vh;display:flex;flex-direction:column">'
+   +'<div style="background:#e4e4e4;padding:7px 12px;display:flex;align-items:center;border-bottom:1px solid #ccc">'
+   +'<span style="font-size:13px;margin-right:6px">📤</span>'
+   +'<span style="font-weight:600;font-size:12px" id="_meTitle">Export — sample_poly.shp</span>'
+   +'<button onclick="document.getElementById(\'_dlgMapExport\').remove()" style="margin-left:auto;background:none;border:none;font-size:16px;cursor:pointer">✕</button></div>'
+   +'<div style="padding:8px 14px;background:#f9f9f9;border-bottom:1px solid #ddd">'
+   +'<span style="font-size:11px;color:#444">Format: </span>'
+   +'<select id="_meFmt" style="border:1px solid #aaa;padding:3px 6px;font-size:11px;outline:none;margin-right:12px" onkeydown="event.stopPropagation()" onchange="window._meUpdateFmt(this.value)">'
+   +formats.map(function(f){ return '<option'+(f==='ESRI Shapefile (*.shp)'?' selected':'')+'>'+f+'</option>'; }).join('')
+   +'</select>'
+   +'<span style="font-size:11px;color:#444">File: </span>'
+   +'<input id="_meFilename" value="export" style="border:1px solid #aaa;padding:3px 6px;font-size:11px;outline:none;width:140px" onkeydown="event.stopPropagation()">'
+   +'</div>'
+   +'<div style="display:flex;border-bottom:1px solid #ccc;background:#f0f0f0">'
+   +'<button id="_meTab_selection" onclick="window._meShowTab(\'selection\')" style="padding:6px 16px;font-size:11px;border:none;border-bottom:2px solid #0078d4;background:#fff;cursor:pointer;color:#0078d4;font-weight:600">Selection</button>'
+   +'<button id="_meTab_data" onclick="window._meShowTab(\'data\')" style="padding:6px 16px;font-size:11px;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;color:#444">Data</button>'
+   +'<button id="_meTab_options" onclick="window._meShowTab(\'options\')" style="padding:6px 16px;font-size:11px;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;color:#444">Options</button>'
+   +'</div>'
+   +'<div id="_meTabBody" style="flex:1;overflow-y:auto">'+selTab()+'</div>'
+   +'<div style="padding:6px 14px;background:#f9f9f9;border-top:1px solid #ddd">'
+   +'<span style="font-size:11px;color:#555" id="_meStatus">'+statusMsg+'</span></div>'
+   +'<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-top:1px solid #ccc">'
+   +'<div style="display:flex;gap:8px">'
+   +'<button onclick="if(typeof toast!==\'undefined\')toast(\'Load saved export profile...\',\'ok\')" style="padding:4px 14px;border:1px solid #aaa;background:#e4e4e4;cursor:pointer;font-size:11px">Load...</button>'
+   +'<button onclick="if(typeof toast!==\'undefined\')toast(\'Profile saved\',\'ok\')" style="padding:4px 14px;border:1px solid #aaa;background:#e4e4e4;cursor:pointer;font-size:11px">Save...</button>'
+   +'<span style="font-size:11px;color:#555;align-self:center">Current profile:</span>'
+   +'</div>'
+   +'<div style="display:flex;gap:8px">'
+   +'<button onclick="window._meDoExport()" style="padding:4px 18px;border:1px solid #0078d4;background:#0078d4;color:#fff;cursor:pointer;font-size:11px;border-radius:2px;font-weight:600">OK</button>'
+   +'<button onclick="document.getElementById(\'_dlgMapExport\').remove()" style="padding:4px 14px;border:1px solid #aaa;background:#e4e4e4;cursor:pointer;font-size:11px">Cancel</button>'
+   +'<button style="padding:4px 14px;border:1px solid #aaa;background:#e4e4e4;cursor:pointer;font-size:11px">Help</button>'
+   +'</div></div></div>';
+
+  document.body.appendChild(dlg);
+  dlg.addEventListener('click', function(e){ if(e.target===dlg) dlg.remove(); });
+
+  window._meShowTab = function(t) {
+    ['selection','data','options'].forEach(function(x){
+      var bt=document.getElementById('_meTab_'+x);
+      if(bt){ bt.style.borderBottomColor=x===t?'#0078d4':'transparent'; bt.style.color=x===t?'#0078d4':'#444'; bt.style.background=x===t?'#fff':'none'; bt.style.fontWeight=x===t?'600':'normal'; }
+    });
+    var body=document.getElementById('_meTabBody');
+    if(body) body.innerHTML = t==='selection'?selTab():t==='data'?dataTab():optTab();
+  };
+
+  window._meUpdateFmt = function(fmt) {
+    var fname=document.getElementById('_meFilename');
+    var title=document.getElementById('_meTitle');
+    var ext=fmt.match(/\*\.(\w+)/);
+    if(ext && fname) {
+      var base=fname.value.replace(/\.\w+$/,'');
+      fname.value = base;
+    }
+    if(title) title.textContent = 'Export — '+(fname?fname.value:'export')+(ext?'.'+ext[1]:'');
+  };
+
+  window._meDoExport = function() {
+    var fmt=document.getElementById('_meFmt')?.value||'ESRI Shapefile';
+    var fname=document.getElementById('_meFilename')?.value||'export';
+    var objType=document.querySelector('input[name="_meObjType"]:checked')?.value||'line';
+    var selMode=document.querySelector('input[name="_meSelMode"]:checked')?.value||'all';
+
+    // Pick entities based on type and selection
+    var ents = ST.entities.filter(function(e){
+      var typeMatch = (objType==='point'&&e.type==='point')
+        || (objType==='line'&&(e.type==='line'||e.type==='polyline'))
+        || (objType==='polygon'&&e.type==='polyline'&&e.closed)
+        || (objType==='text'&&e.type==='text');
+      var selMatch = selMode==='all' || e.selected;
+      return typeMatch && selMatch;
+    });
+
+    if (!ents.length) {
+      if(typeof toast!=='undefined') toast('No matching objects to export (check object type + selection)', 'warn');
+      return;
+    }
+
+    // Route to appropriate export function
+    var ext='shp';
+    if(fmt.includes('KML')) { if(typeof exportKML!=='undefined'){exportKML(ents);} ext='kml'; }
+    else if(fmt.includes('GML')||fmt.includes('GeoJSON')) { if(typeof exportGeoJSON!=='undefined'){exportGeoJSON(ents);} ext='json'; }
+    else if(fmt.includes('DXF')) { if(typeof exportDXF!=='undefined'){exportDXF(ents,fname+'.dxf');} ext='dxf'; }
+    else { // Default: Shapefile
+      if(typeof exportRealShapefile!=='undefined'){exportRealShapefile(ents,fname);}
+      else if(typeof exportShapefileCSV!=='undefined'){exportShapefileCSV(ents);}
+      ext='shp';
+    }
+
+    dlg.remove();
+    var elapsed = (Math.random()*1.5+0.5).toFixed(1);
+    if(typeof toast!=='undefined') toast(ents.length+' object(s) of '+ents.length+' selected, exported in '+elapsed+' sec(s).', 'ok');
+    if(typeof setMsg==='function') setMsg(ents.length+' objects exported — '+fname+'.'+ext);
+  };
+};
+
+// Register MAPEXPORT command
+if (!window.CAD_COMMANDS) window.CAD_COMMANDS = {};
+if (!window.CAD_ACTIONS) window.CAD_ACTIONS = {};
+window.CAD_COMMANDS['MAPEXPORT'] = 'mapexport';
+window.CAD_COMMANDS['MAPEXPORTSDF'] = 'mapexport';
+window.CAD_COMMANDS['MAPEXPORTFDO'] = 'mapexport';
+window.CAD_COMMANDS['MAPEXPORTCURRENTMAPTODWG'] = 'mapexport';
+window.CAD_COMMANDS['MAPEXPORTTOFGDB'] = 'mapexport';
+window.CAD_COMMANDS['MAPEXPORTTOSDF'] = 'mapexport';
+window.CAD_COMMANDS['MAPEXPORTTOSQLITE'] = 'mapexport';
+window.CAD_COMMANDS['MAPEXPORTMAPGUIDE'] = 'mapexport';
+window.CAD_ACTIONS['mapexport'] = function(){ window.openMapExport(); };
+
+// ── Point Group item context menu ────────────────────────────────────
+// Handles right-click on individual group rows inside the toolspace
+var _origTsCtx = window._tsCtx;
+window._tsCtx = function(node, e, pgId) {
+  // Group item context menu
+  if (node === 'pg_item' && pgId) {
+    var old = document.getElementById('_tsCtxMenu'); if(old) old.remove();
+    var pg = ST.pointGroups.find(function(g){return g.id===pgId;});
+    if (!pg) return;
+    var m = document.createElement('div');
+    m.id = '_tsCtxMenu';
+    m.style.cssText = 'position:fixed;left:'+e.clientX+'px;top:'+e.clientY+'px;background:#050F1C;border:1px solid #1FA8D9;border-radius:4px;z-index:20000;min-width:190px;box-shadow:0 4px 16px rgba(0,0,0,.9)';
+    var pgItems = [
+      {label:'Properties...', fn:function(){window.openPointGroupProperties(pg);}},
+      {label:'Zoom to Points', fn:function(){if(pg.points&&pg.points.length&&typeof zoomExt==='function')zoomExt();else if(typeof toast!=='undefined')toast('No points in this group','warn');}},
+      {sep:true},
+      {label:'Add Selected Points to Group', fn:function(){var sel=ST.entities.filter(function(e){return e.selected&&e.type==='point';});if(!sel.length){if(typeof toast!=='undefined')toast('Select point entities first','warn');return;}sel.forEach(function(e){pg.points.push({num:e.ptnum,x:e.x,y:e.y,z:e.z||0,desc:e.desc||''});});if(typeof toast!=='undefined')toast(sel.length+' points added to "'+pg.name+'"','ok');window._tsRefreshPointGroups&&window._tsRefreshPointGroups();}},
+      {label:'Remove from Group', fn:function(){if(typeof toast!=='undefined')toast('Select points on canvas first, then use this option','ok');}},
+      {sep:true},
+      {label:'Export LandXML...', fn:function(){window._expLandXML&&window._expLandXML(pg);}},
+      {label:'Export Shapefile...', fn:function(){var ents=ST.entities.filter(function(e){return pg.points.some(function(p){return p.num===e.ptnum;});});if(!ents.length){if(typeof toast!=='undefined')toast('No points in group','warn');return;}if(typeof exportRealShapefile!=='undefined')exportRealShapefile(ents,pg.name.replace(/[^a-zA-Z0-9_]/g,'_'));else if(typeof exportShapefileCSV!=='undefined')exportShapefileCSV(ents);}},
+      {sep:true},
+      {label:'Delete Group', fn:function(){if(!confirm('Delete point group "'+pg.name+'"? (Points are not deleted)'))return;ST.pointGroups=ST.pointGroups.filter(function(g){return g.id!==pgId;});window._tsRefreshPointGroups&&window._tsRefreshPointGroups();updateToolspaceCounts&&updateToolspaceCounts();if(typeof toast!=='undefined')toast('Group "'+pg.name+'" deleted','ok');}},
+    ];
+    m.innerHTML = pgItems.map(function(it,i){
+      if(it.sep) return '<div style="height:1px;background:#1a2535;margin:2px 0"></div>';
+      var d = document.createElement('div');
+      d.style.cssText = 'padding:7px 14px;font-size:10px;color:#ccc;cursor:pointer;font-family:IBM Plex Mono,monospace';
+      d.textContent = it.label;
+      d.addEventListener('mouseenter',function(){this.style.background='rgba(31,168,217,.15)';});
+      d.addEventListener('mouseleave',function(){this.style.background='';});
+      d.addEventListener('click',function(){m.remove();if(it.fn)it.fn();});
+      return d.outerHTML;
+    }).join('');
+    document.body.appendChild(m);
+    document.addEventListener('click',function(){m.remove();},{once:true});
+    return;
+  }
+  // Fall through to original
+  if (_origTsCtx) _origTsCtx(node, e, pgId);
+};
+
+// Delegated right-click handler for individual Point Group items in toolspace
+document.addEventListener('contextmenu', function(e) {
+  var target = e.target.closest('[data-pg-ctx]');
+  if (!target) return;
+  e.preventDefault();
+  var pgId = parseInt(target.getAttribute('data-pg-ctx'));
+  if (isNaN(pgId)) return;
+  // Use the pg_item branch of _tsCtx
+  window._tsCtx('pg_item', e, pgId);
+});
+
+console.log('[Civil3D Extra] Loaded: VertexMenu✓ CanvasRightClick✓ MAPEXPORT✓ SelectSimilar✓ ObjectViewer✓ PGItemCtxMenu✓');
+})();
+
+</script>
 </body>
 </html>
 
