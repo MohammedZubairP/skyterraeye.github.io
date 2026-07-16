@@ -14283,7 +14283,7 @@ window._tsCtx = function(node, e) {
       {label:'Create Points Toolbar', fn:function(){ window.openCreatePointsToolbar && window.openCreatePointsToolbar(); }},
     ],
     'pointgroups': [
-      {label:'New Point Group...', fn:function(){ window.openPointGroupProperties && window.openPointGroupProperties(null); }},
+      {label:'New Point Group...', fn:function(){if(window.openPointGroupProperties){window.openPointGroupProperties(null);var e=document.getElementById('tsgrp-pg'),a=document.getElementById('tsgrp-pg-arrow');if(e&&e.style.display==='none'){e.style.display='block';if(a)a.textContent='▼';}}}},
       {label:'Import Points...', fn:function(){ window.openImportPoints && window.openImportPoints(); }},
       {label:'Refresh', fn:function(){ window._tsRefreshPointGroups && window._tsRefreshPointGroups(); updateToolspaceCounts(); }},
     ],
@@ -14299,19 +14299,25 @@ window._tsCtx = function(node, e) {
   var m = document.createElement('div');
   m.id = '_tsCtxMenu';
   m.style.cssText = 'position:fixed;left:'+e.clientX+'px;top:'+e.clientY+'px;background:#050F1C;border:1px solid #1FA8D9;border-radius:4px;z-index:20000;min-width:190px;box-shadow:0 4px 16px rgba(0,0,0,.9)';
-  m.innerHTML = items.map(function(it, i) {
-    var d = document.createElement('div');
-    d.style.cssText = 'padding:7px 14px;font-size:10px;color:#ccc;cursor:pointer;font-family:IBM Plex Mono,monospace';
-    d.textContent = it.label;
-    d.addEventListener('mouseenter', function(){ this.style.background='rgba(31,168,217,.15)'; });
-    d.addEventListener('mouseleave', function(){ this.style.background=''; });
-    d.addEventListener('click', function(){ window._tsCtxRun(i); });
-    return d.outerHTML;
-  }).join('');
-  document.body.appendChild(m);
   window._tsCtxItems = items;
-  window._tsCtxRun = function(i) { m.remove(); var it = window._tsCtxItems[i]; if (it && it.fn) it.fn(); };
-  document.addEventListener('click', function() { m.remove(); }, {once:true});
+  window._tsCtxRun = function(i) {
+    var el2=document.getElementById('_tsCtxMenu');if(el2)el2.remove();
+    var it2=window._tsCtxItems[i];if(it2&&it2.fn)it2.fn();
+  };
+  items.forEach(function(it,i){
+    var d=document.createElement('div');
+    if(it&&it.sep){d.style.cssText='height:1px;background:#1a2535;margin:2px 0';}
+    else{
+      d.style.cssText='padding:7px 14px;font-size:10px;color:#ccc;cursor:pointer;font-family:IBM Plex Mono,monospace';
+      d.textContent=it.label;
+      d.addEventListener('mouseenter',function(){this.style.background='rgba(31,168,217,.15)';});
+      d.addEventListener('mouseleave',function(){this.style.background='';});
+      (function(idx){d.addEventListener('click',function(e){e.stopPropagation();window._tsCtxRun(idx);});})(i);
+    }
+    m.appendChild(d);
+  });
+  document.body.appendChild(m);
+  setTimeout(function(){document.addEventListener('click',function _cc(){var x=document.getElementById('_tsCtxMenu');if(x)x.remove();document.removeEventListener('click',_cc);});},10);
 };
 
 // Refresh Point Groups sub-tree dynamically
@@ -14322,24 +14328,36 @@ window._tsRefreshPointGroups = function() {
   if (!groups.length) {
     container.innerHTML = '<div class="ts-node ts-child" style="font-size:9px;color:#556;font-family:IBM Plex Mono,monospace;padding:3px 6px"><span>No groups — right-click to create new</span></div>';
   } else {
-    container.innerHTML = groups.map(function(pg) {
-      var cnt = pg.points ? pg.points.length : 0;
-      var ptStyle = (ST.pointStyles||{})[pg.pointStyle] || {};
-      var col = ptStyle.color || '#1FA8D9';
-      return '<div class="ts-node ts-child" data-pg-id="'+pg.id+'" '
-       + 'onclick="window.openPointGroupProperties(window.ST.pointGroups.find(function(g){return g.id==='+pg.id+'}))" '
-     + 'data-pg-ctx="'+pg.id+'" '
-       + 'style="cursor:pointer;padding:4px 8px;display:flex;align-items:center;gap:5px;font-size:9.5px">'
-       + '<span style="color:'+col+';font-size:11px">⊞</span>'
-       + '<span style="flex:1;color:#ccc;font-family:IBM Plex Mono,monospace">'+pg.name+'</span>'
-       + '<span style="background:rgba(31,168,217,.1);color:#1FA8D9;font-family:IBM Plex Mono,monospace;font-size:8px;padding:1px 5px;border-radius:9px">'+cnt+'</span>'
-       + '</div>';
-    }).join('');
-    // Auto-expand when groups exist
-    if (container.style.display === 'none') {
-      container.style.display = 'block';
-      var arrow = document.getElementById('tsgrp-pg-arrow');
-      if (arrow) arrow.textContent = '▼';
+    // Build DOM children so click + contextmenu events persist
+    container.innerHTML='';
+    groups.forEach(function(pg){
+      var cnt=pg.points?pg.points.length:0;
+      var col=((ST.pointStyles||{})[pg.pointStyle]||{}).color||'#1FA8D9';
+      var row=document.createElement('div');
+      row.className='ts-node ts-child';
+      row.setAttribute('data-pg-id',String(pg.id));
+      row.style.cssText='cursor:pointer;padding:4px 8px;display:flex;align-items:center;gap:5px;font-size:9.5px';
+      row.innerHTML='<span style="color:'+col+';font-size:11px">⊞</span>'
+        +'<span style="flex:1;color:#ccc;font-family:IBM Plex Mono,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+pg.name+'</span>'
+        +'<span style="background:rgba(31,168,217,.1);color:#1FA8D9;font-family:IBM Plex Mono,monospace;font-size:8px;padding:1px 5px;border-radius:9px;flex-shrink:0">'+cnt+'</span>';
+      (function(p){
+        row.addEventListener('click',function(){
+          var g=window.ST.pointGroups.find(function(x){return x.id===p.id;});
+          if(g&&window.openPointGroupProperties)window.openPointGroupProperties(g);
+        });
+        row.addEventListener('contextmenu',function(e){
+          e.preventDefault();e.stopPropagation();
+          if(window._tsCtx)window._tsCtx('pg_item',e,p.id);
+        });
+      })(pg);
+      row.addEventListener('mouseenter',function(){this.style.background='rgba(31,168,217,.07)';});
+      row.addEventListener('mouseleave',function(){this.style.background='';});
+      container.appendChild(row);
+    });
+    if(container.style.display==='none'){
+      container.style.display='block';
+      var arrow=document.getElementById('tsgrp-pg-arrow');
+      if(arrow)arrow.textContent='▼';
     }
   }
   var cntEl = document.getElementById('tsCount-pointgroups');
@@ -30131,7 +30149,7 @@ if(typeof window._registerAfterRenderHook==='function'){
     ctx.font=fs+'px IBM Plex Mono,monospace';ctx.fillStyle=col;ctx.textAlign='left';
     var lines=[];
     ls.fields.forEach(function(f){
-     if(f==='ptnum'&&e.ptnum!==undefined)lines.push('N: '+e.ptnum);
+     if(f==='ptnum'&&e.ptnum!==undefined)lines.push('No. '+e.ptnum);
      else if(f==='north')lines.push('N: '+(e.y||0).toFixed(3));
      else if(f==='east')lines.push('E: '+(e.x||0).toFixed(3));
      else if(f==='elev'&&e.z!==undefined)lines.push('Z: '+(e.z||0).toFixed(3));
