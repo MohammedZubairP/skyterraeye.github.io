@@ -29692,85 +29692,682 @@ window.openDrawingUnitsDialog=function(){
 };
 
 // ── Point Group Properties ─────────────────────────────────────────────
-window.openPointGroupProperties=function(pg){
- var isNew=!pg;
- if(isNew){pg={id:++_pgSerial,name:'Point Group - ('+_pgSerial+')',desc:'',pointStyle:'Basic',labelStyle:'Point#-Elevation-Description',locked:false,points:[]};ST.pointGroups.push(pg);}
- var did='_dlgPG_'+pg.id;
- var e=document.getElementById(did);if(e){e.style.display='flex';return;}
- var ov=document.createElement('div');ov.id=did;
- ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:16000;display:flex;align-items:center;justify-content:center';
- var tabs=['Information','Point Groups','Raw Desc Matching','Include','Exclude','Query Builder','Overrides','Point List','Summary'];
- var psOpts=Object.keys(ST.pointStyles).map(function(s){return'<option'+(s===pg.pointStyle?' selected':'')+'>'+s+'</option>';}).join('');
- var lsOpts=Object.keys(ST.labelStyles).map(function(s){return'<option'+(s===pg.labelStyle?' selected':'')+'>'+s+'</option>';}).join('');
- function infoTab(){
-  return'<div style="margin-bottom:10px"><div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:4px">Name:</div>'
-   +'<input id="_pgN'+pg.id+'" value="'+pg.name+'" style="width:100%;background:#0a1525;border:1px solid #1a2a3a;color:#ccc;font-size:11px;padding:4px 6px;outline:none;box-sizing:border-box" onkeydown="event.stopPropagation()"></div>'
-   +'<div style="margin-bottom:12px"><div style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:4px">Description:</div>'
-   +'<textarea id="_pgD'+pg.id+'" style="width:100%;height:50px;background:#0a1525;border:1px solid #1a2a3a;color:#ccc;font-size:10px;padding:4px;resize:none;box-sizing:border-box;outline:none" onkeydown="event.stopPropagation()">'+pg.desc+'</textarea></div>'
-   +'<div style="background:#0a1525;border:1px solid #1a2535;border-radius:4px;padding:12px;margin-bottom:10px">'
-   +'<div style="font-size:9.5px;font-weight:700;color:#889;font-family:IBM Plex Mono,monospace;margin-bottom:8px">Default styles</div>'
-   +'<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:6px;align-items:center;margin-bottom:8px">'
-   +'<span style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;white-space:nowrap">Point style:</span>'
-   +'<select id="_pgPS'+pg.id+'" style="background:#050F1C;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none" onkeydown="event.stopPropagation()">'+psOpts+'</select>'
-   +'<button onclick="window.openPointStyleEditor(document.getElementById(\'_pgPS'+pg.id+'\').value)" style="padding:2px 8px;background:#0a1a2a;border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:9px;border-radius:3px">✎</button>'
-   +'<button style="padding:2px 8px;background:#0a1a2a;border:1px solid #1a2535;color:#aaa;cursor:pointer;font-size:9px;border-radius:3px">▼</button></div>'
-   +'<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:6px;align-items:center">'
-   +'<span style="font-size:9.5px;color:#889;font-family:IBM Plex Mono,monospace;white-space:nowrap">Point label style:</span>'
-   +'<select id="_pgLS'+pg.id+'" style="background:#050F1C;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none" onkeydown="event.stopPropagation()">'+lsOpts+'</select>'
-   +'<button onclick="window.openLabelStyleComposer(document.getElementById(\'_pgLS'+pg.id+'\').value)" style="padding:2px 8px;background:#0a1a2a;border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:9px;border-radius:3px">✎</button>'
-   +'<button style="padding:2px 8px;background:#0a1a2a;border:1px solid #1a2535;color:#aaa;cursor:pointer;font-size:9px;border-radius:3px">▼</button></div></div>'
-   +'<label style="display:flex;align-items:center;gap:6px;font-size:9.5px;color:#aaa;cursor:pointer"><input type="checkbox" id="_pgL'+pg.id+'" '+(pg.locked?'checked':'')+' style="accent-color:#1FA8D9"> Object locked</label>';
- }
- function ptListTab(){
-  if(!pg.points.length)return'<div style="color:#556;font-size:10px;text-align:center;padding:30px">No points in this group</div>';
-  var rows=pg.points.slice(0,50).map(function(p){return'<tr><td style="padding:4px 8px;border-bottom:1px solid #1a2535">'+p.num+'</td><td style="padding:4px 8px;border-bottom:1px solid #1a2535;text-align:right">'+((p.easting||p.x||0)).toFixed(3)+'</td><td style="padding:4px 8px;border-bottom:1px solid #1a2535;text-align:right">'+((p.northing||p.y||0)).toFixed(3)+'</td><td style="padding:4px 8px;border-bottom:1px solid #1a2535;text-align:right">'+((p.elevation||p.z||0)).toFixed(3)+'</td><td style="padding:4px 8px;border-bottom:1px solid #1a2535">'+(p.desc||'')+'</td></tr>';}).join('');
-  return'<div style="overflow:auto;max-height:280px"><table style="width:100%;border-collapse:collapse;font-size:10px;color:#aaa"><thead><tr style="background:#0a1525;font-family:IBM Plex Mono,monospace;font-size:9.5px;color:#1FA8D9"><th style="padding:5px 8px;text-align:left;border-bottom:1px solid #1a2535">Pt#</th><th style="padding:5px 8px;text-align:right;border-bottom:1px solid #1a2535">Easting</th><th style="padding:5px 8px;text-align:right;border-bottom:1px solid #1a2535">Northing</th><th style="padding:5px 8px;text-align:right;border-bottom:1px solid #1a2535">Elevation</th><th style="padding:5px 8px;text-align:left;border-bottom:1px solid #1a2535">Desc</th></thead><tbody>'+rows+'</tbody></table></div>';
- }
- function sumTab(){return'<div style="font-size:10px;color:#aaa;line-height:2;font-family:IBM Plex Mono,monospace"><b style="color:#1FA8D9">Name:</b> '+pg.name+'<br><b style="color:#1FA8D9">Points:</b> '+pg.points.length+'<br><b style="color:#1FA8D9">Point Style:</b> '+pg.pointStyle+'<br><b style="color:#1FA8D9">Label Style:</b> '+pg.labelStyle+'<br><b style="color:#1FA8D9">Locked:</b> '+(pg.locked?'Yes':'No')+'</div>';}
- ov.innerHTML='<div style="background:#050F1C;border:1px solid #1FA8D9;border-radius:6px;width:620px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column">'
-  +'<div style="background:#0a1525;padding:8px 14px;display:flex;align-items:center;border-bottom:1px solid #1a2535">'
-  +'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;font-weight:800;color:#ccc">Point Group Properties - '+pg.name+'</span>'
-  +'<button onclick="document.getElementById(\''+did+'\').remove()" style="margin-left:auto;background:none;border:none;color:#667;font-size:18px;cursor:pointer">✕</button></div>'
-  +'<div style="display:flex;border-bottom:1px solid #1a2535;overflow-x:auto;flex-shrink:0">'
-  +tabs.map(function(t,i){return'<button id="_pgTab_'+did+'_'+i+'" onclick="window._pgShowTab(\''+did+'\','+i+','+pg.id+')" style="padding:5px 10px;font-size:9.5px;cursor:pointer;border:none;border-bottom:2px solid '+(i===0?'#1FA8D9':'transparent')+';background:none;color:'+(i===0?'#1FA8D9':'#778')+';font-family:IBM Plex Mono,monospace;white-space:nowrap">'+t+'</button>';}).join('')+'</div>'
-  +'<div id="_pgBod_'+did+'" style="flex:1;overflow-y:auto;padding:14px">'+infoTab()+'</div>'
-  +'<div style="display:flex;justify-content:flex-end;gap:8px;padding:10px 14px;border-top:1px solid #1a2535">'
-  +'<button onclick="document.getElementById(\''+did+'\').remove()" style="padding:4px 14px;border:1px solid #334;background:none;color:#889;cursor:pointer;font-size:10px;border-radius:4px">Cancel</button>'
-  +'<button onclick="window._pgApply(\''+did+'\','+pg.id+')" style="padding:4px 14px;border:1px solid #1FA8D9;background:#0a1a2a;color:#1FA8D9;cursor:pointer;font-size:10px;border-radius:4px">Apply</button>'
-  +'<button onclick="window._pgApply(\''+did+'\','+pg.id+');document.getElementById(\''+did+'\').remove()" style="padding:4px 14px;border:1px solid #1FA8D9;background:rgba(31,168,217,.15);color:#1FA8D9;cursor:pointer;font-size:10px;font-weight:700;border-radius:4px">OK</button>'
-  +'<button style="padding:4px 14px;border:1px solid #334;background:none;color:#778;cursor:pointer;font-size:10px;border-radius:4px">Help</button></div></div>';
- document.body.appendChild(ov);
- ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
- window._pgShowTab=function(did,idx,pgid){
-  tabs.forEach(function(_,j){var b=document.getElementById('_pgTab_'+did+'_'+j);if(b){b.style.borderBottomColor=j===idx?'#1FA8D9':'transparent';b.style.color=j===idx?'#1FA8D9':'#778';}});
-  var g=ST.pointGroups.find(function(g){return g.id===pgid;});if(!g)return;
-  var bod=document.getElementById('_pgBod_'+did);if(!bod)return;
-  if(idx===0)bod.innerHTML=infoTab();
-  else if(idx===7)bod.innerHTML=ptListTab();
-  else if(idx===8)bod.innerHTML=sumTab();
-  else bod.innerHTML='<div style="color:#aaa;font-size:10px;padding:20px 0">'+tabs[idx]+' — configure this tab to filter/override points in this group.</div>';
- };
- window._pgApply=function(did,pgid){
-  var g=ST.pointGroups.find(function(g){return g.id===pgid;});if(!g)return;
-  var n=document.getElementById('_pgN'+pgid);if(n)g.name=n.value||g.name;
-  var d=document.getElementById('_pgD'+pgid);if(d)g.desc=d.value;
-  var ps=document.getElementById('_pgPS'+pgid);if(ps)g.pointStyle=ps.value;
-  var ls=document.getElementById('_pgLS'+pgid);if(ls)g.labelStyle=ls.value;
-  var lk=document.getElementById('_pgL'+pgid);if(lk)g.locked=lk.checked;
-  if(typeof toast==='function')toast('Point Group "'+g.name+'" saved','ok');
-  // FIX: refresh toolspace tree so new/edited group appears immediately
-  if(typeof window._tsRefreshPointGroups==='function') window._tsRefreshPointGroups();
-  if(typeof updateToolspaceCounts==='function') updateToolspaceCounts();
-  // Also expand Point Groups node if not already open
-  var pgNode = document.getElementById('tsgrp-pg');
-  if(pgNode && pgNode.style.display==='none') {
-    pgNode.style.display='block';
-    var arrow = document.getElementById('tsgrp-pg-arrow');
-    if(arrow) arrow.textContent='▼';
+
+// ═══════════════════════════════════════════════════════════════════
+//  COMPLETE REWRITE: Point Group Properties + Point Editor
+//  Fixes: closure-stale tab rendering, blackboard editing,
+//         inline point edit panel, full toolspace wiring
+// ═══════════════════════════════════════════════════════════════════
+
+// Per-dialog registry — each open dialog stores its own state
+window._pgDialogs = window._pgDialogs || {};
+
+window.openPointGroupProperties = function(pg) {
+  var isNew = !pg;
+  if (isNew) {
+    var serial = (window._pgSerial = (window._pgSerial || 0) + 1);
+    pg = {id: serial, name: 'Point Group - ('+serial+')',
+          desc: '', pointStyle: 'Basic',
+          labelStyle: 'Point#-Elevation-Description',
+          locked: false, points: []};
+    ST.pointGroups.push(pg);
+    if (typeof window._tsRefreshPointGroups === 'function') window._tsRefreshPointGroups();
+    if (typeof updateToolspaceCounts === 'function') updateToolspaceCounts();
   }
-  if(typeof render==='function')render();
- };
+
+  var did = '_dlgPG_' + pg.id;
+  var existing = document.getElementById(did);
+  if (existing) { existing.style.display = 'flex'; return; }
+
+  // ── Build overlay ──────────────────────────────────────────────
+  var ov = document.createElement('div');
+  ov.id = did;
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:16000;display:flex;align-items:center;justify-content:center';
+
+  // ── Build dialog shell ─────────────────────────────────────────
+  var dlg = document.createElement('div');
+  dlg.style.cssText = 'background:#050F1C;border:1px solid #1FA8D9;border-radius:6px;width:640px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;font-family:IBM Plex Mono,monospace';
+
+  // header
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'background:#0a1525;padding:8px 14px;display:flex;align-items:center;border-bottom:1px solid #1a2535;flex-shrink:0';
+  hdr.innerHTML = '<span style="font-size:11px;font-weight:800;color:#ccc">Point Group Properties — '
+    + pg.name + '</span>';
+  var xBtn = document.createElement('button');
+  xBtn.textContent = '✕';
+  xBtn.style.cssText = 'margin-left:auto;background:none;border:none;color:#667;font-size:18px;cursor:pointer;line-height:1';
+  xBtn.onclick = function() { ov.remove(); delete window._pgDialogs[did]; };
+  hdr.appendChild(xBtn);
+  dlg.appendChild(hdr);
+
+  // tabs row
+  var tabDefs = ['Information','Point Groups','Raw Desc','Include','Exclude',
+                 'Query Builder','Overrides','Point List','Summary'];
+  var tabRow = document.createElement('div');
+  tabRow.style.cssText = 'display:flex;border-bottom:1px solid #1a2535;overflow-x:auto;flex-shrink:0;background:#050F1C';
+
+  // body
+  var body = document.createElement('div');
+  body.id = did + '_body';
+  body.style.cssText = 'flex:1;overflow-y:auto;padding:14px;min-height:200px';
+
+  // footer
+  var foot = document.createElement('div');
+  foot.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;padding:10px 14px;border-top:1px solid #1a2535;flex-shrink:0';
+
+  function btn(label, primary, action) {
+    var b = document.createElement('button');
+    b.textContent = label;
+    b.style.cssText = 'padding:4px 14px;border:1px solid '+(primary?'#1FA8D9':'#334')
+      +';background:'+(primary?'rgba(31,168,217,.15)':'none')
+      +';color:'+(primary?'#1FA8D9':'#889')
+      +';cursor:pointer;font-size:10px;border-radius:4px'
+      +(primary?';font-weight:700':'');
+    b.onclick = action;
+    return b;
+  }
+  foot.appendChild(btn('Cancel', false, function(){ ov.remove(); delete window._pgDialogs[did]; }));
+  foot.appendChild(btn('Apply', false, function(){ applyPG(); }));
+  foot.appendChild(btn('OK', true, function(){ applyPG(); ov.remove(); delete window._pgDialogs[did]; }));
+  foot.appendChild(btn('Help', false, function(){}));
+
+  dlg.appendChild(tabRow);
+  dlg.appendChild(body);
+  dlg.appendChild(foot);
+  ov.appendChild(dlg);
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e) { if (e.target === ov) { ov.remove(); delete window._pgDialogs[did]; } });
+
+  // ── Tab renderer functions (self-contained, no closure issues) ──
+
+  function renderInfo() {
+    var psOpts = Object.keys(ST.pointStyles||{}).map(function(s) {
+      return '<option value="'+s+'"'+(s===pg.pointStyle?' selected':'')+'>'+s+'</option>';
+    }).join('');
+    var lsOpts = Object.keys(ST.labelStyles||{}).map(function(s) {
+      return '<option value="'+s+'"'+(s===pg.labelStyle?' selected':'')+'>'+s+'</option>';
+    }).join('');
+
+    body.innerHTML = '';
+
+    // Name
+    addField(body, 'Name', function() {
+      var inp = document.createElement('input');
+      inp.id = did+'_name'; inp.value = pg.name;
+      inp.style.cssText = 'width:100%;background:#0a1525;border:1px solid #1a2a3a;color:#ccc;font-size:11px;padding:4px 6px;outline:none;box-sizing:border-box;border-radius:3px';
+      inp.addEventListener('keydown', function(e){ e.stopPropagation(); });
+      return inp;
+    });
+
+    // Description
+    addField(body, 'Description', function() {
+      var ta = document.createElement('textarea');
+      ta.id = did+'_desc'; ta.value = pg.desc||'';
+      ta.style.cssText = 'width:100%;height:55px;background:#0a1525;border:1px solid #1a2a3a;color:#ccc;font-size:10px;padding:4px;resize:vertical;box-sizing:border-box;outline:none;border-radius:3px';
+      ta.addEventListener('keydown', function(e){ e.stopPropagation(); });
+      return ta;
+    });
+
+    // Styles box
+    var stylesBox = document.createElement('div');
+    stylesBox.style.cssText = 'background:#0a1525;border:1px solid #1a2535;border-radius:4px;padding:12px;margin-bottom:10px';
+    var sLabel = document.createElement('div');
+    sLabel.textContent = 'Default styles';
+    sLabel.style.cssText = 'font-size:9.5px;font-weight:700;color:#889;margin-bottom:10px';
+    stylesBox.appendChild(sLabel);
+
+    // Point style row
+    var psRow = document.createElement('div');
+    psRow.style.cssText = 'display:grid;grid-template-columns:120px 1fr 30px 30px;gap:6px;align-items:center;margin-bottom:8px';
+    var psLbl = document.createElement('span');
+    psLbl.textContent = 'Point style:';
+    psLbl.style.cssText = 'font-size:9.5px;color:#889';
+    var psSel = document.createElement('select');
+    psSel.id = did+'_pointStyle';
+    psSel.innerHTML = psOpts;
+    psSel.style.cssText = 'background:#050F1C;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none;border-radius:3px';
+    psSel.addEventListener('keydown', function(e){ e.stopPropagation(); });
+    var psEditBtn = document.createElement('button');
+    psEditBtn.textContent = '✎';
+    psEditBtn.style.cssText = 'padding:2px 6px;background:#0a1a2a;border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:9px;border-radius:3px';
+    psEditBtn.onclick = function() { window.openPointStyleEditor && window.openPointStyleEditor(psSel.value); };
+    var psDropBtn = document.createElement('button');
+    psDropBtn.textContent = '▼';
+    psDropBtn.style.cssText = 'padding:2px 6px;background:#0a1a2a;border:1px solid #1a2535;color:#aaa;cursor:pointer;font-size:9px;border-radius:3px';
+    [psLbl,psSel,psEditBtn,psDropBtn].forEach(function(el){ psRow.appendChild(el); });
+    stylesBox.appendChild(psRow);
+
+    // Label style row
+    var lsRow = document.createElement('div');
+    lsRow.style.cssText = 'display:grid;grid-template-columns:120px 1fr 30px 30px;gap:6px;align-items:center';
+    var lsLbl = document.createElement('span');
+    lsLbl.textContent = 'Point label style:';
+    lsLbl.style.cssText = 'font-size:9.5px;color:#889';
+    var lsSel = document.createElement('select');
+    lsSel.id = did+'_labelStyle';
+    lsSel.innerHTML = lsOpts;
+    lsSel.style.cssText = 'background:#050F1C;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none;border-radius:3px';
+    lsSel.addEventListener('keydown', function(e){ e.stopPropagation(); });
+    var lsEditBtn = document.createElement('button');
+    lsEditBtn.textContent = '✎';
+    lsEditBtn.style.cssText = 'padding:2px 6px;background:#0a1a2a;border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:9px;border-radius:3px';
+    lsEditBtn.onclick = function() { window.openLabelStyleComposer && window.openLabelStyleComposer(lsSel.value); };
+    var lsDropBtn = document.createElement('button');
+    lsDropBtn.textContent = '▼';
+    lsDropBtn.style.cssText = 'padding:2px 6px;background:#0a1a2a;border:1px solid #1a2535;color:#aaa;cursor:pointer;font-size:9px;border-radius:3px';
+    [lsLbl,lsSel,lsEditBtn,lsDropBtn].forEach(function(el){ lsRow.appendChild(el); });
+    stylesBox.appendChild(lsRow);
+    body.appendChild(stylesBox);
+
+    // Locked checkbox
+    var lockLabel = document.createElement('label');
+    lockLabel.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:9.5px;color:#aaa;cursor:pointer';
+    var lockChk = document.createElement('input');
+    lockChk.type = 'checkbox'; lockChk.id = did+'_locked';
+    if (pg.locked) lockChk.checked = true;
+    lockChk.style.accentColor = '#1FA8D9';
+    lockLabel.appendChild(lockChk);
+    lockLabel.appendChild(document.createTextNode(' Object locked'));
+    body.appendChild(lockLabel);
+  }
+
+  function renderPointList() {
+    body.innerHTML = '';
+    var pts = pg.points || [];
+
+    // Add point bar
+    var addBar = document.createElement('div');
+    addBar.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #1a2535';
+
+    function mkInput(placeholder, width) {
+      var inp = document.createElement('input');
+      inp.placeholder = placeholder; inp.type = 'number';
+      inp.style.cssText = 'background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none;width:'+width+'px;border-radius:3px';
+      inp.addEventListener('keydown', function(e){ e.stopPropagation(); });
+      return inp;
+    }
+    var inPt = mkInput('Pt#', 50); addBar.appendChild(inPt);
+    var inE  = mkInput('Easting', 90); addBar.appendChild(inE);
+    var inN  = mkInput('Northing', 90); addBar.appendChild(inN);
+    var inZ  = mkInput('Elevation', 70); addBar.appendChild(inZ);
+    var inD  = document.createElement('input');
+    inD.placeholder = 'Description'; inD.type = 'text';
+    inD.style.cssText = 'background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none;flex:1;border-radius:3px';
+    inD.addEventListener('keydown', function(e){ e.stopPropagation(); });
+    addBar.appendChild(inD);
+
+    var addBtn = document.createElement('button');
+    addBtn.textContent = '+ Add';
+    addBtn.style.cssText = 'padding:3px 10px;background:rgba(31,168,217,.15);border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:9.5px;border-radius:3px;white-space:nowrap';
+    addBtn.onclick = function() {
+      var e2 = parseFloat(inE.value), n2 = parseFloat(inN.value);
+      if (isNaN(e2)||isNaN(n2)) { if(typeof toast!=='undefined') toast('Enter Easting and Northing','warn'); return; }
+      var z2 = parseFloat(inZ.value)||0;
+      var pn = parseInt(inPt.value)||(pts.length+1);
+      var desc = inD.value||'';
+      var newPt = {num:pn, easting:e2, northing:n2, elevation:z2, x:e2, y:n2, z:z2, desc:desc};
+      pg.points.push(newPt);
+      // Also add as CAD entity
+      var ent = {_id:++ST._eid,type:'point',x:e2,y:n2,z:z2,ptnum:pn,desc:desc,layer:ST.curLayer,selected:false};
+      ST.entities.push(ent);
+      if(!ST.surveyPts)ST.surveyPts=[];
+      ST.surveyPts.push({num:pn,x:e2,y:n2,z:z2,desc:desc});
+      if(typeof invalidateSpatialIndex==='function')invalidateSpatialIndex();
+      if(typeof render==='function')render();
+      [inPt,inE,inN,inZ,inD].forEach(function(i){i.value='';});
+      renderPointList(); // refresh
+    };
+    addBar.appendChild(addBtn);
+    body.appendChild(addBar);
+
+    // Stats
+    var stats = document.createElement('div');
+    stats.style.cssText = 'font-size:9px;color:#556;margin-bottom:6px';
+    stats.textContent = pts.length + ' point(s) in this group';
+    body.appendChild(stats);
+
+    if (!pts.length) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'color:#556;text-align:center;padding:30px;font-size:10px';
+      empty.textContent = 'No points — use Add above, or import from a CSV file';
+      body.appendChild(empty);
+      return;
+    }
+
+    // Table
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'overflow:auto;max-height:300px;border:1px solid #1a2535;border-radius:4px';
+    var tbl = document.createElement('table');
+    tbl.style.cssText = 'width:100%;border-collapse:collapse;font-size:10px';
+    tbl.innerHTML = '<thead><tr style="background:#0a1525;position:sticky;top:0">'
+      + '<th style="padding:5px 8px;text-align:left;border-bottom:1px solid #1a2535;color:#1FA8D9">No.</th>'
+      + '<th style="padding:5px 8px;text-align:right;border-bottom:1px solid #1a2535;color:#1FA8D9">Easting</th>'
+      + '<th style="padding:5px 8px;text-align:right;border-bottom:1px solid #1a2535;color:#1FA8D9">Northing</th>'
+      + '<th style="padding:5px 8px;text-align:right;border-bottom:1px solid #1a2535;color:#1FA8D9">Elevation</th>'
+      + '<th style="padding:5px 8px;text-align:left;border-bottom:1px solid #1a2535;color:#1FA8D9">Description</th>'
+      + '<th style="padding:5px 8px;border-bottom:1px solid #1a2535;color:#1FA8D9">Edit</th>'
+      + '</tr></thead>';
+    var tbody = document.createElement('tbody');
+    pts.forEach(function(p, i) {
+      var tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid #1a2535';
+      (function(pt, idx){
+        tr.innerHTML = '<td style="padding:4px 8px;color:#1FA8D9">'+pt.num+'</td>'
+          + '<td style="padding:4px 8px;text-align:right;color:#ccc">'+((pt.easting||pt.x||0)).toFixed(3)+'</td>'
+          + '<td style="padding:4px 8px;text-align:right;color:#ccc">'+((pt.northing||pt.y||0)).toFixed(3)+'</td>'
+          + '<td style="padding:4px 8px;text-align:right;color:#ccc">'+((pt.elevation||pt.z||0)).toFixed(3)+'</td>'
+          + '<td style="padding:4px 8px;color:#aaa">'+(pt.desc||'')+'</td>';
+        var tdAct = document.createElement('td');
+        tdAct.style.cssText = 'padding:4px 8px;white-space:nowrap';
+        var editBtn = document.createElement('button');
+        editBtn.textContent = '✎';
+        editBtn.style.cssText = 'padding:1px 6px;background:#0a1a2a;border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:9px;border-radius:2px;margin-right:4px';
+        editBtn.onclick = function() { openPointEditor(pt, idx, function(){ renderPointList(); }); };
+        var delBtn = document.createElement('button');
+        delBtn.textContent = '✕';
+        delBtn.style.cssText = 'padding:1px 6px;background:#0a1a2a;border:1px solid #ff4466;color:#ff4466;cursor:pointer;font-size:9px;border-radius:2px';
+        delBtn.onclick = function() {
+          pg.points.splice(idx, 1);
+          if(typeof render==='function')render();
+          renderPointList();
+        };
+        tdAct.appendChild(editBtn); tdAct.appendChild(delBtn);
+        tr.appendChild(tdAct);
+      })(p, i);
+      tr.addEventListener('mouseenter', function(){ this.style.background='rgba(31,168,217,.05)'; });
+      tr.addEventListener('mouseleave', function(){ this.style.background=''; });
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    wrap.appendChild(tbl);
+    body.appendChild(wrap);
+  }
+
+  function renderInclude() {
+    body.innerHTML = '';
+    var sec = document.createElement('div');
+    sec.style.cssText = 'padding:4px 0';
+    sec.innerHTML = '<div style="font-size:9.5px;color:#889;margin-bottom:8px">Include points matching ANY of these criteria:</div>';
+
+    // Point number range
+    var rangeRow = document.createElement('div');
+    rangeRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px';
+    rangeRow.innerHTML = '<label style="display:flex;align-items:center;gap:6px;font-size:9.5px;color:#aaa;cursor:pointer">'
+      + '<input type="checkbox" id="'+did+'_incRange" style="accent-color:#1FA8D9"> Point number range:</label>';
+    var r1 = document.createElement('input'); r1.type='number'; r1.placeholder='From';
+    r1.id=did+'_incFrom'; r1.value=pg.incFrom||'';
+    r1.style.cssText='width:70px;background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 5px;outline:none;border-radius:3px';
+    r1.addEventListener('keydown', function(e){e.stopPropagation();});
+    var to = document.createElement('span'); to.textContent='to'; to.style.cssText='font-size:9.5px;color:#778';
+    var r2 = document.createElement('input'); r2.type='number'; r2.placeholder='To';
+    r2.id=did+'_incTo'; r2.value=pg.incTo||'';
+    r2.style.cssText='width:70px;background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 5px;outline:none;border-radius:3px';
+    r2.addEventListener('keydown', function(e){e.stopPropagation();});
+    [r1,to,r2].forEach(function(el){rangeRow.appendChild(el);});
+    sec.appendChild(rangeRow);
+
+    // Description matching
+    var descRow = document.createElement('div');
+    descRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px';
+    descRow.innerHTML = '<label style="display:flex;align-items:center;gap:6px;font-size:9.5px;color:#aaa;cursor:pointer">'
+      + '<input type="checkbox" id="'+did+'_incDesc" style="accent-color:#1FA8D9"> Description matches:</label>';
+    var descInp = document.createElement('input'); descInp.type='text'; descInp.placeholder='e.g. BM* or ROAD';
+    descInp.id=did+'_incDescVal'; descInp.value=pg.incDescPattern||'';
+    descInp.style.cssText='flex:1;background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none;border-radius:3px';
+    descInp.addEventListener('keydown', function(e){e.stopPropagation();});
+    descRow.appendChild(descInp);
+    sec.appendChild(descRow);
+
+    // Elevation range
+    var elevRow = document.createElement('div');
+    elevRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:14px';
+    elevRow.innerHTML = '<label style="display:flex;align-items:center;gap:6px;font-size:9.5px;color:#aaa;cursor:pointer">'
+      + '<input type="checkbox" id="'+did+'_incElev" style="accent-color:#1FA8D9"> Elevation range (Z):</label>';
+    var z1=document.createElement('input'); z1.type='number'; z1.placeholder='Min Z';
+    z1.id=did+'_incZMin'; z1.value=pg.incZMin!=null?pg.incZMin:'';
+    z1.style.cssText='width:80px;background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 5px;outline:none;border-radius:3px';
+    z1.addEventListener('keydown', function(e){e.stopPropagation();});
+    var toZ=document.createElement('span'); toZ.textContent='to'; toZ.style.cssText='font-size:9.5px;color:#778';
+    var z2=document.createElement('input'); z2.type='number'; z2.placeholder='Max Z';
+    z2.id=did+'_incZMax'; z2.value=pg.incZMax!=null?pg.incZMax:'';
+    z2.style.cssText='width:80px;background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 5px;outline:none;border-radius:3px';
+    z2.addEventListener('keydown', function(e){e.stopPropagation();});
+    [z1,toZ,z2].forEach(function(el){elevRow.appendChild(el);});
+    sec.appendChild(elevRow);
+
+    // Apply filter preview
+    var previewBtn = document.createElement('button');
+    previewBtn.textContent = '▶ Preview matching points';
+    previewBtn.style.cssText = 'padding:5px 14px;background:rgba(31,168,217,.15);border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:9.5px;border-radius:3px';
+    previewBtn.onclick = function() {
+      var pts = ST.entities.filter(function(e){ return e.type==='point'; });
+      var useRange = document.getElementById(did+'_incRange')?.checked;
+      var useDesc  = document.getElementById(did+'_incDesc')?.checked;
+      var useElev  = document.getElementById(did+'_incElev')?.checked;
+      var from2=parseInt(document.getElementById(did+'_incFrom')?.value);
+      var to2  =parseInt(document.getElementById(did+'_incTo')?.value);
+      var pat  =document.getElementById(did+'_incDescVal')?.value||'';
+      var zMin2=parseFloat(document.getElementById(did+'_incZMin')?.value);
+      var zMax2=parseFloat(document.getElementById(did+'_incZMax')?.value);
+      var matched = pts.filter(function(e){
+        if(useRange && !isNaN(from2) && !isNaN(to2)) { if(e.ptnum<from2||e.ptnum>to2) return false; }
+        if(useDesc && pat) { var re=new RegExp('^'+pat.replace(/\*/g,'.*')+'$','i'); if(!re.test(e.desc||'')) return false; }
+        if(useElev && !isNaN(zMin2) && !isNaN(zMax2)) { if((e.z||0)<zMin2||(e.z||0)>zMax2) return false; }
+        return true;
+      });
+      if(typeof toast!=='undefined') toast('Filter matches '+matched.length+' points','ok');
+    };
+    sec.appendChild(previewBtn);
+    body.appendChild(sec);
+  }
+
+  function renderExclude() {
+    body.innerHTML = '';
+    body.innerHTML = '<div style="font-size:9.5px;color:#889;margin-bottom:8px">Exclude points matching these criteria (overrides Include):</div>'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+      + '<label style="display:flex;align-items:center;gap:6px;font-size:9.5px;color:#aaa;cursor:pointer"><input type="checkbox" style="accent-color:#1FA8D9"> Point numbers:</label>'
+      + '<input type="text" placeholder="e.g. 1,5,10-20" style="flex:1;background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none;border-radius:3px" onkeydown="event.stopPropagation()">'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+      + '<label style="display:flex;align-items:center;gap:6px;font-size:9.5px;color:#aaa;cursor:pointer"><input type="checkbox" style="accent-color:#1FA8D9"> Description contains:</label>'
+      + '<input type="text" placeholder="e.g. TEMP or TEST" style="flex:1;background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none;border-radius:3px" onkeydown="event.stopPropagation()">'
+      + '</div>';
+  }
+
+  function renderQueryBuilder() {
+    body.innerHTML = '';
+    body.innerHTML = '<div style="font-size:9.5px;color:#889;margin-bottom:12px">Build a query to select which points belong to this group:</div>'
+      + '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">'
+      + '<select style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none;border-radius:3px" onkeydown="event.stopPropagation()">'
+      + '<option>Point Number</option><option>Elevation</option><option>Description</option>'
+      + '</select>'
+      + '<select style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none;border-radius:3px" onkeydown="event.stopPropagation()">'
+      + '<option>=</option><option>!=</option><option>&gt;</option><option>&lt;</option><option>contains</option>'
+      + '</select>'
+      + '<input type="text" placeholder="value" style="flex:1;background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 6px;outline:none;border-radius:3px" onkeydown="event.stopPropagation()">'
+      + '<button style="padding:3px 10px;background:rgba(31,168,217,.15);border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:9.5px;border-radius:3px">Add Rule</button>'
+      + '</div>'
+      + '<div style="background:#0a1525;border:1px solid #1a2535;border-radius:4px;padding:12px;min-height:80px;color:#556;font-size:9.5px">No rules defined — add rules above to filter points</div>';
+  }
+
+  function renderSummary() {
+    var allPts = ST.entities.filter(function(e){return e.type==='point';}).length;
+    body.innerHTML = '';
+    var rows = [
+      ['Group name', pg.name],
+      ['Description', pg.desc||'(none)'],
+      ['Point style', pg.pointStyle||'Basic'],
+      ['Label style', pg.labelStyle||'Point#-Elevation-Description'],
+      ['Locked', pg.locked?'Yes':'No'],
+      ['Points in group', pg.points.length],
+      ['Total drawing points', allPts],
+      ['Created', new Date().toLocaleDateString()],
+    ];
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:10px">';
+    rows.forEach(function(row){
+      html += '<tr><td style="padding:6px 10px;border-bottom:1px solid #1a2535;color:#889;white-space:nowrap">'+row[0]+'</td>'
+        + '<td style="padding:6px 10px;border-bottom:1px solid #1a2535;color:#ccc">'+row[1]+'</td></tr>';
+    });
+    html += '</table>';
+    body.innerHTML = html;
+  }
+
+  function renderOverrides() {
+    body.innerHTML = '<div style="font-size:9.5px;color:#889;margin-bottom:10px">Override point styles for this group specifically:</div>'
+      + '<div style="display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:center">'
+      + '<span style="font-size:9.5px;color:#aaa">Marker color override:</span>'
+      + '<div style="display:flex;gap:8px;align-items:center">'
+      + '<label style="display:flex;align-items:center;gap:5px;font-size:9.5px;color:#aaa;cursor:pointer"><input type="checkbox" style="accent-color:#1FA8D9"> Use custom color</label>'
+      + '<input type="color" value="#1FA8D9" style="width:36px;height:24px;border:none;background:none;cursor:pointer">'
+      + '</div>'
+      + '<span style="font-size:9.5px;color:#aaa">Marker size override:</span>'
+      + '<div style="display:flex;gap:8px;align-items:center">'
+      + '<label style="display:flex;align-items:center;gap:5px;font-size:9.5px;color:#aaa;cursor:pointer"><input type="checkbox" style="accent-color:#1FA8D9"> Use custom size</label>'
+      + '<input type="number" value="2.5" step="0.5" style="width:70px;background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:10px;padding:3px 5px;outline:none;border-radius:3px" onkeydown="event.stopPropagation()"> mm'
+      + '</div>'
+      + '<span style="font-size:9.5px;color:#aaa">Label visibility:</span>'
+      + '<label style="display:flex;align-items:center;gap:5px;font-size:9.5px;color:#aaa;cursor:pointer"><input type="checkbox" checked style="accent-color:#1FA8D9"> Show labels</label>'
+      + '</div>';
+  }
+
+  // Tab renderers map
+  var renderers = [
+    renderInfo, null, null, renderInclude, renderExclude,
+    renderQueryBuilder, renderOverrides, renderPointList, renderSummary
+  ];
+
+  // Build tab buttons
+  tabDefs.forEach(function(tabName, i) {
+    var tabBtn = document.createElement('button');
+    tabBtn.textContent = tabName;
+    tabBtn.style.cssText = 'padding:5px 10px;font-size:9px;cursor:pointer;border:none;border-bottom:2px solid '
+      + (i===0?'#1FA8D9':'transparent') + ';background:none;color:' + (i===0?'#1FA8D9':'#778')
+      + ';white-space:nowrap;flex-shrink:0';
+    (function(idx, btn){
+      btn.onclick = function() {
+        tabRow.querySelectorAll('button').forEach(function(b) {
+          b.style.borderBottomColor = 'transparent'; b.style.color = '#778';
+        });
+        btn.style.borderBottomColor = '#1FA8D9'; btn.style.color = '#1FA8D9';
+        if (renderers[idx]) {
+          renderers[idx]();
+        } else {
+          body.innerHTML = '<div style="color:#aaa;font-size:10px;padding:20px">'
+            + tabDefs[idx] + ' — configure this tab to filter/override points in this group.</div>';
+        }
+      };
+    })(i, tabBtn);
+    tabRow.appendChild(tabBtn);
+  });
+
+  // Apply function (reads from DOM)
+  function applyPG() {
+    var nameEl = document.getElementById(did+'_name');
+    var descEl = document.getElementById(did+'_desc');
+    var psEl   = document.getElementById(did+'_pointStyle');
+    var lsEl   = document.getElementById(did+'_labelStyle');
+    var lkEl   = document.getElementById(did+'_locked');
+    if (nameEl) pg.name = nameEl.value || pg.name;
+    if (descEl) pg.desc = descEl.value;
+    if (psEl)   pg.pointStyle = psEl.value;
+    if (lsEl)   pg.labelStyle = lsEl.value;
+    if (lkEl)   pg.locked = lkEl.checked;
+    // Include criteria
+    pg.incFrom = parseInt(document.getElementById(did+'_incFrom')?.value)||null;
+    pg.incTo   = parseInt(document.getElementById(did+'_incTo')?.value)||null;
+    pg.incDescPattern = document.getElementById(did+'_incDescVal')?.value||null;
+    // Refresh title
+    hdr.firstChild.textContent = 'Point Group Properties — ' + pg.name;
+    if (typeof window._tsRefreshPointGroups === 'function') window._tsRefreshPointGroups();
+    if (typeof updateToolspaceCounts === 'function') updateToolspaceCounts();
+    if (typeof toast !== 'undefined') toast('Point Group "'+pg.name+'" saved', 'ok');
+    if (typeof render === 'function') render();
+  }
+
+  // Store dialog state for external access
+  window._pgDialogs[did] = { pg: pg, apply: applyPG };
+
+  // Render initial tab
+  renderInfo();
 };
+
+// ── Inline point editor (mini-panel floating near selected point) ──────
+window.openPointEditor = function(pt, listIdx, onSave) {
+  var old = document.getElementById('_ptEditor'); if (old) old.remove();
+  var dlg = document.createElement('div');
+  dlg.id = '_ptEditor';
+  dlg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#050F1C;border:1px solid #1FA8D9;border-radius:6px;z-index:22000;width:400px;max-width:95vw;font-family:IBM Plex Mono,monospace;box-shadow:0 8px 32px rgba(0,0,0,.9)';
+
+  dlg.innerHTML = '<div style="background:#0a1525;padding:7px 12px;display:flex;align-items:center;border-bottom:1px solid #1a2535">'
+    + '<span style="font-size:11px;font-weight:700;color:#1FA8D9">Edit Point</span>'
+    + '<button onclick="document.getElementById(\'_ptEditor\').remove()" style="margin-left:auto;background:none;border:none;color:#667;font-size:16px;cursor:pointer">✕</button></div>'
+    + '<div style="padding:14px;display:grid;grid-template-columns:100px 1fr;gap:8px;align-items:center">'
+    + '<span style="font-size:9.5px;color:#889">Point No.:</span>'
+    + '<input id="_pte_num" value="'+(pt.num||'')+'" type="number" style="background:#0a1525;border:1px solid #1a2535;color:#1FA8D9;font-size:11px;padding:3px 6px;outline:none;border-radius:3px" onkeydown="event.stopPropagation()">'
+    + '<span style="font-size:9.5px;color:#889">Easting (X):</span>'
+    + '<input id="_pte_e" value="'+((pt.easting||pt.x||0).toFixed(3))+'" type="number" step="0.001" style="background:#0a1525;border:1px solid #1a2535;color:#4eff91;font-size:11px;padding:3px 6px;outline:none;border-radius:3px" onkeydown="event.stopPropagation()">'
+    + '<span style="font-size:9.5px;color:#889">Northing (Y):</span>'
+    + '<input id="_pte_n" value="'+((pt.northing||pt.y||0).toFixed(3))+'" type="number" step="0.001" style="background:#0a1525;border:1px solid #1a2535;color:#4eff91;font-size:11px;padding:3px 6px;outline:none;border-radius:3px" onkeydown="event.stopPropagation()">'
+    + '<span style="font-size:9.5px;color:#889">Elevation (Z):</span>'
+    + '<input id="_pte_z" value="'+((pt.elevation||pt.z||0).toFixed(3))+'" type="number" step="0.001" style="background:#0a1525;border:1px solid #1a2535;color:#4eff91;font-size:11px;padding:3px 6px;outline:none;border-radius:3px" onkeydown="event.stopPropagation()">'
+    + '<span style="font-size:9.5px;color:#889">Description:</span>'
+    + '<input id="_pte_desc" value="'+(pt.desc||'')+'" type="text" style="background:#0a1525;border:1px solid #1a2535;color:#ccc;font-size:11px;padding:3px 6px;outline:none;border-radius:3px" onkeydown="event.stopPropagation()">'
+    + '</div>'
+    + '<div style="display:flex;justify-content:flex-end;gap:8px;padding:10px 14px;border-top:1px solid #1a2535">'
+    + '<button onclick="document.getElementById(\'_ptEditor\').remove()" style="padding:4px 14px;border:1px solid #334;background:none;color:#889;cursor:pointer;font-size:10px;border-radius:4px">Cancel</button>'
+    + '<button id="_pte_ok" style="padding:4px 14px;border:1px solid #1FA8D9;background:rgba(31,168,217,.15);color:#1FA8D9;cursor:pointer;font-size:10px;font-weight:700;border-radius:4px">Save Changes</button>'
+    + '</div>';
+
+  document.body.appendChild(dlg);
+
+  document.getElementById('_pte_ok').onclick = function() {
+    var newE   = parseFloat(document.getElementById('_pte_e').value);
+    var newN   = parseFloat(document.getElementById('_pte_n').value);
+    var newZ   = parseFloat(document.getElementById('_pte_z').value)||0;
+    var newNum = parseInt(document.getElementById('_pte_num').value)||pt.num;
+    var newDesc= document.getElementById('_pte_desc').value;
+    if (isNaN(newE)||isNaN(newN)) { if(typeof toast!=='undefined')toast('Enter valid Easting and Northing','warn'); return; }
+
+    // Update the point record
+    pt.easting=newE; pt.northing=newN; pt.elevation=newZ;
+    pt.x=newE; pt.y=newN; pt.z=newZ;
+    pt.num=newNum; pt.desc=newDesc;
+
+    // Update matching CAD entity
+    var ent = ST.entities.find(function(e){ return e.type==='point' && e.ptnum===pt.num; });
+    if (!ent) ent = ST.entities.find(function(e){ return e.type==='point' && Math.abs(e.x-(pt.x||0))<0.01 && Math.abs(e.y-(pt.y||0))<0.01; });
+    if (ent) { ent.x=newE; ent.y=newN; ent.z=newZ; ent.ptnum=newNum; ent.desc=newDesc; }
+
+    if(typeof pushUndo==='function') pushUndo('edit point');
+    if(typeof invalidateSpatialIndex==='function') invalidateSpatialIndex();
+    if(typeof render==='function') render();
+    if(typeof toast!=='undefined') toast('Point #'+newNum+' updated','ok');
+    document.getElementById('_ptEditor').remove();
+    if (typeof onSave==='function') onSave();
+  };
+};
+
+// ── Inline point properties panel (appears when point selected on canvas) ──
+window._showPointPanel = function(ent) {
+  var old = document.getElementById('_ptSelPanel'); if (old) old.remove();
+  if (!ent || ent.type !== 'point') return;
+
+  var panel = document.createElement('div');
+  panel.id = '_ptSelPanel';
+  panel.style.cssText = 'position:fixed;right:288px;top:80px;background:#050F1C;border:1px solid #1FA8D9;border-radius:6px;z-index:11000;width:230px;font-family:IBM Plex Mono,monospace;box-shadow:-4px 4px 20px rgba(0,0,0,.8)';
+
+  // Find which group this point belongs to
+  var grp = (ST.pointGroups||[]).find(function(g){
+    return g.points&&g.points.some(function(p){return p.num===ent.ptnum;});
+  });
+
+  panel.innerHTML = '<div style="background:#0a1525;padding:6px 10px;display:flex;align-items:center;border-bottom:1px solid #1a2535">'
+    + '<span style="font-size:10px;font-weight:700;color:#1FA8D9">Point Properties</span>'
+    + '<button onclick="document.getElementById(\'_ptSelPanel\').remove()" style="margin-left:auto;background:none;border:none;color:#667;font-size:14px;cursor:pointer;line-height:1">✕</button></div>'
+    + '<div style="padding:10px 12px;font-size:9.5px">'
+    + '<div style="display:grid;grid-template-columns:80px 1fr;gap:5px;line-height:1.8">'
+    + '<span style="color:#889">Point No.:</span><span style="color:#1FA8D9;font-weight:700">'+(ent.ptnum||'—')+'</span>'
+    + '<span style="color:#889">Easting:</span><span style="color:#4eff91">'+(ent.x||0).toFixed(3)+'</span>'
+    + '<span style="color:#889">Northing:</span><span style="color:#4eff91">'+(ent.y||0).toFixed(3)+'</span>'
+    + '<span style="color:#889">Elevation:</span><span style="color:#4eff91">'+(ent.z||0).toFixed(3)+'</span>'
+    + '<span style="color:#889">Description:</span><span style="color:#ccc">'+(ent.desc||'—')+'</span>'
+    + '<span style="color:#889">Group:</span><span style="color:#aaa">'+(grp?grp.name:'_All Points')+'</span>'
+    + '</div></div>'
+    + '<div style="display:flex;gap:6px;padding:8px 10px;border-top:1px solid #1a2535;flex-wrap:wrap">'
+    + '<button id="_ptsp_edit" style="padding:3px 10px;background:rgba(31,168,217,.15);border:1px solid #1FA8D9;color:#1FA8D9;cursor:pointer;font-size:9px;border-radius:3px;flex:1">✎ Edit</button>'
+    + '<button id="_ptsp_move" style="padding:3px 10px;background:#0a1a2a;border:1px solid #556;color:#aaa;cursor:pointer;font-size:9px;border-radius:3px;flex:1">⊕ Move</button>'
+    + '<button id="_ptsp_del" style="padding:3px 10px;background:#0a1a2a;border:1px solid #ff4466;color:#ff4466;cursor:pointer;font-size:9px;border-radius:3px;flex:1">✕ Delete</button>'
+    + '</div>';
+
+  document.body.appendChild(panel);
+
+  document.getElementById('_ptsp_edit').onclick = function() {
+    var pt = {num:ent.ptnum, easting:ent.x, northing:ent.y, elevation:ent.z, x:ent.x, y:ent.y, z:ent.z, desc:ent.desc};
+    window.openPointEditor(pt, -1, function(){
+      document.getElementById('_ptSelPanel')&&document.getElementById('_ptSelPanel').remove();
+    });
+  };
+
+  document.getElementById('_ptsp_move').onclick = function() {
+    if (typeof toast !== 'undefined') toast('Click new position on canvas to move point #'+ent.ptnum,'ok');
+    ST.tool = 'pointPlace';
+    panel.remove();
+    var cad = document.getElementById('cad');
+    if (cad) {
+      var onceClick = function(ev) {
+        var r = cad.getBoundingClientRect();
+        var wp = typeof s2w==='function'?s2w(ev.clientX-r.left,ev.clientY-r.top):{x:ev.clientX-r.left,y:ev.clientY-r.top};
+        if(typeof snapPoint==='function') wp = snapPoint(ev.clientX-r.left,ev.clientY-r.top);
+        ent.x=wp.x; ent.y=wp.y;
+        // Update in point groups too
+        (ST.pointGroups||[]).forEach(function(g){
+          var p=g.points&&g.points.find(function(pp){return pp.num===ent.ptnum;});
+          if(p){p.x=wp.x;p.easting=wp.x;p.y=wp.y;p.northing=wp.y;}
+        });
+        if(typeof invalidateSpatialIndex==='function')invalidateSpatialIndex();
+        if(typeof render==='function')render();
+        ST.tool=null;
+        cad.removeEventListener('click',onceClick,true);
+        if(typeof toast!=='undefined')toast('Point #'+ent.ptnum+' moved','ok');
+      };
+      cad.addEventListener('click', onceClick, true);
+    }
+  };
+
+  document.getElementById('_ptsp_del').onclick = function() {
+    if (!confirm('Delete point #'+ent.ptnum+'?')) return;
+    ST.entities = ST.entities.filter(function(e){return e!==ent;});
+    (ST.pointGroups||[]).forEach(function(g){
+      g.points=g.points.filter(function(p){return p.num!==ent.ptnum;});
+    });
+    if(typeof invalidateSpatialIndex==='function')invalidateSpatialIndex();
+    if(typeof render==='function')render();
+    if(typeof toast!=='undefined')toast('Point #'+ent.ptnum+' deleted','ok');
+    panel.remove();
+  };
+};
+
+// Helper: add a labeled field row to a container
+function addField(container, label, mkInput) {
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'margin-bottom:10px';
+  var lbl = document.createElement('div');
+  lbl.textContent = label;
+  lbl.style.cssText = 'font-size:9.5px;color:#889;margin-bottom:4px';
+  wrap.appendChild(lbl);
+  wrap.appendChild(mkInput());
+  container.appendChild(wrap);
+}
+
+// ── Hook canvas click to show point panel when a point is selected ────
+(function(){
+  var cad = document.getElementById('cad');
+  if (!cad) return;
+  cad.addEventListener('click', function(ev) {
+    // Only fire when NOT in a drawing tool
+    if (ST.tool && ST.tool !== 'select') return;
+    // Wait for entity selection to update, then check
+    setTimeout(function() {
+      var pts = ST.entities.filter(function(e){ return e.selected && e.type==='point'; });
+      if (pts.length === 1) {
+        window._showPointPanel(pts[0]);
+      } else {
+        var panel = document.getElementById('_ptSelPanel');
+        if (panel) panel.remove();
+      }
+    }, 80);
+  });
+})();
+
+// ── Wire keyboard Escape to close point panel ─────────────────────────
+document.addEventListener('keydown', function(ev) {
+  if (ev.key === 'Escape') {
+    var pp = document.getElementById('_ptSelPanel');
+    if (pp) pp.remove();
+  }
+});
+
+
 
 // ── Point Style Editor ────────────────────────────────────────────────
 window.openPointStyleEditor=function(sn){
